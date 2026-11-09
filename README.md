@@ -85,7 +85,7 @@ TitanBot offers a complete suite of tools for Discord server management and comm
 ### Music
 - **24/7 Mode** - Play music 24/7
 - **Interative Button System** - Manage music through buttons
-- **Supports EVERY platform** - Supports spotify, deezer, youtube, apple music
+- **YouTube support** - Play YouTube videos and playlists by URL or search query (requires a Lavalink node with the YouTube plugin)
   
 </td>
 </tr>
@@ -129,19 +129,33 @@ This starts the bot and PostgreSQL. The compose file sets `POSTGRES_SSL=false` a
 
 ### Music
 
-Music uses [Lavalink v4](https://github.com/lavalink-devs/Lavalink) via [Riffy](https://github.com/riffy-rb/riffy), similar to [Musicify](https://github.com/codebymitch/Musicify).
+Music uses [Lavalink v4](https://github.com/lavalink-devs/Lavalink) via [Riffy](https://github.com/riffy-rb/riffy). The repository's local Lavalink profile includes the [Lavalink YouTube plugin](https://github.com/lavalink-devs/youtube-source), which enables YouTube search, video URLs, and playlist URLs.
 
-1. By default, the bot loads multiple public v4 SSL nodes from [`lavalink/nodes.json`](lavalink/nodes.json) (sourced from [lavalink.darrennathanael.com](https://lavalink.darrennathanael.com/SSL/Lavalink-SSL/)). Edit that file to add or remove nodes.
-2. To self-host Lavalink instead, run `docker compose --profile local-lavalink up -d` and set single-node env vars in `.env`:
-   ```env
-   LAVALINK_HOST=lavalink
-   LAVALINK_PORT=2333
-   LAVALINK_PASSWORD=youshallnotpass
-   LAVALINK_SECURE=false
-   ```
-   Remove or rename `lavalink/nodes.json` so the bot falls back to those env vars.
-3. Override nodes inline with `LAVALINK_NODES` (JSON array) or point at another file with `LAVALINK_NODES_FILE`.
-4. Use `/play <song>` from a voice channel, or `/join` to connect without playing. Prefix shortcuts: `join`, `np`, `leave`, `pause`, `resume`, `skip`, `stop`, `volume <0-100>`, or `music <subcommand>`. Use `/nowplaying` and `/queue` for status; `/music` for loop, shuffle, seek, and other controls.
+**Recommended: use the included YouTube-enabled Lavalink service.** Add these settings to your `.env` file (keep your existing Discord and database settings):
+
+```env
+LAVALINK_PASSWORD=change-this-to-a-strong-password
+LAVALINK_NODES=[{"host":"lavalink","port":2333,"password":"change-this-to-a-strong-password","secure":false,"name":"Local Lavalink"}]
+```
+
+Use the same password in both places. Then start the stack with the local Lavalink profile:
+
+```bash
+docker compose --profile local-lavalink up -d --build
+```
+
+The `LAVALINK_NODES` setting takes priority over the public-node file, so the bot connects to the local YouTube-enabled server. Public nodes in `lavalink/nodes.json` may not have the YouTube plugin installed; YouTube playback is therefore not guaranteed when using those nodes.
+
+From a voice channel, run:
+
+- `/play query:<YouTube URL or song name>` — play a video or search for a track
+- `/play query:<YouTube playlist URL>` — add playlist tracks to the queue
+- `/queue` and `/nowplaying` — view playback
+- `/music pause`, `/music resume`, `/music skip`, `/music stop` — control playback
+- `/music volume level:<0-100>` — change volume
+- `/music loop mode:<off|track|queue>` — change loop mode
+
+The bot needs **Connect** and **Speak** permissions in the voice channel. Keep Lavalink and the YouTube plugin up to date; YouTube can change its playback requirements at any time.
 
 ### Using GitHub Container Registry
 
