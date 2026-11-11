@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080b08">
+  <meta name="description" content="Barracks-Bot — your all-in-one Discord command center for moderation, music, tickets, economy, leveling and more.">
+  <title>Barracks-Bot | Command Your Community</title>
+  <style>
+    :root{color-scheme:dark;--bg:#080b08;--panel:#101610;--panel2:#151e15;--line:#263426;--green:#a5ff35;--green2:#6ed21c;--muted:#a6b19f;--white:#f4f7ef}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 50% -15%,#29451b 0,transparent 48%),var(--bg);color:var(--white);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.6}
+    a{color:inherit;text-decoration:none}.wrap{width:min(1120px,calc(100% - 40px));margin:auto}.topbar{position:sticky;top:0;z-index:10;background:#080b08df;backdrop-filter:blur(14px);border-bottom:1px solid #263426}
+    .nav{height:76px;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.08em}.brand-mark{width:42px;height:42px;display:grid;place-items:center;border:2px solid var(--green);clip-path:polygon(50% 0,94% 18%,88% 78%,50% 100%,12% 78%,6% 18%);background:#172515;color:var(--green);font-size:21px}.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.2em;font-weight:700}.navlinks{display:flex;align-items:center;gap:28px;color:#c1cbb9;font-size:14px}.navlinks a:hover{color:var(--green)}.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid var(--green);background:var(--green);color:#10160c;padding:12px 19px;border-radius:8px;font-weight:900;font-size:14px;transition:.2s}.btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px #a5ff3538}.btn.ghost{background:transparent;color:var(--green)}.menu{display:none}
+    .hero{padding:92px 0 80px;position:relative;overflow:hidden}.hero:before{content:"";position:absolute;width:520px;height:520px;border:1px solid #a5ff351c;border-radius:50%;left:50%;top:10px;transform:translateX(-50%);box-shadow:0 0 0 38px #a5ff3508,0 0 0 86px #a5ff3505;pointer-events:none}.hero-inner{position:relative;text-align:center;max-width:850px;margin:auto}.eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 12px;border:1px solid #405735;border-radius:999px;color:var(--green);font-size:11px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;background:#101a0d}.dot{width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 12px var(--green)}h1{font-size:clamp(48px,8vw,88px);line-height:.98;letter-spacing:-.065em;margin:25px 0 20px;font-weight:1000;text-transform:uppercase}h1 span{color:var(--green);text-shadow:0 0 34px #a5ff3530}.hero p{max-width:650px;margin:0 auto;color:#b6c1b0;font-size:18px}.hero-actions{display:flex;justify-content:center;gap:13px;flex-wrap:wrap;margin-top:30px}.hero-emblem{margin:48px auto 0;width:112px;height:112px;border:2px solid #8de72d;border-radius:28px;transform:rotate(45deg);display:grid;place-items:center;background:linear-gradient(145deg,#20351a,#080d08);box-shadow:0 0 60px #91ed2833}.hero-emblem b{transform:rotate(-45deg);font-size:45px;color:var(--green);text-shadow:0 0 20px #a5ff35}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 auto 80px;max-width:800px}.stat{background:#101610;border:1px solid var(--line);border-radius:12px;padding:18px;text-align:center}.stat strong{display:block;font-size:28px;color:var(--green);line-height:1.2}.stat span{font-size:11px;color:var(--muted);letter-spacing:.13em;text-transform:uppercase}
+    section{padding:70px 0}.section-head{text-align:center;max-width:680px;margin:0 auto 36px}.kicker{color:var(--green);font-size:11px;font-weight:900;letter-spacing:.2em;text-transform:uppercase}.section-head h2{font-size:clamp(30px,5vw,46px);letter-spacing:-.04em;line-height:1.1;margin:10px 0}.section-head p{color:var(--muted);margin:0}.features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.feature{background:linear-gradient(145deg,#141d13,#0d120d);border:1px solid var(--line);border-radius:14px;padding:24px;min-height:190px;transition:.2s}.feature:hover{border-color:#78b934;transform:translateY(-4px)}.feature-icon{width:42px;height:42px;display:grid;place-items:center;background:#24351b;border:1px solid #486b2b;border-radius:10px;color:var(--green);font-size:20px}.feature h3{margin:16px 0 6px;font-size:18px}.feature p{margin:0;color:var(--muted);font-size:14px}
+    .command-area{background:#0c110c;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.command-tools{display:flex;gap:12px;max-width:680px;margin:0 auto 24px}.search{flex:1;background:#111911;border:1px solid #344332;border-radius:9px;padding:13px 15px;color:var(--white);font:inherit;outline:none}.search:focus{border-color:var(--green)}.command-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-width:850px;margin:auto}.command{display:flex;justify-content:space-between;gap:14px;padding:14px 16px;background:#121a12;border:1px solid #283728;border-radius:9px}.command code{color:var(--green);font-weight:800}.command span{font-size:12px;color:var(--muted);text-align:right}.empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:30px}
+    .cta{padding:80px 0}.cta-card{border:1px solid #557a34;border-radius:18px;padding:50px 30px;text-align:center;background:radial-gradient(ellipse at 50% 0,#34532280,transparent 70%),#111910}.cta-card h2{font-size:clamp(30px,5vw,48px);margin:0 0 10px;letter-spacing:-.04em}.cta-card p{color:#b8c4b1;margin:0 auto 24px;max-width:560px}.footer{border-top:1px solid var(--line);padding:25px 0;color:#83907d;font-size:12px}.footer-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.status{display:inline-flex;align-items:center;gap:8px;color:#c5d0be;font-size:12px}.status .dot{width:7px;height:7px}
+    @media(max-width:760px){.navlinks{display:none}.menu{display:block;color:var(--green);font-size:13px}.nav .btn{padding:10px 12px}.hero{padding:68px 0 55px}.hero p{font-size:16px}.features{grid-template-columns:repeat(2,1fr)}.stats{margin-bottom:45px}.command-list{grid-template-columns:1fr}}
+    @media(max-width:480px){.wrap{width:min(100% - 28px,1120px)}.brand{font-size:13px}.brand-mark{width:36px;height:36px}.nav{height:66px}.nav .btn{font-size:12px}.features{grid-template-columns:1fr}.stats{gap:8px}.stat{padding:13px 7px}.stat strong{font-size:22px}.stat span{font-size:9px}.command-tools{flex-direction:column}.cta-card{padding:36px 20px}}
+  </style>
+</head>
+<body>
+  <header class="topbar"><div class="wrap nav">
+    <a class="brand" href="#"><span class="brand-mark">⌃</span><span>BARRACKS-BOT<small>DISCORD COMMAND CENTER</small></span></a>
+    <nav class="navlinks"><a href="#features">Features</a><a href="#commands">Commands</a><a href="#invite">Get Started</a></nav>
+    <a class="btn invite-link" href="#invite">Invite Bot ↗</a>
+  </div></header>
+  <main>
+    <section class="hero"><div class="wrap hero-inner">
+      <div class="eyebrow"><i class="dot"></i> BUILT FOR YOUR COMMUNITY</div>
+      <h1>Command your<br><span>community.</span></h1>
+      <p>One powerful Discord bot. Everything your server needs — moderation, music, tickets, leveling, economy, and more — all in one place.</p>
+      <div class="hero-actions"><a class="btn invite-link" href="#invite">＋ Add to Discord</a><a class="btn ghost" href="#features">Explore Features ↓</a></div>
+      <div class="hero-emblem" aria-label="Barracks emblem"><b>⌃</b></div>
+    </div></section>
+    <div class="wrap stats">
+      <div class="stat"><strong id="guild-count">—</strong><span>Servers protected</span></div>
+      <div class="stat"><strong id="command-count">—</strong><span>Slash commands</span></div>
+      <div class="stat"><strong class="live-state">Checking</strong><span>Bot status</span></div>
+    </div>
+    <section id="features"><div class="wrap">
+      <div class="section-head"><div class="kicker">THE TOOLKIT</div><h2>Everything in your arsenal.</h2><p>Powerful server tools designed to keep your community organized, active, and entertained.</p></div>
+      <div class="features">
+        <article class="feature"><div class="feature-icon">⚔</div><h3>Moderation & Admin</h3><p>Manage members, review cases, keep notes, and maintain a safer server.</p></article>
+        <article class="feature"><div class="feature-icon">♫</div><h3>Music</h3><p>Play tracks and YouTube playlists, manage queues, and control playback with interactive buttons.</p></article>
+        <article class="feature"><div class="feature-icon">▣</div><h3>Ticket System</h3><p>Give members a direct support channel with claiming, priorities, limits, and transcripts.</p></article>
+        <article class="feature"><div class="feature-icon">✦</div><h3>Leveling & XP</h3><p>Reward participation with XP tracking and configurable level roles.</p></article>
+        <article class="feature"><div class="feature-icon">◈</div><h3>Economy</h3><p>Bring your server to life with balances, shops, inventories, and member transfers.</p></article>
+        <article class="feature"><div class="feature-icon">♜</div><h3>Giveaways & Events</h3><p>Run giveaways with multiple winners, automatic draws, and rerolls.</p></article>
+        <article class="feature"><div class="feature-icon">◎</div><h3>Server Statistics</h3><p>Show live member and voice counters with automatic updates.</p></article>
+        <article class="feature"><div class="feature-icon">♟</div><h3>Reaction Roles</h3><p>Let members choose their own roles through simple reaction-based menus.</p></article>
+        <article class="feature"><div class="feature-icon">☼</div><h3>Welcome & Utility</h3><p>Welcome new members, assign roles, track birthdays, and use helpful server tools.</p></article>
+      </div>
+    </div></section>
+    <section class="command-area" id="commands"><div class="wrap">
+      <div class="section-head"><div class="kicker">FIELD MANUAL</div><h2>Explore the commands.</h2><p>Live command list loaded from the bot when it is online.</p></div>
+      <div class="command-tools"><input class="search" id="command-search" type="search" placeholder="Search commands..." aria-label="Search commands"></div>
+      <div class="command-list" id="command-list"><div class="empty">Connecting to Barracks-Bot command registry…</div></div>
+    </div></section>
+    <section id="invite" class="cta"><div class="wrap"><div class="cta-card">
+      <div class="kicker">YOUR SERVER. YOUR RULES.</div><h2>Ready to deploy?</h2><p>Bring the Barracks-Bot toolkit into your Discord server and get your community running.</p>
+      <a class="btn invite-link" href="#invite">Invite Barracks-Bot ↗</a>
+      <p style="font-size:12px;margin-top:16px">Need help? Join our <a href="https://discord.gg/8kJBYhTGW9" style="color:var(--green);text-decoration:underline">support server</a>.</p>
+    </div></div></section>
+  </main>
+  <footer class="footer"><div class="wrap footer-inner"><span>© <span id="year"></span> BARRACKS-BOT. ALL SYSTEMS OPERATIONAL.</span><span class="status"><i class="dot"></i><span class="live-state">Checking status</span></span><a href="https://github.com/Uwakinkanalang/Barracks-Bot">GitHub Repository ↗</a></div></footer>
+  <script>
+    const yearNode = document.getElementById('year');
+    yearNode.textContent = new Date().getFullYear();
+    let allCommands = [];
+    function setBotState(online) {
+      document.querySelectorAll('.live-state').forEach(node => {
+        node.textContent = online ? 'Online' : 'Offline';
+        node.style.color = online ? '#a5ff35' : '#ff8a72';
+      });
+    }
+    function renderCommands(items) {
+      const list = document.getElementById('command-list');
+      if (!items.length) {
+        list.innerHTML = '<div class="empty">No matching commands found.</div>';
+        return;
+      }
+      list.innerHTML = items.map(item => '<div class="command"><code>/' + escapeHtml(item.name) + '</code><span>' + escapeHtml(item.description || 'Barracks-Bot command') + '</span></div>').join('');
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    }
+    document.getElementById('command-search').addEventListener('input', event => {
+      const term = event.target.value.toLowerCase().trim();
+      renderCommands(allCommands.filter(item => (item.name + ' ' + item.description).toLowerCase().includes(term)));
+    });
+    fetch('/api/status').then(response => {
+      if (!response.ok) throw new Error('Status unavailable');
+      return response.json();
+    }).then(data => {
+      document.getElementById('guild-count').textContent = Number(data.guildCount || 0).toLocaleString();
+      document.getElementById('command-count').textContent = Number(data.commandCount || 0).toLocaleString();
+      setBotState(Boolean(data.online));
+      allCommands = Array.isArray(data.commands) ? data.commands : [];
+      renderCommands(allCommands);
+      if (data.inviteUrl) {
+        document.querySelectorAll('.invite-link').forEach(link => {
+          link.href = data.inviteUrl;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+        });
+      } else {
+        document.querySelectorAll('.invite-link').forEach(link => {
+          link.href = 'https://discord.com/developers/applications';
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.title = 'Set CLIENT_ID to generate your bot invite link';
+        });
+      }
+    }).catch(() => {
+      setBotState(false);
+      document.getElementById('command-list').innerHTML = '<div class="empty">Bot status is temporarily unavailable. The bot may be starting up.</div>';
+    });
+  </script>
+</body>
+</html>
