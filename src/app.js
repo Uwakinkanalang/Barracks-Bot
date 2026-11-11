@@ -156,6 +156,34 @@ class TitanBot extends Client {
       next();
     });
 
+    // Serve the Barracks-Bot website from the same Express service.
+    app.use(express.static(new URL('../public/', import.meta.url).pathname));
+
+    // Public, read-only status and slash-command directory for the website.
+    app.get('/api/status', (req, res) => {
+      const commands = Array.from(this.commands?.values?.() || [])
+        .map(command => ({
+          name: command.data?.name,
+          description: command.data?.description || 'Barracks-Bot command'
+        }))
+        .filter(command => command.name)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const clientId = this.config.bot.clientId;
+      const inviteUrl = clientId
+        ? `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(clientId)}&scope=bot%20applications.commands`
+        : null;
+
+      res.status(200).json({
+        online: this.isReady(),
+        guildCount: this.guilds?.cache?.size ?? 0,
+        commandCount: commands.length,
+        commands,
+        inviteUrl,
+        updatedAt: new Date().toISOString()
+      });
+    });
+
     app.get('/health', (req, res) => {
       const dbStatus = this.db?.getStatus?.() || { isDegraded: 'unknown' };
       const status = {
