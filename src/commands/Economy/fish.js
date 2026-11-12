@@ -110,13 +110,13 @@ export default {
 
             const embed = createEmbed({
                 title: 'Fishing Success!',
-                description: `${catchMessage}\n\nYou caught a **${fishCaught.emoji} ${fishCaught.name}**! You sold it for **$${finalEarned.toLocaleString()}**!${multiplierMessage}`,
+                description: `${catchMessage}\n\nYou caught a **${fishCaught.emoji} ${fishCaught.name}**! You sold it for **₱${finalEarned.toLocaleString()}**!${multiplierMessage}`,
                 color: rarityColors[fishCaught.rarity]
             })
                 .addFields(
                     {
                         name: "New Cash Balance",
-                        value: `$${userData.wallet.toLocaleString()}`,
+                        value: `₱${userData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
