@@ -79,7 +79,7 @@ export default {
                 throw createError(
                     "Victim too poor",
                     ErrorTypes.VALIDATION,
-                    `${victimUser.username} is too poor. They need at least $500 cash to be worth robbing.`,
+                    `${victimUser.username} is too poor. They need at least ₱500 cash to be worth robbing.`,
                     { victimWallet: victimData.wallet, required: 500 }
                 );
             }
@@ -111,7 +111,7 @@ export default {
 
                 resultEmbed = successEmbed(
                     'Robbery Successful',
-                    `You successfully stole **$${amountStolen.toLocaleString()}** from ${victimUser.username}!`
+                    `You successfully stole **₱${amountStolen.toLocaleString()}** from ${victimUser.username}!`
                 );
             } else {
                 const fineAmount = Math.floor((robberData.wallet || 0) * FINE_PERCENTAGE);
@@ -124,7 +124,7 @@ export default {
 
                 resultEmbed = buildUserErrorEmbed(
                     'unknown',
-                    `You failed the robbery and were caught! You were fined **$${fineAmount.toLocaleString()}** of your own cash.`,
+                    `You failed the robbery and were caught! You were fined **₱${fineAmount.toLocaleString()}** of your own cash.`,
                     { titleOverride: 'Robbery Failed' }
                 );
             }
@@ -138,12 +138,12 @@ export default {
                 .addFields(
                     {
                         name: `Your New Cash (${interaction.user.username})`,
-                        value: `$${robberData.wallet.toLocaleString()}`,
+                        value: `₱${robberData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
                         name: `Victim's New Cash (${victimUser.username})`,
-                        value: `$${victimData.wallet.toLocaleString()}`,
+                        value: `₱${victimData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                 )
