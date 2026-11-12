@@ -35,7 +35,8 @@ export default {
   name: 'birthday_submit',
   async execute(interaction, client) {
     try {
-      const { month, day, year } = parseBirthday(interaction.fields.getTextInputValue('birthday_date'));
+      const rawBirthday = interaction.fields.getTextInputValue('birthday_date');
+      const { month, day, year } = parseBirthday(rawBirthday);
       const result = await setBirthday(client, interaction.guildId, interaction.user.id, month, day, year);
 
       await interaction.reply({
