@@ -4,7 +4,7 @@ import { getAllBirthdays } from '../../../services/birthdayService.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
-const BIRTHDAY_BANNER_URL = 'https://raw.githubusercontent.com/Uwakinkanalang/Barracks-Bot/main/assets/birthday-banner.png';
+const BIRTHDAY_BANNER_URL = 'https://raw.githubusercontent.com/Uwakinkanalang/Barracks-Bot/main/birthday-banner.png';
 
 function getManilaDateParts(date = new Date()) {
     const parts = new Intl.DateTimeFormat('en-US', {
@@ -25,7 +25,7 @@ export default {
             });
         }
 
-        await InteractionHelper.safeDefer(interaction, true);
+        await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
 
         try {
             const guildConfig = await getGuildConfig(client, interaction.guildId);
