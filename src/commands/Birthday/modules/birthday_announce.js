@@ -74,7 +74,7 @@ export default {
                     iconURL: interaction.guild.iconURL({ size: 128 }) || undefined,
                 })
                 .setDescription([
-                    '**ATTENTION, <@&1558668545154486352>!**',
+                    '**ATTENTION, Soldiers!**',
                     '',
                     members.length === 1
                         ? `Today we celebrate **${mentions}'s Birthday**`
