@@ -68,7 +68,9 @@ function addCompactCards(container, cards, hiddenIndices = []) {
         container.addSectionComponents(
             new SectionBuilder()
                 .addTextDisplayComponents(
-                    new TextDisplayBuilder().setContent(hidden ? '🂠' : `**${card.rank}${card.suit}**`)
+                    new TextDisplayBuilder().setContent(
+                        hidden ? '🂠' : `**${card.rank}${card.suit}**\n\n**${card.suit}${card.rank}**`
+                    )
                 )
                 .setThumbnailAccessory(
                     new ThumbnailBuilder().setURL(imageUrl)
