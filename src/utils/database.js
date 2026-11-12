@@ -175,8 +175,24 @@ export async function setBirthday(client, guildId, userId, month, day, year = nu
 
         const key = getGuildBirthdaysKey(guildId);
         const birthdays = await getGuildBirthdays(client, guildId);
-        birthdays[userId] = { month, day, year: Number.isInteger(year) ? year : null };
+        const normalizedYear = year === null || year === undefined || year === '' ? null : Number(year);
+        if (normalizedYear !== null && (!Number.isInteger(normalizedYear) || normalizedYear < 1 || normalizedYear > 9999)) {
+            logger.error(`Invalid birthday year received for user ${userId}:`, { year });
+            return false;
+        }
+        birthdays[userId] = { month, day, year: normalizedYear };
         await client.db.set(key, birthdays);
+
+        // Read back the saved value so we don't silently report success if persistence failed.
+        const savedBirthdays = await getGuildBirthdays(client, guildId);
+        const savedBirthday = savedBirthdays[userId];
+        if (!savedBirthday || savedBirthday.month !== month || savedBirthday.day !== day || savedBirthday.year !== normalizedYear) {
+            logger.error(`Birthday write verification failed for user ${userId} in guild ${guildId}.`, {
+                expected: birthdays[userId],
+                actual: savedBirthday,
+            });
+            return false;
+        }
         return true;
     } catch (error) {
         logger.error(`Error setting birthday for user ${userId} in guild ${guildId}:`, error);
