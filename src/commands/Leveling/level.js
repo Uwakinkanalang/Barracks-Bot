@@ -42,14 +42,10 @@ export default {
     const earnedRewards = rewards
       .filter((reward) => member?.roles.cache.has(reward.roleId))
       .sort((a, b) => a.level - b.level);
-    const earnedRoleIds = new Set(earnedRewards.map((reward) => reward.roleId));
-    const roleRewardsText = rewards.length
-      ? rewards.map((reward, index) => {
-          const role = interaction.guild.roles.cache.get(reward.roleId);
-          const status = earnedRoleIds.has(reward.roleId) ? ' ✓' : '';
-          return `• **Rank ${index + 1}** — Level ${reward.level}: <@&${reward.roleId}>${status}`;
-        }).join('\n')
-      : 'No Role Rewards configured';
+    const currentRank = earnedRewards[earnedRewards.length - 1];
+    const currentRankText = currentRank
+      ? `<@&${currentRank.roleId}>`
+      : 'Unranked';
 
     const displayName = targetUser.globalName || targetUser.username;
 
@@ -62,7 +58,7 @@ export default {
       .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
       .setDescription([
         `**Level:** ${data.level}`,
-        `**Rank Levels:**\n${roleRewardsText}`,
+        `**Rank:** ${currentRankText}`,
         '',
         `**EXP:** ${currentXp.toLocaleString('en-US')} / ${xpNeeded.toLocaleString('en-US')} XP`,
         `**EXP remaining:** ${remainingXp.toLocaleString('en-US')} XP`,
