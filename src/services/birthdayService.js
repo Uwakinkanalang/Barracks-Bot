@@ -272,29 +272,26 @@ export async function getTodaysBirthdays(client, guildId) {
 }
 
 export async function checkBirthdays(client) {
-  const today = new Date();
-  const currentMonth = today.getUTCMonth() + 1;
-  const currentDay = today.getUTCDate();
+  const manilaParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila',
+    month: 'numeric',
+    day: 'numeric',
+  }).formatToParts(new Date());
+  const currentMonth = Number(manilaParts.find(part => part.type === 'month')?.value);
+  const currentDay = Number(manilaParts.find(part => part.type === 'day')?.value);
 
   if (process.env.NODE_ENV !== 'production') {
-    logger.debug(`🎂 Running daily birthday check for UTC: ${currentMonth}/${currentDay}.`);
+    logger.debug(`🎂 Running daily birthday check for Manila: ${currentMonth}/${currentDay}.`);
   }
 
   for (const [guildId, guild] of client.guilds.cache) {
     try {
       const config = await getGuildConfig(client, guildId);
-      const { birthdayChannelId, birthdayRoleId } = config;
-
-      // A channel is required for announcements; the birthday role is optional.
-      if (!birthdayChannelId) {
-        if (process.env.NODE_ENV !== 'production') {
-          logger.debug(`Skipping birthday check for ${guild.name}: Missing channel config.`);
-        }
-        continue;
-      }
-
-      const channel = await guild.channels.fetch(birthdayChannelId).catch(() => null);
-      if (!channel) continue;
+      const birthdayChannelId = config?.birthdayChannelId;
+      const birthdayRoleId = config?.birthdayRoleId || '1557466630991388744';
+      const channel = birthdayChannelId
+        ? await guild.channels.fetch(birthdayChannelId).catch(() => null)
+        : null;
 
       const trackingKey = getBirthdayTrackingKey(guildId);
       const trackingData = (await client.db.get(trackingKey)) || {};
@@ -378,7 +375,9 @@ export async function checkBirthdays(client) {
           timestamp: new Date().toISOString(),
         };
 
-        await channel.send({ embeds: [birthdayEmbed] });
+        if (channel?.isTextBased() && channel.send) {
+          await channel.send({ embeds: [birthdayEmbed] });
+        }
       }
     } catch (error) {
       logger.error(`Error processing birthdays for guild ${guildId}:`, error);
