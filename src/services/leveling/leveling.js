@@ -32,15 +32,9 @@ export function getXpForLevel(level) {
       'The level must be a valid number.'
     );
   }
-  // Progressive Koya-inspired curve, calibrated to the rounded reference cards:
-  // L31 ~= 5.9k, L34 ~= 7.1k, L35 ~= 7.5k, L39 ~= 9.2k.
-  // The XP increase itself grows by 3 per level after level 31.
-  if (level >= 31) {
-    const levelsAbove31 = level - 31;
-    return Math.round(5900 + (400 * levelsAbove31) + (1.5 * levelsAbove31 * (levelsAbove31 - 1)));
-  }
 
-  return Math.round((5 * Math.pow(level, 2) + 50 * level + 50) * 0.95);
+  // Each level requires 1,000 XP per level number (Level 100 = 100,000 XP).
+  return level * 1000;
 }
 
 export function getLevelFromXp(xp) {
