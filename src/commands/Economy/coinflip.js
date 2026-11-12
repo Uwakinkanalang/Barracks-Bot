@@ -86,12 +86,12 @@ export default {
         const coin = result === 'heads' ? '🪙' : '🪙';
         const embed = won
             ? successEmbed(
-                '🪙 Coin Flip — You Won!',
-                `${coin} The coin landed on **${result.toUpperCase()}**! You guessed correctly and received **₱${(betAmount * 2).toLocaleString()}**.`
+                '😄🪙 Coin Flip — You Won!',
+                `😄 The coin landed on **${result.toUpperCase()}**! You guessed correctly and received **₱${(betAmount * 2).toLocaleString()}**.`
             )
             : warningEmbed(
-                '🪙 Coin Flip — You Lost',
-                `${coin} The coin landed on **${result.toUpperCase()}**. You guessed **${guess.toUpperCase()}** and lost your **₱${betAmount.toLocaleString()}** bet.`
+                '😢🪙 Coin Flip — You Lost',
+                `😢 The coin landed on **${result.toUpperCase()}**. You guessed **${guess.toUpperCase()}** and lost your **₱${betAmount.toLocaleString()}** bet.`
             );
 
         embed.addFields({
