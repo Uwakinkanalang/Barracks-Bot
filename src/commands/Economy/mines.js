@@ -30,8 +30,8 @@ function buildBoard(game, ended = false, explodedIndex = -1) {
             const index = row * 3 + col;
             const isMine = game.mines.has(index);
             const isRevealed = game.revealed.has(index);
-            let emojiName = '❔';
-            let label;
+            let emojiName;
+            let label = '?';
             let style = ButtonStyle.Secondary;
 
             if (isRevealed && !isMine) {
@@ -50,8 +50,12 @@ function buildBoard(game, ended = false, explodedIndex = -1) {
                 .setCustomId(`mines:${game.id}:${index}`)
                 .setStyle(style)
                 .setDisabled(ended || isRevealed);
-            if (label) tileButton.setLabel(label);
-            else tileButton.setEmoji({ name: emojiName });
+            if (emojiName) {
+                tileButton.setLabel('');
+                tileButton.setEmoji({ name: emojiName });
+            } else {
+                tileButton.setLabel(label);
+            }
             buttons.push(tileButton);
         }
         rows.push(new ActionRowBuilder().addComponents(buttons));
@@ -62,7 +66,7 @@ function buildBoard(game, ended = false, explodedIndex = -1) {
             new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId(`mines:${game.id}:cashout`)
-                    .setLabel(`Cash Out · ₱${game.currentPayout.toLocaleString()}`)
+                     .setLabel('💵 Cash Out')
                     .setStyle(ButtonStyle.Success)
                     .setDisabled(game.revealed.size === 0)
             )
@@ -72,17 +76,20 @@ function buildBoard(game, ended = false, explodedIndex = -1) {
 }
 
 function gameEmbed(game, status = 'in progress', extra = '') {
-    const multiplier = getMultiplier(game.revealed.size, game.mineCount);
+    const safePicks = game.revealed.size;
+    const multiplier = getMultiplier(safePicks, game.mineCount);
+    const nextPayout = Math.floor(game.bet * getMultiplier(safePicks + 1, game.mineCount));
+    const cashoutMultiplier = safePicks > 0 ? multiplier : 0;
+
     return createEmbed({
-        title: '💣 Barracks Mines',
         description:
-            `**Bet:** ₱${game.bet.toLocaleString()}\n` +
-            `**Mines:** ${game.mineCount}\n` +
-            `**Safe tiles:** ${game.revealed.size}\n` +
-            `**Multiplier:** ${multiplier.toFixed(2)}x\n` +
-            `**Cash-out value:** ₱${game.currentPayout.toLocaleString()}\n\n` +
-            `Status: **${status}**${extra ? `\n${extra}` : ''}`,
-        color: status === 'BOOM! You hit a mine.' ? 'error' : 'economy',
+            `**${game.userMention} started a mines game.**\n\n` +
+            `**Bet:** \`₱${game.bet.toLocaleString()}\`   **Mines:** \`${game.mineCount}\`\n` +
+            `**Cash Out:** \`₱${game.currentPayout.toLocaleString()}\` (\`${cashoutMultiplier.toFixed(2)}x\`)\n` +
+            `**Next:** \`₱${nextPayout.toLocaleString()}\` (\`${getMultiplier(safePicks + 1, game.mineCount).toFixed(2)}x\`)` +
+            `\n\n━━━━━━━━━━━━━━━━━━━━\n\n` +
+            (extra ? `**${status}**\n${extra}` : `**${status}**`),
+        color: status === 'BOOM! You hit a mine.' ? 'error' : 'info',
     });
 }
 
@@ -126,6 +133,7 @@ export default {
 
         const game = {
             id: interaction.id,
+            userMention: interaction.user.toString(),
             bet,
             mineCount,
             mines: minePositions,
