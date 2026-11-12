@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getLevelingConfig, getUserLevelData, getXpForLevel } from '../../services/leveling/leveling.js';
+import { getLevelingConfig, getUserLevelData, getXpForLevel, getLeaderboard } from '../../services/leveling/leveling.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
@@ -30,6 +30,8 @@ export default {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
     const data = await getUserLevelData(client, interaction.guildId, targetUser.id);
+    const leaderboard = await getLeaderboard(client, interaction.guildId, 100000);
+    const leaderboardRank = leaderboard.findIndex((entry) => entry.userId === targetUser.id) + 1;
     const xpNeeded = getXpForLevel(data.level);
     const currentXp = Math.max(0, data.xp || 0);
     const totalXp = Math.max(0, data.totalXp || 0);
@@ -59,6 +61,7 @@ export default {
       .setDescription([
         `**Level:** ${data.level}`,
         `**Rank:** ${currentRankText}`,
+        `**Leaderboard Rank:** ${leaderboardRank > 0 ? `#${leaderboardRank}` : 'Unranked'}`,
         '',
         `**EXP:** ${currentXp.toLocaleString('en-US')} / ${xpNeeded.toLocaleString('en-US')} XP`,
         '',
