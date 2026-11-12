@@ -33,8 +33,12 @@ export function getXpForLevel(level) {
     );
   }
 
-  // Each level requires 1,000 XP per level number (Level 100 = 100,000 XP).
-  return level * 1000;
+  // Koya-matched progression estimated from the supplied Koya level cards.
+  // Levels 0–30 follow the fitted curve; level 31+ increases by 400 XP per level.
+  if (level >= 31) {
+    return (400 * level) - 6500;
+  }
+  return Math.round(0.95 * (5 * level ** 2 + 50 * level + 50));
 }
 
 export function getLevelFromXp(xp) {
