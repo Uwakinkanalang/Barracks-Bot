@@ -49,8 +49,9 @@ function isBlackjack(cards) {
     return cards.length === 2 && handValue(cards) === 21;
 }
 
+// Unicode playing-card characters render as individual illustrated card faces
+// (including red hearts/diamonds and black spades/clubs) in Discord clients.
 function cardFace(card) {
-    // Unicode playing-card symbols render as compact card-style glyphs in Discord.
     const suitBase = {
         '♠': 0x1F0A1,
         '♥': 0x1F0B1,
@@ -59,31 +60,38 @@ function cardFace(card) {
     }[card.suit];
 
     const rankOffset = {
-        A: 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6,
-        '8': 7, '9': 8, '10': 9, J: 10, Q: 12, K: 13,
+        A: 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5,
+        '7': 6, '8': 7, '9': 8, '10': 9, J: 10, Q: 12, K: 13,
     }[card.rank];
 
     return String.fromCodePoint(suitBase + rankOffset);
 }
 
 function renderCards(cards, hiddenIndices = []) {
-    return cards.map((card, index) => hiddenIndices.includes(index) ? '🂠' : cardFace(card)).join('　');
+    return cards
+        .map((card, index) => hiddenIndices.includes(index) ? '🂠' : cardFace(card))
+        .join('　');
 }
 
-function buildGame(game, status = '🎲 ~ Game in progress', options = {}) {
+function buildGame(game, status = '🎲 Game in progress', options = {}) {
     const { revealDealer = false, ended = false, hiddenPlayerIndices = [], hideDealerHole = false } = options;
     const dealerHidden = hideDealerHole || (!revealDealer && !ended);
     const dealerCards = renderCards(game.dealer, dealerHidden ? [1] : []);
     const playerCards = renderCards(game.player, hiddenPlayerIndices);
-    const dealerValue = revealDealer ? handValue(game.dealer) : `${game.dealer[0].rank}+?`;
+    const dealerValue = revealDealer ? handValue(game.dealer) : `${game.dealer[0].rank} + ?`;
     const playerValue = handValue(game.player);
-    const container = new ContainerBuilder().setAccentColor(0x3498DB);
+    const container = new ContainerBuilder().setAccentColor(0x2ECC71);
 
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-            `**${game.userMention}, you bet ₱${game.bet.toLocaleString()} to play Blackjack**\n\n` +
-            `**Dealer**　[${dealerValue}]　　　　 **${game.displayName}**　[${playerValue}]\n` +
-            `${dealerCards}　　　　 ${playerCards}\n\n` +
+            `**♠️ Blackjack**\n` +
+            `**YOU WON!**\n` +
+            `**BALANCE**\n₱${game.balance.toLocaleString()} 💰\n\n` +
+            `**DEALER'S HAND**  [${dealerValue}]\n` +
+            `${dealerCards}\n\n` +
+            `**YOUR HAND**  [${playerValue}]\n` +
+            `${playerCards}\n\n` +
+            `**BET:** ₱${game.bet.toLocaleString()}\n` +
             `${status}`
         )
     );
@@ -113,9 +121,8 @@ function waitForFlip() {
 }
 
 export default {
-    prefixOnly: true,
     data: new SlashCommandBuilder()
-        .setName('bblackjack')
+        .setName('blackjack')
         .setDescription('Play Blackjack using your Barracks cash wallet')
         .addIntegerOption(option =>
             option.setName('bet')
@@ -149,6 +156,7 @@ export default {
             userMention: interaction.user.toString(),
             displayName: interaction.member?.displayName || interaction.user.globalName || interaction.user.username,
             bet,
+            balance: Math.max(0, (userData.wallet || 0) - bet),
             deck,
             player: [deck.pop(), deck.pop()],
             dealer: [deck.pop(), deck.pop()],
@@ -159,12 +167,15 @@ export default {
         const settle = async payout => {
             if (game.finished) return;
             game.finished = true;
-            if (payout > 0) await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
+            if (payout > 0) {
+                await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
+                game.balance += payout;
+            }
         };
 
         const initialPlayerBlackjack = isBlackjack(game.player);
         const initialDealerBlackjack = isBlackjack(game.dealer);
-        let initialStatus = '🎲 ~ Game in progress';
+        let initialStatus = '🎲 Game in progress';
         let initialEnded = false;
         let initialReveal = false;
 
@@ -270,7 +281,7 @@ export default {
                 }
 
                 return message.edit({
-                    components: [buildGame(game, '🎲 ~ Game in progress')],
+                    components: [buildGame(game, '🎲 Game in progress')],
                 });
             }
 
