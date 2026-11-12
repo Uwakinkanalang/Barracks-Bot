@@ -6,6 +6,7 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
+    prefixOnly: true,
     data: new SlashCommandBuilder()
         .setName('deposit')
         .setDescription('Deposit money from your wallet into your bank')
