@@ -121,13 +121,13 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config) 
       : guild.systemChannel;
 
     if (!levelUpChannel || !levelUpChannel.isTextBased()) {
-      return;
+      return false;
     }
 
     const permissions = levelUpChannel.permissionsFor(guild.members.me);
     if (!permissions || !permissions.has(['SendMessages', 'EmbedLinks'])) {
       logger.warn(`Missing permissions to send levelup message in ${levelUpChannel.id}`);
-      return;
+      return false;
     }
 
     const messageTemplate = config.levelUpMessage || '{user}, you just reached level {level}!';
@@ -164,10 +164,10 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config) 
     await levelUpChannel.send({
       content: message,
       embeds: [levelUpEmbed]
-    }).catch(error => {
-      logger.error(`Failed to send level up message in channel ${levelUpChannel.id}:`, error);
     });
+    return true;
   } catch (error) {
     logger.error('Error sending level up announcement:', error);
+    return false;
   }
 }
