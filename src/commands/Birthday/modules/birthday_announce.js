@@ -74,6 +74,8 @@ export default {
                     iconURL: interaction.guild.iconURL({ size: 128 }) || undefined,
                 })
                 .setDescription([
+                    '**ATTENTION, <@&1558668545154486352>!**',
+                    '',
                     members.length === 1
                         ? `Today we celebrate **${mentions}'s Birthday**`
                         : `Today we celebrate the birthdays of **${mentions}**`,
@@ -93,11 +95,7 @@ export default {
                 .setFooter({ text: `Barracks • ${interaction.guild.name}` })
                 .setTimestamp();
 
-            await channel.send({
-                content: `**ATTENTION, <@&1558668545154486352>!**`,
-                embeds: [embed],
-                allowedMentions: { roles: ['1558668545154486352'] },
-            });
+            await channel.send({ embeds: [embed] });
 
             return InteractionHelper.safeEditReply(interaction, {
                 content: `Birthday announcement posted in <#${channel.id}> for ${names.join(', ')}.`,
