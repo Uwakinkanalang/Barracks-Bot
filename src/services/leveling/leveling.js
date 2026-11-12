@@ -32,14 +32,12 @@ export function getXpForLevel(level) {
       'The level must be a valid number.'
     );
   }
-  // Koya reference cards show roughly 400 additional required XP per level
-  // around levels 31-35 (about 5.9k at 31, 7.1k at 34, and 7.5k at 35).
-  // Keep a gentler version of the existing curve below level 31, then use
-  // that observed high-level progression from level 31 onward.
+  // Progressive Koya-inspired curve, calibrated to the rounded reference cards:
+  // L31 ~= 5.9k, L34 ~= 7.1k, L35 ~= 7.5k, L39 ~= 9.2k.
+  // The XP increase itself grows by 3 per level after level 31.
   if (level >= 31) {
-    // Approximate Koya's rounded reference cards:
-    // L31 ~= 5.9k, L34 ~= 7.1k, L35 ~= 7.5k, L39 ~= 9.2k.
-    return 410 * level - 6810;
+    const levelsAbove31 = level - 31;
+    return Math.round(5900 + (400 * levelsAbove31) + (1.5 * levelsAbove31 * (levelsAbove31 - 1)));
   }
 
   return Math.round((5 * Math.pow(level, 2) + 50 * level + 50) * 0.95);
