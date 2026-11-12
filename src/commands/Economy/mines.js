@@ -2,10 +2,12 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
+    ContainerBuilder,
+    MessageFlags,
     SlashCommandBuilder,
+    TextDisplayBuilder,
 } from 'discord.js';
 import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
-import { createEmbed } from '../../utils/embeds.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
 const BOARD_SIZE = 9;
@@ -22,8 +24,25 @@ function getMultiplier(safePicks, mineCount) {
     return HOUSE_EDGE / survivalChance;
 }
 
-function buildBoard(game, ended = false, explodedIndex = -1) {
-    const rows = [];
+function buildGameContainer(game, status = 'Choose a tile.', extra = '', ended = false, explodedIndex = -1) {
+    const safePicks = game.revealed.size;
+    const multiplier = getMultiplier(safePicks, game.mineCount);
+    const nextMultiplier = safePicks < BOARD_SIZE - game.mineCount
+        ? getMultiplier(safePicks + 1, game.mineCount)
+        : multiplier;
+    const cashoutMultiplier = safePicks > 0 ? multiplier : 0;
+
+    const container = new ContainerBuilder().setAccentColor(0x3498DB);
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+            `**${game.userMention} started a mines game.**\n\n` +
+            `**Bet:** \`₱${game.bet.toLocaleString()}\`　 **Mines:** \`${game.mineCount}\`\n` +
+            `**Cash Out:** \`₱${game.currentPayout.toLocaleString()}\` (\`${cashoutMultiplier.toFixed(2)}x\`)\n` +
+            `**Next:** \`₱${Math.floor(game.bet * nextMultiplier).toLocaleString()}\` (\`${nextMultiplier.toFixed(2)}x\`)\n\n` +
+            `**${status}**${extra ? `\n${extra}` : ''}`
+        )
+    );
+
     for (let row = 0; row < 3; row++) {
         const buttons = [];
         for (let col = 0; col < 3; col++) {
@@ -34,14 +53,10 @@ function buildBoard(game, ended = false, explodedIndex = -1) {
             let label = '?';
             let style = ButtonStyle.Secondary;
 
-            if (isRevealed && !isMine) {
-                emojiName = '💎';
-                style = ButtonStyle.Success;
-            } else if (ended && isMine) {
+            if (ended && isMine) {
                 emojiName = index === explodedIndex ? '💥' : '💣';
                 style = ButtonStyle.Danger;
-            } else if (ended) {
-                // Reveal every safe tile when the round ends, including tiles the player never picked.
+            } else if (ended || (isRevealed && !isMine)) {
                 emojiName = '💎';
                 style = ButtonStyle.Success;
             }
@@ -50,47 +65,26 @@ function buildBoard(game, ended = false, explodedIndex = -1) {
                 .setCustomId(`mines:${game.id}:${index}`)
                 .setStyle(style)
                 .setDisabled(ended || isRevealed);
-            if (emojiName) {
-                tileButton.setLabel('');
-                tileButton.setEmoji({ name: emojiName });
-            } else {
-                tileButton.setLabel(label);
-            }
+            if (emojiName) tileButton.setEmoji({ name: emojiName });
+            else tileButton.setLabel(label);
             buttons.push(tileButton);
         }
-        rows.push(new ActionRowBuilder().addComponents(buttons));
+        container.addActionRowComponents(new ActionRowBuilder().addComponents(buttons));
     }
 
     if (!ended) {
-        rows.push(
+        container.addActionRowComponents(
             new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId(`mines:${game.id}:cashout`)
-                     .setLabel('💵 Cash Out')
+                    .setLabel('💵 Cash Out')
                     .setStyle(ButtonStyle.Success)
                     .setDisabled(game.revealed.size === 0)
             )
         );
     }
-    return rows;
-}
 
-function gameEmbed(game, status = 'in progress', extra = '') {
-    const safePicks = game.revealed.size;
-    const multiplier = getMultiplier(safePicks, game.mineCount);
-    const nextPayout = Math.floor(game.bet * getMultiplier(safePicks + 1, game.mineCount));
-    const cashoutMultiplier = safePicks > 0 ? multiplier : 0;
-
-    return createEmbed({
-        description:
-            `**${game.userMention} started a mines game.**\n\n` +
-            `**Bet:** \`₱${game.bet.toLocaleString()}\`   **Mines:** \`${game.mineCount}\`\n` +
-            `**Cash Out:** \`₱${game.currentPayout.toLocaleString()}\` (\`${cashoutMultiplier.toFixed(2)}x\`)\n` +
-            `**Next:** \`₱${nextPayout.toLocaleString()}\` (\`${getMultiplier(safePicks + 1, game.mineCount).toFixed(2)}x\`)` +
-            `\n\n━━━━━━━━━━━━━━━━━━━━\n\n` +
-            (extra ? `**${status}**\n${extra}` : `**${status}**`),
-        color: status === 'BOOM! You hit a mine.' ? 'error' : 'info',
-    });
+    return container;
 }
 
 export default {
@@ -143,8 +137,8 @@ export default {
         };
 
         const message = await interaction.reply({
-            embeds: [gameEmbed(game, 'Choose a tile.')],
-            components: buildBoard(game),
+            flags: MessageFlags.IsComponentsV2,
+            components: [buildGameContainer(game)],
             fetchReply: true,
         });
 
@@ -173,8 +167,7 @@ export default {
                 collector.stop('cashed_out');
 
                 return button.update({
-                    embeds: [gameEmbed(game, 'Cashed out!', `You received **₱${payout.toLocaleString()}**. Net: **₱${(payout - bet).toLocaleString()}**.`)],
-                    components: buildBoard(game, true),
+                    components: [buildGameContainer(game, 'Cashed out!', `You received **₱${payout.toLocaleString()}**. Net: **₱${(payout - bet).toLocaleString()}**.`, true)],
                 });
             }
 
@@ -187,8 +180,7 @@ export default {
                 game.finished = true;
                 collector.stop('mine_hit');
                 return button.update({
-                    embeds: [gameEmbed(game, 'BOOM! You hit a mine.', `You lost your **₱${bet.toLocaleString()}** bet. Better luck next patrol.`)],
-                    components: buildBoard(game, true, index),
+                    components: [buildGameContainer(game, '💥 BOOM! You hit a mine.', `You lost your **₱${bet.toLocaleString()}** bet. Better luck next patrol.`, true, index)],
                 });
             }
 
@@ -201,14 +193,12 @@ export default {
                 await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
                 collector.stop('board_cleared');
                 return button.update({
-                    embeds: [gameEmbed(game, 'Board cleared!', `All safe tiles found! You received **₱${payout.toLocaleString()}**.`)],
-                    components: buildBoard(game, true),
+                    components: [buildGameContainer(game, 'Board cleared!', `All safe tiles found! You received **₱${payout.toLocaleString()}**.`, true)],
                 });
             }
 
             return button.update({
-                embeds: [gameEmbed(game, 'Safe tile! Keep going or cash out.')],
-                components: buildBoard(game),
+                components: [buildGameContainer(game, 'Safe tile! Keep going or cash out.')],
             });
         });
 
@@ -221,10 +211,9 @@ export default {
                     await addMoney(client, interaction.guildId, interaction.user.id, game.currentPayout, 'wallet');
                 }
                 await message.edit({
-                    embeds: [gameEmbed(game, 'Round expired.', game.revealed.size > 0
+                    components: [buildGameContainer(game, 'Round expired.', game.revealed.size > 0
                         ? `Your current cash-out of **₱${game.currentPayout.toLocaleString()}** was returned to your wallet.`
-                        : 'Your bet was returned because no tile was selected.')],
-                    components: buildBoard(game, true),
+                        : 'Your bet was returned because no tile was selected.', true)],
                 });
                 if (game.revealed.size === 0) {
                     await addMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet');
