@@ -34,10 +34,10 @@ export default {
 
         const userId = interaction.user.id;
         const guildId = interaction.guildId;
-        const betAmount = interaction.options.getInteger('amount');
+        const betInput = String(interaction.options.getString('amount') ?? interaction.options.getInteger('amount') ?? '').trim().toLowerCase();
         const guess = (interaction.options.getString('guess') || 'heads').toLowerCase();
 
-        if (!Number.isSafeInteger(betAmount) || betAmount <= 0) {
+        if (betInput !== 'all' && (!/^\\d+$/.test(betInput) || !Number.isSafeInteger(Number(betInput)) || Number(betInput) <= 0)) {
             throw createError(
                 'Invalid coin flip bet',
                 ErrorTypes.VALIDATION,
@@ -65,7 +65,7 @@ export default {
             );
         }
 
-        const wallet = Number(userData.wallet) || 0;
+        const wallet = Number(userData.wallet) || 0;\n        const betAmount = betInput === 'all' ? wallet : Number(betInput);\n\n        if (betAmount <= 0) {\n            throw createError('No cash to bet', ErrorTypes.VALIDATION, 'You do not have any cash in your wallet to bet.');\n        }
         if (betAmount > wallet) {
             throw createError(
                 'Insufficient cash for coin flip',
