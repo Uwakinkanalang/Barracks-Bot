@@ -120,8 +120,9 @@ function waitForFlip() {
 }
 
 export default {
+    prefixOnly: true,
     data: new SlashCommandBuilder()
-        .setName('blackjack')
+        .setName('bblackjack')
         .setDescription('Play Blackjack using your Barracks cash wallet')
         .addIntegerOption(option =>
             option.setName('bet')
