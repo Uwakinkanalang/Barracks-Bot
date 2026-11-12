@@ -42,7 +42,7 @@ export default {
                 'Invalid coin flip bet',
                 ErrorTypes.VALIDATION,
                 'Enter a valid positive amount to bet.',
-                { userId, betAmount }
+                { userId, betInput }
             );
         }
 
