@@ -3,25 +3,28 @@ import { setBirthday, validateBirthday } from '../../../services/birthdayService
 
 function parseBirthday(rawValue) {
   const value = rawValue.trim();
-  let month;
-  let day;
+  const match = value.match(/^(\d{1,2})-(\d{1,2})(?:-(\d{4}))?$/);
 
-  let match = value.match(/^(?:\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (match) {
-    month = Number(match[1]);
-    day = Number(match[2]);
-  } else {
-    match = value.match(/^(\d{1,2})-(\d{1,2})$/);
-    if (!match) {
-      throw new Error('Please use YYYY-MM-DD or MM-DD (for example, 2000-01-19 or 01-19).');
-    }
-    month = Number(match[1]);
-    day = Number(match[2]);
+  if (!match) {
+    throw new Error('Please use MM-DD-YYYY or MM-DD (for example, 01-19-2000 or 01-19).');
   }
+
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  const year = match[3] ? Number(match[3]) : null;
 
   const validation = validateBirthday(month, day);
   if (!validation.isValid) {
     throw new Error(validation.error);
+  }
+
+  // If a year is supplied, validate the complete calendar date too.
+  // The birthday feature stores recurring month/day, not the birth year.
+  if (year !== null) {
+    const date = new Date(year, month - 1, day);
+    if (year < 1 || date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      throw new Error('That date is not valid. Please check the month, day, and year.');
+    }
   }
 
   return { month, day };
