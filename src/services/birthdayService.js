@@ -1,5 +1,6 @@
 // birthdayService.js
 
+import { EmbedBuilder } from 'discord.js';
 import { getGuildConfig } from './config/guildConfig.js';
 import { getGuildBirthdays, setBirthday as dbSetBirthday, deleteBirthday as dbDeleteBirthday, getMonthName, getBirthdayTrackingKey } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
@@ -276,6 +277,7 @@ export async function checkBirthdays(client) {
     timeZone: 'Asia/Manila',
     month: 'numeric',
     day: 'numeric',
+    year: 'numeric',
   }).formatToParts(new Date());
   const currentMonth = Number(manilaParts.find(part => part.type === 'month')?.value);
   const currentDay = Number(manilaParts.find(part => part.type === 'day')?.value);
@@ -338,6 +340,35 @@ export async function checkBirthdays(client) {
       if (birthdayMembers.length > 0) {
         await client.db.set(trackingKey, updatedTrackingData);
         logger.info(`Birthday role sync completed for ${birthdayMembers.length} member(s) in guild ${guildId}.`);
+
+        // Send at most one automatic birthday announcement per guild per Manila calendar day.
+        if (channel?.isTextBased?.() && typeof channel.send === 'function') {
+          const dateKey = `${manilaParts.find(part => part.type === 'year')?.value}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+          const announcementKey = `guild:${guildId}:birthday-announcement:${dateKey}`;
+          const alreadyAnnounced = await client.db.get(announcementKey);
+
+          if (!alreadyAnnounced) {
+            const mentions = birthdayMembers.map(member => member.toString());
+            const plural = birthdayMembers.length > 1;
+            const embed = new EmbedBuilder()
+              .setColor(0x5865F2)
+              .setTitle('🎂 Happy Birthday!')
+              .setDescription(
+                plural
+                  ? `Today we're celebrating ${mentions.join(', ')}! Wishing you all a wonderful day filled with happiness and good memories. 🎉`
+                  : `Today we're celebrating ${mentions[0]}! Wishing you a wonderful day filled with happiness and good memories. 🎉`
+              )
+              .setFooter({ text: 'Barracks • Birthday Celebration' })
+              .setTimestamp();
+
+            await channel.send({
+              embeds: [embed],
+              allowedMentions: { users: birthdayMembers.map(member => member.id) },
+            });
+            await client.db.set(announcementKey, true);
+            logger.info(`Automatic birthday announcement posted for ${birthdayMembers.length} member(s) in guild ${guildId}.`);
+          }
+        }
       }
     } catch (error) {
       logger.error(`Error processing birthdays for guild ${guildId}:`, error);
