@@ -1,107 +1,6 @@
-import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, MessageFlags } from 'discord.js';
-import { createCanvas, loadImage } from '@napi-rs/canvas';
-import { getLevelingConfig, getUserLevelData, getXpForLevel, getLeaderboard } from '../../services/leveling/leveling.js';
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
+import { getLevelingConfig, getUserLevelData, getXpForLevel } from '../../services/leveling/leveling.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-
-async function createLevelCard(user, data, rankName, rankNumber, progress, xpNeeded) {
-  const width = 1000;
-  const height = 324;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
-
-  // Outer charcoal frame and inset black card, matching the supplied reference.
-  ctx.fillStyle = '#242729';
-  ctx.fillRect(0, 0, width, height);
-  ctx.strokeStyle = '#55595c';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.roundRect(16, 14, 968, 296, 14);
-  ctx.stroke();
-
-  ctx.fillStyle = '#080909';
-  ctx.beginPath();
-  ctx.roundRect(54, 48, 892, 228, 16);
-  ctx.fill();
-
-  // Show the soldier's earned role rank and current level.
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#bfc3c5';
-  ctx.font = 'bold 22px Sans';
-  ctx.fillText('RANK', 78, 88);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 34px Sans';
-  let displayRank = rankName || 'Unranked';
-  while (ctx.measureText(displayRank).width > 330 && displayRank.length > 4) {
-    displayRank = displayRank.slice(0, -2) + '…';
-  }
-  ctx.fillText(displayRank, 78, 128);
-
-  ctx.textAlign = 'right';
-  ctx.fillStyle = '#bfc3c5';
-  ctx.font = 'bold 22px Sans';
-  ctx.fillText('LEVEL', 920, 88);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 42px Sans';
-  ctx.fillText(String(data.level), 920, 130);
-
-  // Centered circular avatar.
-  const avatar = await loadImage(user.displayAvatarURL({ extension: 'png', size: 256 }));
-  const avatarSize = 138;
-  const avatarX = (width - avatarSize) / 2;
-  const avatarY = 60;
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(width / 2, avatarY + avatarSize / 2, avatarSize / 2 + 5, 0, Math.PI * 2);
-  ctx.fillStyle = '#f4f4f4';
-  ctx.fill();
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = '#ffffff';
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(width / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-  ctx.clip();
-  ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
-  ctx.restore();
-
-  // Explicit username and lifetime experience totals.
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#bfc3c5';
-  ctx.font = 'bold 18px Sans';
-  ctx.fillText('USERNAME', 78, 184);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 30px Sans';
-  let displayName = user.globalName || user.username;
-  while (ctx.measureText(displayName).width > 420 && displayName.length > 4) {
-    displayName = displayName.slice(0, -2) + '…';
-  }
-  ctx.fillText(displayName, 78, 218);
-
-  ctx.textAlign = 'right';
-  ctx.fillStyle = '#bfc3c5';
-  ctx.font = 'bold 18px Sans';
-  ctx.fillText('TOTAL EXP', 920, 184);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 30px Sans';
-  ctx.fillText((data.totalXp || 0).toLocaleString('en-US'), 920, 218);
-
-  // Wide white progress bar with a dark grey remainder.
-  const barX = 78;
-  const barY = 236;
-  const barWidth = 842;
-  const barHeight = 24;
-  ctx.fillStyle = '#484b4e';
-  ctx.beginPath();
-  ctx.roundRect(barX, barY, barWidth, barHeight, 20);
-  ctx.fill();
-  if (progress > 0) {
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.roundRect(barX, barY, Math.max(barHeight, barWidth * progress / 100), barHeight, 20);
-    ctx.fill();
-  }
-
-  return canvas.toBuffer('image/png');
-}
 
 export default {
   data: new SlashCommandBuilder()
@@ -132,10 +31,10 @@ export default {
     const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
     const data = await getUserLevelData(client, interaction.guildId, targetUser.id);
     const xpNeeded = getXpForLevel(data.level);
-    const progress = xpNeeded > 0 ? Math.min(100, Math.floor((data.xp / xpNeeded) * 100)) : 100;
-    const leaderboard = await getLeaderboard(client, interaction.guildId, 100);
-    const rankIndex = leaderboard.findIndex((entry) => entry.userId === targetUser.id);
-    const rankNumber = rankIndex >= 0 ? rankIndex + 1 : '—';
+    const currentXp = Math.max(0, data.xp || 0);
+    const totalXp = Math.max(0, data.totalXp || 0);
+    const progress = xpNeeded > 0 ? Math.min(100, Math.floor((currentXp / xpNeeded) * 100)) : 100;
+    const remainingXp = Math.max(0, xpNeeded - currentXp);
 
     const rewards = Object.entries(levelingConfig.roleRewards || {})
       .map(([level, roleId]) => ({ level: Number(level), roleId }))
@@ -146,17 +45,33 @@ export default {
       ? interaction.guild.roles.cache.get(currentReward.roleId)?.name || 'Unlocked'
       : 'Unranked';
 
-    const image = await createLevelCard(targetUser, data, rankName, rankNumber, progress, xpNeeded);
-    const attachment = new AttachmentBuilder(image, { name: 'level-card.png' });
+    const filledBlocks = Math.round(progress / 10);
+    const progressBar = '▰'.repeat(filledBlocks) + '▱'.repeat(10 - filledBlocks);
+    const displayName = targetUser.globalName || targetUser.username;
+
     const embed = new EmbedBuilder()
       .setColor('#000000')
-      .setImage('attachment://level-card.png')
+      .setAuthor({
+        name: `${displayName}'s Level`,
+        iconURL: targetUser.displayAvatarURL({ size: 128 }),
+      })
+      .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
+      .setDescription([
+        `**Level:** ${data.level}`,
+        `**Rank:** ${rankName}`,
+        '',
+        `**Progress to Level ${data.level + 1}**`,
+        `${progressBar} **${progress}%**`,
+        `**EXP:** ${currentXp.toLocaleString('en-US')} / ${xpNeeded.toLocaleString('en-US')} XP`,
+        `**EXP remaining:** ${remainingXp.toLocaleString('en-US')} XP`,
+        '',
+        `**Total EXP earned:** ${totalXp.toLocaleString('en-US')} XP`,
+      ].join('\\n'))
       .setFooter({ text: 'Keep chatting to earn more XP!' })
       .setTimestamp();
 
     return InteractionHelper.safeEditReply(interaction, {
       embeds: [embed],
-      files: [attachment],
     });
   },
 };
