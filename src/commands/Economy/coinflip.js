@@ -94,12 +94,6 @@ export default {
                 `😢 The coin landed on **${result.toUpperCase()}**. You guessed **${guess.toUpperCase()}** and lost your **₱${betAmount.toLocaleString()}** bet.`
             );
 
-        embed.addFields({
-            name: 'New Cash Balance',
-            value: `₱${userData.wallet.toLocaleString()}`,
-            inline: true,
-        });
-
         embed.setFooter({ text: `Your guess: ${guess.toUpperCase()} • Payout on a win: 2x your bet` });
 
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
