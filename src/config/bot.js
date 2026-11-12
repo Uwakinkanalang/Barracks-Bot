@@ -175,7 +175,7 @@ export const botConfig = {
     baseBankCapacity: 100000,
 
     // Daily reward amount.
-    dailyAmount: 1000,
+    dailyAmount: 5000,
 
     // Extra daily cash earned for each leveling level.
     dailyLevelBonus: 100,
