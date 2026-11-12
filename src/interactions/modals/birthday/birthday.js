@@ -19,9 +19,10 @@ function parseBirthday(rawValue) {
   }
 
   // If a year is supplied, validate the complete calendar date too.
-  // The birthday feature stores recurring month/day, not the birth year.
+  // The birth year is stored when supplied; the birthday check still uses month/day.
   if (year !== null) {
-    const date = new Date(year, month - 1, day);
+    const date = new Date(0);
+    date.setFullYear(year, month - 1, day);
     if (year < 1 || date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
       throw new Error('That date is not valid. Please check the month, day, and year.');
     }
