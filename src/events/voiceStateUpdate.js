@@ -9,6 +9,7 @@ import {
 import { sanitizeInput } from '../utils/validation.js';
 import { logger } from '../utils/logger.js';
 import { handleMusicVoiceState } from '../services/music/musicVoiceState.js';
+import { addXp } from '../services/leveling/xpSystem.js';
 
 const channelCreationCooldown = new Map();
 const VOICE_CREATE_COOLDOWN_MS = 2000;
@@ -18,10 +19,45 @@ const MIN_VOICE_BITRATE = 8000;
 const MAX_CHANNEL_NAME_LENGTH = 100;
 const FALLBACK_CHANNEL_NAME = 'Voice Room';
 const MAX_TRACKED_COOLDOWNS = 10000;
+const VOICE_XP_PER_MINUTE = 5;
+const VOICE_XP_INTERVAL_MS = 60_000;
+const voiceXpClients = new Set();
+
+const voiceXpTimer = setInterval(() => {
+    for (const client of voiceXpClients) {
+        awardVoiceXp(client).catch(error => {
+            logger.error('Voice XP award cycle failed:', error);
+        });
+    }
+}, VOICE_XP_INTERVAL_MS);
+voiceXpTimer.unref?.();
+
+async function awardVoiceXp(client) {
+    for (const guild of client.guilds.cache.values()) {
+        for (const channel of guild.channels.cache.values()) {
+            if (!channel.isVoiceBased?.()) continue;
+
+            for (const member of channel.members.values()) {
+                if (member.user.bot) continue;
+
+                const voice = member.voice;
+                if (!voice?.channelId || voice.channelId !== channel.id) continue;
+                if (voice.selfMute || voice.serverMute) continue;
+
+                try {
+                    await addXp(client, guild, member, VOICE_XP_PER_MINUTE);
+                } catch (error) {
+                    logger.error(`Failed to award voice XP to ${member.user.tag} in guild ${guild.id}:`, error);
+                }
+            }
+        }
+    }
+}
 
 export default {
     name: 'voiceStateUpdate',
     async execute(oldState, newState, client) {
+        voiceXpClients.add(client);
         if (newState.member.user.bot) return;
 
         const guildId = newState.guild.id;
