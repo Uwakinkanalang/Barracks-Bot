@@ -28,13 +28,13 @@ export function validateBirthday(month, day) {
     };
   }
 
-  const currentYear = new Date().getFullYear();
-  const date = new Date(currentYear, month - 1, day);
+  // Birthday records store month/day only. Use a leap year so February 29 remains valid.
+  const date = new Date(2000, month - 1, day);
   
   if (isNaN(date.getTime()) || date.getMonth() !== month - 1 || date.getDate() !== day) {
     return {
       isValid: false,
-      error: 'Invalid date. Please check the month and day combination (e.g., February 29th only exists in leap years)'
+      error: 'Invalid date. Please check the month and day combination.'
     };
   }
 
