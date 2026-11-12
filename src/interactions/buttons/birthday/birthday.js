@@ -14,7 +14,7 @@ export default [
       const dateInput = new TextInputBuilder()
         .setCustomId('birthday_date')
         .setLabel(existing
-          ? `Birthday (current: ${existing.monthName} ${existing.day})`
+          ? `Birthday (current: ${existing.monthName} ${existing.day}${existing.year ? `, ${existing.year}` : ''})`
           : 'Your birthday (MM-DD-YYYY or MM-DD)')
         .setStyle(TextInputStyle.Short)
         .setPlaceholder('MM-DD-YYYY or MM-DD')
@@ -23,7 +23,7 @@ export default [
         .setRequired(true);
 
       if (existing) {
-        dateInput.setValue(`${String(existing.month).padStart(2, '0')}-${String(existing.day).padStart(2, '0')}`);
+        dateInput.setValue(`${String(existing.month).padStart(2, '0')}-${String(existing.day).padStart(2, '0')}${existing.year ? `-${existing.year}` : ''}`);
       }
 
       const modal = new ModalBuilder()
