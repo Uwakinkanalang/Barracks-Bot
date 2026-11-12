@@ -6,6 +6,7 @@ import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
+    prefixOnly: true,
     data: new SlashCommandBuilder()
         .setName('balance')
         .setDescription("Check your or someone else's balance")
