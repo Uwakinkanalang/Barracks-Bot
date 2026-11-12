@@ -53,7 +53,12 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
     }
 
     if (didLevelUp) {
-      if (config.announceLevelUp) {
+      const reachedRoleRewardLevel = Object.keys(config.roleRewards || {}).some((rewardLevel) => {
+        const level = Number(rewardLevel);
+        return Number.isInteger(level) && level > initialLevel && level <= levelData.level;
+      });
+
+      if (config.announceLevelUp && reachedRoleRewardLevel) {
         await sendLevelUpAnnouncement(guild, member, levelData, config, initialLevel);
       }
 
