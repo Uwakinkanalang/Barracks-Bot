@@ -10,6 +10,7 @@ import { getGuildConfig } from './services/config/guildConfig.js';
 import { getServerCounters, saveServerCounters, updateCounter } from './services/serverstatsService.js';
 import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkGiveaways } from './services/giveawayService.js';
+import { checkBirthdays } from './services/birthdayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/loaders/commandLoader.js';
 import { runSafeTask, handleTaskError, ErrorCodes } from './utils/errorHandler.js';
 import { initializeMusic } from './services/music/riffySetup.js';
@@ -102,6 +103,7 @@ class TitanBot extends Client {
       );
       
       this.setupCronJobs();
+      runSafeTask('birthday_role_sync_startup', () => checkBirthdays(this))();
     } catch (error) {
       logger.error('Failed to start bot:', error);
       process.exit(1);
@@ -277,6 +279,9 @@ class TitanBot extends Client {
   setupCronJobs() {
     cron.schedule('* * * * *', runSafeTask('giveaway_check', () => checkGiveaways(this)));
     cron.schedule('*/15 * * * *', runSafeTask('counter_update', () => this.updateAllCounters()));
+    cron.schedule('0 0 * * *', runSafeTask('birthday_role_sync', () => checkBirthdays(this)), {
+      timezone: 'Asia/Manila',
+    });
   }
 
   async updateAllCounters() {
