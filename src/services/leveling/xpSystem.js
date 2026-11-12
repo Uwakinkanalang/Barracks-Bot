@@ -147,7 +147,7 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
         messageLines.push(`🎉 You received the **<@&${rewardRole.id}>** role!`);
       }
     }
-    const message = messageLines.join('\\n');
+    const message = messageLines.join('\n');
 
     const levelUpEmbed = new EmbedBuilder()
       .setColor(0x36393F)
