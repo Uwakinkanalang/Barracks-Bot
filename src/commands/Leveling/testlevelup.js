@@ -8,7 +8,7 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
   data: new SlashCommandBuilder()
     .setName('testlevelup')
-    .setDescription('Send a test of the level-up announcement without changing XP')
+    .setDescription('Test the next role-reward level-up announcement without changing XP or roles')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false),
 
@@ -28,18 +28,40 @@ export default {
     const levelingConfig = await getLevelingConfig(client, interaction.guildId);
     const currentData = await getUserLevelData(client, interaction.guildId, member.id);
 
-    // Simulate the next level for display only. No XP or level data is saved.
+    // Test the next configured role-reward level so the announcement includes
+    // a role mention. This is display-only; no XP, level, or roles are changed.
+    const rewardLevels = Object.keys(levelingConfig.roleRewards || {})
+      .map(Number)
+      .filter((level) => Number.isInteger(level) && level > 0)
+      .sort((a, b) => a - b);
+    const testLevel = rewardLevels.find((level) => level > currentData.level)
+      ?? rewardLevels[0];
+
+    if (!testLevel) {
+      await InteractionHelper.safeEditReply(interaction, {
+        embeds: [
+          createEmbed({
+            title: 'No Role Rewards Configured',
+            description: 'Set up at least one role reward level before testing the role-reward announcement.',
+            color: 'error',
+          }),
+        ],
+      });
+      return;
+    }
+
     const testLevelData = {
       ...currentData,
-      level: Math.min(currentData.level + 1, 1000),
-      totalXp: currentData.totalXp + getXpForLevel(currentData.level),
+      level: testLevel,
+      totalXp: currentData.totalXp + getXpForLevel(testLevel - 1),
     };
 
     const sent = await sendLevelUpAnnouncement(
       interaction.guild,
       member,
       testLevelData,
-      levelingConfig
+      levelingConfig,
+      testLevel - 1
     );
 
     await InteractionHelper.safeEditReply(interaction, {
@@ -47,7 +69,7 @@ export default {
         createEmbed({
           title: sent ? 'Test Announcement Sent' : 'Could Not Send Test',
           description: sent
-            ? 'The level-up test announcement was posted in your configured level-up channel (or the server system channel). Your XP and level were not changed.'
+            ? 'The level-up test announcement was posted in your configured level-up channel (or the server system channel). Your XP, level, and roles were not changed.'
             : 'I could not send the test announcement. Check that the level-up channel is configured, is a text channel, and that I have Send Messages and Embed Links permissions.',
           color: sent ? 'success' : 'error',
         }),
