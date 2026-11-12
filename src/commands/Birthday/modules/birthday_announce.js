@@ -74,8 +74,6 @@ export default {
                     iconURL: interaction.guild.iconURL({ size: 128 }) || undefined,
                 })
                 .setDescription([
-                    '**ATTENTION, SOLDIERS!**',
-                    '',
                     members.length === 1
                         ? `Today we celebrate **${mentions}'s Birthday**`
                         : `Today we celebrate the birthdays of **${mentions}**`,
@@ -96,7 +94,9 @@ export default {
                 .setTimestamp();
 
             await channel.send({
+                content: `**ATTENTION, <@&1558668545154486352>!**`,
                 embeds: [embed],
+                allowedMentions: { roles: ['1558668545154486352'] },
             });
 
             return InteractionHelper.safeEditReply(interaction, {
