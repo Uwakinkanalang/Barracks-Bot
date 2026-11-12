@@ -57,7 +57,7 @@ async function handlePrefixCommand(message, client) {
       : bareCashMatch
         ? { commandName: 'balance', args: bareCashMatch[1] ? bareCashMatch[1].trim().split(/\s+/) : [] }
         : bareBlackjackMatch
-          ? { commandName: 'blackjack', args: bareBlackjackMatch[1] ? bareBlackjackMatch[1].trim().split(/\s+/) : [] }
+          ? { commandName: 'bblackjack', args: bareBlackjackMatch[1] ? bareBlackjackMatch[1].trim().split(/\s+/) : [] }
           : parsePrefixCommand(message.content, prefix);
     
     if (!parsed) {
