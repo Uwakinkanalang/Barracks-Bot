@@ -89,7 +89,7 @@ function buildSelectMenu(guildId) {
                 .setEmoji('💸'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Change Currency Symbol')
-                .setDescription('Change the currency symbol (e.g., $, €, £)')
+                .setDescription('Change the currency symbol (e.g., ₱, €, £)')
                 .setValue('change_currency')
                 .setEmoji('💱'),
             new StringSelectMenuOptionBuilder()
@@ -428,7 +428,7 @@ async function handleChangeCurrency(selectInteraction, rootInteraction, guild) {
         .setLabel('New Currency Symbol')
         .setStyle(TextInputStyle.Short)
         .setValue(BotConfig.economy.currency.symbol)
-        .setPlaceholder('$')
+        .setPlaceholder('₱')
         .setMinLength(1)
         .setMaxLength(3)
         .setRequired(true);
