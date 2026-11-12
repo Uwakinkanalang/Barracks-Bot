@@ -115,7 +115,7 @@ export default {
       embeds: [new EmbedBuilder()
         .setColor(0xf1c40f)
         .setTitle('⚔️ Tic Tac Toe Challenge!')
-        .setDescription(`<@${challenger.id}> challenged <@${opponent.id}> to a game!\n\n<@${opponent.id}>, press **Join Game** to accept.`)
+        .setDescription(`<@${challenger.id}> challenged <@${opponent.id}> to a game!\n\n${bet > 0 ? `Both players wager **₱${bet.toLocaleString()}**. Winner takes **₱${(bet * 2).toLocaleString()}**.` : 'This is a free match.'}\n\n<@${opponent.id}>, press **Join Game** to accept.`)
         .setFooter({ text: 'The challenge expires in 5 minutes.' })],
       components: [new ActionRowBuilder().addComponents(
         new ButtonBuilder()
