@@ -7,9 +7,10 @@ import {
 import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
-const BOARD_SIZE = 20;
+const BOARD_SIZE = 9;
 const COLLECTOR_TIME = 2 * 60 * 1000;
 const HOUSE_EDGE = 0.97;
+const FIXED_MINE_COUNT = 3;
 
 function getMultiplier(safePicks, mineCount) {
     if (safePicks <= 0) return 1;
@@ -22,10 +23,10 @@ function getMultiplier(safePicks, mineCount) {
 
 function buildBoard(game, ended = false, explodedIndex = -1) {
     const rows = [];
-    for (let row = 0; row < 4; row++) {
+    for (let row = 0; row < 3; row++) {
         const buttons = [];
-        for (let col = 0; col < 5; col++) {
-            const index = row * 5 + col;
+        for (let col = 0; col < 3; col++) {
+            const index = row * 3 + col;
             const isMine = game.mines.has(index);
             const isRevealed = game.revealed.has(index);
             let label = '　';
@@ -95,14 +96,7 @@ export default {
                 .setMaxValue(1000000000)
                 .setRequired(true)
         )
-        .addIntegerOption(option =>
-            option
-                .setName('mines')
-                .setDescription('Number of mines (1–10, default 3)')
-                .setMinValue(1)
-                .setMaxValue(10)
-                .setRequired(false)
-        ),
+        ,
 
     execute: withErrorHandling(async (interaction, config, client) => {
         if (!interaction.inGuild()) {
@@ -110,7 +104,7 @@ export default {
         }
 
         const bet = interaction.options.getInteger('bet', true);
-        const mineCount = interaction.options.getInteger('mines') ?? 3;
+        const mineCount = FIXED_MINE_COUNT;
         const userData = await getEconomyData(client, interaction.guildId, interaction.user.id);
 
         if (bet > (userData.wallet || 0)) {
