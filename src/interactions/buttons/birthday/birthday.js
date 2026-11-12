@@ -1,10 +1,53 @@
 import {
   ActionRowBuilder,
   ModalBuilder,
+  TextDisplayBuilder,
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
 import { getUserBirthday } from '../../../services/birthdayService.js';
+
+function getBirthdaySummary(birthday) {
+  if (!birthday) {
+    return "You haven't set a birthday yet. Submit a date below to register it.";
+  }
+
+  // Use the same Asia/Manila calendar as the automatic birthday announcements.
+  const todayParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).formatToParts(new Date());
+
+  const part = (type) => Number(todayParts.find((item) => item.type === type)?.value);
+  const today = new Date(Date.UTC(part('year'), part('month') - 1, part('day')));
+  let nextBirthday = new Date(Date.UTC(part('year'), birthday.month - 1, birthday.day));
+
+  if (nextBirthday < today) {
+    nextBirthday = new Date(Date.UTC(part('year') + 1, birthday.month - 1, birthday.day));
+  }
+
+  const dateLabel = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(nextBirthday);
+
+  const daysUntil = Math.round((nextBirthday - today) / 86400000);
+  let relative;
+  if (daysUntil === 0) {
+    relative = 'today';
+  } else if (daysUntil < 45) {
+    relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(daysUntil, 'day');
+  } else {
+    const monthsUntil = Math.max(1, Math.round(daysUntil / 30.4375));
+    relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(monthsUntil, 'month');
+  }
+
+  return `Your current birthday is **${dateLabel}** (${relative}).\nSubmit a new date below to update it.`;
+}
 
 export default [
   {
@@ -27,6 +70,9 @@ export default [
       const modal = new ModalBuilder()
         .setCustomId('birthday_submit')
         .setTitle('Set your birthday')
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(getBirthdaySummary(existing)),
+        )
         .addComponents(new ActionRowBuilder().addComponents(dateInput));
 
       await interaction.showModal(modal);
