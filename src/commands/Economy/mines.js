@@ -1,0 +1,235 @@
+import {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    SlashCommandBuilder,
+} from 'discord.js';
+import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
+import { createEmbed, errorEmbed } from '../../utils/embeds.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
+
+const BOARD_SIZE = 25;
+const COLLECTOR_TIME = 2 * 60 * 1000;
+const HOUSE_EDGE = 0.97;
+
+function getMultiplier(safePicks, mineCount) {
+    if (safePicks <= 0) return 1;
+    let survivalChance = 1;
+    for (let i = 0; i < safePicks; i++) {
+        survivalChance *= (BOARD_SIZE - mineCount - i) / (BOARD_SIZE - i);
+    }
+    return HOUSE_EDGE / survivalChance;
+}
+
+function formatMultiplier(safePicks, mineCount) {
+    return getMultiplier(safePicks, mineCount).toFixed(2);
+}
+
+function buildBoard(game, ended = false, explodedIndex = -1) {
+    const rows = [];
+    for (let row = 0; row < 5; row++) {
+        const buttons = [];
+        for (let col = 0; col < 5; col++) {
+            const index = row * 5 + col;
+            const isMine = game.mines.has(index);
+            const isRevealed = game.revealed.has(index);
+            let label = '　';
+            let emoji = undefined;
+            let style = ButtonStyle.Secondary;
+
+            if (isRevealed && !isMine) {
+                label = '💎';
+                style = ButtonStyle.Success;
+            } else if (ended && isMine) {
+                label = index === explodedIndex ? '💥' : '💣';
+                style = ButtonStyle.Danger;
+            } else if (ended) {
+                label = isRevealed ? '💎' : '·';
+                style = isRevealed ? ButtonStyle.Success : ButtonStyle.Secondary;
+            }
+
+            buttons.push(
+                new ButtonBuilder()
+                    .setCustomId(`mines:${game.id}:${index}`)
+                    .setLabel(label)
+                    .setStyle(style)
+                    .setDisabled(ended || isRevealed)
+            );
+        }
+        rows.push(new ActionRowBuilder().addComponents(buttons));
+    }
+
+    if (!ended) {
+        rows.push(
+            new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`mines:${game.id}:cashout`)
+                    .setLabel(`Cash Out · ₱${game.currentPayout.toLocaleString()}`)
+                    .setStyle(ButtonStyle.Success)
+                    .setDisabled(game.revealed.size === 0)
+            )
+        );
+    }
+    return rows;
+}
+
+function gameEmbed(game, status = 'in progress', extra = '') {
+    const multiplier = getMultiplier(game.revealed.size, game.mineCount);
+    return createEmbed({
+        title: '💣 Barracks Mines',
+        description:
+            `**Bet:** ₱${game.bet.toLocaleString()}\n` +
+            `**Mines:** ${game.mineCount}\n` +
+            `**Safe tiles:** ${game.revealed.size}\n` +
+            `**Multiplier:** ${multiplier.toFixed(2)}x\n` +
+            `**Cash-out value:** ₱${game.currentPayout.toLocaleString()}\n\n` +
+            `Status: **${status}**${extra ? `\n${extra}` : ''}`,
+        color: status === 'BOOM! You hit a mine.' ? 'error' : 'economy',
+    });
+}
+
+export default {
+    data: new SlashCommandBuilder()
+        .setName('mines')
+        .setDescription('Play Mines using your Barracks cash wallet')
+        .addIntegerOption(option =>
+            option
+                .setName('bet')
+                .setDescription('How much cash to wager')
+                .setMinValue(1)
+                .setMaxValue(1000000000)
+                .setRequired(true)
+        )
+        .addIntegerOption(option =>
+            option
+                .setName('mines')
+                .setDescription('Number of mines (1–10, default 3)')
+                .setMinValue(1)
+                .setMaxValue(10)
+                .setRequired(false)
+        ),
+
+    execute: withErrorHandling(async (interaction, config, client) => {
+        if (!interaction.inGuild()) {
+            throw createError('Mines requires a server', ErrorTypes.VALIDATION, 'Play Mines inside a server.');
+        }
+
+        const bet = interaction.options.getInteger('bet', true);
+        const mineCount = interaction.options.getInteger('mines') ?? 3;
+        const userData = await getEconomyData(client, interaction.guildId, interaction.user.id);
+
+        if (bet > (userData.wallet || 0)) {
+            throw createError(
+                'Insufficient cash',
+                ErrorTypes.VALIDATION,
+                `You only have **₱${(userData.wallet || 0).toLocaleString()}** in your cash wallet.`
+            );
+        }
+
+        await removeMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet');
+
+        const minePositions = new Set();
+        while (minePositions.size < mineCount) {
+            minePositions.add(Math.floor(Math.random() * BOARD_SIZE));
+        }
+
+        const game = {
+            id: interaction.id,
+            bet,
+            mineCount,
+            mines: minePositions,
+            revealed: new Set(),
+            currentPayout: 0,
+            finished: false,
+        };
+
+        const message = await interaction.reply({
+            embeds: [gameEmbed(game, 'Choose a tile.')],
+            components: buildBoard(game),
+            fetchReply: true,
+        });
+
+        const collector = message.createMessageComponentCollector({
+            time: COLLECTOR_TIME,
+            filter: button => button.user.id === interaction.user.id && button.customId.startsWith(`mines:${game.id}:`),
+        });
+
+        collector.on('collect', async button => {
+            if (game.finished) {
+                return button.reply({ content: 'This round has already ended.', ephemeral: true });
+            }
+
+            if (button.customId.endsWith(':cashout')) {
+                if (game.revealed.size === 0) {
+                    return button.reply({ content: 'Reveal at least one safe tile before cashing out.', ephemeral: true });
+                }
+
+                game.finished = true;
+                const payout = game.currentPayout;
+                await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
+                collector.stop('cashed_out');
+
+                return button.update({
+                    embeds: [gameEmbed(game, 'Cashed out!', `You received **₱${payout.toLocaleString()}**. Net: **₱${(payout - bet).toLocaleString()}**.`)],
+                    components: buildBoard(game, true),
+                });
+            }
+
+            const index = Number(button.customId.split(':').at(-1));
+            if (!Number.isInteger(index) || index < 0 || index >= BOARD_SIZE || game.revealed.has(index)) {
+                return button.reply({ content: 'That tile is not available.', ephemeral: true });
+            }
+
+            if (game.mines.has(index)) {
+                game.finished = true;
+                collector.stop('mine_hit');
+                return button.update({
+                    embeds: [gameEmbed(game, 'BOOM! You hit a mine.', `You lost your **₱${bet.toLocaleString()}** bet. Better luck next patrol.`)],
+                    components: buildBoard(game, true, index),
+                });
+            }
+
+            game.revealed.add(index);
+            game.currentPayout = Math.floor(bet * getMultiplier(game.revealed.size, mineCount));
+
+            if (game.revealed.size === BOARD_SIZE - mineCount) {
+                game.finished = true;
+                const payout = game.currentPayout;
+                await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
+                collector.stop('board_cleared');
+                return button.update({
+                    embeds: [gameEmbed(game, 'Board cleared!', `All safe tiles found! You received **₱${payout.toLocaleString()}**.`)],
+                    components: buildBoard(game, true),
+                });
+            }
+
+            return button.update({
+                embeds: [gameEmbed(game, 'Safe tile! Keep going or cash out.')],
+                components: buildBoard(game),
+            });
+        });
+
+        collector.on('end', async (_collected, reason) => {
+            if (game.finished || reason === 'cashed_out' || reason === 'mine_hit' || reason === 'board_cleared') return;
+
+            game.finished = true;
+            try {
+                if (game.revealed.size > 0 && game.currentPayout > 0) {
+                    await addMoney(client, interaction.guildId, interaction.user.id, game.currentPayout, 'wallet');
+                }
+                await message.edit({
+                    embeds: [gameEmbed(game, 'Round expired.', game.revealed.size > 0
+                        ? `Your current cash-out of **₱${game.currentPayout.toLocaleString()}** was returned to your wallet.`
+                        : 'Your bet was returned because no tile was selected.')],
+                    components: buildBoard(game, true),
+                });
+                if (game.revealed.size === 0) {
+                    await addMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet');
+                }
+            } catch (error) {
+                console.error('[MINES] Failed to settle expired game:', error);
+            }
+        });
+    }, { command: 'mines' }),
+};
