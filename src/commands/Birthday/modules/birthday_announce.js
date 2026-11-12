@@ -86,7 +86,7 @@ export default {
                     'Enjoy your special day!',
                     '',
                     'From all of us at Barracks ♡',
-                ].join('\\n'))
+                ].join('\n'))
                 .setThumbnail(members[0].user.displayAvatarURL({ size: 256 }))
                 .addFields(
                     { name: plural ? '🎁 Birthday Soldiers' : '🎁 Birthday Soldier', value: members.map(member => member.toString()).join('\n'), inline: true },
