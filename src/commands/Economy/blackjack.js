@@ -76,8 +76,8 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
 
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-            `**♠️ Blackjack**\\n` +
-            `**BALANCE**\\n₱${game.balance.toLocaleString()} 💰\\n\\n` +
+            `**♠️ Blackjack**\n` +
+            `**BALANCE**\n₱${game.balance.toLocaleString()} 💰\n\n` +
             `**DEALER'S HAND**  [${dealerValue}]`
         )
     );
@@ -88,7 +88,7 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
     container.addMediaGalleryComponents(buildCardGallery(game.player, hiddenPlayerIndices));
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-            `**BET:** ₱${game.bet.toLocaleString()}\\n` +
+            `**BET:** ₱${game.bet.toLocaleString()}\n` +
             `${status}`
         )
     );
