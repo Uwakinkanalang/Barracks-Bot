@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { getEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
+import { getEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -59,8 +59,6 @@ export default {
             logger.debug(`Could not fetch guild display name for ${targetUser.id}; using global name/username.`);
         }
 
-        const maxBank = getMaxBankCapacity(userData);
-
         const wallet = typeof userData.wallet === 'number' ? userData.wallet : 0;
         const bank = typeof userData.bank === 'number' ? userData.bank : 0;
 
@@ -76,7 +74,7 @@ export default {
                     },
                     {
                         name: "🏦 Bank",
-                        value: `₱${bank.toLocaleString()} / ₱${maxBank.toLocaleString()}`,
+                        value: `₱${bank.toLocaleString()}`,
                         inline: true,
                     },
                     {
