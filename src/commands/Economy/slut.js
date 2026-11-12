@@ -166,14 +166,14 @@ export default {
                 timestamp: new Date().toISOString()
             });
 
-            const amountLabel = `${outcome.delta >= 0 ? '+' : '-'}$${Math.abs(outcome.delta).toLocaleString()}`;
+            const amountLabel = `${outcome.delta >= 0 ? '+' : '-'}₱${Math.abs(outcome.delta).toLocaleString()}`;
             const summaryLines = [
                 `${outcome.message}`,
                 `💸 **Net Result:** ${amountLabel}`,
-                `💳 **Current Balance:** $${userData.wallet.toLocaleString()}`,
+                `💳 **Current Balance:** ₱${userData.wallet.toLocaleString()}`,
                 `📊 **Total Sessions:** ${userData.totalSluts}`,
-                `💵 **Total Earned:** $${(userData.totalSlutEarnings || 0).toLocaleString()}`,
-                `🧾 **Total Lost:** $${(userData.totalSlutLosses || 0).toLocaleString()}`
+                `💵 **Total Earned:** ₱${(userData.totalSlutEarnings || 0).toLocaleString()}`,
+                `🧾 **Total Lost:** ₱${(userData.totalSlutLosses || 0).toLocaleString()}`
             ];
 
             const embed = createEmbed({
