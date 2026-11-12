@@ -99,12 +99,12 @@ export default {
 
             const embed = successEmbed(
                 "💼 Work Complete!",
-                `You worked as a **${job}** and earned **$${earned.toLocaleString()}**!${multiplierMessage}`
+                `You worked as a **${job}** and earned **₱${earned.toLocaleString()}**!${multiplierMessage}`
             )
                 .addFields(
                     {
                         name: "New Balance",
-                        value: `$${userData.wallet.toLocaleString()}`,
+                        value: `₱${userData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
