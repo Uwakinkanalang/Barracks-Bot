@@ -33,13 +33,12 @@ export default {
     const xpNeeded = getXpForLevel(data.level);
     const currentXp = Math.max(0, data.xp || 0);
     const totalXp = Math.max(0, data.totalXp || 0);
-    const progress = xpNeeded > 0 ? Math.min(100, Math.floor((currentXp / xpNeeded) * 100)) : 100;
     const remainingXp = Math.max(0, xpNeeded - currentXp);
 
     const rewards = Object.entries(levelingConfig.roleRewards || {})
       .map(([level, roleId]) => ({ level: Number(level), roleId }))
-      .filter((reward) => Number.isInteger(reward.level) && reward.level <= data.level)
-      .sort((a, b) => b.level - a.level);
+      .filter((reward) => Number.isInteger(reward.level))
+      .sort((a, b) => a.level - b.level);
     const earnedRewards = rewards
       .filter((reward) => member?.roles.cache.has(reward.roleId))
       .sort((a, b) => a.level - b.level);
@@ -47,12 +46,15 @@ export default {
     const rankName = currentReward
       ? interaction.guild.roles.cache.get(currentReward.roleId)?.name || 'Unlocked'
       : 'Unranked';
-    const roleRewardsText = earnedRewards.length
-      ? earnedRewards.map((reward) => {
+    const earnedRoleIds = new Set(earnedRewards.map((reward) => reward.roleId));
+    const roleRewardsText = rewards.length
+      ? rewards.map((reward, index) => {
           const role = interaction.guild.roles.cache.get(reward.roleId);
-          return role ? `• ${role.name}` : null;
-        }).filter(Boolean).join('\\n')
-      : 'None yet';
+          const roleLabel = role ? role.name : `Unknown role (${reward.roleId})`;
+          const status = earnedRoleIds.has(reward.roleId) ? ' <a:check:0>' : '';
+          return `• **Rank ${index + 1}** — Level ${reward.level}: <@&${reward.roleId}>${status}`;
+        }).join('\n')
+      : 'No Rank Levels configured';
 
     const displayName = targetUser.globalName || targetUser.username;
 
@@ -66,7 +68,7 @@ export default {
       .setDescription([
         `**Level:** ${data.level}`,
         `**Rank:** ${rankName}`,
-        `**Rank Levels:**\\n${roleRewardsText}`,
+        `**Rank Levels:**\n${roleRewardsText}`,
         '',
         `**EXP:** ${currentXp.toLocaleString('en-US')} / ${xpNeeded.toLocaleString('en-US')} XP`,
         `**EXP remaining:** ${remainingXp.toLocaleString('en-US')} XP`,
