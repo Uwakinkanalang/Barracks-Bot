@@ -5,10 +5,11 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { botConfig } from '../../config/bot.js';
+import { getUserLevelData } from '../../services/leveling/leveling.js';
 
 const WORK_COOLDOWN = botConfig.economy?.cooldowns?.work ?? 30 * 60 * 1000;
-const MIN_WORK_AMOUNT = botConfig.economy?.workMin ?? 10;
-const MAX_WORK_AMOUNT = botConfig.economy?.workMax ?? 100;
+const BASE_WORK_AMOUNT = 700;
+const WORK_LEVEL_BONUS = 100;
 const LAPTOP_MULTIPLIER = 1.5;
 const WORK_JOBS = [
     "Software Developer",
@@ -24,6 +25,7 @@ const WORK_JOBS = [
 ];
 
 export default {
+    prefixOnly: true,
     data: new SlashCommandBuilder()
         .setName('work')
         .setDescription('Work to earn some money'),
@@ -72,10 +74,13 @@ export default {
                 }
             }
 
-            let earned = Math.floor(Math.random() * (MAX_WORK_AMOUNT - MIN_WORK_AMOUNT + 1)) + MIN_WORK_AMOUNT;
+            const levelData = await getUserLevelData(client, guildId, userId);
+            const memberLevel = Math.max(0, Number(levelData?.level) || 0);
+            const levelBonus = memberLevel * WORK_LEVEL_BONUS;
+            let earned = BASE_WORK_AMOUNT + levelBonus;
             const job = WORK_JOBS[Math.floor(Math.random() * WORK_JOBS.length)];
 
-            let multiplierMessage = "";
+            let multiplierMessage = `\\n🎖️ **Level Bonus (Level ${memberLevel}):** +₱${levelBonus.toLocaleString()}`;
             if (hasLaptop > 0) {
                 earned = Math.floor(earned * LAPTOP_MULTIPLIER);
                 multiplierMessage = "\n💻 **Laptop Bonus:** +50% earnings!";
