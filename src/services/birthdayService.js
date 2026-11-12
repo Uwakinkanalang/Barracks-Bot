@@ -42,7 +42,7 @@ export function validateBirthday(month, day) {
   return { isValid: true };
 }
 
-export async function setBirthday(client, guildId, userId, month, day) {
+export async function setBirthday(client, guildId, userId, month, day, year = null) {
   try {
     
     const validation = validateBirthday(month, day);
@@ -63,7 +63,7 @@ export async function setBirthday(client, guildId, userId, month, day) {
       );
     }
 
-    const success = await dbSetBirthday(client, guildId, userId, month, day);
+    const success = await dbSetBirthday(client, guildId, userId, month, day, year);
     
     if (!success) {
       throw new TitanBotError(
@@ -79,6 +79,7 @@ export async function setBirthday(client, guildId, userId, month, day) {
       guildId,
       month,
       day,
+      year,
       monthName: getMonthName(month)
     });
 
@@ -86,6 +87,7 @@ export async function setBirthday(client, guildId, userId, month, day) {
       data: {
         month,
         day,
+        year,
         monthName: getMonthName(month)
       }
     };
@@ -115,6 +117,7 @@ export async function getUserBirthday(client, guildId, userId) {
     return {
       month: birthdayData.month,
       day: birthdayData.day,
+      year: birthdayData.year ?? null,
       monthName: getMonthName(birthdayData.month)
     };
   } catch (error) {
@@ -140,6 +143,7 @@ export async function getAllBirthdays(client, guildId) {
         userId,
         month: data.month,
         day: data.day,
+        year: data.year ?? null,
         monthName: getMonthName(data.month)
       }))
       .sort((a, b) => {
