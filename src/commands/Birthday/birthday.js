@@ -9,6 +9,7 @@ import birthdayRemove from './modules/birthday_remove.js';
 import nextBirthdays from './modules/next_birthdays.js';
 import birthdaySetchannel from './modules/birthday_setchannel.js';
 import birthdayAnnounce from './modules/birthday_announce.js';
+import birthdayPanel from './modules/birthday_panel.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -90,6 +91,11 @@ export default {
         )
         .addSubcommand(subcommand =>
             subcommand
+                .setName('panel')
+                .setDescription('Post the self-service birthday registration panel (Manage Server required)')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('announce')
                 .setDescription('Post today\'s Barracks birthday announcement now')
         )
@@ -126,6 +132,8 @@ export default {
                 return await birthdaySetchannel.execute(interaction, config, client);
             case 'announce':
                 return await birthdayAnnounce.execute(interaction, config, client);
+            case 'panel':
+                return await birthdayPanel.execute(interaction, config, client);
             default:
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Unknown subcommand' });
         }
