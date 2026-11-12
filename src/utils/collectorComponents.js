@@ -3,6 +3,7 @@ const COLLECTOR_MANAGED_PREFIXES = [
   'config_select',
   'config_wizard',
   'cmdaccess_',
+  'mines',
 ];
 
 export function isCollectorManagedComponent(customId = '') {
