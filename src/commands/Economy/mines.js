@@ -7,7 +7,7 @@ import {
 import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
-const BOARD_SIZE = 25;
+const BOARD_SIZE = 20;
 const COLLECTOR_TIME = 2 * 60 * 1000;
 const HOUSE_EDGE = 0.97;
 
@@ -22,7 +22,7 @@ function getMultiplier(safePicks, mineCount) {
 
 function buildBoard(game, ended = false, explodedIndex = -1) {
     const rows = [];
-    for (let row = 0; row < 5; row++) {
+    for (let row = 0; row < 4; row++) {
         const buttons = [];
         for (let col = 0; col < 5; col++) {
             const index = row * 5 + col;
