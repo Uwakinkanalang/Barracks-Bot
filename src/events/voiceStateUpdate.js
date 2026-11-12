@@ -45,7 +45,7 @@ async function awardVoiceXp(client) {
                 if (voice.selfMute || voice.serverMute) continue;
 
                 try {
-                    await addXp(client, guild, member, VOICE_XP_PER_MINUTE);
+                    await addXp(client, guild, member, VOICE_XP_PER_MINUTE, { source: 'voice' });
                 } catch (error) {
                     logger.error(`Failed to award voice XP to ${member.user.tag} in guild ${guild.id}:`, error);
                 }
