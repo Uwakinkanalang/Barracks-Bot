@@ -53,6 +53,8 @@ async function handlePrefixCommand(message, client) {
     const bareCashMatch = trimmedContent.match(/^bcash(?:\s+([\s\S]+))?$/i);
     const bareBlackjackMatch = trimmedContent.match(/^bbj(?:\s+([\s\S]+))?$/i);
     const bareDailyMatch = trimmedContent.match(/^bdaily$/i);
+    const bareDepositMatch = trimmedContent.match(/^bdeposit(?:\\s+([\\s\\S]+))?$/i);
+    const bareWithdrawMatch = trimmedContent.match(/^bwithdraw(?:\\s+([\\s\\S]+))?$/i);
     const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\s+([\s\S]+))?$/i);
     const parsed = bareMinesMatch
       ? { commandName: 'bmine', args: bareMinesMatch[1] ? bareMinesMatch[1].trim().split(/\s+/) : [] }
@@ -62,7 +64,11 @@ async function handlePrefixCommand(message, client) {
           ? { commandName: 'bblackjack', args: bareBlackjackMatch[1] ? bareBlackjackMatch[1].trim().split(/\s+/) : [] }
           : bareDailyMatch
             ? { commandName: 'daily', args: [] }
-            : bareCoinFlipMatch
+            : bareDepositMatch
+            ? { commandName: 'deposit', args: bareDepositMatch[1] ? [bareDepositMatch[1].trim()] : [] }
+            : bareWithdrawMatch
+              ? { commandName: 'withdraw', args: bareWithdrawMatch[1] ? [bareWithdrawMatch[1].trim()] : [] }
+              : bareCoinFlipMatch
               ? (() => {
                   const parts = bareCoinFlipMatch[1] ? bareCoinFlipMatch[1].trim().split(/\s+/) : [];
                   if (parts[0]?.toLowerCase() === 't' || parts[0]?.toLowerCase() === 'tails') {
