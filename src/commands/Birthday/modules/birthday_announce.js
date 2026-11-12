@@ -77,17 +77,19 @@ export default {
                 .setDescription([
                     '**ATTENTION, SOLDIERS!**',
                     '',
-                    `Today we celebrate ${mentions}!`,
+                    members.length === 1
+                        ? `Today we celebrate **${mentions}'s Birthday**`
+                        : `Today we celebrate the birthdays of **${mentions}**`,
                     '',
                     'Wishing you a day filled with happiness, good health, and strength!',
                     '',
-                    `Enjoy your special day, ${names.join(', ')}!`,
+                    'Enjoy your special day!',
                     '',
                     'From all of us at Barracks ♡',
-                ].join('\n'))
+                ].join('\\n'))
                 .setThumbnail(members[0].user.displayAvatarURL({ size: 256 }))
                 .addFields(
-                    { name: plural ? '🎁 Celebrants' : '🎁 Birthday Soldier', value: names.join('\n'), inline: true },
+                    { name: plural ? '🎁 Birthday Soldiers' : '🎁 Birthday Soldier', value: members.map(member => member.toString()).join('\n'), inline: true },
                     { name: '🎂 Celebrating Today', value: String(members.length), inline: true },
                 )
                 .setImage(BIRTHDAY_BANNER_URL)
