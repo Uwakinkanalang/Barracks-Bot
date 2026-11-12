@@ -53,7 +53,7 @@ export default {
           const status = earnedRoleIds.has(reward.roleId) ? ' ✓' : '';
           return `• **Rank ${index + 1}** — Level ${reward.level}: <@&${reward.roleId}>${status}`;
         }).join('\n')
-      : 'No Rank Levels configured';
+      : 'No Role Rewards configured';
 
     const displayName = targetUser.globalName || targetUser.username;
 
