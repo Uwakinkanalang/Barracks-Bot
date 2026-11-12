@@ -4,6 +4,8 @@ import {
     ButtonStyle,
     ContainerBuilder,
     MessageFlags,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
     SlashCommandBuilder,
     TextDisplayBuilder,
 } from 'discord.js';
@@ -49,35 +51,25 @@ function isBlackjack(cards) {
     return cards.length === 2 && handValue(cards) === 21;
 }
 
-// Unicode playing-card characters render as individual illustrated card faces
-// (including red hearts/diamonds and black spades/clubs) in Discord clients.
-function cardFace(card) {
-    const suitBase = {
-        '♠': 0x1F0A1,
-        '♥': 0x1F0B1,
-        '♦': 0x1F0C1,
-        '♣': 0x1F0D1,
-    }[card.suit];
-
-    const rankOffset = {
-        A: 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5,
-        '7': 6, '8': 7, '9': 8, '10': 9, J: 10, Q: 12, K: 13,
-    }[card.rank];
-
-    return String.fromCodePoint(suitBase + rankOffset);
+// Use real playing-card image assets so every card has a printed rank and suit.
+function cardImageUrl(card) {
+    const suitCode = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' }[card.suit];
+    const rankCode = { A: 'A', J: 'J', Q: 'Q', K: 'K', '10': '0' }[card.rank] || card.rank;
+    return `https://deckofcardsapi.com/static/img/${rankCode}${suitCode}.png`;
 }
 
-function renderCards(cards, hiddenIndices = []) {
-    return cards
-        .map((card, index) => hiddenIndices.includes(index) ? '🂠' : cardFace(card))
-        .join('　');
+function buildCardGallery(cards, hiddenIndices = []) {
+    const items = cards.map((card, index) => new MediaGalleryItemBuilder().setURL(
+        hiddenIndices.includes(index)
+            ? 'https://deckofcardsapi.com/static/img/back.png'
+            : cardImageUrl(card)
+    ));
+    return new MediaGalleryBuilder().addItems(items);
 }
 
 function buildGame(game, status = '🎲 Game in progress', options = {}) {
     const { revealDealer = false, ended = false, hiddenPlayerIndices = [], hideDealerHole = false } = options;
     const dealerHidden = hideDealerHole || (!revealDealer && !ended);
-    const dealerCards = renderCards(game.dealer, dealerHidden ? [1] : []);
-    const playerCards = renderCards(game.player, hiddenPlayerIndices);
     const dealerValue = revealDealer ? handValue(game.dealer) : `${game.dealer[0].rank} + ?`;
     const playerValue = handValue(game.player);
     const container = new ContainerBuilder().setAccentColor(0x2ECC71);
