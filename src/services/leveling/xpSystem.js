@@ -141,7 +141,7 @@ async function sendLevelUpAnnouncement(guild, member, levelData, config) {
     const rewardRoleId = config.roleRewards?.[levelData.level];
     const rewardRole = rewardRoleId ? guild.roles.cache.get(rewardRoleId) : null;
     if (rewardRole) {
-      message += `\\n🎉 You received the **<@&${rewardRole.id}>** role!`;
+      message += `\n🎉 You received the **<@&${rewardRole.id}>** role!`;
     }
 
     const levelUpEmbed = new EmbedBuilder()
@@ -157,7 +157,7 @@ async function sendLevelUpAnnouncement(guild, member, levelData, config) {
         `• **Total Battle Experience:** ${levelData.totalXp.toLocaleString('en-US')} XP`,
         '',
         '[🎖️](https://discord.com/assets/0aef843c9eb05427.svg) Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
-      ].join('\\n'))
+      ].join('\n'))
       .setThumbnail(member.displayAvatarURL({ extension: 'png', size: 256 }))
       .setImage('https://media.discordapp.net/attachments/1563246823018336416/1563262831334391959/barracks-red-lightning-banner.gif?ex=6af6b2b7&is=6af56137&hm=6c175623588c4efc954b84cb34d624cb7ad5808e00447f79d999e505abe5df22&=');
 
