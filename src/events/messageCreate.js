@@ -53,7 +53,7 @@ async function handlePrefixCommand(message, client) {
     const bareCashMatch = trimmedContent.match(/^bcash(?:\s+([\s\S]+))?$/i);
     const bareBlackjackMatch = trimmedContent.match(/^bbj(?:\s+([\s\S]+))?$/i);
     const bareDailyMatch = trimmedContent.match(/^bdaily$/i);
-    const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\\s+([\\s\\S]+))?$/i);
+    const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\s+([\s\S]+))?$/i);
     const parsed = bareMinesMatch
       ? { commandName: 'bmine', args: bareMinesMatch[1] ? bareMinesMatch[1].trim().split(/\s+/) : [] }
       : bareCashMatch
@@ -64,7 +64,7 @@ async function handlePrefixCommand(message, client) {
             ? { commandName: 'daily', args: [] }
             : bareCoinFlipMatch
               ? (() => {
-                  const parts = bareCoinFlipMatch[1] ? bareCoinFlipMatch[1].trim().split(/\\s+/) : [];
+                  const parts = bareCoinFlipMatch[1] ? bareCoinFlipMatch[1].trim().split(/\s+/) : [];
                   if (parts[0]?.toLowerCase() === 't' || parts[0]?.toLowerCase() === 'tails') {
                     return { commandName: 'coinflip', args: [parts[1] || '', 'tails'] };
                   }
