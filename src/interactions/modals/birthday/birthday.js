@@ -27,18 +27,18 @@ function parseBirthday(rawValue) {
     }
   }
 
-  return { month, day };
+  return { month, day, year };
 }
 
 export default {
   name: 'birthday_submit',
   async execute(interaction, client) {
     try {
-      const { month, day } = parseBirthday(interaction.fields.getTextInputValue('birthday_date'));
-      const result = await setBirthday(client, interaction.guildId, interaction.user.id, month, day);
+      const { month, day, year } = parseBirthday(interaction.fields.getTextInputValue('birthday_date'));
+      const result = await setBirthday(client, interaction.guildId, interaction.user.id, month, day, year);
 
       await interaction.reply({
-        content: `🎂 Your birthday has been saved as **${result.data.monthName} ${result.data.day}**! You can update or remove it anytime from the birthday panel.`,
+        content: `🎂 Your birthday has been saved as **${result.data.monthName} ${result.data.day}${result.data.year ? `, ${result.data.year}` : ''}**! You can update or remove it anytime from the birthday panel.`,
         flags: MessageFlags.Ephemeral,
       });
     } catch (error) {
