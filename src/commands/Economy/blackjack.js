@@ -61,9 +61,12 @@ function cardImageUrl(card) {
 function addCompactCards(container, cards, hiddenIndices = []) {
     for (const [index, card] of cards.entries()) {
         const hidden = hiddenIndices.includes(index);
-        const imageUrl = hidden
+        // Discord thumbnail accessories are square and crop portrait card art.
+        // Pad the card into a square image first so the full card stays visible.
+        const sourceUrl = hidden
             ? 'https://deckofcardsapi.com/static/img/back.png'
             : cardImageUrl(card);
+        const imageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(sourceUrl)}&w=200&h=200&fit=contain&bg=ffffff`;
 
         container.addSectionComponents(
             new SectionBuilder()
