@@ -235,8 +235,14 @@ function prepareCommandsForRegistration(commands) {
     }
 
     logger.warn(`Command count (${commands.length}) exceeds Discord limit (${MAX_COMMANDS}), truncating...`);
-    const truncated = commands.slice(0, MAX_COMMANDS);
+    // Keep the level-up test utility registered even when the project has
+    // accumulated more slash commands than Discord's 100-command global limit.
+    const priorityNames = ['testlevelup'];
+    const priorityCommands = commands.filter((command) => priorityNames.includes(command.name));
+    const remainingCommands = commands.filter((command) => !priorityNames.includes(command.name));
+    const truncated = [...priorityCommands, ...remainingCommands].slice(0, MAX_COMMANDS);
     logger.info(`Truncated to ${truncated.length} commands for registration`);
+    logger.info(`Priority commands retained: ${priorityCommands.map((command) => command.name).join(', ') || 'none'}`);
     return truncated;
 }
 
