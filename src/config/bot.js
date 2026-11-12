@@ -171,8 +171,11 @@ export const botConfig = {
     // Starting balance for new users.
     startingBalance: 0,
 
-    // Maximum bank amount before upgrades (if upgrades are used).
-    baseBankCapacity: 100000,
+    // Bank capacity and transaction limits.
+    baseBankCapacity: 100000000,
+    maxBankCapacity: 100000000,
+    bankMinTransaction: 100,
+    bankMaxTransaction: 10000000,
 
     // Daily reward amount.
     dailyAmount: 5000,
