@@ -624,12 +624,12 @@ class PostgreSQLDatabase {
                 
                 case 'guild_birthdays':
                     const birthdayResult = await this.pool.query(
-                        `SELECT user_id, month, day FROM ${pgConfig.tables.birthdays} WHERE guild_id = $1`,
+                        `SELECT user_id, month, day, birth_year FROM ${pgConfig.tables.birthdays} WHERE guild_id = $1`,
                         [parsedKey.guildId]
                     );
                     const birthdays = {};
                     birthdayResult.rows.forEach(row => {
-                        birthdays[row.user_id] = { month: row.month, day: row.day };
+                        birthdays[row.user_id] = { month: row.month, day: row.day, year: row.birth_year ?? null };
                     });
                     return birthdays;
                 
@@ -742,6 +742,7 @@ class PostgreSQLDatabase {
                         [parsedKey.guildId]
                     );
                     
+                    await this.pool.query(`ALTER TABLE ${pgConfig.tables.birthdays} ADD COLUMN IF NOT EXISTS birth_year INTEGER`);
                     await this.pool.query(`DELETE FROM ${pgConfig.tables.birthdays} WHERE guild_id = $1`, [parsedKey.guildId]);
                     
                     for (const [userId, birthday] of Object.entries(value)) {
@@ -753,9 +754,9 @@ class PostgreSQLDatabase {
                         );
                         
                         await this.pool.query(
-                            `INSERT INTO ${pgConfig.tables.birthdays} (guild_id, user_id, month, day) 
-                             VALUES ($1, $2, $3, $4)`,
-                            [parsedKey.guildId, userId, birthday.month, birthday.day]
+                            `INSERT INTO ${pgConfig.tables.birthdays} (guild_id, user_id, month, day, birth_year) 
+                             VALUES ($1, $2, $3, $4, $5)`,
+                            [parsedKey.guildId, userId, birthday.month, birthday.day, birthday.year ?? null]
                         );
                     }
                     return true;
