@@ -40,10 +40,19 @@ export default {
       .map(([level, roleId]) => ({ level: Number(level), roleId }))
       .filter((reward) => Number.isInteger(reward.level) && reward.level <= data.level)
       .sort((a, b) => b.level - a.level);
-    const currentReward = rewards.find((reward) => member?.roles.cache.has(reward.roleId));
+    const earnedRewards = rewards
+      .filter((reward) => member?.roles.cache.has(reward.roleId))
+      .sort((a, b) => a.level - b.level);
+    const currentReward = earnedRewards[earnedRewards.length - 1];
     const rankName = currentReward
       ? interaction.guild.roles.cache.get(currentReward.roleId)?.name || 'Unlocked'
       : 'Unranked';
+    const roleRewardsText = earnedRewards.length
+      ? earnedRewards.map((reward) => {
+          const role = interaction.guild.roles.cache.get(reward.roleId);
+          return role ? `• ${role.name}` : null;
+        }).filter(Boolean).join('\\n')
+      : 'None yet';
 
     const displayName = targetUser.globalName || targetUser.username;
 
@@ -57,6 +66,7 @@ export default {
       .setDescription([
         `**Level:** ${data.level}`,
         `**Rank:** ${rankName}`,
+        `**Role Rewards:**\\n${roleRewardsText}`,
         '',
         `**EXP:** ${currentXp.toLocaleString('en-US')} / ${xpNeeded.toLocaleString('en-US')} XP`,
         `**EXP remaining:** ${remainingXp.toLocaleString('en-US')} XP`,
