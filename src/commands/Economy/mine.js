@@ -79,11 +79,11 @@ userData.lastMine = now;
 
             const embed = successEmbed(
                 "💰 Mining Expedition Successful!",
-                `You explored a **${location}** and managed to find minerals worth **$${finalEarned.toLocaleString()}**!${multiplierMessage}`,
+                `You explored a **${location}** and managed to find minerals worth **₱${finalEarned.toLocaleString()}**!${multiplierMessage}`,
             )
                 .addFields({
                     name: "New Cash Balance",
-                    value: `$${userData.wallet.toLocaleString()}`,
+                    value: `₱${userData.wallet.toLocaleString()}`,
                     inline: true,
                 })
                 .setFooter({ text: `Next mine available in 1 hour.` });
