@@ -97,9 +97,7 @@ export default {
                 .setTimestamp();
 
             await channel.send({
-                content: mentions,
                 embeds: [embed],
-                allowedMentions: { users: members.map(member => member.id) },
             });
 
             return InteractionHelper.safeEditReply(interaction, {
