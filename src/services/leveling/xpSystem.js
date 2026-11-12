@@ -1,5 +1,6 @@
 // xpSystem.js
 
+import { EmbedBuilder } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { getLevelingConfig, getXpForLevel, getUserLevelData, saveUserLevelData } from './leveling.js';
 import { logEvent, EVENT_TYPES } from '../loggingService.js';
@@ -125,13 +126,33 @@ async function sendLevelUpAnnouncement(guild, member, levelData, config) {
       return;
     }
 
-    const message = config.levelUpMessage
+    const messageTemplate = config.levelUpMessage || '{user}, you just reached level {level}!';
+    const message = messageTemplate
       .replace(/{user}/g, member.toString())
       .replace(/{level}/g, levelData.level)
       .replace(/{xp}/g, levelData.xp)
       .replace(/{xpNeeded}/g, getXpForLevel(levelData.level + 1));
 
-    await levelUpChannel.send(message).catch(error => {
+    const levelUpEmbed = new EmbedBuilder()
+      .setColor(0x36393F)
+      .setDescription([
+        '**⚔️ LEVEL UP ALERT!**',
+        '',
+        'Well, well, well! Akala namin ordinary recruit ka lang sa Barracks, pero mukhang nag-grind ka nang todo!',
+        '',
+        '**⚔️ SOLDIER PROFILE:**',
+        '',
+        `• **Rank Level:** ${levelData.level}`,
+        `• **Total Battle Experience:** ${levelData.totalXp.toLocaleString('en-US')} XP`,
+        '',
+        '🎖️ Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
+      ].join('\n'))
+      .setThumbnail(member.displayAvatarURL({ extension: 'png', size: 256 }));
+
+    await levelUpChannel.send({
+      content: message,
+      embeds: [levelUpEmbed]
+    }).catch(error => {
       logger.error(`Failed to send level up message in channel ${levelUpChannel.id}:`, error);
     });
   } catch (error) {
