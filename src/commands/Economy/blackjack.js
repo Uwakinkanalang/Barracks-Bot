@@ -7,10 +7,11 @@ import {
     SlashCommandBuilder,
     TextDisplayBuilder,
 } from 'discord.js';
-import { removeMoney, addMoney } from '../../utils/economy.js';
+import { removeMoney, addMoney, getEconomyData } from '../../utils/economy.js';
 import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHandler.js';
 
 const GAME_TIMEOUT = 2 * 60 * 1000;
+const FLIP_DELAY = 450;
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
@@ -44,28 +45,34 @@ function handValue(cards) {
     return total;
 }
 
-function formatHand(cards) {
-    return cards.map(card => `${card.rank}${card.suit}`).join('　');
-}
-
 function isBlackjack(cards) {
     return cards.length === 2 && handValue(cards) === 21;
 }
 
-function buildGame(game, status = 'Choose Hit or Stand.', revealDealer = false, ended = false) {
-    const dealerCards = revealDealer
-        ? formatHand(game.dealer)
-        : `${game.dealer[0].rank}${game.dealer[0].suit}　🂠`;
-    const dealerValue = revealDealer ? handValue(game.dealer) : '?';
+function cardFace(card) {
+    const red = card.suit === '♥' || card.suit === '♦';
+    return `[${card.rank}${card.suit}]${red ? '️' : ''}`;
+}
+
+function renderCards(cards, hiddenIndices = []) {
+    return cards.map((card, index) => hiddenIndices.includes(index) ? '🂠' : cardFace(card)).join('　');
+}
+
+function buildGame(game, status = '🎲 ~ Game in progress', options = {}) {
+    const { revealDealer = false, ended = false, hiddenPlayerIndices = [], hideDealerHole = false } = options;
+    const dealerHidden = hideDealerHole || (!revealDealer && !ended);
+    const dealerCards = renderCards(game.dealer, dealerHidden ? [1] : []);
+    const playerCards = renderCards(game.player, hiddenPlayerIndices);
+    const dealerValue = revealDealer ? handValue(game.dealer) : `${game.dealer[0].rank}+?`;
+    const playerValue = handValue(game.player);
     const container = new ContainerBuilder().setAccentColor(0x3498DB);
 
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-            `**🃏 ${game.userMention} started a Blackjack game!**\n\n` +
-            `**Bet:** \`₱${game.bet.toLocaleString()}\`\n\n` +
-            `**Dealer**　(${dealerValue})\n${dealerCards}\n\n` +
-            `**Your hand**　(${handValue(game.player)})\n${formatHand(game.player)}\n\n` +
-            `**${status}**`
+            `**${game.userMention}, you bet ₱${game.bet.toLocaleString()} to play Blackjack**\n\n` +
+            `**Dealer**　[${dealerValue}]　　　　 **${game.displayName}**　[${playerValue}]\n` +
+            `${dealerCards}　　　　 ${playerCards}\n\n` +
+            `${status}`
         )
     );
 
@@ -74,17 +81,23 @@ function buildGame(game, status = 'Choose Hit or Stand.', revealDealer = false, 
             new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId(`blackjack:${game.id}:hit`)
-                    .setLabel('🃏 Hit')
-                    .setStyle(ButtonStyle.Primary),
+                    .setLabel('👊 Hit')
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(Boolean(game.busy)),
                 new ButtonBuilder()
                     .setCustomId(`blackjack:${game.id}:stand`)
                     .setLabel('🛑 Stand')
-                    .setStyle(ButtonStyle.Success)
+                    .setStyle(ButtonStyle.Danger)
+                    .setDisabled(Boolean(game.busy))
             )
         );
     }
 
     return container;
+}
+
+function waitForFlip() {
+    return new Promise(resolve => setTimeout(resolve, FLIP_DELAY));
 }
 
 export default {
@@ -106,7 +119,7 @@ export default {
         }
 
         const bet = interaction.options.getInteger('bet', true);
-        const userData = await (await import('../../utils/economy.js')).getEconomyData(client, interaction.guildId, interaction.user.id);
+        const userData = await getEconomyData(client, interaction.guildId, interaction.user.id);
         if (bet > (userData.wallet || 0)) {
             throw createError(
                 'Insufficient cash',
@@ -122,39 +135,40 @@ export default {
             id: interaction.id,
             userId: interaction.user.id,
             userMention: interaction.user.toString(),
+            displayName: interaction.member?.displayName || interaction.user.globalName || interaction.user.username,
             bet,
             deck,
             player: [deck.pop(), deck.pop()],
             dealer: [deck.pop(), deck.pop()],
             finished: false,
+            busy: false,
         };
 
-        const settle = async (result, payout = 0) => {
+        const settle = async payout => {
             if (game.finished) return;
             game.finished = true;
             if (payout > 0) await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
-            return result;
         };
 
         const initialPlayerBlackjack = isBlackjack(game.player);
         const initialDealerBlackjack = isBlackjack(game.dealer);
-
-        let initialStatus = 'Choose Hit or Stand.';
-        let initialReveal = false;
+        let initialStatus = '🎲 ~ Game in progress';
         let initialEnded = false;
+        let initialReveal = false;
+
         if (initialPlayerBlackjack || initialDealerBlackjack) {
             initialReveal = true;
             initialEnded = true;
             if (initialPlayerBlackjack && initialDealerBlackjack) {
-                initialStatus = `🤝 Push! Both have Blackjack. Your **₱${bet.toLocaleString()}** bet was returned.`;
-                await settle('push', bet);
+                initialStatus = `🤝 Push! Your ₱${bet.toLocaleString()} bet was returned.`;
+                await settle(bet);
             } else if (initialPlayerBlackjack) {
                 const payout = bet + Math.floor(bet * 1.5);
-                initialStatus = `🎉 Blackjack! You won **₱${payout.toLocaleString()}** (3:2 payout).`;
-                await settle('blackjack', payout);
+                initialStatus = `🎉 Blackjack! You won ₱${payout.toLocaleString()} (3:2 payout).`;
+                await settle(payout);
             } else {
                 initialStatus = '💥 Dealer has Blackjack. Better luck next Soldier.';
-                await settle('dealer_blackjack', 0);
+                await settle(0);
             }
         }
 
@@ -162,7 +176,7 @@ export default {
         try {
             message = await interaction.reply({
                 flags: MessageFlags.IsComponentsV2,
-                components: [buildGame(game, initialStatus, initialReveal, initialEnded)],
+                components: [buildGame(game, initialStatus, { revealDealer: initialReveal, ended: initialEnded })],
                 fetchReply: true,
             });
         } catch (error) {
@@ -172,7 +186,7 @@ export default {
 
         if (initialEnded) return;
 
-        const finishRound = async (button, status) => {
+        const finishRound = async (button, status, alreadyAcknowledged = false) => {
             while (handValue(game.dealer) < 17) game.dealer.push(game.deck.pop());
             const playerTotal = handValue(game.player);
             const dealerTotal = handValue(game.dealer);
@@ -180,20 +194,26 @@ export default {
             let resultText;
 
             if (playerTotal > 21) {
-                resultText = `💥 Bust! You lost **₱${bet.toLocaleString()}**. Better luck next Soldier.`;
+                resultText = `💥 Bust! You lost ₱${bet.toLocaleString()}. Better luck next Soldier.`;
             } else if (dealerTotal > 21 || playerTotal > dealerTotal) {
                 payout = bet * 2;
-                resultText = `🎉 You won **₱${payout.toLocaleString()}**!`;
+                resultText = `🎉 You won ₱${payout.toLocaleString()}!`;
             } else if (playerTotal === dealerTotal) {
                 payout = bet;
-                resultText = `🤝 Push! Your **₱${bet.toLocaleString()}** bet was returned.`;
+                resultText = `🤝 Push! Your ₱${bet.toLocaleString()} bet was returned.`;
             } else {
-                resultText = `💥 Dealer wins. You lost **₱${bet.toLocaleString()}**. Better luck next Soldier.`;
+                resultText = `💥 Dealer wins. You lost ₱${bet.toLocaleString()}. Better luck next Soldier.`;
             }
 
-            await settle('finished', payout);
-            return button.update({
-                components: [buildGame(game, resultText, true, true)],
+            await settle(payout);
+            if (!alreadyAcknowledged) {
+                await button.update({
+                    components: [buildGame(game, '🂠 Dealer is revealing the hidden card...', { ended: true, hideDealerHole: true })],
+                });
+            }
+            await waitForFlip();
+            return message.edit({
+                components: [buildGame(game, resultText, { revealDealer: true, ended: true })],
             });
         };
 
@@ -209,26 +229,41 @@ export default {
             if (game.finished) {
                 return button.reply({ content: 'This round has already ended.', ephemeral: true });
             }
+            if (game.busy) {
+                return button.reply({ content: 'Wait for the card to flip, Soldier.', ephemeral: true });
+            }
 
             const action = button.customId.split(':').at(-1);
             if (action === 'hit') {
                 game.player.push(game.deck.pop());
+                const newCardIndex = game.player.length - 1;
                 const total = handValue(game.player);
+                game.busy = true;
+
+                await button.update({
+                    components: [buildGame(game, '🂠 Your new card is flipping...', { hiddenPlayerIndices: [newCardIndex] })],
+                });
+                await waitForFlip();
+                game.busy = false;
+
                 if (total >= 21) {
-                    if (total === 21) return finishRound(button, 'You reached 21!');
-                    while (handValue(game.dealer) < 17) game.dealer.push(game.deck.pop());
-                    await settle('bust', 0);
+                    if (total === 21) {
+                        return finishRound(null, 'You reached 21!', true);
+                    }
+                    await settle(0);
                     collector.stop('bust');
-                    return button.update({
-                        components: [buildGame(game, `💥 Bust! You lost **₱${bet.toLocaleString()}**. Better luck next Soldier.`, true, true)],
+                    return message.edit({
+                        components: [buildGame(game, `💥 Bust! You lost ₱${bet.toLocaleString()}. Better luck next Soldier.`, { revealDealer: true, ended: true })],
                     });
                 }
-                return button.update({
-                    components: [buildGame(game, 'You drew a card. Hit or Stand?')],
+
+                return message.edit({
+                    components: [buildGame(game, '🎲 ~ Game in progress')],
                 });
             }
 
             if (action === 'stand') {
+                game.busy = true;
                 collector.stop('stood');
                 return finishRound(button, 'You stood.');
             }
@@ -237,24 +272,27 @@ export default {
         collector.on('end', async (_collected, reason) => {
             if (game.finished || reason === 'stood' || reason === 'bust') return;
             try {
-                // Timeout acts as Stand so the wager is always settled fairly.
                 while (handValue(game.dealer) < 17) game.dealer.push(game.deck.pop());
                 const playerTotal = handValue(game.player);
                 const dealerTotal = handValue(game.dealer);
                 let payout = 0;
                 let status;
                 if (playerTotal > 21 || (dealerTotal <= 21 && dealerTotal > playerTotal)) {
-                    status = `⏰ Time's up. Dealer wins; you lost **₱${bet.toLocaleString()}**. Better luck next Soldier.`;
+                    status = `⏰ Time's up. Dealer wins; you lost ₱${bet.toLocaleString()}. Better luck next Soldier.`;
                 } else if (dealerTotal > 21 || playerTotal > dealerTotal) {
                     payout = bet * 2;
-                    status = `⏰ Time's up. You won **₱${payout.toLocaleString()}**!`;
+                    status = `⏰ Time's up. You won ₱${payout.toLocaleString()}!`;
                 } else {
                     payout = bet;
-                    status = `⏰ Time's up. Push! Your **₱${bet.toLocaleString()}** bet was returned.`;
+                    status = `⏰ Time's up. Push! Your ₱${bet.toLocaleString()} bet was returned.`;
                 }
-                await settle('timeout', payout);
+                await settle(payout);
                 await message.edit({
-                    components: [buildGame(game, status, true, true)],
+                    components: [buildGame(game, '🂠 Dealer is revealing the hidden card...', { ended: true, hideDealerHole: true })],
+                });
+                await waitForFlip();
+                await message.edit({
+                    components: [buildGame(game, status, { revealDealer: true, ended: true })],
                 });
             } catch (error) {
                 console.error('[BLACKJACK] Failed to settle timed-out game:', error);
