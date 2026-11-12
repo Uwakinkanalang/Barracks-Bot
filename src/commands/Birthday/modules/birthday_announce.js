@@ -3,6 +3,8 @@ import { getTodaysBirthdays } from '../../../services/birthdayService.js';
 import { getGuildConfig } from '../../../services/config/guildConfig.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
+import { AttachmentBuilder } from 'discord.js';
+import { createBirthdayBanner } from '../../../utils/birthdayBanner.js';
 
 export default {
     async execute(interaction, config, client) {
@@ -75,19 +77,37 @@ export default {
                 .setFooter({ text: `Celebrating you • ${interaction.guild.name}` })
                 .setTimestamp();
 
-            if (process.env.BIRTHDAY_BANNER_URL) {
-                embed.setImage(process.env.BIRTHDAY_BANNER_URL);
-            }
-
-            await channel.send({
-                content: mentions,
-                embeds: [embed],
+            if (birthdayMembers.length === 1) {
+                const image = await createBirthdayBanner(birthdayMembers[0].displayName);
+                const attachment = new AttachmentBuilder(image, { name: 'birthday-banner.png' });
+                embed.setImage('attachment://birthday-banner.png');
+                await channel.send({
+                    content: mentions,
+                    embeds: [embed],
+                    files: [attachment],
                 allowedMentions: {
                     users: birthdayMembers.map(member => member.id),
                     roles: [],
                     parse: [],
-                },
-            });
+                    },
+                });
+            } else {
+                for (const member of birthdayMembers) {
+                    const image = await createBirthdayBanner(member.displayName);
+                    const attachment = new AttachmentBuilder(image, { name: 'birthday-banner.png' });
+                    const personalEmbed = EmbedBuilder.from(embed)
+                        .setDescription(`Everyone, let's celebrate ${member}!\n\nWishing you a wonderful birthday filled with happiness, laughter, and unforgettable memories. 🥳🎈\n\n**Have an amazing day!** 💖`)
+                        .setFields({ name: '🎁 Celebrant', value: member.displayName, inline: true }, { name: '🎂 Today\'s Celebrants', value: '1', inline: true })
+                        .setThumbnail(member.displayAvatarURL({ size: 256 }))
+                        .setImage('attachment://birthday-banner.png');
+                    await channel.send({
+                        content: member.toString(),
+                        embeds: [personalEmbed],
+                        files: [attachment],
+                        allowedMentions: { users: [member.id], roles: [], parse: [] },
+                    });
+                }
+            }
 
             return InteractionHelper.safeEditReply(interaction, {
                 content: `✅ Birthday announcement posted in ${channel} for ${birthdayMembers.length} celebrant${birthdayMembers.length === 1 ? '' : 's'}.`,
