@@ -85,7 +85,6 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
             `**♠️ Blackjack**\n` +
-            `**YOU WON!**\n` +
             `**BALANCE**\n₱${game.balance.toLocaleString()} 💰\n\n` +
             `**DEALER'S HAND**  [${dealerValue}]\n` +
             `${dealerCards}\n\n` +
