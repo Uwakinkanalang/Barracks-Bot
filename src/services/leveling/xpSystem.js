@@ -54,7 +54,7 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
 
     if (didLevelUp) {
       if (config.announceLevelUp) {
-        await sendLevelUpAnnouncement(guild, member, levelData, config);
+        await sendLevelUpAnnouncement(guild, member, levelData, config, initialLevel);
       }
 
       try {
@@ -114,7 +114,7 @@ async function awardRoleReward(guild, member, roleId, level) {
   }
 }
 
-export async function sendLevelUpAnnouncement(guild, member, levelData, config) {
+export async function sendLevelUpAnnouncement(guild, member, levelData, config, previousLevel = levelData.level - 1) {
   try {
     const levelUpChannel = config.levelUpChannel
       ? guild.channels.cache.get(config.levelUpChannel)
@@ -136,7 +136,7 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config) 
       `**${member.toString()}**, you just reached level **${levelData.level}**!`
     ];
     const rewardRoleIds = new Set();
-    for (let reachedLevel = (levelData.previousLevel ?? levelData.level - 1) + 1; reachedLevel <= levelData.level; reachedLevel += 1) {
+    for (let reachedLevel = previousLevel + 1; reachedLevel <= levelData.level; reachedLevel += 1) {
       const roleId = config.roleRewards?.[reachedLevel];
       if (roleId) rewardRoleIds.add(roleId);
     }
