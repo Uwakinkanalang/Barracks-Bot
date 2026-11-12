@@ -73,7 +73,6 @@ export default {
                     name: `BARRACKS • BIRTHDAY CELEBRATION`,
                     iconURL: interaction.guild.iconURL({ size: 128 }) || undefined,
                 })
-                .setTitle('🎂 HAPPY BIRTHDAY!')
                 .setDescription([
                     '**ATTENTION, SOLDIERS!**',
                     '',
