@@ -65,7 +65,7 @@ function addCompactCards(container, cards, hiddenIndices = []) {
         const sourceUrl = hidden
             ? 'https://deckofcardsapi.com/static/img/back.png'
             : cardImageUrl(card);
-        const imageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(sourceUrl)}&w=200&h=280&fit=contain&bg=00000000`;
+        const imageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(sourceUrl)}&w=120&h=168&fit=contain&bg=00000000`;
         gallery.addItems(
             new MediaGalleryItemBuilder().setURL(imageUrl)
         );
