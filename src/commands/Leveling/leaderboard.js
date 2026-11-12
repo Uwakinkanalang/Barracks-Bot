@@ -51,11 +51,7 @@ export default {
           const userMention = member?.user.toString() || `<@${user.userId}>`;
           const xpForNextLevel = getXpForLevel(user.level + 1);
 
-          let rankPrefix = `${index + 1}.`;
-          if (index === 0) rankPrefix = '🥇';
-          else if (index === 1) rankPrefix = '🥈';
-          else if (index === 2) rankPrefix = '🥉';
-          else rankPrefix = `**${index + 1}.**`;
+          const rankPrefix = `**${index + 1}.**`;
 
           return `${rankPrefix} ${userMention} - Level ${user.level} (${user.xp}/${xpForNextLevel} XP)`;
         } catch {
