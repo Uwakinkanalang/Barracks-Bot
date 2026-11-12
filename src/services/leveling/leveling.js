@@ -37,7 +37,9 @@ export function getXpForLevel(level) {
   // Keep a gentler version of the existing curve below level 31, then use
   // that observed high-level progression from level 31 onward.
   if (level >= 31) {
-    return 400 * level - 6500;
+    // Approximate Koya's rounded reference cards:
+    // L31 ~= 5.9k, L34 ~= 7.1k, L35 ~= 7.5k, L39 ~= 9.2k.
+    return 410 * level - 6810;
   }
 
   return Math.round((5 * Math.pow(level, 2) + 50 * level + 50) * 0.95);
