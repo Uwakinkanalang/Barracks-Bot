@@ -72,8 +72,11 @@ export default {
             logger.info(
               `[ROLE_REWARD] Awarded ₱${totalReward.toLocaleString()} to ${newMember.user.tag} for role(s): ${claimedRoleIds.join(', ')}`,
             );
+            const rewardedRoleNames = claimedRoleIds
+              .map((roleId) => newMember.guild.roles.cache.get(roleId)?.name || 'Special Role')
+              .join(', ');
             await newMember.send(
-              `🎉 You received **₱${totalReward.toLocaleString()}** in Barracks cash for earning a special role!`,
+              `🎉 You received **₱${totalReward.toLocaleString()}** in Barracks cash for earning **${rewardedRoleNames}**!`,
             ).catch(() => {});
           }
         }
