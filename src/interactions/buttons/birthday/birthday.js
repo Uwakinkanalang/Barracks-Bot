@@ -13,9 +13,7 @@ export default [
       const existing = await getUserBirthday(client, interaction.guildId, interaction.user.id);
       const dateInput = new TextInputBuilder()
         .setCustomId('birthday_date')
-        .setLabel(existing
-          ? `Birthday (current: ${existing.monthName} ${existing.day}${existing.year ? `, ${existing.year}` : ''})`
-          : 'Your birthday (MM-DD-YYYY or MM-DD)')
+        .setLabel('Your birthday (MM-DD-YYYY or MM-DD)')
         .setStyle(TextInputStyle.Short)
         .setPlaceholder('MM-DD-YYYY or MM-DD')
         .setMinLength(5)
