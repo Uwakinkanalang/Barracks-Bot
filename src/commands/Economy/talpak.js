@@ -122,7 +122,7 @@ export default {
                 await message.edit({
                     embeds: [buildTalpakEmbed(
                         game,
-                        `🟢 🏆 **${winner.toUpperCase()} WINS!**\n\n🎉 Your chicken won! You received **₱${payout.toLocaleString()}** (2x payout).\n\n💰 Net profit: **₱${bet.toLocaleString()}**`,
+                        `🟢 🏆 **${winner.toUpperCase()} WINS!**\n\n🎉 Your chicken won! 🟢 You received **₱${payout.toLocaleString()}** (2x payout).\n\n💰 Net profit: **₱${bet.toLocaleString()}**`,
                         0x2ECC71,
                         '🟢 TALPAK — YOU WIN!'
                     )],
@@ -132,7 +132,7 @@ export default {
                 await message.edit({
                     embeds: [buildTalpakEmbed(
                         game,
-                        `🔴 💥 **${winner.toUpperCase()} WINS!**\n\n😢 Your chicken lost. You lost your **₱${bet.toLocaleString()}** bet. Better luck next Soldier!`,
+                        `🔴 💥 **${winner.toUpperCase()} WINS!**\n\n😢 Your chicken lost 🔴 You lost your **₱${bet.toLocaleString()}** bet. Better luck next Soldier!`,
                         0xE74C3C,
                         '🔴 TALPAK — YOU LOST!'
                     )],
