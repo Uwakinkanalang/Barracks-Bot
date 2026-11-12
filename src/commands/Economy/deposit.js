@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { successEmbed, buildUserErrorEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
+import { BotConfig } from '../../config/bot.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -50,6 +51,27 @@ export default {
                         { amountInput, userId }
                     );
                 }
+            }
+
+            const minTransaction = BotConfig.economy.bankMinTransaction;
+            const maxTransaction = BotConfig.economy.bankMaxTransaction;
+
+            if (depositAmount < minTransaction) {
+                throw createError(
+                    "Deposit below minimum",
+                    ErrorTypes.VALIDATION,
+                    `Minimum deposit is ₱${minTransaction.toLocaleString()}.`,
+                    { depositAmount, minTransaction, userId }
+                );
+            }
+
+            if (depositAmount > maxTransaction) {
+                throw createError(
+                    "Deposit exceeds transaction limit",
+                    ErrorTypes.VALIDATION,
+                    `Maximum deposit per transaction is ₱${maxTransaction.toLocaleString()}.`,
+                    { depositAmount, maxTransaction, userId }
+                );
             }
 
             if (depositAmount === 0) {
