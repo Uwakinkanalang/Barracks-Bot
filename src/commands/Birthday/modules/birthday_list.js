@@ -35,7 +35,7 @@ export default {
                 continue;
             }
             displayIndex++;
-            birthdayList += `${displayIndex}. <@${birthday.userId}> - ${birthday.monthName} ${birthday.day}${birthday.year ? `, ${birthday.year}` : ''}\n`;
+            birthdayList += `${displayIndex}. <@${birthday.userId}> - ${birthday.monthName} ${birthday.day}${birthday.year != null ? `, ${birthday.year}` : ' (year not provided)'}\n`;
         }
 
         if (fetchedMembers && staleUserIds.length > 0) {
