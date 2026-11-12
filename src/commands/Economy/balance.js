@@ -50,14 +50,23 @@ export default {
             );
         }
 
+        let displayName = targetUser.globalName || targetUser.username;
+        try {
+            const targetMember = interaction.guild?.members?.cache?.get(targetUser.id)
+                || await interaction.guild?.members?.fetch(targetUser.id);
+            if (targetMember?.displayName) displayName = targetMember.displayName;
+        } catch (error) {
+            logger.debug(`Could not fetch guild display name for ${targetUser.id}; using global name/username.`);
+        }
+
         const maxBank = getMaxBankCapacity(userData);
 
         const wallet = typeof userData.wallet === 'number' ? userData.wallet : 0;
         const bank = typeof userData.bank === 'number' ? userData.bank : 0;
 
             const embed = createEmbed({
-                title: `${targetUser.username}'s Balance`,
-                description: `Here is the current financial status for ${targetUser.username}.`,
+                title: `${displayName} Balance`,
+                description: `Here is the current financial status for ${displayName}.`,
             })
                 .addFields(
                     {
