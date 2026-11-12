@@ -21,7 +21,7 @@ export default {
       .setColor(0x5865F2)
       .setTitle('🎂 Birthdays')
       .setDescription(
-        "Let us celebrate you! Click the button below to register your birthday and we'll shout it out on your special day.\n\nYour birthday is used only for server celebrations. Never enter passwords or other sensitive information.\n\nYou can update or remove it at any time."
+        "Let us celebrate you! Click the button below to register your birthday and we'll shout it out on your special day.\n\nYou can update or remove it at any time."
       );
 
     const row = new ActionRowBuilder().addComponents(
