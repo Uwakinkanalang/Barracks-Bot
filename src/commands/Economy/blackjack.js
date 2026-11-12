@@ -50,8 +50,20 @@ function isBlackjack(cards) {
 }
 
 function cardFace(card) {
-    const red = card.suit === '♥' || card.suit === '♦';
-    return `[${card.rank}${card.suit}]${red ? '️' : ''}`;
+    // Unicode playing-card symbols render as compact card-style glyphs in Discord.
+    const suitBase = {
+        '♠': 0x1F0A1,
+        '♥': 0x1F0B1,
+        '♦': 0x1F0C1,
+        '♣': 0x1F0D1,
+    }[card.suit];
+
+    const rankOffset = {
+        A: 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6,
+        '8': 7, '9': 8, '10': 9, J: 10, Q: 12, K: 13,
+    }[card.rank];
+
+    return String.fromCodePoint(suitBase + rankOffset);
 }
 
 function renderCards(cards, hiddenIndices = []) {
