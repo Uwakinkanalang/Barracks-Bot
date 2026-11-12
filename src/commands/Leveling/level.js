@@ -45,8 +45,6 @@ export default {
       ? interaction.guild.roles.cache.get(currentReward.roleId)?.name || 'Unlocked'
       : 'Unranked';
 
-    const filledBlocks = Math.round(progress / 10);
-    const progressBar = '▰'.repeat(filledBlocks) + '▱'.repeat(10 - filledBlocks);
     const displayName = targetUser.globalName || targetUser.username;
 
     const embed = new EmbedBuilder()
@@ -60,8 +58,6 @@ export default {
         `**Level:** ${data.level}`,
         `**Rank:** ${rankName}`,
         '',
-        `**Progress to Level ${data.level + 1}**`,
-        `${progressBar} **${progress}%**`,
         `**EXP:** ${currentXp.toLocaleString('en-US')} / ${xpNeeded.toLocaleString('en-US')} XP`,
         `**EXP remaining:** ${remainingXp.toLocaleString('en-US')} XP`,
         '',
