@@ -61,9 +61,7 @@ export default {
         `**Rank:** ${currentRankText}`,
         '',
         `**EXP:** ${currentXp.toLocaleString('en-US')} / ${xpNeeded.toLocaleString('en-US')} XP`,
-        `**EXP remaining:** ${remainingXp.toLocaleString('en-US')} XP`,
         '',
-        `**Total EXP earned:** ${totalXp.toLocaleString('en-US')} XP`,
       ].join('\n'))
       .setFooter({ text: 'Keep chatting to earn more XP!' })
       .setTimestamp();
