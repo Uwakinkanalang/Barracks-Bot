@@ -49,7 +49,7 @@ async function handlePrefixCommand(message, client) {
     const guildConfig = await getGuildConfig(client, message.guild.id);
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
-    const bareMinesMatch = trimmedContent.match(/^bmine(?:\s+([\s\S]+))?$/i);
+    const bareMinesMatch = trimmedContent.match(/^bmines?(?:\s+([\s\S]+))?$/i);
     const bareCashMatch = trimmedContent.match(/^bcash(?:\s+([\s\S]+))?$/i);
     const bareBlackjackMatch = trimmedContent.match(/^bbj(?:\s+([\s\S]+))?$/i);
     const bareDailyMatch = trimmedContent.match(/^bdaily$/i);
