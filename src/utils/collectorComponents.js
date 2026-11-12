@@ -6,6 +6,7 @@ const COLLECTOR_MANAGED_PREFIXES = [
   'mines',
   'blackjack',
   'tictactoe',
+  'talpak',
 ];
 
 export function isCollectorManagedComponent(customId = '') {
