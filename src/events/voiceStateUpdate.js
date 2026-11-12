@@ -42,7 +42,7 @@ async function awardVoiceXp(client) {
 
                 const voice = member.voice;
                 if (!voice?.channelId || voice.channelId !== channel.id) continue;
-                if (voice.selfMute || voice.serverMute) continue;
+                if (voice.selfMute || voice.serverMute || voice.selfDeaf || voice.serverDeaf) continue;
 
                 try {
                     await addXp(client, guild, member, VOICE_XP_PER_MINUTE, { source: 'voice' });
