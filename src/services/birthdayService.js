@@ -79,7 +79,7 @@ export async function setBirthday(client, guildId, userId, month, day, year = nu
       guildId,
       month,
       day,
-      year,
+      year: year === null || year === undefined ? null : Number(year),
       monthName: getMonthName(month)
     });
 
