@@ -41,12 +41,9 @@ function buildBoard(game, ended = false, explodedIndex = -1) {
                 emojiName = index === explodedIndex ? '💥' : '💣';
                 style = ButtonStyle.Danger;
             } else if (ended) {
-                if (isRevealed) {
-                    emojiName = '💎';
-                    style = ButtonStyle.Success;
-                } else {
-                    label = '·';
-                }
+                // Reveal every safe tile when the round ends, including tiles the player never picked.
+                emojiName = '💎';
+                style = ButtonStyle.Success;
             }
 
             const tileButton = new ButtonBuilder()
