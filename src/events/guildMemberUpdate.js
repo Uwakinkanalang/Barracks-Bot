@@ -1,6 +1,7 @@
 import { Events } from 'discord.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
+import { getEconomyData, setEconomyData } from '../utils/economy.js';
 
 export default {
   name: Events.GuildMemberUpdate,
@@ -28,7 +29,48 @@ export default {
           }
         });
 
-        return;
+      }
+
+      // One-time wallet rewards for configured role grants.
+      const roleRewards = {
+        '1467461731998761096': 50000,
+        '1467461918792089784': 100000,
+      };
+      const newlyAddedRoleIds = Object.keys(roleRewards).filter(
+        (roleId) => !oldMember.roles.cache.has(roleId) && newMember.roles.cache.has(roleId),
+      );
+
+      if (newlyAddedRoleIds.length > 0 && !newMember.user.bot) {
+        const economyData = await getEconomyData(newMember.client, newMember.guild.id, newMember.id);
+        economyData.inventory = economyData.inventory || {};
+        economyData.inventory.roleRewardClaims = economyData.inventory.roleRewardClaims || {};
+
+        let totalReward = 0;
+        const claimedRoleIds = [];
+
+        for (const roleId of newlyAddedRoleIds) {
+          if (economyData.inventory.roleRewardClaims[roleId]) continue;
+          const amount = roleRewards[roleId];
+          if (!Number.isSafeInteger((economyData.wallet || 0) + totalReward + amount)) continue;
+
+          totalReward += amount;
+          claimedRoleIds.push(roleId);
+          economyData.inventory.roleRewardClaims[roleId] = Date.now();
+        }
+
+        if (claimedRoleIds.length > 0) {
+          economyData.wallet = (economyData.wallet || 0) + totalReward;
+          const saved = await setEconomyData(newMember.client, newMember.guild.id, newMember.id, economyData);
+
+          if (saved) {
+            logger.info(
+              `[ROLE_REWARD] Awarded ₱${totalReward.toLocaleString()} to ${newMember.user.tag} for role(s): ${claimedRoleIds.join(', ')}`,
+            );
+            await newMember.send(
+              `🎉 You received **₱${totalReward.toLocaleString()}** in Barracks cash for earning a special role!`,
+            ).catch(() => {});
+          }
+        }
       }
 
     } catch (error) {
