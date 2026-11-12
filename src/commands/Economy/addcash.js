@@ -50,7 +50,7 @@ export default {
             });
         }
 
-        await InteractionHelper.safeDefer(interaction, true);
+        await InteractionHelper.safeDefer(interaction, { ephemeral: true });
 
         const result = await addMoney(client, interaction.guildId, target.id, amount, 'wallet');
 
