@@ -63,10 +63,10 @@ export default {
                 newCash += amountWon;
 
                 const successMessages = [
-                    `A kind stranger drops **$${amountWon.toLocaleString()}** into your cup.`,
-                    `You spotted an unattended wallet! You grab **$${amountWon.toLocaleString()}** and run.`,
-                    `Someone took pity on you and gave you **$${amountWon.toLocaleString()}**!`,
-                    `You found **$${amountWon.toLocaleString()}** under a park bench.`,
+                    `A kind stranger drops **₱${amountWon.toLocaleString()}** into your cup.`,
+                    `You spotted an unattended wallet! You grab **₱${amountWon.toLocaleString()}** and run.`,
+                    `Someone took pity on you and gave you **₱${amountWon.toLocaleString()}**!`,
+                    `You found **₱${amountWon.toLocaleString()}** under a park bench.`,
                 ];
 
                 replyEmbed = successEmbed(
