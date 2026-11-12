@@ -4,8 +4,8 @@ import {
     ButtonStyle,
     ContainerBuilder,
     MessageFlags,
-    MediaGalleryBuilder,
-    MediaGalleryItemBuilder,
+    SectionBuilder,
+    ThumbnailBuilder,
     SlashCommandBuilder,
     TextDisplayBuilder,
 } from 'discord.js';
@@ -58,13 +58,24 @@ function cardImageUrl(card) {
     return `https://deckofcardsapi.com/static/img/${rankCode}${suitCode}.png`;
 }
 
-function buildCardGallery(cards, hiddenIndices = []) {
-    const items = cards.map((card, index) => new MediaGalleryItemBuilder().setURL(
-        hiddenIndices.includes(index)
+function addSmallCards(container, cards, hiddenIndices = []) {
+    for (const [index, card] of cards.entries()) {
+        const hidden = hiddenIndices.includes(index);
+        const label = hidden ? '🂠 Hidden card' : `${card.rank}${card.suit}`;
+        const imageUrl = hidden
             ? 'https://deckofcardsapi.com/static/img/back.png'
-            : cardImageUrl(card)
-    ));
-    return new MediaGalleryBuilder().addItems(items);
+            : cardImageUrl(card);
+
+        container.addSectionComponents(
+            new SectionBuilder()
+                .addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent(label)
+                )
+                .setThumbnailAccessory(
+                    new ThumbnailBuilder().setURL(imageUrl)
+                )
+        );
+    }
 }
 
 function buildGame(game, status = '🎲 Game in progress', options = {}) {
@@ -81,11 +92,11 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
             `**DEALER'S HAND**  [${dealerValue}]`
         )
     );
-    container.addMediaGalleryComponents(buildCardGallery(game.dealer, dealerHidden ? [1] : []));
+    addSmallCards(container, game.dealer, dealerHidden ? [1] : []);
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(`**YOUR HAND**  [${playerValue}]`)
     );
-    container.addMediaGalleryComponents(buildCardGallery(game.player, hiddenPlayerIndices));
+    addSmallCards(container, game.player, hiddenPlayerIndices);
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
             `**BET:** ₱${game.bet.toLocaleString()}\n` +
