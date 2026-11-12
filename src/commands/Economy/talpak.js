@@ -16,8 +16,6 @@ function buildTalpakEmbed(game, status, color = 0xD97706) {
         .setColor(color)
         .setTitle('🐓 BARRACKS TALPAK ARENA 🐓')
         .setDescription(
-            '**MERON** 🐓　⚔️　🐓 **WALA**\n' +
-            '━━━━━━━━━━━━━━━━━━━━\n' +
             `<@${game.userId}> wagered **₱${game.bet.toLocaleString()}**\n\n` +
             `Your pick: **${game.choice ? game.choice.toUpperCase() : 'Choose your chicken!'}**\n\n` +
             status
