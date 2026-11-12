@@ -146,13 +146,17 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
       if (roleId) rewardRoleIds.add(roleId);
     }
 
-    for (const roleId of rewardRoleIds) {
-      const rewardRole = guild.roles.cache.get(roleId);
-      if (rewardRole) {
-        messageLines.push(`🎉 You received the **<@&${rewardRole.id}>** role!`);
-      }
+    const rewardRoles = [...rewardRoleIds]
+      .map((roleId) => guild.roles.cache.get(roleId))
+      .filter(Boolean);
+
+    for (const rewardRole of rewardRoles) {
+      messageLines.push(`🎉 You received the **<@&${rewardRole.id}>** role!`);
     }
     const message = messageLines.join('\n');
+    const rankDisplay = rewardRoles.length
+      ? rewardRoles.map((role) => `<@&${role.id}>`).join(', ')
+      : 'Unranked';
 
     const levelUpEmbed = new EmbedBuilder()
       .setColor(0x36393F)
@@ -163,7 +167,7 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
         '',
         '⚔️ **SOLDIER PROFILE:**',
         '',
-        `• **Rank Level:** ${levelData.level}`,
+        `• **Rank:** ${rankDisplay}`,\n        `• **Rank Level:** ${levelData.level}`,
         `• **Total Battle Experience:** ${levelData.totalXp.toLocaleString('en-US')} XP`,
         '',
         '🎖️ Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
