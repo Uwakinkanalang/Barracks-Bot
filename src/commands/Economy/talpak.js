@@ -11,10 +11,10 @@ import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHan
 const ROUND_TIMEOUT = 60 * 1000;
 const FIGHT_DELAY = 1800;
 
-function buildTalpakEmbed(game, status, color = 0xD97706) {
+function buildTalpakEmbed(game, status, color = 0xD97706, title = '🐓 BARRACKS TALPAK ARENA 🐓') {
     return new EmbedBuilder()
         .setColor(color)
-        .setTitle('🐓 BARRACKS TALPAK ARENA 🐓')
+        .setTitle(title)
         .setDescription(
             `<@${game.userId}> bet **₱${game.bet.toLocaleString()}**\n\n` +
             `Your pick: **${game.choice ? game.choice.toUpperCase() : 'Choose your chicken!'}**\n\n` +
@@ -123,7 +123,8 @@ export default {
                     embeds: [buildTalpakEmbed(
                         game,
                         `🟢 🏆 **${winner.toUpperCase()} WINS!**\n\n🎉 Your chicken won! You received **₱${payout.toLocaleString()}** (2x payout).\n\n💰 Net profit: **₱${bet.toLocaleString()}**`,
-                        0x2ECC71
+                        0x2ECC71,
+                        '🟢 TALPAK — YOU WIN!'
                     )],
                     components: [buildChoiceButtons(game, true)],
                 });
@@ -132,7 +133,8 @@ export default {
                     embeds: [buildTalpakEmbed(
                         game,
                         `🔴 💥 **${winner.toUpperCase()} WINS!**\n\n😢 Your chicken lost. You lost your **₱${bet.toLocaleString()}** bet. Better luck next Soldier!`,
-                        0xE74C3C
+                        0xE74C3C,
+                        '🔴 TALPAK — YOU LOST!'
                     )],
                     components: [buildChoiceButtons(game, true)],
                 });
