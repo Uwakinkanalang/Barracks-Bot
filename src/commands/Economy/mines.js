@@ -5,8 +5,6 @@ import {
     SlashCommandBuilder,
 } from 'discord.js';
 import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
-import { createEmbed, errorEmbed } from '../../utils/embeds.js';
-import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
 const BOARD_SIZE = 25;
@@ -20,10 +18,6 @@ function getMultiplier(safePicks, mineCount) {
         survivalChance *= (BOARD_SIZE - mineCount - i) / (BOARD_SIZE - i);
     }
     return HOUSE_EDGE / survivalChance;
-}
-
-function formatMultiplier(safePicks, mineCount) {
-    return getMultiplier(safePicks, mineCount).toFixed(2);
 }
 
 function buildBoard(game, ended = false, explodedIndex = -1) {
@@ -152,10 +146,14 @@ export default {
 
         const collector = message.createMessageComponentCollector({
             time: COLLECTOR_TIME,
-            filter: button => button.user.id === interaction.user.id && button.customId.startsWith(`mines:${game.id}:`),
+            filter: button => button.customId.startsWith(`mines:${game.id}:`),
         });
 
         collector.on('collect', async button => {
+            if (button.user.id !== interaction.user.id) {
+                return button.reply({ content: 'This is not your Mines round. Start your own with /mines.', ephemeral: true });
+            }
+
             if (game.finished) {
                 return button.reply({ content: 'This round has already ended.', ephemeral: true });
             }
