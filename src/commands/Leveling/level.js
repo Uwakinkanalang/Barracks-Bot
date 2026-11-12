@@ -62,7 +62,7 @@ export default {
         `**EXP remaining:** ${remainingXp.toLocaleString('en-US')} XP`,
         '',
         `**Total EXP earned:** ${totalXp.toLocaleString('en-US')} XP`,
-      ].join('\\n'))
+      ].join('\n'))
       .setFooter({ text: 'Keep chatting to earn more XP!' })
       .setTimestamp();
 
