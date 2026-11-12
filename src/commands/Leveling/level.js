@@ -42,10 +42,6 @@ export default {
     const earnedRewards = rewards
       .filter((reward) => member?.roles.cache.has(reward.roleId))
       .sort((a, b) => a.level - b.level);
-    const currentReward = earnedRewards[earnedRewards.length - 1];
-    const rankName = currentReward
-      ? interaction.guild.roles.cache.get(currentReward.roleId)?.name || 'Unlocked'
-      : 'Unranked';
     const earnedRoleIds = new Set(earnedRewards.map((reward) => reward.roleId));
     const roleRewardsText = rewards.length
       ? rewards.map((reward, index) => {
@@ -66,7 +62,6 @@ export default {
       .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
       .setDescription([
         `**Level:** ${data.level}`,
-        `**Rank:** ${rankName}`,
         `**Rank Levels:**\n${roleRewardsText}`,
         '',
         `**EXP:** ${currentXp.toLocaleString('en-US')} / ${xpNeeded.toLocaleString('en-US')} XP`,
