@@ -79,9 +79,10 @@ export async function getLeaderboard(client, guildId, limit = 10) {
       );
     }
 
-    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
-      limit = Math.min(Math.max(limit, 1), 100);
+    if (!Number.isInteger(limit) || limit < 1) {
+      limit = 10;
     }
+    limit = Math.min(limit, 100000);
 
     const guild = client.guilds.cache.get(guildId);
     if (!guild) {
