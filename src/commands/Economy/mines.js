@@ -180,7 +180,7 @@ export default {
                 game.finished = true;
                 collector.stop('mine_hit');
                 return button.update({
-                    components: [buildGameContainer(game, '💥 BOOM! You hit a mine.', `You lost your **₱${bet.toLocaleString()}** bet. Better luck next patrol.`, true, index)],
+                    components: [buildGameContainer(game, '💥 BOOM! You hit a mine.', `You lost your **₱${bet.toLocaleString()}** bet. Better luck next Soldier.`, true, index)],
                 });
             }
 
