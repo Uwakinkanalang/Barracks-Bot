@@ -95,7 +95,14 @@ export default {
                 .setFooter({ text: `Barracks • ${interaction.guild.name}` })
                 .setTimestamp();
 
-            await channel.send({ embeds: [embed] });
+            await channel.send({
+                content: `${mentions} <@&1558668545154486352>`,
+                embeds: [embed],
+                allowedMentions: {
+                    users: members.map(member => member.id),
+                    roles: ['1558668545154486352'],
+                },
+            });
 
             return InteractionHelper.safeEditReply(interaction, {
                 content: `Birthday announcement posted in <#${channel.id}> for ${names.join(', ')}.`,
