@@ -1,0 +1,122 @@
+import { EmbedBuilder, MessageFlags, PermissionsBitField } from 'discord.js';
+import { getTodaysBirthdays } from '../../../services/birthdayService.js';
+import { getGuildConfig } from '../../../services/config/guildConfig.js';
+import { InteractionHelper } from '../../../utils/interactionHelper.js';
+import { logger } from '../../../utils/logger.js';
+import { AttachmentBuilder } from 'discord.js';
+import { createBirthdayBanner } from '../../../utils/birthdayBanner.js';
+
+export default {
+    async execute(interaction, config, client) {
+        if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {
+            return InteractionHelper.safeReply(interaction, {
+                content: 'You need **Manage Server** permission to announce birthdays.',
+                flags: MessageFlags.Ephemeral,
+            });
+        }
+
+        await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+
+        try {
+            const selectedChannel = interaction.options.getChannel('channel');
+            const guildConfig = await getGuildConfig(client, interaction.guildId);
+            const channel = selectedChannel || (guildConfig.birthdayChannelId
+                ? await interaction.guild.channels.fetch(guildConfig.birthdayChannelId).catch(() => null)
+                : null);
+
+            if (!channel || !channel.isTextBased() || channel.guildId !== interaction.guildId || typeof channel.send !== 'function') {
+                return InteractionHelper.safeEditReply(interaction, {
+                    content: 'No birthday announcement channel is configured. Use `/birthday setchannel` first, or choose a channel with `/birthday announce`.',
+                });
+            }
+            const todaysBirthdays = await getTodaysBirthdays(client, interaction.guildId);
+            if (todaysBirthdays.length === 0) {
+                return InteractionHelper.safeEditReply(interaction, {
+                    content: '🎂 There are no birthdays registered for today.',
+                });
+            }
+
+            const birthdayMembers = [];
+            for (const birthday of todaysBirthdays) {
+                const member = await interaction.guild.members.fetch(birthday.userId).catch(() => null);
+                if (member) birthdayMembers.push(member);
+            }
+
+            if (birthdayMembers.length === 0) {
+                return InteractionHelper.safeEditReply(interaction, {
+                    content: '🎂 No birthday celebrants from today\'s list are currently in this server.',
+                });
+            }
+
+            const mentions = birthdayMembers.map(member => member.toString()).join(', ');
+            const names = birthdayMembers.map(member => member.displayName).join(', ');
+            const embed = new EmbedBuilder()
+                .setColor(0xff69b4)
+                .setAuthor({
+                    name: `🎂 Birthday Celebration • ${interaction.guild.name}`,
+                    iconURL: interaction.guild.iconURL({ size: 128 }) || undefined,
+                })
+                .setTitle('🎉 Happy Birthday!')
+                .setDescription([
+                    `Everyone, let's celebrate ${names}!`,
+                    '',
+                    'Wishing you a wonderful birthday filled with happiness, laughter, and unforgettable memories. 🥳🎈',
+                    '',
+                    '**Have an amazing day!** 💖',
+                ].join('\n'))
+                .addFields({
+                    name: birthdayMembers.length > 1 ? '🎁 Celebrants' : '🎁 Celebrant',
+                    value: names,
+                    inline: true,
+                }, {
+                    name: '🎂 Today\'s Celebrants',
+                    value: String(birthdayMembers.length),
+                    inline: true,
+                })
+                .setThumbnail(birthdayMembers[0].displayAvatarURL({ size: 256 }))
+                .setFooter({ text: `Celebrating you • ${interaction.guild.name}` })
+                .setTimestamp();
+
+            if (birthdayMembers.length === 1) {
+                const image = await createBirthdayBanner(birthdayMembers[0].displayName);
+                const attachment = new AttachmentBuilder(image, { name: 'birthday-banner.png' });
+                embed.setImage('attachment://birthday-banner.png');
+                await channel.send({
+                    content: mentions,
+                    embeds: [embed],
+                    files: [attachment],
+                allowedMentions: {
+                    users: birthdayMembers.map(member => member.id),
+                    roles: [],
+                    parse: [],
+                    },
+                });
+            } else {
+                for (const member of birthdayMembers) {
+                    const image = await createBirthdayBanner(member.displayName);
+                    const attachment = new AttachmentBuilder(image, { name: 'birthday-banner.png' });
+                    const personalEmbed = EmbedBuilder.from(embed)
+                        .setDescription(`Everyone, let's celebrate ${member}!\n\nWishing you a wonderful birthday filled with happiness, laughter, and unforgettable memories. 🥳🎈\n\n**Have an amazing day!** 💖`)
+                        .setFields({ name: '🎁 Celebrant', value: member.displayName, inline: true }, { name: '🎂 Today\'s Celebrants', value: '1', inline: true })
+                        .setThumbnail(member.displayAvatarURL({ size: 256 }))
+                        .setImage('attachment://birthday-banner.png');
+                    await channel.send({
+                        content: member.toString(),
+                        embeds: [personalEmbed],
+                        files: [attachment],
+                        allowedMentions: { users: [member.id], roles: [], parse: [] },
+                    });
+                }
+            }
+
+            return InteractionHelper.safeEditReply(interaction, {
+                content: `✅ Birthday announcement posted in ${channel} for ${birthdayMembers.length} celebrant${birthdayMembers.length === 1 ? '' : 's'}.`,
+            });
+        } catch (error) {
+            logger.error('Manual birthday announcement failed:', error);
+            return InteractionHelper.safeEditReply(interaction, {
+                content: '❌ I could not post the birthday announcement. Please check that I have permission to view and send messages in that channel.',
+            });
+        }
+    },
+};

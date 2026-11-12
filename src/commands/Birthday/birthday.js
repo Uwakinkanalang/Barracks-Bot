@@ -8,6 +8,7 @@ import birthdayList from './modules/birthday_list.js';
 import birthdayRemove from './modules/birthday_remove.js';
 import nextBirthdays from './modules/next_birthdays.js';
 import birthdaySetchannel from './modules/birthday_setchannel.js';
+import birthdayAnnounce from './modules/birthday_announce.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -89,6 +90,18 @@ export default {
         )
         .addSubcommand(subcommand =>
             subcommand
+                .setName('announce')
+                .setDescription('Post today\'s birthday greeting immediately')
+                .addChannelOption(option =>
+                    option
+                        .setName('channel')
+                        .setDescription('Optional channel override; defaults to the configured birthday channel')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(false)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('setchannel')
                 .setDescription('Set or disable the channel for birthday announcements. (Manage Server required)')
                 .addChannelOption(option =>
@@ -118,6 +131,8 @@ export default {
                 return await nextBirthdays.execute(interaction, config, client);
             case 'setchannel':
                 return await birthdaySetchannel.execute(interaction, config, client);
+            case 'announce':
+                return await birthdayAnnounce.execute(interaction, config, client);
             default:
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Unknown subcommand' });
         }
