@@ -237,7 +237,7 @@ function prepareCommandsForRegistration(commands) {
     logger.warn(`Command count (${commands.length}) exceeds Discord limit (${MAX_COMMANDS}), truncating...`);
     // Keep the level-up test utility registered even when the project has
     // accumulated more slash commands than Discord's 100-command global limit.
-    const priorityNames = ['testlevelup'];
+    const priorityNames = ['testlevelup', 'synclevels'];
     const priorityCommands = commands.filter((command) => priorityNames.includes(command.name));
     const remainingCommands = commands.filter((command) => !priorityNames.includes(command.name));
     const truncated = [...priorityCommands, ...remainingCommands].slice(0, MAX_COMMANDS);
