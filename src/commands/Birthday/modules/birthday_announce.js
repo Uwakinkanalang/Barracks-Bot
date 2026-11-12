@@ -1,5 +1,6 @@
 import { EmbedBuilder, MessageFlags, PermissionsBitField } from 'discord.js';
 import { getTodaysBirthdays } from '../../../services/birthdayService.js';
+import { getGuildConfig } from '../../../services/config/guildConfig.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -12,17 +13,20 @@ export default {
             });
         }
 
-        const channel = interaction.options.getChannel('channel', true);
-        if (!channel.isTextBased() || channel.guildId !== interaction.guildId || typeof channel.send !== 'function') {
-            return InteractionHelper.safeReply(interaction, {
-                content: 'Please select a text channel in this server.',
-                flags: MessageFlags.Ephemeral,
-            });
-        }
-
         await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
 
         try {
+            const selectedChannel = interaction.options.getChannel('channel');
+            const guildConfig = await getGuildConfig(client, interaction.guildId);
+            const channel = selectedChannel || (guildConfig.birthdayChannelId
+                ? await interaction.guild.channels.fetch(guildConfig.birthdayChannelId).catch(() => null)
+                : null);
+
+            if (!channel || !channel.isTextBased() || channel.guildId !== interaction.guildId || typeof channel.send !== 'function') {
+                return InteractionHelper.safeEditReply(interaction, {
+                    content: 'No birthday announcement channel is configured. Use `/birthday setchannel` first, or choose a channel with `/birthday announce`.',
+                });
+            }
             const todaysBirthdays = await getTodaysBirthdays(client, interaction.guildId);
             if (todaysBirthdays.length === 0) {
                 return InteractionHelper.safeEditReply(interaction, {
