@@ -15,9 +15,9 @@ export default [
         .setCustomId('birthday_date')
         .setLabel(existing
           ? `Birthday (current: ${existing.monthName} ${existing.day})`
-          : 'Your birthday (YYYY-MM-DD or MM-DD)')
+          : 'Your birthday (MM-DD-YYYY or MM-DD)')
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder('YYYY-MM-DD or MM-DD')
+        .setPlaceholder('MM-DD-YYYY or MM-DD')
         .setMinLength(5)
         .setMaxLength(10)
         .setRequired(true);
