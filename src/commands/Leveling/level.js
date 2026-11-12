@@ -66,7 +66,7 @@ export default {
       .setDescription([
         `**Level:** ${data.level}`,
         `**Rank:** ${rankName}`,
-        `**Role Rewards:**\\n${roleRewardsText}`,
+        `**Rank Levels:**\\n${roleRewardsText}`,
         '',
         `**EXP:** ${currentXp.toLocaleString('en-US')} / ${xpNeeded.toLocaleString('en-US')} XP`,
         `**EXP remaining:** ${remainingXp.toLocaleString('en-US')} XP`,
