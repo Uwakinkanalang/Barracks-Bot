@@ -88,6 +88,7 @@ function buildGameContainer(game, status = 'Choose a tile.', extra = '', ended =
 }
 
 export default {
+    prefixOnly: true,
     data: new SlashCommandBuilder()
         .setName('bmine')
         .setDescription('Play Mines using your Barracks cash wallet')
