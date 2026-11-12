@@ -55,7 +55,7 @@ async function handlePrefixCommand(message, client) {
     const bareDailyMatch = trimmedContent.match(/^bdaily$/i);
     const bareWorkMatch = trimmedContent.match(/^bwork$/i);
     const bareShopMatch = trimmedContent.match(/^bshop$/i);
-    const bareTalpakMatch = trimmedContent.match(/^btalpak(?:\\s+([\\s\\S]+))?$/i);
+    const bareTalpakMatch = trimmedContent.match(/^btalpak(?:\s+([\s\S]+))?$/i);
     const bareDepositMatch = trimmedContent.match(/^bdeposit(?:\s+([\s\S]+))?$/i);
     const bareWithdrawMatch = trimmedContent.match(/^bwithdraw(?:\s+([\s\S]+))?$/i);
     const bareTicTacToeMatch = trimmedContent.match(/^(?:bttt|btictactoe)(?:\s+([\s\S]+))?$/i);
@@ -73,7 +73,7 @@ async function handlePrefixCommand(message, client) {
               : bareShopMatch
                 ? { commandName: 'shop', args: [] }
                 : bareTalpakMatch
-                  ? { commandName: 'btalpak', args: bareTalpakMatch[1] ? bareTalpakMatch[1].trim().split(/\\s+/) : [] }
+                  ? { commandName: 'btalpak', args: bareTalpakMatch[1] ? bareTalpakMatch[1].trim().split(/\s+/) : [] }
                   : bareDepositMatch
             ? { commandName: 'deposit', args: bareDepositMatch[1] ? [bareDepositMatch[1].trim()] : [] }
             : bareWithdrawMatch
