@@ -1,15 +1,14 @@
 import { SlashCommandBuilder, MessageFlags, ChannelType } from 'discord.js';
-import { createEmbed, successEmbed } from '../../utils/embeds.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 
 import birthdaySet from './modules/birthday_set.js';
+import birthdaySetFor from './modules/birthday_setfor.js';
 import birthdayInfo from './modules/birthday_info.js';
 import birthdayList from './modules/birthday_list.js';
 import birthdayRemove from './modules/birthday_remove.js';
 import nextBirthdays from './modules/next_birthdays.js';
 import birthdaySetchannel from './modules/birthday_setchannel.js';
 
-import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('birthday')
@@ -18,6 +17,33 @@ export default {
             subcommand
                 .setName('set')
                 .setDescription('Set your birthday')
+                .addIntegerOption(option =>
+                    option
+                        .setName('month')
+                        .setDescription('Birth month (1-12)')
+                        .setRequired(true)
+                        .setMinValue(1)
+                        .setMaxValue(12)
+                )
+                .addIntegerOption(option =>
+                    option
+                        .setName('day')
+                        .setDescription('Birth day (1-31)')
+                        .setRequired(true)
+                        .setMinValue(1)
+                        .setMaxValue(31)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('setfor')
+                .setDescription('Set another member\'s birthday (Manage Server required)')
+                .addUserOption(option =>
+                    option
+                        .setName('user')
+                        .setDescription('Member whose birthday you are setting')
+                        .setRequired(true)
+                )
                 .addIntegerOption(option =>
                     option
                         .setName('month')
@@ -80,6 +106,8 @@ export default {
         switch (subcommand) {
             case 'set':
                 return await birthdaySet.execute(interaction, config, client);
+            case 'setfor':
+                return await birthdaySetFor.execute(interaction, config, client);
             case 'info':
                 return await birthdayInfo.execute(interaction, config, client);
             case 'list':
