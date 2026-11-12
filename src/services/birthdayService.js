@@ -337,47 +337,7 @@ export async function checkBirthdays(client) {
 
       if (birthdayMembers.length > 0) {
         await client.db.set(trackingKey, updatedTrackingData);
-        const mentionList = birthdayMembers.map(m => m.toString()).join(', ');
-        
-        const celebrants = birthdayMembers.map(member => member.user.username).join(', ');
-        const birthdayEmbed = {
-          color: 0xff69b4,
-          author: {
-            name: `🎂 Birthday Celebration • ${guild.name}`,
-            icon_url: guild.iconURL({ size: 128 }) || undefined,
-          },
-          title: '🎉 Happy Birthday!',
-          description: [
-            `Everyone, let's celebrate ${mentionList}!`,
-            '',
-            'Wishing you a wonderful birthday filled with happiness, laughter, and unforgettable memories. 🥳🎈',
-            '',
-            '**Have an amazing day!** 💖',
-          ].join('\\n'),
-          thumbnail: {
-            url: birthdayMembers[0].user.displayAvatarURL({ size: 256 }),
-          },
-          fields: [
-            {
-              name: '🎁 Celebrant' + (birthdayMembers.length > 1 ? 's' : ''),
-              value: celebrants,
-              inline: true,
-            },
-            {
-              name: '🎂 Today\'s Celebrants',
-              value: String(birthdayMembers.length),
-              inline: true,
-            },
-          ],
-          footer: {
-            text: `Celebrating you • ${guild.name}`,
-          },
-          timestamp: new Date().toISOString(),
-        };
-
-        if (channel?.isTextBased() && channel.send) {
-          await channel.send({ embeds: [birthdayEmbed] });
-        }
+        logger.info(`Birthday role sync completed for ${birthdayMembers.length} member(s) in guild ${guildId}.`);
       }
     } catch (error) {
       logger.error(`Error processing birthdays for guild ${guildId}:`, error);
