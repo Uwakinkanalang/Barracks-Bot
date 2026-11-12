@@ -16,7 +16,7 @@ function buildTalpakEmbed(game, status, color = 0xD97706, title = '🐓 BARRACKS
         .setColor(color)
         .setTitle(title)
         .setDescription(
-            `<@${game.userId}> bet **₱${game.bet.toLocaleString()}**\n\n` +
+            `<@${game.userId}> Bet **₱${game.bet.toLocaleString()}**\n\n` +
             `Your pick: **${game.choice ? game.choice.toUpperCase() : 'Choose your chicken!'}**\n\n` +
             status
         )
