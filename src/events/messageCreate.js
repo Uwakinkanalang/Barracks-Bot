@@ -51,7 +51,7 @@ async function handlePrefixCommand(message, client) {
     const trimmedContent = message.content.trim();
     const bareMinesMatch = trimmedContent.match(/^bmine(?:\s+([\s\S]+))?$/i);
     const bareCashMatch = trimmedContent.match(/^bcash(?:\s+([\s\S]+))?$/i);
-    const bareBlackjackMatch = trimmedContent.match(/^bblackjack(?:\s+([\s\S]+))?$/i);
+    const bareBlackjackMatch = trimmedContent.match(/^bbj(?:\s+([\s\S]+))?$/i);
     const parsed = bareMinesMatch
       ? { commandName: 'bmine', args: bareMinesMatch[1] ? bareMinesMatch[1].trim().split(/\s+/) : [] }
       : bareCashMatch
