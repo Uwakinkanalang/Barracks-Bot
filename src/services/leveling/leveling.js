@@ -12,6 +12,18 @@ const XP_MULTIPLIER = 1.5;
 const MAX_LEVEL = 1000;
 const MIN_LEVEL = 0;
 
+// Default Barracks rank rewards. Per-server configured rewards can override these.
+const DEFAULT_ROLE_REWARDS = Object.freeze({
+  10: '1467461731998761096',
+  20: '1467461918792089784',
+  30: '1467461953340444677',
+  40: '1540715496637333564',
+  50: '1467462639759396865',
+  60: '1467462740024098983',
+  80: '1467462823457063067',
+  100: '1467462861822627912',
+});
+
 export function getXpForLevel(level) {
   if (!Number.isInteger(level) || level < 0 || level > MAX_LEVEL) {
     throw new TitanBotError(
@@ -148,35 +160,36 @@ export function createLeaderboardEmbed(leaderboard, guild) {
 }
 
 export async function getLevelingConfig(client, guildId) {
+  const defaultConfig = {
+    enabled: true,
+    xpPerMessage: { min: 15, max: 25 },
+    xpCooldown: 60,
+    levelUpMessage: '{user} has leveled up to level {level}!',
+    levelUpChannel: null,
+    ignoredChannels: [],
+    ignoredRoles: [],
+    blacklistedUsers: [],
+    announceLevelUp: true,
+    xpMultiplier: 1,
+  };
+
   try {
     const guildConfig = await getGuildConfig(client, guildId);
-    return guildConfig.leveling || {
-      enabled: true,
-      xpPerMessage: { min: 15, max: 25 },
-      xpCooldown: 60,
-      levelUpMessage: '{user} has leveled up to level {level}!',
-      levelUpChannel: null,
-      ignoredChannels: [],
-      ignoredRoles: [],
-      blacklistedUsers: [],
-      roleRewards: {},
-      announceLevelUp: true,
-      xpMultiplier: 1
+    const savedLevelingConfig = guildConfig?.leveling || {};
+
+    return {
+      ...defaultConfig,
+      ...savedLevelingConfig,
+      roleRewards: {
+        ...DEFAULT_ROLE_REWARDS,
+        ...(savedLevelingConfig.roleRewards || {}),
+      },
     };
   } catch (error) {
     logger.error(`Error getting leveling config for guild ${guildId}:`, error);
     return {
-      enabled: true,
-      xpPerMessage: { min: 15, max: 25 },
-      xpCooldown: 60,
-      levelUpMessage: '{user} has leveled up to level {level}!',
-      levelUpChannel: null,
-      ignoredChannels: [],
-      ignoredRoles: [],
-      blacklistedUsers: [],
-      roleRewards: {},
-      announceLevelUp: true,
-      xpMultiplier: 1
+      ...defaultConfig,
+      roleRewards: { ...DEFAULT_ROLE_REWARDS },
     };
   }
 }
