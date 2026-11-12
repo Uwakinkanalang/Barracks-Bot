@@ -147,16 +147,16 @@ async function sendLevelUpAnnouncement(guild, member, levelData, config) {
     const levelUpEmbed = new EmbedBuilder()
       .setColor(0x36393F)
       .setDescription([
-        '[⚔️](https://discord.com/assets/fa2c28d64be33d41.svg) **LEVEL UP ALERT!**',
+        '**⚔️ LEVEL UP ALERT!**',
         '',
         'Well, well, well! Akala namin ordinary recruit ka lang sa Barracks, pero mukhang nag-grind ka nang todo!',
         '',
-        '[⚔️](https://discord.com/assets/fa2c28d64be33d41.svg) **SOLDIER PROFILE:**',
+        '**⚔️ SOLDIER PROFILE:**',
         '',
-        `- **Rank Level:** ${levelData.level}`,
-        `- **Total Battle Experience:** ${levelData.totalXp.toLocaleString('en-US')} XP`,
+        `• **Rank Level:** ${levelData.level}`,
+        `• **Total Battle Experience:** ${levelData.totalXp.toLocaleString('en-US')} XP`,
         '',
-        '[🎖️](https://discord.com/assets/0aef843c9eb05427.svg) Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
+        '🎖️ Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
       ].join('\\n'))
       .setThumbnail(member.displayAvatarURL({ extension: 'png', size: 256 }))
       .setImage('https://media.discordapp.net/attachments/1563246823018336416/1563262831334391959/barracks-red-lightning-banner.gif?ex=6af6b2b7&is=6af56137&hm=6c175623588c4efc954b84cb34d624cb7ad5808e00447f79d999e505abe5df22&=');
