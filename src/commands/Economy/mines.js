@@ -30,28 +30,32 @@ function buildBoard(game, ended = false, explodedIndex = -1) {
             const index = row * 3 + col;
             const isMine = game.mines.has(index);
             const isRevealed = game.revealed.has(index);
-            let label = '　';
-            let emoji = undefined;
+            let emojiName = '❔';
+            let label;
             let style = ButtonStyle.Secondary;
 
             if (isRevealed && !isMine) {
-                label = '💎';
+                emojiName = '💎';
                 style = ButtonStyle.Success;
             } else if (ended && isMine) {
-                label = index === explodedIndex ? '💥' : '💣';
+                emojiName = index === explodedIndex ? '💥' : '💣';
                 style = ButtonStyle.Danger;
             } else if (ended) {
-                label = isRevealed ? '💎' : '·';
-                style = isRevealed ? ButtonStyle.Success : ButtonStyle.Secondary;
+                if (isRevealed) {
+                    emojiName = '💎';
+                    style = ButtonStyle.Success;
+                } else {
+                    label = '·';
+                }
             }
 
-            buttons.push(
-                new ButtonBuilder()
-                    .setCustomId(`mines:${game.id}:${index}`)
-                    .setLabel(label)
-                    .setStyle(style)
-                    .setDisabled(ended || isRevealed)
-            );
+            const tileButton = new ButtonBuilder()
+                .setCustomId(`mines:${game.id}:${index}`)
+                .setStyle(style)
+                .setDisabled(ended || isRevealed);
+            if (label) tileButton.setLabel(label);
+            else tileButton.setEmoji({ name: emojiName });
+            buttons.push(tileButton);
         }
         rows.push(new ActionRowBuilder().addComponents(buttons));
     }
