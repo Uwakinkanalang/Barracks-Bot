@@ -4,6 +4,7 @@ import { getEconomyData, setEconomyData, getMaxBankCapacity } from '../../utils/
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { BotConfig } from '../../config/bot.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('withdraw')
@@ -35,6 +36,27 @@ export default {
             }
 
             let withdrawAmount = amountInput;
+
+            const minTransaction = BotConfig.economy.bankMinTransaction;
+            const maxTransaction = BotConfig.economy.bankMaxTransaction;
+
+            if (withdrawAmount < minTransaction) {
+                throw createError(
+                    "Withdrawal below minimum",
+                    ErrorTypes.VALIDATION,
+                    `Minimum withdrawal is ₱${minTransaction.toLocaleString()}.`,
+                    { amount: withdrawAmount, minTransaction, userId }
+                );
+            }
+
+            if (withdrawAmount > maxTransaction) {
+                throw createError(
+                    "Withdrawal exceeds transaction limit",
+                    ErrorTypes.VALIDATION,
+                    `Maximum withdrawal per transaction is ₱${maxTransaction.toLocaleString()}.`,
+                    { amount: withdrawAmount, maxTransaction, userId }
+                );
+            }
 
             if (withdrawAmount <= 0) {
                 throw createError(
