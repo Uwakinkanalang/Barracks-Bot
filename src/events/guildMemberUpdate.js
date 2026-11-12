@@ -35,6 +35,12 @@ export default {
       const roleRewards = {
         '1467461731998761096': 50000,
         '1467461918792089784': 100000,
+        '1467461953340444677': 150000,
+        '1540715496637333564': 200000,
+        '1467462639759396865': 250000,
+        '1467462740024098983': 300000,
+        '1467462823457063067': 500000,
+        '1467462861822627912': 1000000,
       };
       const newlyAddedRoleIds = Object.keys(roleRewards).filter(
         (roleId) => !oldMember.roles.cache.has(roleId) && newMember.roles.cache.has(roleId),
