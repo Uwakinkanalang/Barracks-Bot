@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { getUserLevelData } from '../../services/leveling/leveling.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { formatDuration } from '../../utils/embeds.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
@@ -9,7 +10,8 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { botConfig } from '../../config/bot.js';
 
 const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
-const DAILY_AMOUNT = botConfig.economy?.dailyAmount ?? 100;
+const DAILY_AMOUNT = botConfig.economy?.dailyAmount ?? 1000;
+const DAILY_LEVEL_BONUS = botConfig.economy?.dailyLevelBonus ?? 100;
 const PREMIUM_BONUS_PERCENTAGE = 0.1;
 
 export default {
@@ -54,8 +56,12 @@ export default {
             const guildConfig = await getGuildConfig(client, guildId);
             const PREMIUM_ROLE_ID = guildConfig.premiumRoleId;
 
-            let earned = DAILY_AMOUNT;
-            let bonusMessage = "";
+            const levelData = await getUserLevelData(client, guildId, userId);
+            const memberLevel = Math.max(0, Number(levelData?.level) || 0);
+            const levelBonus = memberLevel * DAILY_LEVEL_BONUS;
+
+            let earned = DAILY_AMOUNT + levelBonus;
+            let bonusMessage = `\n🎖️ **Level Bonus (Level ${memberLevel}):** +₱${levelBonus.toLocaleString()}`;
             let hasPremiumRole = false;
 
             if (
@@ -64,10 +70,10 @@ export default {
                 interaction.member.roles.cache.has(PREMIUM_ROLE_ID)
             ) {
                 const bonusAmount = Math.floor(
-                    DAILY_AMOUNT * PREMIUM_BONUS_PERCENTAGE,
+                    earned * PREMIUM_BONUS_PERCENTAGE,
                 );
                 earned += bonusAmount;
-                bonusMessage = `\n✨ **Premium Bonus:** +₱${bonusAmount.toLocaleString()}`;
+                bonusMessage += `\n✨ **Premium Bonus:** +₱${bonusAmount.toLocaleString()}`;
                 hasPremiumRole = true;
             }
 
