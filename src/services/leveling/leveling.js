@@ -32,7 +32,15 @@ export function getXpForLevel(level) {
       'The level must be a valid number.'
     );
   }
-  return 5 * Math.pow(level, 2) + 50 * level + 50;
+  // Koya reference cards show roughly 400 additional required XP per level
+  // around levels 31-35 (about 5.9k at 31, 7.1k at 34, and 7.5k at 35).
+  // Keep a gentler version of the existing curve below level 31, then use
+  // that observed high-level progression from level 31 onward.
+  if (level >= 31) {
+    return 400 * level - 6500;
+  }
+
+  return Math.round((5 * Math.pow(level, 2) + 50 * level + 50) * 0.95);
 }
 
 export function getLevelFromXp(xp) {
