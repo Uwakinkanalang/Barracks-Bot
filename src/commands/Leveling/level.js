@@ -23,19 +23,26 @@ async function createLevelCard(user, data, rankName, rankNumber, progress, xpNee
   ctx.roundRect(54, 48, 892, 228, 16);
   ctx.fill();
 
-  // Rank and level at the top corners.
+  // Show the soldier's earned role rank and current level.
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#e7e7e7';
-  ctx.font = '28px Sans';
-  ctx.fillText('RANK', 78, 102);
-  ctx.font = 'bold 46px Sans';
-  ctx.fillText(`#${rankNumber || '—'}`, 164, 106);
+  ctx.fillStyle = '#bfc3c5';
+  ctx.font = 'bold 22px Sans';
+  ctx.fillText('RANK', 78, 88);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 34px Sans';
+  let displayRank = rankName || 'Unranked';
+  while (ctx.measureText(displayRank).width > 330 && displayRank.length > 4) {
+    displayRank = displayRank.slice(0, -2) + '…';
+  }
+  ctx.fillText(displayRank, 78, 128);
 
   ctx.textAlign = 'right';
-  ctx.font = '28px Sans';
-  ctx.fillText('LEVEL', 855, 102);
-  ctx.font = 'bold 46px Sans';
-  ctx.fillText(String(data.level), 920, 106);
+  ctx.fillStyle = '#bfc3c5';
+  ctx.font = 'bold 22px Sans';
+  ctx.fillText('LEVEL', 920, 88);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 42px Sans';
+  ctx.fillText(String(data.level), 920, 130);
 
   // Centered circular avatar.
   const avatar = await loadImage(user.displayAvatarURL({ extension: 'png', size: 256 }));
@@ -56,26 +63,32 @@ async function createLevelCard(user, data, rankName, rankNumber, progress, xpNee
   ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
   ctx.restore();
 
-  // Display name and XP figures on the lower line.
+  // Explicit username and lifetime experience totals.
   ctx.textAlign = 'left';
+  ctx.fillStyle = '#bfc3c5';
+  ctx.font = 'bold 18px Sans';
+  ctx.fillText('USERNAME', 78, 184);
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 40px Sans';
+  ctx.font = 'bold 30px Sans';
   let displayName = user.globalName || user.username;
-  while (ctx.measureText(displayName).width > 480 && displayName.length > 4) {
+  while (ctx.measureText(displayName).width > 420 && displayName.length > 4) {
     displayName = displayName.slice(0, -2) + '…';
   }
-  ctx.fillText(displayName, 78, 204);
+  ctx.fillText(displayName, 78, 218);
 
   ctx.textAlign = 'right';
-  ctx.fillStyle = '#d5d5d5';
-  ctx.font = 'bold 22px Sans';
-  ctx.fillText(`${(data.xp / 1000).toFixed(1)}k / ${(xpNeeded / 1000).toFixed(1)}k XP`, 920, 202);
+  ctx.fillStyle = '#bfc3c5';
+  ctx.font = 'bold 18px Sans';
+  ctx.fillText('TOTAL EXP', 920, 184);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 30px Sans';
+  ctx.fillText((data.totalXp || 0).toLocaleString('en-US'), 920, 218);
 
   // Wide white progress bar with a dark grey remainder.
   const barX = 78;
-  const barY = 216;
+  const barY = 236;
   const barWidth = 842;
-  const barHeight = 38;
+  const barHeight = 24;
   ctx.fillStyle = '#484b4e';
   ctx.beginPath();
   ctx.roundRect(barX, barY, barWidth, barHeight, 20);
