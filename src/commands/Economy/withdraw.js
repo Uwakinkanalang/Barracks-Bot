@@ -10,12 +10,11 @@ export default {
     data: new SlashCommandBuilder()
         .setName('withdraw')
         .setDescription('Withdraw money from your bank to your wallet')
-        .addIntegerOption(option =>
+        .addStringOption(option =>
             option
                 .setName('amount')
-                .setDescription('Amount to withdraw')
+                .setDescription('Amount to withdraw, or all')
                 .setRequired(true)
-                .setMinValue(1)
         ),
 
     execute: withErrorHandling(async (interaction, config, client) => {
@@ -23,7 +22,7 @@ export default {
             
             const userId = interaction.user.id;
             const guildId = interaction.guildId;
-            const amountInput = interaction.options.getInteger("amount");
+            const amountInput = interaction.options.getString("amount");
 
             const userData = await getEconomyData(client, guildId, userId);
             
@@ -36,7 +35,8 @@ export default {
                 );
             }
 
-            let withdrawAmount = amountInput;
+            const withdrawAll = amountInput.trim().toLowerCase() === "all";
+            let withdrawAmount = withdrawAll ? Number(userData.bank) || 0 : Number.parseInt(amountInput, 10);
 
             const minTransaction = BotConfig.economy.bankMinTransaction;
             const maxTransaction = BotConfig.economy.bankMaxTransaction;
@@ -50,7 +50,7 @@ export default {
                 );
             }
 
-            if (withdrawAmount > maxTransaction) {
+            if (!withdrawAll && withdrawAmount > maxTransaction) {
                 throw createError(
                     "Withdrawal exceeds transaction limit",
                     ErrorTypes.VALIDATION,
@@ -59,7 +59,7 @@ export default {
                 );
             }
 
-            if (withdrawAmount <= 0) {
+            if (!Number.isSafeInteger(withdrawAmount) || withdrawAmount <= 0) {
                 throw createError(
                     "Invalid withdrawal amount",
                     ErrorTypes.VALIDATION,
@@ -68,7 +68,7 @@ export default {
                 );
             }
 
-            if (withdrawAmount > userData.bank) {
+            if (!withdrawAll && withdrawAmount > userData.bank) {
                 withdrawAmount = userData.bank;
             }
 
