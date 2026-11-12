@@ -4,6 +4,8 @@ import { getGuildConfig } from './config/guildConfig.js';
 import { getGuildBirthdays, setBirthday as dbSetBirthday, deleteBirthday as dbDeleteBirthday, getMonthName, getBirthdayTrackingKey } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
+import { AttachmentBuilder, EmbedBuilder } from 'discord.js';
+import { createBirthdayBanner } from '../utils/birthdayBanner.js';
 
 export function validateBirthday(month, day) {
   
@@ -378,7 +380,36 @@ export async function checkBirthdays(client) {
           timestamp: new Date().toISOString(),
         };
 
-        await channel.send({ embeds: [birthdayEmbed] });
+        for (const member of birthdayMembers) {
+          const image = await createBirthdayBanner(member.displayName);
+          const attachment = new AttachmentBuilder(image, { name: 'birthday-banner.png' });
+          const personalEmbed = new EmbedBuilder()
+            .setColor(0xff69b4)
+            .setAuthor({
+              name: `🎂 Birthday Celebration • ${guild.name}`,
+              iconURL: guild.iconURL({ size: 128 }) || undefined,
+            })
+            .setTitle('🎉 Happy Birthday!')
+            .setDescription([
+              `Everyone, let's celebrate ${member}!`,
+              '',
+              'Wishing you a wonderful birthday filled with happiness, laughter, and unforgettable memories. 🥳🎈',
+              '',
+              '**Have an amazing day!** 💖',
+            ].join('\\n'))
+            .addFields({ name: '🎁 Celebrant', value: member.displayName, inline: true })
+            .setThumbnail(member.displayAvatarURL({ size: 256 }))
+            .setImage('attachment://birthday-banner.png')
+            .setFooter({ text: `Celebrating you • ${guild.name}` })
+            .setTimestamp();
+
+          await channel.send({
+            content: member.toString(),
+            embeds: [personalEmbed],
+            files: [attachment],
+            allowedMentions: { users: [member.id], roles: [], parse: [] },
+          });
+        }
       }
     } catch (error) {
       logger.error(`Error processing birthdays for guild ${guildId}:`, error);
