@@ -65,17 +65,17 @@ export default {
 
             const embed = successEmbed(
                 'Withdrawal Successful',
-                `You successfully withdrew **$${withdrawAmount.toLocaleString()}** from your bank.`
+                `You successfully withdrew **₱${withdrawAmount.toLocaleString()}** from your bank.`
             )
                 .addFields(
                     {
                         name: "New Cash Balance",
-                        value: `$${userData.wallet.toLocaleString()}`,
+                        value: `₱${userData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
                         name: "New Bank Balance",
-                        value: `$${userData.bank.toLocaleString()}`,
+                        value: `₱${userData.bank.toLocaleString()}`,
                         inline: true,
                     },
                 );
