@@ -5,6 +5,7 @@ import {
     SlashCommandBuilder,
 } from 'discord.js';
 import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
+import { createEmbed } from '../../utils/embeds.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
 const BOARD_SIZE = 9;
