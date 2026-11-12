@@ -29,10 +29,6 @@ export default {
         .setCustomId('birthday_set')
         .setLabel('🎂 Set my birthday')
         .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('birthday_remove')
-        .setLabel('Remove my birthday')
-        .setStyle(ButtonStyle.Secondary),
     );
 
     await interaction.channel.send({ embeds: [embed], components: [row] });
