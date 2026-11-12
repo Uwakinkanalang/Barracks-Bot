@@ -35,7 +35,7 @@ export default {
                 continue;
             }
             displayIndex++;
-            birthdayList += `${displayIndex}. <@${birthday.userId}> - ${birthday.monthName} ${birthday.day}\n`;
+            birthdayList += `${displayIndex}. <@${birthday.userId}> - ${birthday.monthName} ${birthday.day}${birthday.year ? `, ${birthday.year}` : ''}\n`;
         }
 
         if (fetchedMembers && staleUserIds.length > 0) {
