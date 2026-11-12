@@ -26,7 +26,7 @@ const USERS = [
   '803983257317277733',
 ];
 
-const MIGRATION_VERSION = 'level-xp-1000-per-level-v1';
+const MIGRATION_VERSION = 'koya-xp-progression-v1';
 
 function previousXpForLevel(level) {
   if (level >= 31) {
