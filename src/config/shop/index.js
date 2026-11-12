@@ -8,7 +8,7 @@ export const shopConfig = {
     currency: currency.name,
     currencyName: currency.name,
     currencyNamePlural: currency.namePlural || `${currency.name}s`,
-    currencySymbol: currency.symbol || '💵',
+    currencySymbol: currency.symbol || '₱',
     
     categories: [
         {
