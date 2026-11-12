@@ -50,8 +50,7 @@ export default {
     const roleRewardsText = rewards.length
       ? rewards.map((reward, index) => {
           const role = interaction.guild.roles.cache.get(reward.roleId);
-          const roleLabel = role ? role.name : `Unknown role (${reward.roleId})`;
-          const status = earnedRoleIds.has(reward.roleId) ? ' <a:check:0>' : '';
+          const status = earnedRoleIds.has(reward.roleId) ? ' ✓' : '';
           return `• **Rank ${index + 1}** — Level ${reward.level}: <@&${reward.roleId}>${status}`;
         }).join('\n')
       : 'No Rank Levels configured';
