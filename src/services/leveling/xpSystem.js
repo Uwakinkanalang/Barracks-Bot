@@ -130,19 +130,24 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config) 
       return false;
     }
 
-    const messageTemplate = config.levelUpMessage || '{user}, you just reached level {level}!';
-    let message = messageTemplate
-      .replace(/{user}/g, member.toString())
-      .replace(/{level}/g, levelData.level)
-      .replace(/{xp}/g, levelData.xp)
-      .replace(/{xpNeeded}/g, getXpForLevel(levelData.level + 1));
-
-    // Announce the role reward associated with the level just reached.
-    const rewardRoleId = config.roleRewards?.[levelData.level];
-    const rewardRole = rewardRoleId ? guild.roles.cache.get(rewardRoleId) : null;
-    if (rewardRole) {
-      message += `\n🎉 You received the **<@&${rewardRole.id}>** role!`;
+    // Announce the level reached and every configured role reward earned
+    // across all levels gained in this XP award.
+    const messageLines = [
+      `**${member.toString()}**, you just reached level **${levelData.level}**!`
+    ];
+    const rewardRoleIds = new Set();
+    for (let reachedLevel = (levelData.previousLevel ?? levelData.level - 1) + 1; reachedLevel <= levelData.level; reachedLevel += 1) {
+      const roleId = config.roleRewards?.[reachedLevel];
+      if (roleId) rewardRoleIds.add(roleId);
     }
+
+    for (const roleId of rewardRoleIds) {
+      const rewardRole = guild.roles.cache.get(roleId);
+      if (rewardRole) {
+        messageLines.push(`🎉 You received the **<@&${rewardRole.id}>** role!`);
+      }
+    }
+    const message = messageLines.join('\\n');
 
     const levelUpEmbed = new EmbedBuilder()
       .setColor(0x36393F)
