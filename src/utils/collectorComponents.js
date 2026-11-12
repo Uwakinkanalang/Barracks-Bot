@@ -4,6 +4,7 @@ const COLLECTOR_MANAGED_PREFIXES = [
   'config_wizard',
   'cmdaccess_',
   'mines',
+  'blackjack',
 ];
 
 export function isCollectorManagedComponent(customId = '') {
