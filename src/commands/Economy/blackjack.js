@@ -4,8 +4,8 @@ import {
     ButtonStyle,
     ContainerBuilder,
     MessageFlags,
-    SectionBuilder,
-    ThumbnailBuilder,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
     SlashCommandBuilder,
     TextDisplayBuilder,
 } from 'discord.js';
@@ -59,27 +59,18 @@ function cardImageUrl(card) {
 }
 
 function addCompactCards(container, cards, hiddenIndices = []) {
+    const gallery = new MediaGalleryBuilder();
     for (const [index, card] of cards.entries()) {
         const hidden = hiddenIndices.includes(index);
-        // Discord thumbnail accessories are square and crop portrait card art.
-        // Pad the card into a square image first so the full card stays visible.
         const sourceUrl = hidden
             ? 'https://deckofcardsapi.com/static/img/back.png'
             : cardImageUrl(card);
-        const imageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(sourceUrl)}&w=200&h=200&fit=contain&bg=00000000`;
-
-        container.addSectionComponents(
-            new SectionBuilder()
-                .addTextDisplayComponents(
-                    new TextDisplayBuilder().setContent(
-                        hidden ? '🂠' : `**${card.rank}${card.suit}**\n\n**${card.suit}${card.rank}**`
-                    )
-                )
-                .setThumbnailAccessory(
-                    new ThumbnailBuilder().setURL(imageUrl)
-                )
+        const imageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(sourceUrl)}&w=200&h=280&fit=contain&bg=00000000`;
+        gallery.addItems(
+            new MediaGalleryItemBuilder().setURL(imageUrl)
         );
     }
+    container.addMediaGalleryComponents(gallery);
 }
 
 function buildGame(game, status = '🎲 Game in progress', options = {}) {
