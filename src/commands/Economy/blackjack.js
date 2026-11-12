@@ -65,9 +65,9 @@ function addCompactCards(container, cards, hiddenIndices = []) {
         const sourceUrl = hidden
             ? 'https://deckofcardsapi.com/static/img/back.png'
             : cardImageUrl(card);
-        const imageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(sourceUrl)}&w=200&h=280&fit=contain&bg=00000000`;
+        const imageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(sourceUrl)}&w=120&h=168&fit=contain&bg=00000000`;
         gallery.addItems(
-            new MediaGalleryItemBuilder().setURL(imageUrl)
+            new MediaGalleryItemBuilder().setURL(imageUrl).setDescription('Blackjack playing card')
         );
     }
     container.addMediaGalleryComponents(gallery);
@@ -84,14 +84,14 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
         new TextDisplayBuilder().setContent(
             `**♠️ Blackjack**\n` +
             `**BALANCE**\n₱${game.balance.toLocaleString()} 💰\n\n` +
-            `**DEALER'S HAND**  [${dealerValue}]`
+            `**DEALER'S HAND** [${dealerValue}]     **YOUR HAND** [${playerValue}]`
         )
     );
-    addCompactCards(container, game.dealer, dealerHidden ? [1] : []);
-    container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`**YOUR HAND**  [${playerValue}]`)
-    );
-    addCompactCards(container, game.player, hiddenPlayerIndices);
+    // Keep both hands in one compact horizontal gallery, dealer first then player.
+    addCompactCards(container, [...game.dealer, ...game.player], [
+        ...(dealerHidden ? [1] : []),
+        ...hiddenPlayerIndices.map(index => game.dealer.length + index),
+    ]);
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
             `**BET:** ₱${game.bet.toLocaleString()}\n` +
