@@ -126,6 +126,10 @@ function collectCommandPayloads(client) {
     const registeredNames = new Set();
 
     for (const command of client.commands.values()) {
+        if (command.prefixOnly) {
+            logger.debug(`Skipping prefix-only command from slash registration: ${command.data?.name || 'unknown'}`);
+            continue;
+        }
         if (!command.data || typeof command.data.toJSON !== 'function') {
             logger.warn(`Command missing data or toJSON method: ${command}`);
             continue;
