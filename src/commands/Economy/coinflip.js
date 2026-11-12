@@ -86,11 +86,11 @@ export default {
         const coin = result === 'heads' ? '🪙' : '🪙';
         const embed = won
             ? successEmbed(
-                'Coin Flip — You Win 😄',
+                'Coin Flip — You Win :green_circle: 😄',
                 `😄 The coin landed on **${result.toUpperCase()}**! You guessed correctly and received **₱${(betAmount * 2).toLocaleString()}**.`
             )
             : warningEmbed(
-                'Coin Flip — You Lost 😢',
+                'Coin Flip — You Lost :red_circle: 😢',
                 `😢 The coin landed on **${result.toUpperCase()}**. You guessed **${guess.toUpperCase()}** and lost your **₱${betAmount.toLocaleString()}** bet.`
             );
 
