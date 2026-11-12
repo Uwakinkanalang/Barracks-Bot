@@ -6,6 +6,7 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { BotConfig } from '../../config/bot.js';
 export default {
+    prefixOnly: true,
     data: new SlashCommandBuilder()
         .setName('withdraw')
         .setDescription('Withdraw money from your bank to your wallet')
