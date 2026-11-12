@@ -166,7 +166,7 @@ export async function getGuildBirthdays(client, guildId) {
     }
 }
 
-export async function setBirthday(client, guildId, userId, month, day) {
+export async function setBirthday(client, guildId, userId, month, day, year = null) {
     try {
         if (!client.db || typeof client.db.set !== "function") {
             logger.error("Database client is not available for setBirthday.");
@@ -175,7 +175,7 @@ export async function setBirthday(client, guildId, userId, month, day) {
 
         const key = getGuildBirthdaysKey(guildId);
         const birthdays = await getGuildBirthdays(client, guildId);
-        birthdays[userId] = { month, day };
+        birthdays[userId] = { month, day, year: Number.isInteger(year) ? year : null };
         await client.db.set(key, birthdays);
         return true;
     } catch (error) {
