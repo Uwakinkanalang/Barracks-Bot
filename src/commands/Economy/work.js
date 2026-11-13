@@ -80,10 +80,12 @@ export default {
             let earned = BASE_WORK_AMOUNT + levelBonus;
             const job = WORK_JOBS[Math.floor(Math.random() * WORK_JOBS.length)];
 
-            let multiplierMessage = `\\n🎖️ **Level Bonus (Level ${memberLevel}):** +₱${levelBonus.toLocaleString()}`;
+            const baseEarnings = earned;
+            const laptopBonus = hasLaptop > 0
+                ? Math.floor(baseEarnings * (LAPTOP_MULTIPLIER - 1))
+                : 0;
             if (hasLaptop > 0) {
                 earned = Math.floor(earned * LAPTOP_MULTIPLIER);
-                multiplierMessage = "\n💻 **Laptop Bonus:** +50% earnings!";
             }
 
             userData.wallet = (userData.wallet || 0) + earned;
@@ -102,18 +104,24 @@ export default {
                 timestamp: new Date().toISOString()
             });
 
+            const earningsBreakdown = [
+                `• Base pay: **₱${BASE_WORK_AMOUNT.toLocaleString()}**`,
+                `• Level bonus (Level ${memberLevel}): **+₱${levelBonus.toLocaleString()}**`,
+                ...(hasLaptop > 0 ? [`• Laptop bonus (+50%): **+₱${laptopBonus.toLocaleString()}**`] : []),
+            ].join("\\n");
+
             const embed = successEmbed(
                 "💼 Work Complete!",
-                `You worked as a **${job}** and earned **₱${earned.toLocaleString()}**!${multiplierMessage}`
+                `**Job:** ${job}\\n**Total earned:** **₱${earned.toLocaleString()}**\\n\\n**Earnings breakdown**\\n${earningsBreakdown}`
             )
                 .addFields(
                     {
-                        name: "New Balance",
-                        value: `₱${userData.wallet.toLocaleString()}`,
+                        name: "💰 Bcash Balance",
+                        value: `**₱${userData.wallet.toLocaleString()}**`,
                         inline: true,
                     },
                     {
-                        name: "Next Work",
+                        name: "⏳ Next Work",
                         value: `<t:${Math.floor((now + WORK_COOLDOWN) / 1000)}:R>`,
                         inline: true,
                     }
