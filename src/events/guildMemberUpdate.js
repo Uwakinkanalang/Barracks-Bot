@@ -89,8 +89,11 @@ export default {
           if (previousRankName) baseName = baseName.slice(previousRankName.length).trimStart();
 
           const clanTag = memberClan ? `[${memberClan.tag}]` : '';
+          const rankDisplayName = rankRole
+            ? (rankPrefixes[highestRank.level] || rankRole.name)
+            : '';
           const nicknameBody = rankRole
-            ? `${clanTag ? '' : '🔫'}${rankRole.name} ${baseName.trimStart()}`
+            ? `${clanTag ? '' : '🔫'}${rankDisplayName} ${baseName.trimStart()}`
             : baseName.trimStart();
           const desiredNickname = `${clanTag ? `${clanTag}|` : ''}${nicknameBody}`.slice(0, 32);
 
