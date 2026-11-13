@@ -317,10 +317,7 @@ export default {
                   new TextInputBuilder().setCustomId('clan_name').setLabel('Clan Name').setStyle(TextInputStyle.Short).setMinLength(3).setMaxLength(32).setRequired(true)
                 ),
                 new ActionRowBuilder().addComponents(
-                  new TextInputBuilder().setCustomId('clan_tag').setLabel('Clan Tag').setStyle(TextInputStyle.Short).setMinLength(2).setMaxLength(6).setRequired(true)
-                ),
-                new ActionRowBuilder().addComponents(
-                  new TextInputBuilder().setCustomId('clan_symbol').setLabel('Clan Symbol (emoji or symbol)').setStyle(TextInputStyle.Short).setMinLength(1).setMaxLength(10).setRequired(true)
+                  new TextInputBuilder().setCustomId('clan_tag_hex').setLabel('Clan Tag | Role Hex').setStyle(TextInputStyle.Short).setPlaceholder('e.g. ABC | #5865F2').setMinLength(12).setMaxLength(16).setRequired(true)
                 ),
                 new ActionRowBuilder().addComponents(
                   new TextInputBuilder().setCustomId('clan_description').setLabel('Clan Description').setStyle(TextInputStyle.Paragraph).setMaxLength(500).setRequired(true)
@@ -341,25 +338,14 @@ export default {
               return;
             }
 
-            const { ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, LabelBuilder, FileUploadBuilder } = await import('discord.js');
+            const { ModalBuilder, LabelBuilder, FileUploadBuilder } = await import('discord.js');
             const modal = new ModalBuilder()
               .setCustomId('clan:finalize')
-              .setTitle('Clan Role Color & Logo')
-              .addComponents(
-                new ActionRowBuilder().addComponents(
-                  new TextInputBuilder()
-                    .setCustomId('clan_role_hex')
-                    .setLabel('Clan Role Hex (example: #5865F2)')
-                    .setStyle(TextInputStyle.Short)
-                    .setMinLength(6)
-                    .setMaxLength(7)
-                    .setRequired(true)
-                )
-              )
+              .setTitle('Upload Your Clan Logo')
               .addLabelComponents(
                 new LabelBuilder()
                   .setLabel('Clan Logo Upload (optional)')
-                  .setDescription('Upload one image file for your clan logo.')
+                  .setDescription('Upload one image file for your clan logo, or leave it empty.')
                   .setFileUploadComponent(
                     new FileUploadBuilder()
                       .setCustomId('clan_logo')
@@ -452,8 +438,10 @@ export default {
         } else if (interaction.isModalSubmit()) {
           if (interaction.customId === 'clan:create:submit') {
             const name = interaction.fields.getTextInputValue('clan_name').trim();
-            const tag = interaction.fields.getTextInputValue('clan_tag').trim().toUpperCase();
-            const symbol = interaction.fields.getTextInputValue('clan_symbol').trim();
+            const tagHexInput = interaction.fields.getTextInputValue('clan_tag_hex').trim();
+            const tagHexMatch = tagHexInput.match(/^([A-Za-z0-9]{2,6})\s*\|\s*#?([0-9a-fA-F]{6})$/);
+            const tag = tagHexMatch?.[1]?.toUpperCase();
+            const roleHex = tagHexMatch ? `#${tagHexMatch[2].toUpperCase()}` : null;
             const description = interaction.fields.getTextInputValue('clan_description').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
             const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\d{17,20})>?$/)?.[1];
@@ -462,12 +450,8 @@ export default {
               await interaction.reply({ content: 'Clan name must be 3–32 characters and use only letters, numbers, spaces, _ or -.', flags: MessageFlags.Ephemeral });
               return;
             }
-            if (!/^[A-Z0-9]{2,6}$/.test(tag)) {
-              await interaction.reply({ content: 'Clan tag must be 2–6 letters or numbers.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            if (!symbol || symbol.length > 10) {
-              await interaction.reply({ content: 'Please enter a clan symbol or emoji (maximum 10 characters).', flags: MessageFlags.Ephemeral });
+            if (!tagHexMatch || !tag || !roleHex) {
+              await interaction.reply({ content: 'Enter the clan tag and role hex together in this format: **ABC | #5865F2**. The tag must be 2–6 letters or numbers and the hex must be 6 digits.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!viceLeaderId || viceLeaderId === interaction.user.id) {
@@ -499,7 +483,7 @@ export default {
 
             const draftKey = `guild:${interaction.guildId}:clan_draft:${interaction.user.id}`;
             await interaction.client.db.set(draftKey, {
-              name, tag, symbol, description, viceLeaderId,
+              name, tag, roleHex, description, viceLeaderId,
               expiresAt: Date.now() + 15 * 60 * 1000,
             });
 
@@ -512,7 +496,7 @@ export default {
                 .setEmoji('➡️')
             );
             await interaction.reply({
-              content: 'Your clan details are saved temporarily. Continue to set the clan role color and upload your logo.',
+              content: 'Your clan details are saved temporarily. Continue to upload your clan logo.',
               components: [continueRow],
               flags: MessageFlags.Ephemeral,
             });
@@ -527,12 +511,7 @@ export default {
               return;
             }
 
-            const roleHexInput = interaction.fields.getTextInputValue('clan_role_hex').trim();
-            if (!/^#?[0-9a-fA-F]{6}$/.test(roleHexInput)) {
-              await interaction.reply({ content: 'Enter a valid 6-digit hex color, such as #5865F2.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            const roleHex = roleHexInput.startsWith('#') ? roleHexInput.toUpperCase() : `#${roleHexInput.toUpperCase()}`;
+            const roleHex = draft.roleHex;
             const uploadedFiles = interaction.fields.getUploadedFiles('clan_logo');
             const logoAttachment = uploadedFiles?.first?.() || null;
 
@@ -587,7 +566,6 @@ export default {
               id: `clan_${Date.now()}_${interaction.user.id}`,
               name: draft.name,
               tag: draft.tag,
-              symbol: draft.symbol,
               description: draft.description,
               leaderId: interaction.user.id,
               viceLeaderId: draft.viceLeaderId,
@@ -603,7 +581,7 @@ export default {
             const { EmbedBuilder } = await import('discord.js');
             const embed = new EmbedBuilder()
               .setColor(Number.parseInt(roleHex.slice(1), 16))
-              .setTitle(`${draft.symbol} ${draft.name} [${draft.tag}] • Clan Created!`)
+               .setTitle(`${draft.name} [${draft.tag}] • Clan Created!`)
               .setDescription(draft.description)
               .addFields(
                 { name: 'Clan Leader', value: `<@${interaction.user.id}>`, inline: true },
