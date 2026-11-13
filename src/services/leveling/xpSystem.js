@@ -10,8 +10,8 @@ import { wrapServiceBoundary } from '../../utils/errorHandler.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 
 const BCASH_ROLE_REWARDS = Object.freeze({
-  10: 500000, 20: 1000000, 30: 1500000, 40: 2000000,
-  50: 2500000, 60: 3000000, 80: 5000000, 100: 10000000,
+  10: 50000, 20: 100000, 30: 300000, 40: 500000,
+  50: 1000000, 60: 3000000, 80: 5000000, 100: 10000000,
 });
 
 /**
