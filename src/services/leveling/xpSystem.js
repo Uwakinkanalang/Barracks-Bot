@@ -7,6 +7,12 @@ import { logEvent, EVENT_TYPES } from '../loggingService.js';
 import { formatLogLine } from '../../utils/logging/logEmbeds.js';
 import { Mutex } from '../../utils/mutex.js';
 import { wrapServiceBoundary } from '../../utils/errorHandler.js';
+import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+
+const BCASH_ROLE_REWARDS = Object.freeze({
+  10: 500000, 20: 1000000, 30: 1500000, 40: 2000000,
+  50: 2500000, 60: 3000000, 80: 5000000, 100: 10000000,
+});
 
 /**
  * Award XP to a member. Returns null when XP is skipped (disabled/invalid amount).
@@ -40,6 +46,7 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
     let xpNeededForNextLevel = getXpForLevel(levelData.level);
     let didLevelUp = false;
     const initialLevel = levelData.level;
+    const bcashRewards = [];
 
     while (levelData.xp >= xpNeededForNextLevel && levelData.level < 1000) {
       levelData.xp -= xpNeededForNextLevel;
@@ -52,6 +59,12 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
       if (config.roleRewards && config.roleRewards[levelData.level]) {
         await awardRoleReward(guild, member, config.roleRewards[levelData.level], levelData.level);
       }
+
+      const bcashAmount = BCASH_ROLE_REWARDS[levelData.level];
+      if (bcashAmount) {
+        const reward = await awardBcashReward(client, guild.id, member.user.id, levelData.level, bcashAmount);
+        if (reward) bcashRewards.push(reward);
+      }
     }
 
     if (didLevelUp) {
@@ -61,7 +74,7 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
       });
 
       if (config.announceLevelUp && reachedRoleRewardLevel) {
-        await sendLevelUpAnnouncement(guild, member, levelData, config, initialLevel);
+        await sendLevelUpAnnouncement(guild, member, levelData, config, initialLevel, bcashRewards);
       }
 
       try {
@@ -101,6 +114,29 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
   userMessage: 'Failed to award XP. Please try again.',
 });
 
+async function awardBcashReward(client, guildId, userId, level, amount) {
+  try {
+    const economyData = await getEconomyData(client, guildId, userId);
+    economyData.inventory = economyData.inventory || {};
+    const claims = economyData.inventory.roleRewardClaims || {};
+    const claimKey = String(level);
+    if (claims[claimKey]) return null;
+
+    economyData.wallet = (Number(economyData.wallet) || 0) + amount;
+    economyData.inventory.roleRewardClaims = { ...claims, [claimKey]: true };
+    const saved = await setEconomyData(client, guildId, userId, economyData);
+    if (!saved) {
+      logger.error(`Could not save level ${level} Bcash reward for user ${userId}`);
+      return null;
+    }
+    logger.info(`Awarded ₱${amount.toLocaleString('en-US')} Bcash to ${userId} for reaching level ${level}`);
+    return { level, amount };
+  } catch (error) {
+    logger.error(`Failed to award Bcash reward to ${userId} for level ${level}:`, error);
+    return null;
+  }
+}
+
 async function awardRoleReward(guild, member, roleId, level) {
   try {
     const role = guild.roles.cache.get(roleId);
@@ -121,7 +157,7 @@ async function awardRoleReward(guild, member, roleId, level) {
   }
 }
 
-export async function sendLevelUpAnnouncement(guild, member, levelData, config, previousLevel = levelData.level - 1) {
+export async function sendLevelUpAnnouncement(guild, member, levelData, config, previousLevel = levelData.level - 1, bcashRewards = null) {
   try {
     const levelUpChannel = config.levelUpChannel
       ? guild.channels.cache.get(config.levelUpChannel)
@@ -154,6 +190,12 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
 
     for (const rewardRole of rewardRoles) {
       messageLines.push(`🎉 You received the **<@&${rewardRole.id}>** role!`);
+    }
+    const announcedBcashRewards = bcashRewards ?? Object.entries(BCASH_ROLE_REWARDS)
+      .filter(([level]) => Number(level) > previousLevel && Number(level) <= levelData.level)
+      .map(([level, amount]) => ({ level: Number(level), amount }));
+    for (const reward of announcedBcashRewards) {
+      messageLines.push(`💰 You received **₱${reward.amount.toLocaleString('en-US')} Bcash** for reaching level **${reward.level}**!`);
     }
     const message = messageLines.join('\n');
     const rankDisplay = rewardRoles.length
