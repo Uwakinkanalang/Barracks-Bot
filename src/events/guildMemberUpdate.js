@@ -77,10 +77,12 @@ export default {
           // Resolve the member's approved clan from their assigned clan role.
           const clans = await newMember.client.db.get(`guild:${newMember.guild.id}:clans`, []);
           const clanList = Array.isArray(clans) ? clans : [];
+          // A member is considered in a clan when they receive an approved clan's role.
+          // Do not require roster metadata here: the role assignment itself triggers the nickname.
           const memberClan = clanList.find((clan) =>
             clan.status === 'approved' &&
-            clan.roleId && newMember.roles.cache.has(clan.roleId) &&
-            [clan.leaderId, clan.viceLeaderId, ...(clan.memberIds || [])].includes(newMember.id)
+            clan.roleId &&
+            newMember.roles.cache.has(clan.roleId)
           );
 
           // Update nickname for non-clan rank changes, or once when a member joins a clan.
