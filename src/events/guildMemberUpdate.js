@@ -67,7 +67,7 @@ export default {
 
           const rankPrefix = highestRank ? rankPrefixes[highestRank.level] : null;
           const desiredNickname = rankRole && rankPrefix
-            ? `${rankPrefix} ${newMember.user.username}`.slice(0, 32)
+            ? `${rankPrefix} ${newMember.displayName}`.slice(0, 32)
             : null;
 
           if (newMember.nickname !== desiredNickname) {
