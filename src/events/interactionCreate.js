@@ -356,13 +356,15 @@ export default {
               `guild:${interaction.guildId}:clan_approval_role`,
               null
             );
-            if (!approverRoleId || !interaction.member?.roles?.cache?.has(approverRoleId)) {
+            const reviewingMember = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+            if (!approverRoleId || !reviewingMember?.roles?.cache?.has(approverRoleId)) {
               await interaction.reply({
                 content: 'You do not have the configured Clan Approver role.',
                 flags: MessageFlags.Ephemeral,
               });
               return;
             }
+            const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
             const storageKey = `guild:${interaction.guildId}:clans`;
             const clans = await interaction.client.db.get(storageKey, []);
             const clanList = Array.isArray(clans) ? clans : [];
@@ -380,7 +382,6 @@ export default {
               reviewedClan.reviewedBy = interaction.user.id;
               reviewedClan.reviewedAt = new Date().toISOString();
               await interaction.client.db.set(storageKey, clanList);
-              const { EmbedBuilder } = await import('discord.js');
               const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
                 .setColor(Number.parseInt((reviewedClan.roleHex || '#5865F2').slice(1), 16))
                 .setTitle(`🏰 ${reviewedClan.name} [${reviewedClan.tag}]`)
@@ -391,7 +392,6 @@ export default {
             if (decision === 'reject') {
               clanList.splice(clanIndex, 1);
               await interaction.client.db.set(storageKey, clanList);
-              const { EmbedBuilder } = await import('discord.js');
               const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
                 .setColor(0xED4245)
                 .addFields({ name: '📝 Status', value: `❌ Rejected by <@${interaction.user.id}>`, inline: true });
