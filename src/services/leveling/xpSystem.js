@@ -25,10 +25,12 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
       return null;
     }
 
+    // Server boosters earn double XP from every supported XP source.
+    const awardedXp = member.premiumSince ? xpToAdd * 2 : xpToAdd;
     const levelData = await getUserLevelData(client, guild.id, member.user.id);
 
-    levelData.xp += xpToAdd;
-    levelData.totalXp += xpToAdd;
+    levelData.xp += awardedXp;
+    levelData.totalXp += awardedXp;
     if (options.source === 'voice') {
       levelData.lastVoiceXp = Date.now();
     } else {
