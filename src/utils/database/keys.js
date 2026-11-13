@@ -32,12 +32,12 @@ export function getFakeAccountKey(guildId, userId) {
     return `guild:${guildId}:fake_account:${userId}`;
 }
 
-export function getEconomyKey(guildId, userId) {
-    return `guild:${guildId}:economy:${userId}`;
+export function getEconomyKey(_guildId, userId) {
+    return `global:economy:${userId}`;
 }
 
-export function getEconomyPrefix(guildId) {
-    return `guild:${guildId}:economy:`;
+export function getEconomyPrefix(_guildId) {
+    return 'global:economy:';
 }
 
 export function getAFKKey(guildId, userId) {
