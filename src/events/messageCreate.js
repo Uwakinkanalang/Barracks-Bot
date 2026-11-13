@@ -65,7 +65,7 @@ async function handlePrefixCommand(message, client) {
           '• Clan Tag + Role Hex (example: ABC | #5865F2)\n' +
           '• Clan Description\n' +
           '• Vice Clan Leader\n' +
-          '• Clan Logo Upload (optional image attachment)\n\n' +
+          '• Clan Logo\n\n' +
           'Your account will automatically be registered as the **Clan Leader**.\n' +
           'All clan registrations are subject to staff approval.'
         )
