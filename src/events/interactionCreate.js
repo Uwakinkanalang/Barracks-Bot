@@ -350,6 +350,83 @@ export default {
             return;
           }
 
+          if (interaction.customId.startsWith('clan:delete:')) {
+            const [, , action, ownerId] = interaction.customId.split(':');
+
+            if (interaction.user.id !== ownerId) {
+              await interaction.reply({
+                content: 'Only the Clan Leader who opened this confirmation can use these buttons.',
+                flags: MessageFlags.Ephemeral,
+              });
+              return;
+            }
+
+            if (action === 'cancel') {
+              await interaction.update({
+                content: 'Clan removal cancelled. Your clan is safe.',
+                embeds: [],
+                components: [],
+              });
+              return;
+            }
+
+            if (action === 'confirm') {
+              const storageKey = `guild:${interaction.guildId}:clans`;
+              const clans = await interaction.client.db.get(storageKey, []);
+              const clanList = Array.isArray(clans) ? clans : [];
+              const clanIndex = clanList.findIndex(entry => entry.leaderId === interaction.user.id);
+
+              if (clanIndex === -1) {
+                await interaction.update({
+                  content: 'No clan led by you was found. It may have already been removed.',
+                  embeds: [],
+                  components: [],
+                });
+                return;
+              }
+
+              const [removedClan] = clanList.splice(clanIndex, 1);
+              await interaction.client.db.set(storageKey, clanList);
+
+              const logChannelId = await interaction.client.db.get(
+                `guild:${interaction.guildId}:clan_log_channel`,
+                null
+              );
+              if (logChannelId) {
+                try {
+                  const logChannel = await interaction.guild.channels.fetch(logChannelId);
+                  if (logChannel?.isTextBased() && logChannel?.send) {
+                    const { EmbedBuilder } = await import('discord.js');
+                    const logEmbed = new EmbedBuilder()
+                      .setColor(0xED4245)
+                      .setTitle('🗑️ Clan Registration Removed')
+                      .setDescription(`**${removedClan.name} [${removedClan.tag}]** has been removed from the clan registry.`)
+                      .addFields(
+                        { name: 'Clan Leader', value: `<@${removedClan.leaderId}>`, inline: true },
+                        { name: 'Removed By', value: `<@${interaction.user.id}>`, inline: true },
+                      )
+                      .setTimestamp()
+                      .setFooter({ text: `Barracks Clan Registry • ${interaction.guild.name}` });
+                    await logChannel.send({ embeds: [logEmbed] });
+                  }
+                } catch (error) {
+                  logger.error('Failed to log clan removal:', {
+                    error: error.message,
+                    guildId: interaction.guildId,
+                    channelId: logChannelId,
+                  });
+                }
+              }
+
+              await interaction.update({
+                content: `✅ **${removedClan.name} [${removedClan.tag}]** has been removed from the Barracks clan registry.`,
+                embeds: [],
+                components: [],
+              });
+              return;
+            }
+          }
+
           if (interaction.customId.startsWith('shared_todo_')) {
             const parts = interaction.customId.split('_');
             const buttonType = parts.slice(0, 3).join('_');
