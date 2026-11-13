@@ -320,9 +320,9 @@ export default {
                   ),
                 new LabelBuilder()
                   .setLabel('Clan Tag | Role Hex')
-                  .setDescription('Example: A | #5865F2 (tag: 1–6 letters/numbers)')
+                  .setDescription('Example: A1 | #5865F2 • Tags may use 1–6 letters, numbers, symbols, or emoji (no spaces).')
                   .setTextInputComponent(
-                    new TextInputBuilder().setCustomId('clan_tag_hex').setStyle(TextInputStyle.Short).setPlaceholder('A | #5865F2').setMaxLength(16).setRequired(true)
+                    new TextInputBuilder().setCustomId('clan_tag_hex').setStyle(TextInputStyle.Short).setPlaceholder('★ | #5865F2').setMaxLength(40).setRequired(true)
                   ),
                 new LabelBuilder()
                   .setLabel('Clan Description')
@@ -558,8 +558,11 @@ export default {
           if (interaction.customId === 'clan:create:submit') {
             const name = interaction.fields.getTextInputValue('clan_name').trim();
             const tagHexInput = interaction.fields.getTextInputValue('clan_tag_hex').trim();
-                        const tagHexMatch = tagHexInput.match(/^([A-Za-z0-9]{1,6})\s*\|\s*#?([0-9a-fA-F]{6})$/);
-            const tag = tagHexMatch?.[1]?.toUpperCase();
+                        const tagHexMatch = tagHexInput.match(/^(.+?)\s*\|\s*#?([0-9a-fA-F]{6})$/u);
+            const rawTag = tagHexMatch?.[1]?.trim();
+            const tagLength = rawTag ? Array.from(rawTag).length : 0;
+            const validTag = Boolean(rawTag) && tagLength >= 1 && tagLength <= 6 && /^[\p{L}\p{N}\p{S}\p{P}\p{M}]+$/u.test(rawTag);
+            const tag = validTag ? rawTag.toUpperCase() : null;
             const roleHex = tagHexMatch ? `#${tagHexMatch[2].toUpperCase()}` : null;
             const description = interaction.fields.getTextInputValue('clan_description').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
@@ -569,8 +572,8 @@ export default {
               await interaction.reply({ content: 'Clan name must be 3–32 characters and use only letters, numbers, spaces, _ or -.', flags: MessageFlags.Ephemeral });
               return;
             }
-            if (!tagHexMatch || !tag || !roleHex) {
-              await interaction.reply({ content: 'Enter the clan tag and role hex together in this format: **A | #5865F2**. The tag can be 1–6 letters or numbers; the hex must be 6 digits.', flags: MessageFlags.Ephemeral });
+            if (!tagHexMatch || !validTag || !tag || !roleHex) {
+              await interaction.reply({ content: 'Enter the clan tag and role hex together in this format: **★ | #5865F2**. Tags must be 1–6 characters and may include letters, numbers, symbols, or emoji (no spaces). The role hex must be 6 digits.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!viceLeaderId || viceLeaderId === interaction.user.id) {
