@@ -57,7 +57,7 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
       logger.info(`🎉 ${member.user.tag} leveled up to level ${levelData.level} in ${guild.name}`);
 
       if (config.roleRewards && config.roleRewards[levelData.level]) {
-        await awardRoleReward(guild, member, config.roleRewards[levelData.level], levelData.level);
+        await awardRoleReward(guild, member, config.roleRewards[levelData.level], levelData.level, config.roleRewards);
       }
 
       const bcashAmount = BCASH_ROLE_REWARDS[levelData.level];
@@ -156,7 +156,7 @@ async function sendBcashRewardDm(member, guild, level, reward, roleId) {
   }
 }
 
-async function awardRoleReward(guild, member, roleId, level) {
+async function awardRoleReward(guild, member, roleId, level, roleRewards = {}) {
   try {
     const role = guild.roles.cache.get(roleId);
 
@@ -165,12 +165,19 @@ async function awardRoleReward(guild, member, roleId, level) {
       return;
     }
 
-    if (member.roles.cache.has(roleId)) {
-      return;
+    // A member may hold only their highest configured leveling rank.
+    // Remove lower/other leveling rewards without touching unrelated server roles.
+    const previousRankRoleIds = [...new Set(Object.values(roleRewards))]
+      .filter((id) => id !== roleId && member.roles.cache.has(id));
+
+    if (previousRankRoleIds.length) {
+      await member.roles.remove(previousRankRoleIds, `Promoted to level ${level} rank`);
     }
 
-    await member.roles.add(role, `Level ${level} reward`);
-    logger.info(`✅ Awarded role ${role.name} to ${member.user.tag} for reaching level ${level}`);
+    if (!member.roles.cache.has(roleId)) {
+      await member.roles.add(role, `Level ${level} reward`);
+      logger.info(`✅ Awarded role ${role.name} to ${member.user.tag} for reaching level ${level}`);
+    }
   } catch (error) {
     logger.error(`Failed to award role reward to ${member.user.id}:`, error);
   }
@@ -192,23 +199,21 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
       return false;
     }
 
-    // Announce the level reached and every configured role reward earned
-    // across all levels gained in this XP award.
+    // Show only the highest rank earned at the member's final level.
     const messageLines = [
       `**${member.toString()}**, you just reached level **${levelData.level}**!`
     ];
-    const rewardRoleIds = new Set();
-    for (let reachedLevel = previousLevel + 1; reachedLevel <= levelData.level; reachedLevel += 1) {
-      const roleId = config.roleRewards?.[reachedLevel];
-      if (roleId) rewardRoleIds.add(roleId);
-    }
-
-    const rewardRoles = [...rewardRoleIds]
-      .map((roleId) => guild.roles.cache.get(roleId))
-      .filter(Boolean);
+    const highestRewardLevel = Object.keys(config.roleRewards || {})
+      .map(Number)
+      .filter((level) => Number.isInteger(level) && level <= levelData.level)
+      .sort((a, b) => b - a)[0];
+    const highestRoleId = highestRewardLevel ? config.roleRewards[highestRewardLevel] : null;
+    const rewardRoles = highestRoleId
+      ? [guild.roles.cache.get(highestRoleId)].filter(Boolean)
+      : [];
 
     for (const rewardRole of rewardRoles) {
-      messageLines.push(`🎉 You received the **<@&${rewardRole.id}>** role!`);
+      messageLines.push(`🎉 Your current highest rank is **<@&${rewardRole.id}>**!`);
     }
     const announcedBcashRewards = bcashRewards ?? Object.entries(BCASH_ROLE_REWARDS)
       .filter(([level]) => Number(level) > previousLevel && Number(level) <= levelData.level)
