@@ -11,6 +11,14 @@ export default {
     )
     .addSubcommand(subcommand =>
       subcommand
+        .setName('setapproverole')
+        .setDescription('Set the role allowed to approve or reject clan registrations')
+        .addRoleOption(option =>
+          option.setName('role').setDescription('Clan registration approver role').setRequired(true)
+        )
+    )
+    .addSubcommand(subcommand =>
+      subcommand
         .setName('setlogchannel')
         .setDescription('Set the channel where new clan registrations are sent')
         .addChannelOption(option =>
@@ -191,6 +199,21 @@ export default {
       return interaction.reply({
         embeds: [confirmEmbed],
         components: [row],
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    if (subcommand === 'setapproverole') {
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+        return interaction.reply({
+          content: 'You need the **Manage Server** permission to configure the clan approval role.',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+      const role = interaction.options.getRole('role', true);
+      await interaction.client.db.set(`guild:${interaction.guildId}:clan_approval_role`, role.id);
+      return interaction.reply({
+        content: `✅ ${role} can now approve or reject clan registrations.`,
         flags: MessageFlags.Ephemeral,
       });
     }
