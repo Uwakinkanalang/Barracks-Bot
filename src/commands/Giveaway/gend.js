@@ -6,7 +6,8 @@ import { getGuildGiveaways, saveGiveaway } from '../../utils/giveaways.js';
 import { 
     endGiveaway as endGiveawayService,
     createGiveawayEmbed, 
-    createGiveawayButtons 
+    createGiveawayButtons,
+    awardGiveawayPrizes
 } from '../../services/giveawayService.js';
 import { logEvent, EVENT_TYPES } from '../../services/loggingService.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -78,6 +79,7 @@ export default {
 
         const updatedGiveaway = endResult.giveaway;
         const winners = endResult.winners;
+        const payoutResults = await awardGiveawayPrizes(interaction.client, interaction.guildId, updatedGiveaway, winners);
 
         const channel = await interaction.client.channels.fetch(
             updatedGiveaway.channelId,
@@ -130,8 +132,9 @@ export default {
             const winnerMentions = winners
                 .map((id) => `<@${id}>`)
                 .join(",");
+            const payoutText = payoutResults.filter(result => result.success).map(result => `<@${result.userId}> received **₱${result.amount.toLocaleString()}** for place #${result.place}.`).join('\\n');
             const winnerPingMsg = await channel.send({
-                content: `🎉 CONGRATULATIONS ${winnerMentions}! You won the **${updatedGiveaway.prize}** giveaway! Please contact the host <@${updatedGiveaway.hostId}> to claim your prize.`,
+                content: `🎉 CONGRATULATIONS ${winnerMentions}! You won the **${updatedGiveaway.prize}** giveaway!${payoutText ? `\\n\\n💰 **bCash paid automatically:**\\n${payoutText}` : ''}`,
             });
             updatedGiveaway.winnerPingMessageId = winnerPingMsg.id;
             await saveGiveaway(interaction.client, interaction.guildId, updatedGiveaway);
