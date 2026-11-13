@@ -69,7 +69,7 @@ export async function getEconomyData(client, guildId, userId) {
         if (!data && typeof client.db.list === 'function') {
             const keys = await client.db.list('guild:');
             const legacyKeys = (Array.isArray(keys) ? keys : Object.keys(keys || {}))
-                .filter((legacyKey) => /^guild:[^:]+:economy:\\d+$/.test(legacyKey) &&
+                .filter((legacyKey) => /^guild:[^:]+:economy:\d+$/.test(legacyKey) &&
                     legacyKey.endsWith(`:${userId}`));
 
             if (legacyKeys.length > 0) {
