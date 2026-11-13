@@ -63,13 +63,67 @@ export async function getEconomyData(client, guildId, userId) {
         }
 
         const key = getEconomyKey(guildId, userId);
-        const data = await client.db.get(key, {});
+        let data = await client.db.get(key, null);
+
+        // Migrate and combine this user's old guild-scoped accounts on first access.
+        if (!data && typeof client.db.list === 'function') {
+            const keys = await client.db.list('guild:');
+            const legacyKeys = (Array.isArray(keys) ? keys : Object.keys(keys || {}))
+                .filter((legacyKey) => /^guild:[^:]+:economy:\\d+$/.test(legacyKey) &&
+                    legacyKey.endsWith(`:${userId}`));
+
+            if (legacyKeys.length > 0) {
+                const legacyAccounts = await Promise.all(
+                    legacyKeys.map(async (legacyKey) => client.db.get(legacyKey, null)),
+                );
+                const validAccounts = legacyAccounts.filter(
+                    (account) => account && typeof account === 'object' && !Array.isArray(account),
+                );
+
+                if (validAccounts.length > 0) {
+                    const merged = { ...DEFAULT_ECONOMY_DATA, ...validAccounts[0] };
+                    merged.wallet = validAccounts.reduce((sum, account) => sum + (Number(account.wallet) || 0), 0);
+                    merged.bank = validAccounts.reduce((sum, account) => sum + (Number(account.bank) || 0), 0);
+                    merged.level = Math.max(...validAccounts.map((account) => Number(account.level) || 1));
+                    merged.bankLevel = Math.max(...validAccounts.map((account) => Number(account.bankLevel) || 0));
+                    merged.xp = Math.max(...validAccounts.map((account) => Number(account.xp) || 0));
+                    merged.inventory = {};
+                    merged.cooldowns = {};
+
+                    for (const account of validAccounts) {
+                        for (const [item, value] of Object.entries(account.inventory || {})) {
+                            if (item === 'roleRewardClaims' && value && typeof value === 'object') {
+                                merged.inventory.roleRewardClaims = {
+                                    ...(merged.inventory.roleRewardClaims || {}),
+                                    ...value,
+                                };
+                            } else if (typeof value === 'number') {
+                                merged.inventory[item] = (merged.inventory[item] || 0) + value;
+                            } else if (merged.inventory[item] === undefined) {
+                                merged.inventory[item] = value;
+                            }
+                        }
+                        for (const [cooldown, timestamp] of Object.entries(account.cooldowns || {})) {
+                            merged.cooldowns[cooldown] = Math.max(merged.cooldowns[cooldown] || 0, Number(timestamp) || 0);
+                        }
+                        for (const field of ['lastDaily', 'lastWeekly', 'lastWork', 'lastCrime', 'lastRob', 'lastDeposit', 'lastWithdraw']) {
+                            merged[field] = Math.max(Number(merged[field]) || 0, Number(account[field]) || 0);
+                        }
+                    }
+
+                    data = normalizeEconomyData(merged, DEFAULT_ECONOMY_DATA);
+                    await client.db.set(key, data);
+                    logger.info(`[ECONOMY_GLOBAL] Migrated ${legacyKeys.length} guild account(s) for user ${userId} into the shared account.`);
+                }
+            }
+        }
+
         const defaults = {
             ...DEFAULT_ECONOMY_DATA,
             wallet: ECONOMY_CONFIG.startingBalance ?? DEFAULT_ECONOMY_DATA.wallet,
         };
-        
-        return normalizeEconomyData(data, defaults);
+
+        return normalizeEconomyData(data || {}, defaults);
     } catch (error) {
         logger.error(`Error getting economy data for user ${userId}`, error);
         return normalizeEconomyData({}, DEFAULT_ECONOMY_DATA);
