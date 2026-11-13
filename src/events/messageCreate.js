@@ -50,6 +50,10 @@ async function handlePrefixCommand(message, client) {
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
     if (/^bclan\s+panel$/i.test(trimmedContent)) {
+      if (!message.member?.permissions?.has('ManageGuild')) {
+        await message.reply('❌ Only members with **Manage Server** permission can post the Clan Registration Panel.');
+        return;
+      }
       const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
       const panelEmbed = new EmbedBuilder()
         .setColor(0x5865F2)
