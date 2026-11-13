@@ -63,7 +63,10 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
       const bcashAmount = BCASH_ROLE_REWARDS[levelData.level];
       if (bcashAmount) {
         const reward = await awardBcashReward(client, guild.id, member.user.id, levelData.level, bcashAmount);
-        if (reward) bcashRewards.push(reward);
+        if (reward) {
+          bcashRewards.push(reward);
+          await sendBcashRewardDm(member, guild, levelData.level, reward, config.roleRewards?.[levelData.level]);
+        }
       }
     }
 
@@ -130,10 +133,26 @@ async function awardBcashReward(client, guildId, userId, level, amount) {
       return null;
     }
     logger.info(`Awarded ₱${amount.toLocaleString('en-US')} Bcash to ${userId} for reaching level ${level}`);
-    return { level, amount };
+    return { level, amount, walletBalance: Number(economyData.wallet) || 0 };
   } catch (error) {
     logger.error(`Failed to award Bcash reward to ${userId} for level ${level}:`, error);
     return null;
+  }
+}
+
+async function sendBcashRewardDm(member, guild, level, reward, roleId) {
+  try {
+    const role = roleId ? guild.roles.cache.get(roleId) : null;
+    const rankName = role?.name || `Level ${level}`;
+    const message = [
+      `[🎉](https://discord.com/assets/f7750b45770701de.svg) You received **₱${reward.amount.toLocaleString('en-US')}** in Barracks cash for earning **[🔫](https://discord.com/assets/445896d2723c236e.svg)${rankName}**!`,
+      `💰 Your new Barracks cash balance is **₱${reward.walletBalance.toLocaleString('en-US')}**.`
+    ].join('\\n');
+    await member.send({ content: message });
+    logger.info(`Sent level ${level} Bcash reward DM to ${member.user.id}`);
+  } catch (error) {
+    // A closed DM or blocked bot must never interrupt XP or reward processing.
+    logger.debug(`Could not DM Bcash reward to ${member.user.id}: ${error.message}`);
   }
 }
 
