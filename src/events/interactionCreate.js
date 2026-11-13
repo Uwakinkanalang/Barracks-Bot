@@ -331,7 +331,7 @@ export default {
                   ),
                 new LabelBuilder()
                   .setLabel('Vice Clan Leader')
-                  .setDescription('Mention the member or enter their Discord user ID')
+                  .setDescription('Enter the Vice Clan Leader’s Discord user ID (Copy User ID from their profile).')
                   .setTextInputComponent(
                     new TextInputBuilder().setCustomId('clan_vice_leader').setStyle(TextInputStyle.Short).setMaxLength(25).setRequired(true)
                   ),
