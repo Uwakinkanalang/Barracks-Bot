@@ -83,8 +83,9 @@ export default {
             [clan.leaderId, clan.viceLeaderId, ...(clan.memberIds || [])].includes(newMember.id)
           );
 
-          // Clan members keep their manually managed nicknames when they rank up.
-          if (!memberClan) {
+          // Update nickname for non-clan rank changes, or once when a member joins a clan.
+          const joinedClan = Boolean(memberClan && !oldMember.roles.cache.has(memberClan.roleId));
+          if (!memberClan || joinedClan) {
           // Remove previous clan/rank decorations, then rebuild as TAG| DisplayName only.
           let baseName = newMember.displayName;
           const knownRankPrefixes = Object.values(rankPrefixes).sort((a, b) => b.length - a.length);
@@ -148,13 +149,17 @@ export default {
             ? `${rankDisplayName} ${baseName.trimStart()}`
             : baseName.trimStart();
 
-          // Non-clan members get the gun emoji and rank title; clan members are left untouched.
-          const desiredNickname = `🔫${nicknameBody}`.slice(0, 32);
+          // Clan members get TAG| Name when they join; non-clan members get 🔫Rank Name.
+          const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
+          const desiredNickname = memberClan
+            ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
+            : `🔫${nicknameBody}`.slice(0, 32);
 
           if (newMember.nickname !== desiredNickname) {
             await newMember.setNickname(
-              desiredNickname,
-              'Apply automatic nickname formatting for a non-clan member rank update',
+              memberClan
+                ? 'Apply clan tag when member joins an approved clan'
+                : 'Apply automatic rank nickname for a non-clan member',
             );
             logger.info(
               `[RANK_NICKNAME] Updated ${newMember.user.tag} to ${desiredNickname}`,
