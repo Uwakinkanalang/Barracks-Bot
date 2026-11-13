@@ -142,8 +142,10 @@ export default {
           const rankRoleName = highestRank
             ? newMember.guild.roles.cache.get(highestRank.roleId)?.name || ''
             : '';
-          // Use the actual configured Discord rank role name for non-clan nicknames.
-          const rankDisplayName = rankRoleName;
+          // Keep the superscript rank labels, selected by the member's configured rank role.
+          const rankDisplayName = highestRank
+            ? (rankPrefixes[highestRank.level] || rankRoleName)
+            : '';
           const nicknameBody = rankDisplayName
             ? `${rankDisplayName} ${baseName.trimStart()}`
             : baseName.trimStart();
