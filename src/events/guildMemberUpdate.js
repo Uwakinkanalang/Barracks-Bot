@@ -64,22 +64,25 @@ export default {
             100: 'ᴳᵉⁿᵉʳᵃˡ',
           };
 
-          // Preserve the [CLAN] tag, remove any previously applied rank prefix,
-          // then rebuild the nickname as [CLAN]|RANKdisplayname.
+          // Preserve [CLAN], remove any old Barracks rank prefix, then rebuild the nickname.
           const currentName = newMember.displayName;
           const clanTagMatch = currentName.match(/^(\\[[^\\]]+\\])\\|?/u);
           const clanTag = clanTagMatch ? clanTagMatch[1] : '';
           let baseName = clanTagMatch ? currentName.slice(clanTagMatch[0].length) : currentName;
 
-          const previousRankPrefix = Object.values(rankPrefixes).find((prefix) =>
-            baseName.startsWith(prefix),
-          );
-          if (previousRankPrefix) baseName = baseName.slice(previousRankPrefix.length);
+          const previousRankPrefix = Object.values(rankPrefixes).find((prefix) => {
+            const candidate = baseName.replace(/^🔫/u, '');
+            return candidate.startsWith(prefix);
+          });
+          if (previousRankPrefix) {
+            baseName = baseName.replace(/^🔫/u, '').slice(previousRankPrefix.length).trimStart();
+          }
 
           const rankPrefix = highestRank ? rankPrefixes[highestRank.level] : null;
-          const nicknameBody = rankRole && rankPrefix
-            ? `${rankPrefix}${baseName}`
-            : baseName;
+          let nicknameBody = baseName;
+          if (rankRole && rankPrefix) {
+            nicknameBody = `${clanTag ? '' : '🔫'}${rankPrefix} ${baseName.trimStart()}`;
+          }
           const desiredNickname = `${clanTag ? `${clanTag}|` : ''}${nicknameBody}`.slice(0, 32);
 
           if (newMember.nickname !== desiredNickname) {
