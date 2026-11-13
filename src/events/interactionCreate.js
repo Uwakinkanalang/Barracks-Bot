@@ -485,26 +485,6 @@ export default {
             }
 
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-            let logoMessage = null;
-            if (logoAttachment) {
-              try {
-                const { EmbedBuilder } = await import('discord.js');
-                const logoEmbed = new EmbedBuilder()
-                  .setColor(Number.parseInt(roleHex.slice(1), 16))
-                  .setTitle(`Clan Logo • ${name} [${tag}]`)
-                  .setDescription(`Uploaded by <@${interaction.user.id}>`)
-                  .setImage(`attachment://${logoAttachment.name}`)
-                  .setFooter({ text: 'Barracks • Clan Logo Archive' });
-                logoMessage = await interaction.channel.send({
-                  embeds: [logoEmbed],
-                  files: [{ attachment: logoAttachment.url, name: logoAttachment.name }],
-                });
-              } catch (error) {
-                logger.error('Failed to archive uploaded clan logo:', error);
-                await interaction.editReply('I could not save the uploaded logo in this channel. Please check that I have permission to send messages and attach files, then try again.');
-                return;
-              }
-            }
 
             const clan = {
               id: `clan_${Date.now()}_${interaction.user.id}`,
@@ -526,54 +506,58 @@ export default {
               `guild:${interaction.guildId}:clan_log_channel`,
               null
             );
+
             if (logChannelId) {
               try {
                 const logChannel = await interaction.guild.channels.fetch(logChannelId);
                 if (logChannel?.isTextBased() && logChannel?.send) {
                   const logEmbed = new EmbedBuilder()
                     .setColor(Number.parseInt(roleHex.slice(1), 16))
-                    .setTitle(`📋 New Clan Registration • ${name} [${tag}]`)
-                    .setDescription(description)
+                    .setAuthor({
+                      name: 'BARRACKS • CLAN REGISTRY',
+                      iconURL: interaction.guild.iconURL({ size: 128 }) || undefined,
+                    })
+                    .setTitle(`🏰 ${name} [${tag}]`)
+                    .setDescription(`**CLAN DESCRIPTION**\n${description}`)
                     .addFields(
-                      { name: 'Clan Leader', value: `<@${interaction.user.id}> (\`${interaction.user.id}\`)`, inline: true },
-                      { name: 'Vice Clan Leader', value: `<@${viceLeaderId}> (\`${viceLeaderId}\`)`, inline: true },
-                      { name: 'Clan Tag', value: tag, inline: true },
-                      { name: 'Clan Role Hex', value: roleHex, inline: true },
-                      { name: 'Submitted By', value: `<@${interaction.user.id}>`, inline: true }
+                      { name: '👑 Clan Leader', value: `<@${interaction.user.id}>\n` + '`' + `${interaction.user.id}` + '`', inline: true },
+                      { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>\n` + '`' + `${viceLeaderId}` + '`', inline: true },
+                      { name: '🏷️ Clan Tag', value: `\`${tag}\``, inline: true },
+                      { name: '🎨 Role Color', value: `\`${roleHex}\`\n\u200b`, inline: true },
+                      { name: '📝 Registration Status', value: '<:green_circle:> Successfully submitted', inline: true },
+                      { name: '📨 Submitted By', value: `<@${interaction.user.id}>`, inline: true },
                     )
                     .setTimestamp()
-                    .setFooter({ text: `Barracks Clan Registry • ${interaction.guild.name}` });
-                  const archivedLogo = logoMessage?.attachments?.first();
+                    .setFooter({ text: `Clan Registration • ${interaction.guild.name}` });
+
                   const logPayload = { embeds: [logEmbed] };
-                  if (archivedLogo) {
-                    logEmbed.setImage(`attachment://${archivedLogo.name}`);
-                    logPayload.files = [{ attachment: archivedLogo.url, name: archivedLogo.name }];
+                  if (logoAttachment) {
+                    logEmbed.setImage(`attachment://${logoAttachment.name}`);
+                    logPayload.files = [{ attachment: logoAttachment.url, name: logoAttachment.name }];
                   }
                   await logChannel.send(logPayload);
-                }
-              } catch (error) {
-                logger.error('Failed to send clan registration to the configured log channel:', {
-                  error: error.message,
-                  guildId: interaction.guildId,
-                  channelId: logChannelId,
-                });
-              }
-            }
-
-            const embed = new EmbedBuilder()
+                       const confirmationEmbed = new EmbedBuilder()
               .setColor(Number.parseInt(roleHex.slice(1), 16))
-              .setTitle(`${name} [${tag}] • Clan Created!`)
-              .setDescription(description)
+              .setAuthor({ name: 'BARRACKS • CLAN REGISTRY' })
+              .setTitle(`✅ ${name} [${tag}] Registered`)
+              .setDescription(`Your clan registration has been saved.\n\n**Clan Description**\n${description}`)
               .addFields(
-                { name: 'Clan Leader', value: `<@${interaction.user.id}>`, inline: true },
-                { name: 'Vice Clan Leader', value: `<@${viceLeaderId}>`, inline: true },
-                { name: 'Clan Role Hex', value: roleHex, inline: true }
+                { name: '👑 Clan Leader', value: `<@${interaction.user.id}>`, inline: true },
+                { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>`, inline: true },
+                { name: '🎨 Role Color', value: `\`${roleHex}\``, inline: true },
               )
-              .setFooter({ text: 'Barracks • Clan Registry' });
-            if (logoMessage?.attachments?.first()) {
-              embed.setThumbnail(logoMessage.attachments.first().url);
+              .setFooter({ text: 'Barracks • Clan Registry' })
+              .setTimestamp();
+
+            if (logoAttachment) {
+              confirmationEmbed.setThumbnail(logoAttachment.url);
             }
-            await interaction.editReply({ content: 'Your clan has been registered successfully!', embeds: [embed] });
+            await interaction.editReply({
+              content: logChannelId
+                ? 'Your clan registration was submitted successfully!'
+                : 'Your clan was saved, but no registration channel is configured. Ask an admin to run **/clan setlogchannel**.',
+              embeds: [confirmationEmbed],
+            });
             return;
           }
 
