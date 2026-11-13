@@ -4,11 +4,11 @@ import { createEmbed } from '../../utils/embeds.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const SAMPLE_REWARDS = {
-  private: { rank: 'Private', amount: 500000 },
-  corporal: { rank: 'Corporal', amount: 1000000 },
-  sergeant: { rank: 'Sergeant', amount: 1500000 },
-  captain: { rank: 'Captain', amount: 2000000 },
-  lieutenant: { rank: 'Lieutenant', amount: 2500000 },
+  private: { rank: 'Private', amount: 50000 },
+  corporal: { rank: 'Corporal', amount: 100000 },
+  sergeant: { rank: 'Sergeant', amount: 300000 },
+  captain: { rank: 'Captain', amount: 500000 },
+  lieutenant: { rank: 'Lieutenant', amount: 1000000 },
   major: { rank: 'Major', amount: 3000000 },
   colonel: { rank: 'Colonel', amount: 5000000 },
   general: { rank: 'General', amount: 10000000 },
