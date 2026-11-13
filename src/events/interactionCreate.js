@@ -378,16 +378,51 @@ export default {
             }
             const reviewedClan = clanList[clanIndex];
             if (decision === 'approve') {
-              reviewedClan.status = 'approved';
-              reviewedClan.reviewedBy = interaction.user.id;
-              reviewedClan.reviewedAt = new Date().toISOString();
-              await interaction.client.db.set(storageKey, clanList);
-              const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
-                .setColor(Number.parseInt((reviewedClan.roleHex || '#5865F2').slice(1), 16))
-                .setTitle(`🏰 ${reviewedClan.name} [${reviewedClan.tag}]`)
-                .addFields({ name: '📝 Status', value: `✅ Approved by <@${interaction.user.id}>`, inline: true });
-              await interaction.update({ embeds: [updated], components: [] });
-              return;
+              try {
+                let clanRole = reviewedClan.roleId
+                  ? await interaction.guild.roles.fetch(reviewedClan.roleId).catch(() => null)
+                  : null;
+
+                if (!clanRole) {
+                  clanRole = await interaction.guild.roles.create({
+                    name: reviewedClan.name,
+                    color: reviewedClan.roleHex || '#5865F2',
+                    reason: `Automatic clan role for approved clan: ${reviewedClan.name}`,
+                  });
+                }
+
+                reviewedClan.roleId = clanRole.id;
+                reviewedClan.status = 'approved';
+                reviewedClan.reviewedBy = interaction.user.id;
+                reviewedClan.reviewedAt = new Date().toISOString();
+
+                const leader = await interaction.guild.members.fetch(reviewedClan.leaderId).catch(() => null);
+                const viceLeader = await interaction.guild.members.fetch(reviewedClan.viceLeaderId).catch(() => null);
+                if (leader) await leader.roles.add(clanRole, 'Assign approved clan role to clan leader');
+                if (viceLeader) await viceLeader.roles.add(clanRole, 'Assign approved clan role to vice clan leader');
+
+                await interaction.client.db.set(storageKey, clanList);
+                const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
+                  .setColor(Number.parseInt((reviewedClan.roleHex || '#5865F2').slice(1), 16))
+                  .setTitle(`🏰 ${reviewedClan.name} [${reviewedClan.tag}]`)
+                  .addFields(
+                    { name: '📝 Status', value: `✅ Approved by <@${interaction.user.id}>`, inline: true },
+                    { name: '🎭 Clan Role', value: `<@&${clanRole.id}>`, inline: true },
+                  );
+                await interaction.update({ embeds: [updated], components: [] });
+                return;
+              } catch (error) {
+                logger.error('Failed to create or assign approved clan role:', {
+                  error: error.message,
+                  guildId: interaction.guildId,
+                  clanId,
+                });
+                await interaction.reply({
+                  content: 'I could not create or assign the clan role. Please check that I have Manage Roles permission and that my highest role is above the clan roles.',
+                  flags: MessageFlags.Ephemeral,
+                });
+                return;
+              }
             }
             if (decision === 'reject') {
               clanList.splice(clanIndex, 1);
