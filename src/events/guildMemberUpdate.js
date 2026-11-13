@@ -63,11 +63,6 @@ export default {
             }
           }
 
-          const rankRole = highestRank
-            ? (newMember.guild.roles.cache.get(highestRank.roleId) ||
-              await newMember.guild.roles.fetch(highestRank.roleId).catch(() => null))
-            : null;
-
           const rankPrefixes = {
             10: 'ᴾʳᶦᵛᵃᵗᵉ',
             20: 'ᶜᵒʳᵖᵒʳᵃˡ',
@@ -88,11 +83,40 @@ export default {
             [clan.leaderId, clan.viceLeaderId, ...(clan.memberIds || [])].includes(newMember.id)
           );
 
-          // Format clan members as TAG|Rank Name; non-clan members use 🔫Rank Name.
-          const currentName = newMember.displayName;
-          let baseName = currentName;
+          // Remove previous clan/rank decorations, then rebuild as TAG| DisplayName only.
+          let baseName = newMember.displayName;
+          const knownRankPrefixes = Object.values(rankPrefixes).sort((a, b) => b.length - a.length);
+          const knownRankNames = rankRewards
+            .map(({ roleId }) => newMember.guild.roles.cache.get(roleId)?.name)
+            .filter(Boolean)
+            .sort((a, b) => b.length - a.length);
 
-          // Strip any previously applied clan tag, including the legacy [TAG]| format.
+          const stripRankDecorations = (value) => {
+            let result = value.trimStart();
+            let changed = true;
+            while (changed) {
+              changed = false;
+              result = result.replace(/^🔫\s*/u, '');
+              const prefix = knownRankPrefixes.find((item) => result.startsWith(item));
+              if (prefix) {
+                result = result.slice(prefix.length).trimStart();
+                changed = true;
+                continue;
+              }
+              const rankName = knownRankNames.find((item) =>
+                result.toLowerCase().startsWith(item.toLowerCase())
+              );
+              if (rankName) {
+                result = result.slice(rankName.length).trimStart();
+                changed = true;
+              }
+            }
+            return result.trimStart();
+          };
+
+          // Strip rank text before checking the old tag (handles previously malformed nicknames too).
+          baseName = stripRankDecorations(baseName);
+
           const knownClanTags = clanList
             .map((clan) => String(clan.tag || '').trim())
             .filter(Boolean)
@@ -106,40 +130,15 @@ export default {
               : baseName.slice(previousClanTag.length + 1);
           }
 
-          // Remove legacy rank decorations from the name before building the new nickname.
-          // Accept both 🔫Rank and 🔫 Rank, with or without a clan tag in front.
-          baseName = baseName.trimStart().replace(/^🔫\\s*/u, '').trimStart();
-
-          let removedRankPrefix = true;
-          while (removedRankPrefix) {
-            removedRankPrefix = false;
-            const previousRankPrefix = Object.values(rankPrefixes)
-              .sort((a, b) => b.length - a.length)
-              .find((prefix) => baseName.startsWith(prefix));
-
-            if (previousRankPrefix) {
-              baseName = baseName.slice(previousRankPrefix.length).trimStart();
-              baseName = baseName.replace(/^🔫\\s*/u, '').trimStart();
-              removedRankPrefix = true;
-            }
+          // Also clean decorations that may have appeared immediately after an old clan tag.
+          baseName = stripRankDecorations(baseName);
+          if (!baseName.trim()) {
+            baseName = newMember.user.globalName || newMember.user.username;
           }
-          const knownRankNames = rankRewards
-            .map(({ roleId }) => newMember.guild.roles.cache.get(roleId)?.name)
-            .filter(Boolean)
-            .sort((a, b) => b.length - a.length);
-          const previousRankName = knownRankNames.find((roleName) =>
-            baseName.toLowerCase().startsWith(roleName.toLowerCase())
-          );
-          if (previousRankName) baseName = baseName.slice(previousRankName.length).trimStart();
 
           const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
-          const rankDisplayName = rankRole
-            ? (rankPrefixes[highestRank.level] || rankRole.name)
-            : '';
-          const nicknameBody = rankRole
-            ? `${rankDisplayName} ${baseName.trimStart()}`
-            : baseName.trimStart();
-          const desiredNickname = `${clanTag ? `${clanTag}| ` : (rankRole ? '🔫' : '')}${nicknameBody}`.slice(0, 32);
+          // Never add rank names or the 🔫 emoji to automatic nicknames.
+          const desiredNickname = `${clanTag ? `${clanTag}| ` : ''}${baseName.trimStart()}`.slice(0, 32);
 
           if (newMember.nickname !== desiredNickname) {
             await newMember.setNickname(
