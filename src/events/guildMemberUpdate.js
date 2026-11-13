@@ -48,6 +48,21 @@ export default {
             .sort((a, b) => b.level - a.level);
 
           const highestRank = rankRewards.find(({ roleId }) => newMember.roles.cache.has(roleId));
+
+          // Remove any lower configured rank roles before changing the member's nickname.
+          if (highestRank) {
+            const previousRankRoleIds = rankRewards
+              .filter(({ roleId }) => roleId !== highestRank.roleId && newMember.roles.cache.has(roleId))
+              .map(({ roleId }) => roleId);
+
+            if (previousRankRoleIds.length > 0) {
+              await newMember.roles.remove(
+                previousRankRoleIds,
+                'Keep only the highest earned Barracks rank before updating nickname',
+              );
+            }
+          }
+
           const rankRole = highestRank
             ? (newMember.guild.roles.cache.get(highestRank.roleId) ||
               await newMember.guild.roles.fetch(highestRank.roleId).catch(() => null))
