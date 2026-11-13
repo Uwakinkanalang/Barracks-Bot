@@ -572,8 +572,8 @@ export default {
               viceLeaderId,
               memberIds: [],
               roleHex,
-              logoMessageId: logoMessage?.id || null,
-              logoChannelId: logoMessage?.channelId || null,
+              logoMessageId: null,
+              logoChannelId: null,
               createdAt: new Date().toISOString(),
             };
             clanList.push(clan);
