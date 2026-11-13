@@ -424,19 +424,19 @@ export default {
           if (interaction.customId === 'clan:create:submit') {
             const name = interaction.fields.getTextInputValue('clan_name').trim();
             const tagHexInput = interaction.fields.getTextInputValue('clan_tag_hex').trim();
-            const tagHexMatch = tagHexInput.match(/^([A-Za-z0-9]{1,6})\s*\|\s*#?([0-9a-fA-F]{6})$/);
+            const tagHexMatch = tagHexInput.match(/^([A-Za-z0-9]{1,6})\\s*\\|\\s*#?([0-9a-fA-F]{6})$/);
             const tag = tagHexMatch?.[1]?.toUpperCase();
             const roleHex = tagHexMatch ? `#${tagHexMatch[2].toUpperCase()}` : null;
             const description = interaction.fields.getTextInputValue('clan_description').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
-            const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\d{17,20})>?$/)?.[1];
+            const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\\d{17,20})>?$/)?.[1];
 
             if (!/^[a-zA-Z0-9 _-]{3,32}$/.test(name)) {
               await interaction.reply({ content: 'Clan name must be 3–32 characters and use only letters, numbers, spaces, _ or -.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!tagHexMatch || !tag || !roleHex) {
-              await interaction.reply({ content: 'Enter the clan tag and role hex together in this format: **ABC | #5865F2**. The tag can be 1–6 letters or numbers; the hex must be 6 digits.', flags: MessageFlags.Ephemeral });
+              await interaction.reply({ content: 'Enter the clan tag and role hex together in this format: **A | #5865F2**. The tag can be 1–6 letters or numbers; the hex must be 6 digits.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!viceLeaderId || viceLeaderId === interaction.user.id) {
@@ -448,6 +448,17 @@ export default {
             if (!viceLeader || viceLeader.user.bot) {
               await interaction.reply({ content: 'I could not find that server member. Please check the Vice Clan Leader mention or ID.', flags: MessageFlags.Ephemeral });
               return;
+            }
+
+            const uploadedFiles = interaction.fields.getUploadedFiles('clan_logo');
+            const logoAttachment = uploadedFiles?.first?.() || null;
+            if (logoAttachment) {
+              const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif'];
+              const extension = logoAttachment.name?.slice(logoAttachment.name.lastIndexOf('.')).toLowerCase();
+              if (!logoAttachment.contentType?.startsWith('image/') || !allowedExtensions.includes(extension)) {
+                await interaction.reply({ content: 'The clan logo must be an image file (PNG, JPG, GIF, WEBP, or AVIF).', flags: MessageFlags.Ephemeral });
+                return;
+              }
             }
 
             const storageKey = `guild:${interaction.guildId}:clans`;
@@ -464,31 +475,6 @@ export default {
             if (existingClan) {
               await interaction.reply({ content: `You already lead **${existingClan.name}** [${existingClan.tag}].`, flags: MessageFlags.Ephemeral });
               return;
-            }
-
-            const uploadedFiles = interaction.fields.getUploadedFiles('clan_logo');
-            const logoAttachment = uploadedFiles?.first?.() || null;
-
-            if (logoAttachment) {
-              const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif'];
-              const extension = logoAttachment.name?.slice(logoAttachment.name.lastIndexOf('.')).toLowerCase();
-              if (!logoAttachment.contentType?.startsWith('image/') || !allowedExtensions.includes(extension)) {
-                await interaction.reply({ content: 'The clan logo must be an image file (PNG, JPG, GIF, WEBP, or AVIF).', flags: MessageFlags.Ephemeral });
-                return;
-              }
-            }
-
-            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-            const uploadedFiles = interaction.fields.getUploadedFiles('clan_logo');
-            const logoAttachment = uploadedFiles?.first?.() || null;
-
-            if (logoAttachment) {
-              const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif'];
-              const extension = logoAttachment.name?.slice(logoAttachment.name.lastIndexOf('.')).toLowerCase();
-              if (!logoAttachment.contentType?.startsWith('image/') || !allowedExtensions.includes(extension)) {
-                await interaction.reply({ content: 'The clan logo must be an image file (PNG, JPG, GIF, WEBP, or AVIF).', flags: MessageFlags.Ephemeral });
-                return;
-              }
             }
 
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -513,29 +499,13 @@ export default {
               }
             }
 
-            const storageKey = `guild:${interaction.guildId}:clans`;
-            const clans = await interaction.client.db.get(storageKey, []);
-            const clanList = Array.isArray(clans) ? clans : [];
-            const duplicate = clanList.find(clan =>
-              clan.tag?.toUpperCase() === draft.tag || clan.name?.toLowerCase() === draft.name.toLowerCase()
-            );
-            if (duplicate) {
-              await interaction.editReply('A clan with that name or tag already exists in this server. Please start again with different details.');
-              return;
-            }
-            const existingClan = clanList.find(clan => clan.leaderId === interaction.user.id);
-            if (existingClan) {
-              await interaction.editReply(`You already lead **${existingClan.name}** [${existingClan.tag}].`);
-              return;
-            }
-
             const clan = {
               id: `clan_${Date.now()}_${interaction.user.id}`,
-              name: draft.name,
-              tag: draft.tag,
-              description: description,
+              name,
+              tag,
+              description,
               leaderId: interaction.user.id,
-              viceLeaderId: viceLeaderId,
+              viceLeaderId,
               roleHex,
               logoMessageId: logoMessage?.id || null,
               logoChannelId: logoMessage?.channelId || null,
@@ -555,12 +525,12 @@ export default {
                 if (logChannel?.isTextBased() && logChannel?.send) {
                   const logEmbed = new EmbedBuilder()
                     .setColor(Number.parseInt(roleHex.slice(1), 16))
-                    .setTitle(`📋 New Clan Registration • ${draft.name} [${draft.tag}]`)
-                    .setDescription(draft.description)
+                    .setTitle(`📋 New Clan Registration • ${name} [${tag}]`)
+                    .setDescription(description)
                     .addFields(
                       { name: 'Clan Leader', value: `<@${interaction.user.id}> (\`${interaction.user.id}\`)`, inline: true },
-                      { name: 'Vice Clan Leader', value: `<@${draft.viceLeaderId}> (\`${draft.viceLeaderId}\`)`, inline: true },
-                      { name: 'Clan Tag', value: draft.tag, inline: true },
+                      { name: 'Vice Clan Leader', value: `<@${viceLeaderId}> (\`${viceLeaderId}\`)`, inline: true },
+                      { name: 'Clan Tag', value: tag, inline: true },
                       { name: 'Clan Role Hex', value: roleHex, inline: true },
                       { name: 'Submitted By', value: `<@${interaction.user.id}>`, inline: true }
                     )
@@ -583,14 +553,13 @@ export default {
               }
             }
 
-
             const embed = new EmbedBuilder()
               .setColor(Number.parseInt(roleHex.slice(1), 16))
-               .setTitle(`${draft.name} [${draft.tag}] • Clan Created!`)
-              .setDescription(draft.description)
+              .setTitle(`${name} [${tag}] • Clan Created!`)
+              .setDescription(description)
               .addFields(
                 { name: 'Clan Leader', value: `<@${interaction.user.id}>`, inline: true },
-                { name: 'Vice Clan Leader', value: `<@${draft.viceLeaderId}>`, inline: true },
+                { name: 'Vice Clan Leader', value: `<@${viceLeaderId}>`, inline: true },
                 { name: 'Clan Role Hex', value: roleHex, inline: true }
               )
               .setFooter({ text: 'Barracks • Clan Registry' });
@@ -600,6 +569,7 @@ export default {
             await interaction.editReply({ content: 'Your clan has been registered successfully!', embeds: [embed] });
             return;
           }
+
           if (interaction.customId.startsWith('app_modal_')) {
             try {
               await handleApplicationModal(interaction);
