@@ -421,9 +421,20 @@ export default {
               await interaction.reply({ content: 'Clan tag must be 2–6 letters or numbers.', flags: MessageFlags.Ephemeral });
               return;
             }
-            if (logoUrl && (!/^https?:\\/\\//i.test(logoUrl) || !/\\.(png|jpe?g|gif|webp)(\\?.*)?$/i.test(logoUrl))) {
-              await interaction.reply({ content: 'Please provide a direct image URL ending in PNG, JPG, GIF, or WEBP, or leave the logo field empty.', flags: MessageFlags.Ephemeral });
-              return;
+            if (logoUrl) {
+              let validLogoUrl = false;
+              try {
+                const parsedLogoUrl = new URL(logoUrl);
+                const imagePath = parsedLogoUrl.pathname.toLowerCase();
+                validLogoUrl = ['http:', 'https:'].includes(parsedLogoUrl.protocol) &&
+                  ['.png', '.jpg', '.jpeg', '.gif', '.webp'].some(extension => imagePath.endsWith(extension));
+              } catch {
+                validLogoUrl = false;
+              }
+              if (!validLogoUrl) {
+                await interaction.reply({ content: 'Please provide a direct image URL ending in PNG, JPG, GIF, or WEBP, or leave the logo field empty.', flags: MessageFlags.Ephemeral });
+                return;
+              }
             }
 
             const storageKey = `guild:${interaction.guildId}:clans`;
