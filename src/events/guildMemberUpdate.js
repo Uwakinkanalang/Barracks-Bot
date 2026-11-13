@@ -75,7 +75,14 @@ export default {
 
           // Put [CLAN]| first, then the rank prefix and the member's display name.
           const currentName = newMember.displayName;
-          const existingClanTag = currentName.match(/^\\[[^\\]]+\\]\\|?/u)?.[0] || '';
+          let existingClanTag = '';
+          if (currentName.startsWith('[')) {
+            const closingBracket = currentName.indexOf(']');
+            if (closingBracket > 0) {
+              existingClanTag = currentName.slice(0, closingBracket + 1);
+              if (currentName[closingBracket + 1] === '|') existingClanTag += '|';
+            }
+          }
           let baseName = currentName.slice(existingClanTag.length).replace(/^🔫\\s*/u, '');
           const previousRankPrefix = Object.values(rankPrefixes).find((prefix) => baseName.startsWith(prefix));
           if (previousRankPrefix) baseName = baseName.slice(previousRankPrefix.length).trimStart();
