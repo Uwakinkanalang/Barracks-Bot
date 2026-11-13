@@ -311,25 +311,33 @@ export default {
             const { ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, LabelBuilder, FileUploadBuilder } = await import('discord.js');
             const modal = new ModalBuilder()
               .setCustomId('clan:create:submit')
-              .setTitle('Create Your Clan • Details')
-              .addComponents(
-                new ActionRowBuilder().addComponents(
-                  new TextInputBuilder().setCustomId('clan_name').setLabel('Clan Name').setStyle(TextInputStyle.Short).setMinLength(3).setMaxLength(32).setRequired(true)
-                ),
-                new ActionRowBuilder().addComponents(
-                  new TextInputBuilder().setCustomId('clan_tag_hex').setLabel('Clan Tag | Role Hex').setStyle(TextInputStyle.Short).setPlaceholder('e.g. A | #5865F2').setMaxLength(16).setRequired(true)
-                ),
-                new ActionRowBuilder().addComponents(
-                  new TextInputBuilder().setCustomId('clan_description').setLabel('Clan Description').setStyle(TextInputStyle.Paragraph).setMaxLength(500).setRequired(true)
-                ),
-                new ActionRowBuilder().addComponents(
-                  new TextInputBuilder().setCustomId('clan_vice_leader').setLabel('Vice Clan Leader (mention or user ID)').setStyle(TextInputStyle.Short).setMaxLength(25).setRequired(true)
-                )
-              )
+              .setTitle('Create Your Clan')
               .addLabelComponents(
                 new LabelBuilder()
+                  .setLabel('Clan Name')
+                  .setTextInputComponent(
+                    new TextInputBuilder().setCustomId('clan_name').setStyle(TextInputStyle.Short).setMinLength(3).setMaxLength(32).setRequired(true)
+                  ),
+                new LabelBuilder()
+                  .setLabel('Clan Tag | Role Hex')
+                  .setDescription('Example: A | #5865F2 (tag: 1–6 letters/numbers)')
+                  .setTextInputComponent(
+                    new TextInputBuilder().setCustomId('clan_tag_hex').setStyle(TextInputStyle.Short).setPlaceholder('A | #5865F2').setMaxLength(16).setRequired(true)
+                  ),
+                new LabelBuilder()
+                  .setLabel('Clan Description')
+                  .setTextInputComponent(
+                    new TextInputBuilder().setCustomId('clan_description').setStyle(TextInputStyle.Paragraph).setMaxLength(500).setRequired(true)
+                  ),
+                new LabelBuilder()
+                  .setLabel('Vice Clan Leader')
+                  .setDescription('Mention the member or enter their Discord user ID')
+                  .setTextInputComponent(
+                    new TextInputBuilder().setCustomId('clan_vice_leader').setStyle(TextInputStyle.Short).setMaxLength(25).setRequired(true)
+                  ),
+                new LabelBuilder()
                   .setLabel('Clan Logo Upload (optional)')
-                  .setDescription('Upload one image file for your clan logo, or leave it empty.')
+                  .setDescription('Upload one image file, or leave it empty.')
                   .setFileUploadComponent(
                     new FileUploadBuilder()
                       .setCustomId('clan_logo')
