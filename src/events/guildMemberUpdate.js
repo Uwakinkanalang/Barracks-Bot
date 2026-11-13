@@ -83,6 +83,8 @@ export default {
             [clan.leaderId, clan.viceLeaderId, ...(clan.memberIds || [])].includes(newMember.id)
           );
 
+          // Clan members keep their manually managed nicknames when they rank up.
+          if (!memberClan) {
           // Remove previous clan/rank decorations, then rebuild as TAG| DisplayName only.
           let baseName = newMember.displayName;
           const knownRankPrefixes = Object.values(rankPrefixes).sort((a, b) => b.length - a.length);
@@ -143,13 +145,12 @@ export default {
           if (newMember.nickname !== desiredNickname) {
             await newMember.setNickname(
               desiredNickname,
-              rankRole
-                ? `Automatic Barracks rank nickname for Level ${highestRank.level}`
-                : 'Preserved clan tag and removed Barracks rank because no level rank role remains',
+              'Apply automatic nickname formatting for a non-clan member rank update',
             );
             logger.info(
               `[RANK_NICKNAME] Updated ${newMember.user.tag} to ${desiredNickname}`,
             );
+          }
           }
         } catch (nicknameError) {
           logger.warn(
