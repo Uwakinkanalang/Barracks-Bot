@@ -29,10 +29,9 @@ export default {
             userId: newMember.user.id,
           }
         });
-
       }
 
-      // Automatically apply the highest configured Barracks rank while preserving a leading [CLAN] tag.
+      // Automatically apply the highest configured Barracks rank while preserving clan tags.
       const oldRoleIds = new Set(oldMember.roles.cache.keys());
       const newRoleIds = new Set(newMember.roles.cache.keys());
       const roleSetChanged = oldRoleIds.size !== newRoleIds.size ||
@@ -49,7 +48,6 @@ export default {
 
           const highestRank = rankRewards.find(({ roleId }) => newMember.roles.cache.has(roleId));
 
-          // Remove any lower configured rank roles before changing the member's nickname.
           if (highestRank) {
             const previousRankRoleIds = rankRewards
               .filter(({ roleId }) => roleId !== highestRank.roleId && newMember.roles.cache.has(roleId))
@@ -74,100 +72,92 @@ export default {
             100: 'ᴳᵉⁿᵉʳᵃˡ',
           };
 
-          // Resolve the member's approved clan from their assigned clan role.
           const clans = await newMember.client.db.get(`guild:${newMember.guild.id}:clans`, []);
           const clanList = Array.isArray(clans) ? clans : [];
-          // A member is considered in a clan when they receive an approved clan's role.
-          // Do not require roster metadata here: the role assignment itself triggers the nickname.
           const memberClan = clanList.find((clan) =>
             clan.status === 'approved' &&
             clan.roleId &&
             newMember.roles.cache.has(clan.roleId)
           );
 
-          // Update nickname for non-clan rank changes, or once when a member joins a clan.
           const joinedClan = Boolean(memberClan && !oldMember.roles.cache.has(memberClan.roleId));
           if (!memberClan || joinedClan) {
-          // Remove previous clan/rank decorations, then rebuild as TAG| DisplayName only.
-          let baseName = newMember.displayName;
-          const knownRankPrefixes = Object.values(rankPrefixes).sort((a, b) => b.length - a.length);
-          const knownRankNames = rankRewards
-            .map(({ roleId }) => newMember.guild.roles.cache.get(roleId)?.name)
-            .filter(Boolean)
-            .sort((a, b) => b.length - a.length);
+            let baseName = newMember.displayName;
+            const knownRankPrefixes = Object.values(rankPrefixes).sort((a, b) => b.length - a.length);
+            const knownRankNames = rankRewards
+              .map(({ roleId }) => newMember.guild.roles.cache.get(roleId)?.name)
+              .filter(Boolean)
+              .sort((a, b) => b.length - a.length);
 
-          const stripRankDecorations = (value) => {
-            let result = value.trimStart();
-            let changed = true;
-            while (changed) {
-              changed = false;
-              result = result.replace(/^🔫\s*/u, '');
-              const prefix = knownRankPrefixes.find((item) => result.startsWith(item));
-              if (prefix) {
-                result = result.slice(prefix.length).trimStart();
-                changed = true;
-                continue;
+            const stripRankDecorations = (value) => {
+              let result = value.trimStart();
+              let changed = true;
+              while (changed) {
+                changed = false;
+                result = result.replace(/^🔫\s*/u, '');
+                const prefix = knownRankPrefixes.find((item) => result.startsWith(item));
+                if (prefix) {
+                  result = result.slice(prefix.length).trimStart();
+                  changed = true;
+                  continue;
+                }
+                const rankName = knownRankNames.find((item) =>
+                  result.toLowerCase().startsWith(item.toLowerCase())
+                );
+                if (rankName) {
+                  result = result.slice(rankName.length).trimStart();
+                  changed = true;
+                }
               }
-              const rankName = knownRankNames.find((item) =>
-                result.toLowerCase().startsWith(item.toLowerCase())
-              );
-              if (rankName) {
-                result = result.slice(rankName.length).trimStart();
-                changed = true;
-              }
+              return result.trimStart();
+            };
+
+            baseName = stripRankDecorations(baseName);
+
+            const knownClanTags = clanList
+              .map((clan) => String(clan.tag || '').trim())
+              .filter(Boolean)
+              .sort((a, b) => b.length - a.length);
+            const previousClanTag = knownClanTags.find((tag) =>
+              baseName.startsWith(`[${tag}]|`) || baseName.startsWith(`${tag}|`)
+            );
+            if (previousClanTag) {
+              baseName = baseName.startsWith(`[${previousClanTag}]|`)
+                ? baseName.slice(previousClanTag.length + 3)
+                : baseName.slice(previousClanTag.length + 1);
             }
-            return result.trimStart();
-          };
 
-          // Strip rank text before checking the old tag (handles previously malformed nicknames too).
-          baseName = stripRankDecorations(baseName);
+            baseName = stripRankDecorations(baseName);
+            if (!baseName.trim()) {
+              baseName = newMember.user.globalName || newMember.user.username;
+            }
 
-          const knownClanTags = clanList
-            .map((clan) => String(clan.tag || '').trim())
-            .filter(Boolean)
-            .sort((a, b) => b.length - a.length);
-          const previousClanTag = knownClanTags.find((tag) =>
-            baseName.startsWith(`[${tag}]|`) || baseName.startsWith(`${tag}|`)
-          );
-          if (previousClanTag) {
-            baseName = baseName.startsWith(`[${previousClanTag}]|`)
-              ? baseName.slice(previousClanTag.length + 3)
-              : baseName.slice(previousClanTag.length + 1);
-          }
+            const rankRoleName = highestRank
+              ? newMember.guild.roles.cache.get(highestRank.roleId)?.name || ''
+              : '';
+            const rankDisplayName = highestRank
+              ? (rankPrefixes[highestRank.level] || rankRoleName)
+              : '';
+            const nicknameBody = rankDisplayName
+              ? `${rankDisplayName} ${baseName.trimStart()}`
+              : baseName.trimStart();
 
-          // Also clean decorations that may have appeared immediately after an old clan tag.
-          baseName = stripRankDecorations(baseName);
-          if (!baseName.trim()) {
-            baseName = newMember.user.globalName || newMember.user.username;
-          }
+            const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
+            const desiredNickname = memberClan
+              ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
+              : `🔫${nicknameBody}`.slice(0, 32);
 
-          const rankRoleName = highestRank
-            ? newMember.guild.roles.cache.get(highestRank.roleId)?.name || ''
-            : '';
-          // Keep the superscript rank labels, selected by the member's configured rank role.
-          const rankDisplayName = highestRank
-            ? (rankPrefixes[highestRank.level] || rankRoleName)
-            : '';
-          const nicknameBody = rankDisplayName
-            ? `${rankDisplayName} ${baseName.trimStart()}`
-            : baseName.trimStart();
-
-          // Clan members get TAG| Name when they join; non-clan members get 🔫Rank Name.
-          const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
-          const desiredNickname = memberClan
-            ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
-            : `🔫${nicknameBody}`.slice(0, 32);
-
-          if (newMember.nickname !== desiredNickname) {
-            await newMember.setNickname(
-              memberClan
-                ? 'Apply clan tag when member joins an approved clan'
-                : 'Apply automatic rank nickname for a non-clan member',
-            );
-            logger.info(
-              `[RANK_NICKNAME] Updated ${newMember.user.tag} to ${desiredNickname}`,
-            );
-          }
+            if (newMember.nickname !== desiredNickname) {
+              await newMember.setNickname(
+                desiredNickname,
+                memberClan
+                  ? 'Apply clan tag when member joins an approved clan'
+                  : 'Apply automatic rank nickname for a non-clan member',
+              );
+              logger.info(
+                `[RANK_NICKNAME] Updated ${newMember.user.tag} to ${desiredNickname}`,
+              );
+            }
           }
         } catch (nicknameError) {
           logger.warn(
@@ -192,7 +182,6 @@ export default {
       );
 
       if (newlyAddedRoleIds.length > 0 && !newMember.user.bot) {
-        // Keep only the newly assigned reward role(s); never remove unrelated server roles.
         const previousRewardRoleIds = Object.keys(roleRewards).filter(
           (roleId) => !newlyAddedRoleIds.includes(roleId) && newMember.roles.cache.has(roleId),
         );
@@ -244,7 +233,6 @@ export default {
           }
         }
       }
-
     } catch (error) {
       logger.error('Error in guildMemberUpdate event:', error);
     }
