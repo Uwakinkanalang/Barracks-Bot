@@ -112,7 +112,7 @@ export default {
 
             const embed = successEmbed(
                 "💼 Work Complete!",
-                `**Job:** ${job}\\n**Total earned:** **₱${earned.toLocaleString()}**\\n\\n**Earnings breakdown**\\n${earningsBreakdown}`
+                `**Job:** ${job}\n**Total earned:** **₱${earned.toLocaleString()}**\n\n**Earnings breakdown**\n${earningsBreakdown}`
             )
                 .addFields(
                     {
