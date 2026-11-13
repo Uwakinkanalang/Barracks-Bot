@@ -147,7 +147,7 @@ async function sendBcashRewardDm(member, guild, level, reward, roleId) {
     const message = [
       `• 🎉 You received **₱${reward.amount.toLocaleString('en-US')}** in Barracks cash for earning **🔫 ${rankName}**!`,
       `• 💰 Your new Barracks cash balance is **₱${reward.walletBalance.toLocaleString('en-US')}**.`
-    ].join('\\n');
+    ].join('\n');
     await member.send({ content: message });
     logger.info(`Sent level ${level} Bcash reward DM to ${member.user.id}`);
   } catch (error) {
