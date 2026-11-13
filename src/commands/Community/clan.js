@@ -139,8 +139,14 @@ export default {
         }
         clan.memberIds = [...memberIds, target.id];
         await interaction.client.db.set(storageKey, clanList);
+        if (clan.status === 'approved' && clan.roleId) {
+          const clanRole = await interaction.guild.roles.fetch(clan.roleId).catch(() => null);
+          if (clanRole) {
+            await targetMember.roles.add(clanRole, `Added to clan ${clan.name}`);
+          }
+        }
         return interaction.reply({
-          content: `✅ <@${target.id}> has been added to **${clan.name} [${clan.tag}]**.`,
+          content: `✅ <@${target.id}> has been added to **${clan.name} [${clan.tag}]**. Their clan role and nickname will sync automatically.`,
           allowedMentions: { users: [target.id] },
         });
       }
@@ -153,8 +159,12 @@ export default {
       }
       clan.memberIds = memberIds.filter(userId => userId !== target.id);
       await interaction.client.db.set(storageKey, clanList);
+      const targetMember = await interaction.guild.members.fetch(target.id).catch(() => null);
+      if (targetMember && clan.roleId) {
+        await targetMember.roles.remove(clan.roleId, `Removed from clan ${clan.name}`);
+      }
       return interaction.reply({
-        content: `🗑️ <@${target.id}> has been removed from **${clan.name} [${clan.tag}]**.`,
+        content: `🗑️ <@${target.id}> has been removed from **${clan.name} [${clan.tag}]**. Their clan role will be removed.`,
         allowedMentions: { users: [target.id] },
       });
     }
