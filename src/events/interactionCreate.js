@@ -336,14 +336,14 @@ export default {
                     new TextInputBuilder().setCustomId('clan_vice_leader').setStyle(TextInputStyle.Short).setMaxLength(25).setRequired(true)
                   ),
                 new LabelBuilder()
-                  .setLabel('Clan Logo Upload (optional)')
-                  .setDescription('Upload one image file, or leave it empty.')
+                  .setLabel('Clan Logo')
+                  .setDescription('A clan logo image is required.')
                   .setFileUploadComponent(
                     new FileUploadBuilder()
                       .setCustomId('clan_logo')
-                      .setMinValues(0)
+                      .setMinValues(1)
                       .setMaxValues(1)
-                      .setRequired(false)
+                      .setRequired(true)
                   )
               );
             await interaction.showModal(modal);
@@ -586,6 +586,10 @@ export default {
 
             const uploadedFiles = interaction.fields.getUploadedFiles('clan_logo');
             const logoAttachment = uploadedFiles?.first?.() || null;
+            if (!logoAttachment) {
+              await interaction.reply({ content: 'Please upload your clan logo before submitting the registration.', flags: MessageFlags.Ephemeral });
+              return;
+            }
             if (logoAttachment) {
               const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif'];
               const extension = logoAttachment.name?.slice(logoAttachment.name.lastIndexOf('.')).toLowerCase();
