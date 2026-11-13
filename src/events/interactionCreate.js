@@ -471,6 +471,31 @@ export default {
               }
 
               const [removedClan] = clanList.splice(clanIndex, 1);
+
+              // Remove this clan's role from the leader, vice leader, and every roster member.
+              if (removedClan.roleId) {
+                const clanMemberIds = [...new Set([
+                  removedClan.leaderId,
+                  removedClan.viceLeaderId,
+                  ...(Array.isArray(removedClan.memberIds) ? removedClan.memberIds : []),
+                ].filter(Boolean))];
+
+                const clanRole = await interaction.guild.roles.fetch(removedClan.roleId).catch(() => null);
+                if (clanRole) {
+                  for (const userId of clanMemberIds) {
+                    const clanMember = await interaction.guild.members.fetch(userId).catch(() => null);
+                    if (clanMember?.roles.cache.has(clanRole.id)) {
+                      await clanMember.roles.remove(
+                        clanRole,
+                        `Clan ${removedClan.name} [${removedClan.tag}] was removed`,
+                      ).catch(error => {
+                        logger.warn(`Failed to remove clan role from member ${userId}: ${error.message}`);
+                      });
+                    }
+                  }
+                }
+              }
+
               await interaction.client.db.set(storageKey, clanList);
 
               const logChannelId = await interaction.client.db.get(
