@@ -55,16 +55,14 @@ export default {
             const userRank =
                 allUserData.findIndex((u) => u.userId === interaction.user.id) +
                 1;
-            const rankEmoji = ["🥇", "🥈", "🥉"];
             const leaderboardEntries = [];
 
             for (let i = 0; i < topUsers.length; i++) {
                 const user = topUsers[i];
                 const rank = i + 1;
-                const emoji = rankEmoji[i] || `**#${rank}**`;
 
                 leaderboardEntries.push(
-                    `${emoji} <@${user.userId}> - 🏦 ${user.net_worth.toLocaleString()}`,
+                    `**#${rank}** <@${user.userId}> - 🏦 ${user.net_worth.toLocaleString()}`,
                 );
             }
 
