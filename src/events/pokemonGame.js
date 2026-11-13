@@ -1,6 +1,7 @@
 import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { addMoney } from '../utils/economy.js';
 import { logger } from '../utils/logger.js';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 const REWARD = 1000;
 const ROUND_TIME_MS = 60_000;
@@ -47,6 +48,19 @@ async function fetchRandomPokemon() {
   };
 }
 
+async function createSilhouette(pokemon) {
+  const response = await fetch(pokemon.artwork);
+  if (!response.ok) throw new Error(`Could not download Pokémon artwork (HTTP ${response.status})`);
+  const image = await loadImage(Buffer.from(await response.arrayBuffer()));
+  const canvas = createCanvas(image.width, image.height);
+  const context = canvas.getContext('2d');
+  context.drawImage(image, 0, 0);
+  context.globalCompositeOperation = 'source-in';
+  context.fillStyle = '#000000';
+  context.fillRect(0, 0, image.width, image.height);
+  return canvas.toBuffer('image/png');
+}
+
 function buildQuestionEmbed(pokemon, seconds = 60) {
   return new EmbedBuilder()
     .setColor(0x5865F2)
@@ -56,7 +70,7 @@ function buildQuestionEmbed(pokemon, seconds = 60) {
       '**Type your guess in chat.** The first correct answer wins **₱1,000 bCash**.\n' +
       `⏳ Time limit: **${seconds} seconds**`
     )
-    .setImage(pokemon.artwork)
+    .setImage('attachment://pokemon-silhouette.png')
     .setFooter({ text: 'Barracks-Bot • Pokémon Guessing Game' });
 }
 
@@ -124,8 +138,13 @@ async function startGame(message, client) {
         finishGame(client, key, game).catch(error => logger.error('Pokémon game timeout failed:', error));
       }, ROUND_TIME_MS);
 
+      const silhouette = await createSilhouette(pokemon);
       activeGames.set(key, game);
-      await loadingMessage.edit({ content: null, embeds: [buildQuestionEmbed(pokemon)] });
+      await loadingMessage.edit({
+        content: null,
+        embeds: [buildQuestionEmbed(pokemon)],
+        files: [{ attachment: silhouette, name: 'pokemon-silhouette.png' }],
+      });
     } catch (error) {
       logger.error('Could not start Pokémon guessing game:', error);
       await loadingMessage.edit('❌ I could not load a Pokémon right now. Please try again in a moment.').catch(() => {});
