@@ -350,6 +350,56 @@ export default {
             return;
           }
 
+          if (interaction.customId.startsWith('clan:review:')) {
+            const [, , decision, clanId] = interaction.customId.split(':');
+            const approverRoleId = await interaction.client.db.get(
+              `guild:${interaction.guildId}:clan_approval_role`,
+              null
+            );
+            if (!approverRoleId || !interaction.member?.roles?.cache?.has(approverRoleId)) {
+              await interaction.reply({
+                content: 'You do not have the configured Clan Approver role.',
+                flags: MessageFlags.Ephemeral,
+              });
+              return;
+            }
+            const storageKey = `guild:${interaction.guildId}:clans`;
+            const clans = await interaction.client.db.get(storageKey, []);
+            const clanList = Array.isArray(clans) ? clans : [];
+            const clanIndex = clanList.findIndex(entry => entry.id === clanId);
+            if (clanIndex < 0 || clanList[clanIndex].status !== 'pending') {
+              await interaction.reply({
+                content: 'This clan application has already been reviewed or no longer exists.',
+                flags: MessageFlags.Ephemeral,
+              });
+              return;
+            }
+            const reviewedClan = clanList[clanIndex];
+            if (decision === 'approve') {
+              reviewedClan.status = 'approved';
+              reviewedClan.reviewedBy = interaction.user.id;
+              reviewedClan.reviewedAt = new Date().toISOString();
+              await interaction.client.db.set(storageKey, clanList);
+              const { EmbedBuilder } = await import('discord.js');
+              const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
+                .setColor(Number.parseInt((reviewedClan.roleHex || '#5865F2').slice(1), 16))
+                .setTitle(`🏰 ${reviewedClan.name} [${reviewedClan.tag}]`)
+                .addFields({ name: '📝 Status', value: `✅ Approved by <@${interaction.user.id}>`, inline: true });
+              await interaction.update({ embeds: [updated], components: [] });
+              return;
+            }
+            if (decision === 'reject') {
+              clanList.splice(clanIndex, 1);
+              await interaction.client.db.set(storageKey, clanList);
+              const { EmbedBuilder } = await import('discord.js');
+              const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
+                .setColor(0xED4245)
+                .addFields({ name: '📝 Status', value: `❌ Rejected by <@${interaction.user.id}>`, inline: true });
+              await interaction.update({ embeds: [updated], components: [] });
+              return;
+            }
+          }
+
           if (interaction.customId.startsWith('clan:delete:')) {
             const [, , action, ownerId] = interaction.customId.split(':');
 
@@ -572,6 +622,7 @@ export default {
               viceLeaderId,
               memberIds: [],
               roleHex,
+              status: 'pending',
               logoMessageId: null,
               logoChannelId: null,
               createdAt: new Date().toISOString(),
@@ -602,13 +653,32 @@ export default {
                       { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>\n` + '`' + `${viceLeaderId}` + '`', inline: true },
                       { name: '🏷️ Clan Tag', value: `\`${tag}\``, inline: true },
                       { name: '🎨 Role Color', value: `\`${roleHex}\``, inline: true },
-                      { name: '📝 Status', value: '✅ Successfully submitted', inline: true },
+                      { name: '📝 Status', value: '⏳ Awaiting approval', inline: true },
                       { name: '📨 Submitted By', value: `<@${interaction.user.id}>`, inline: true },
                     )
                     .setTimestamp()
                     .setFooter({ text: `Barracks Clan Registry • ${interaction.guild.name}` });
 
-                  const logPayload = { embeds: [logEmbed] };
+                  const approverRoleId = await interaction.client.db.get(
+                    `guild:${interaction.guildId}:clan_approval_role`,
+                    null
+                  );
+                  const reviewRow = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                      .setCustomId(`clan:review:approve:${clan.id}`)
+                      .setLabel('Approve Clan')
+                      .setEmoji('✅')
+                      .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                      .setCustomId(`clan:review:reject:${clan.id}`)
+                      .setLabel('Reject Clan')
+                      .setEmoji('❌')
+                      .setStyle(ButtonStyle.Danger),
+                  );
+                  const logPayload = {
+                    embeds: [logEmbed],
+                    components: approverRoleId ? [reviewRow] : [],
+                  };
                   if (logoAttachment) {
                     logEmbed.setImage(`attachment://${logoAttachment.name}`);
                     logPayload.files = [{ attachment: logoAttachment.url, name: logoAttachment.name }];
@@ -636,7 +706,7 @@ export default {
             const confirmationEmbed = new EmbedBuilder()
               .setColor(Number.parseInt(roleHex.slice(1), 16))
               .setAuthor({ name: 'BARRACKS • CLAN REGISTRY' })
-              .setTitle(`✅ ${name} [${tag}] Registered`)
+              .setTitle(`⏳ ${name} [${tag}] Submitted for Approval`)
               .setDescription(`Your clan registration has been saved.\n\n**Clan Description**\n${description}`)
               .addFields(
                 { name: '👑 Clan Leader', value: `<@${interaction.user.id}>`, inline: true },
@@ -651,7 +721,7 @@ export default {
             }
             await interaction.editReply({
               content: logChannelId
-                ? 'Your clan registration was submitted successfully!'
+                ? 'Your clan registration was submitted and is awaiting approval!'
                 : 'Your clan was saved, but no registration channel is configured. Ask an admin to run **/clan setlogchannel**.',
               embeds: [confirmationEmbed],
             });
