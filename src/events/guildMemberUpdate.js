@@ -106,9 +106,23 @@ export default {
               : baseName.slice(previousClanTag.length + 1);
           }
 
-          baseName = baseName.replace(/^🔫\\s*/u, '').trimStart();
-          const previousRankPrefix = Object.values(rankPrefixes).find((prefix) => baseName.startsWith(prefix));
-          if (previousRankPrefix) baseName = baseName.slice(previousRankPrefix.length).trimStart();
+          // Remove legacy rank decorations from the name before building the new nickname.
+          // Accept both 🔫Rank and 🔫 Rank, with or without a clan tag in front.
+          baseName = baseName.trimStart().replace(/^🔫\\s*/u, '').trimStart();
+
+          let removedRankPrefix = true;
+          while (removedRankPrefix) {
+            removedRankPrefix = false;
+            const previousRankPrefix = Object.values(rankPrefixes)
+              .sort((a, b) => b.length - a.length)
+              .find((prefix) => baseName.startsWith(prefix));
+
+            if (previousRankPrefix) {
+              baseName = baseName.slice(previousRankPrefix.length).trimStart();
+              baseName = baseName.replace(/^🔫\\s*/u, '').trimStart();
+              removedRankPrefix = true;
+            }
+          }
           const knownRankNames = rankRewards
             .map(({ roleId }) => newMember.guild.roles.cache.get(roleId)?.name)
             .filter(Boolean)
