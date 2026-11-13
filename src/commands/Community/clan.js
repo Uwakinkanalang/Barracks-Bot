@@ -23,10 +23,12 @@ export default {
       .setDescription(
         'Ready to lead your own squad? Create a clan and bring your soldiers together!\n\n' +
         '**Information required**\n' +
-        '• Clan Name\n' +
-        '• Clan Tag (2–6 letters or numbers)\n' +
+        '• Clan Name and Clan Tag\n' +
+        '• Clan Symbol\n' +
         '• Clan Description\n' +
-        '• Clan Logo URL (optional)\n\n' +
+        '• Vice Clan Leader\n' +
+        '• Clan Role Hex Color\n' +
+        '• Clan Logo Upload (optional image attachment)\n\n' +
         'Your account will automatically be registered as the **Clan Leader**.'
       )
       .setFooter({ text: 'Barracks • Clan Registry' });
