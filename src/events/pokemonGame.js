@@ -1,9 +1,10 @@
-import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { Events, EmbedBuilder } from 'discord.js';
 import { addMoney } from '../utils/economy.js';
 import { logger } from '../utils/logger.js';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 
-const REWARD = 1000;
+const DEFAULT_REWARD = 1000;
+const GAME_MANAGER_ROLE_IDS = new Set(['1557784711072579706', '1557781661352071239']);
 const ROUND_TIME_MS = 60_000;
 const MAX_POKEMON_ID = 1025;
 const activeGames = new Map();
@@ -61,13 +62,13 @@ async function createSilhouette(pokemon) {
   return canvas.toBuffer('image/png');
 }
 
-function buildQuestionEmbed(pokemon, seconds = 60) {
+function buildQuestionEmbed(pokemon, reward, seconds = 60) {
   return new EmbedBuilder()
     .setColor(0x5865F2)
     .setTitle("❓ WHO'S THAT POKÉMON?")
     .setDescription(
       'A mystery Pokémon has appeared, Soldier!\n\n' +
-      '**Type your guess in chat.** The first correct answer wins **₱1,000 bCash**.\n' +
+      `**Type your guess in chat.** The first correct answer wins **₱${reward.toLocaleString()} bCash**.\n` +
       `⏳ Time limit: **${seconds} seconds**`
     )
     .setImage('attachment://pokemon-silhouette.png')
@@ -97,8 +98,8 @@ async function finishGame(client, key, game, winnerId = null) {
   let reward = 0;
   if (winnerId) {
     try {
-      await addMoney(client, game.guildId, winnerId, REWARD, 'wallet');
-      reward = REWARD;
+      await addMoney(client, game.guildId, winnerId, game.reward, 'wallet');
+      reward = game.reward;
 
       const winsKey = `guild:${game.guildId}:pokemon_game_wins`;
       const wins = await client.db.get(winsKey, {});
@@ -115,7 +116,12 @@ async function finishGame(client, key, game, winnerId = null) {
   });
 }
 
-async function startGame(message, client) {
+function canManageGame(message) {
+  return message.guild.ownerId === message.author.id
+    || [...GAME_MANAGER_ROLE_IDS].some(roleId => message.member?.roles?.cache?.has(roleId));
+}
+
+async function startGame(message, client, reward = DEFAULT_REWARD) {
   const key = gameKey(message.guild.id, message.channel.id);
   if (activeGames.has(key)) {
     await message.reply('There is already a Pokémon guessing round running in this channel. Guess the current Pokémon first!');
@@ -130,21 +136,21 @@ async function startGame(message, client) {
         channel: message.channel,
         pokemon,
         startedBy: message.author.id,
+        reward,
         finished: false,
         timeout: null,
       };
-
-      game.timeout = setTimeout(() => {
-        finishGame(client, key, game).catch(error => logger.error('Pokémon game timeout failed:', error));
-      }, ROUND_TIME_MS);
 
       const silhouette = await createSilhouette(pokemon);
       activeGames.set(key, game);
       await loadingMessage.edit({
         content: null,
-        embeds: [buildQuestionEmbed(pokemon)],
+        embeds: [buildQuestionEmbed(pokemon, reward)],
         files: [{ attachment: silhouette, name: 'pokemon-silhouette.png' }],
       });
+      game.timeout = setTimeout(() => {
+        finishGame(client, key, game).catch(error => logger.error('Pokémon game timeout failed:', error));
+      }, ROUND_TIME_MS);
     } catch (error) {
       logger.error('Could not start Pokémon guessing game:', error);
       await loadingMessage.edit('❌ I could not load a Pokémon right now. Please try again in a moment.').catch(() => {});
@@ -170,23 +176,33 @@ export default {
       if (!message.guild || message.author.bot) return;
 
       const content = message.content.trim();
-      if (/^bpokemon(?:\s+start)?$/i.test(content)) {
-        await startGame(message, client);
-        return;
-      }
-
       if (/^bpokemon\s+stop$/i.test(content)) {
+        if (!canManageGame(message)) {
+          await message.reply('⛔ Only members with the **Festivities**, **Management Team**, or **Server Owner** access can manage Pokémon rounds.');
+          return;
+        }
         const key = gameKey(message.guild.id, message.channel.id);
         const game = activeGames.get(key);
         if (!game) {
           await message.reply('There is no active Pokémon round in this channel.');
           return;
         }
-        if (game.startedBy !== message.author.id && !message.member?.permissions?.has(PermissionFlagsBits.ManageGuild)) {
-          await message.reply('Only the Soldier who started the round or a member with **Manage Server** permission can stop it.');
+        await finishGame(client, key, game);
+        return;
+      }
+
+      const startMatch = content.match(/^bpokemon(?:\s+start)?(?:\s+(\d+))?$/i);
+      if (startMatch) {
+        if (!canManageGame(message)) {
+          await message.reply('⛔ Only members with the **Festivities**, **Management Team**, or **Server Owner** access can start Pokémon rounds.');
           return;
         }
-        await finishGame(client, key, game);
+        const reward = startMatch[1] ? Number(startMatch[1]) : DEFAULT_REWARD;
+        if (!Number.isSafeInteger(reward) || reward < 1 || reward > 1000000000) {
+          await message.reply('Please enter a reward between **₱1 and ₱1,000,000,000**. Example: `bpokemon start 5000`.');
+          return;
+        }
+        await startGame(message, client, reward);
         return;
       }
 
