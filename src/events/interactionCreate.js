@@ -308,7 +308,7 @@ export default {
           }
         } else if (interaction.isButton()) {
           if (interaction.customId === 'clan:create') {
-            const { ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+            const { ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, LabelBuilder, FileUploadBuilder } = await import('discord.js');
             const modal = new ModalBuilder()
               .setCustomId('clan:create:submit')
               .setTitle('Create Your Clan • Details')
@@ -325,23 +325,7 @@ export default {
                 new ActionRowBuilder().addComponents(
                   new TextInputBuilder().setCustomId('clan_vice_leader').setLabel('Vice Clan Leader (mention or user ID)').setStyle(TextInputStyle.Short).setMaxLength(25).setRequired(true)
                 )
-              );
-            await interaction.showModal(modal);
-            return;
-          }
-
-          if (interaction.customId === 'clan:continue') {
-            const draftKey = `guild:${interaction.guildId}:clan_draft:${interaction.user.id}`;
-            const draft = await client.db.get(draftKey, null);
-            if (!draft || draft.expiresAt < Date.now()) {
-              await interaction.reply({ content: 'Your clan registration session expired. Please start again from the clan panel.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-
-            const { ModalBuilder, LabelBuilder, FileUploadBuilder } = await import('discord.js');
-            const modal = new ModalBuilder()
-              .setCustomId('clan:finalize')
-              .setTitle('Upload Your Clan Logo')
+              )
               .addLabelComponents(
                 new LabelBuilder()
                   .setLabel('Clan Logo Upload (optional)')
@@ -358,6 +342,7 @@ export default {
             await interaction.showModal(modal);
             return;
           }
+
           if (interaction.customId.startsWith('shared_todo_')) {
             const parts = interaction.customId.split('_');
             const buttonType = parts.slice(0, 3).join('_');
@@ -481,37 +466,19 @@ export default {
               return;
             }
 
-            const draftKey = `guild:${interaction.guildId}:clan_draft:${interaction.user.id}`;
-            await interaction.client.db.set(draftKey, {
-              name, tag, roleHex, description, viceLeaderId,
-              expiresAt: Date.now() + 15 * 60 * 1000,
-            });
+            const uploadedFiles = interaction.fields.getUploadedFiles('clan_logo');
+            const logoAttachment = uploadedFiles?.first?.() || null;
 
-            const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
-            const continueRow = new ActionRowBuilder().addComponents(
-              new ButtonBuilder()
-                .setCustomId('clan:continue')
-                .setLabel('Continue Registration')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('➡️')
-            );
-            await interaction.reply({
-              content: 'Your clan details are saved temporarily. Continue to upload your clan logo.',
-              components: [continueRow],
-              flags: MessageFlags.Ephemeral,
-            });
-            return;
-          }
-
-          if (interaction.customId === 'clan:finalize') {
-            const draftKey = `guild:${interaction.guildId}:clan_draft:${interaction.user.id}`;
-            const draft = await interaction.client.db.get(draftKey, null);
-            if (!draft || draft.expiresAt < Date.now()) {
-              await interaction.reply({ content: 'Your clan registration session expired. Please start again from the clan panel.', flags: MessageFlags.Ephemeral });
-              return;
+            if (logoAttachment) {
+              const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif'];
+              const extension = logoAttachment.name?.slice(logoAttachment.name.lastIndexOf('.')).toLowerCase();
+              if (!logoAttachment.contentType?.startsWith('image/') || !allowedExtensions.includes(extension)) {
+                await interaction.reply({ content: 'The clan logo must be an image file (PNG, JPG, GIF, WEBP, or AVIF).', flags: MessageFlags.Ephemeral });
+                return;
+              }
             }
 
-            const roleHex = draft.roleHex;
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
             const uploadedFiles = interaction.fields.getUploadedFiles('clan_logo');
             const logoAttachment = uploadedFiles?.first?.() || null;
 
@@ -531,7 +498,7 @@ export default {
                 const { EmbedBuilder } = await import('discord.js');
                 const logoEmbed = new EmbedBuilder()
                   .setColor(Number.parseInt(roleHex.slice(1), 16))
-                  .setTitle(`Clan Logo • ${draft.name} [${draft.tag}]`)
+                  .setTitle(`Clan Logo • ${name} [${tag}]`)
                   .setDescription(`Uploaded by <@${interaction.user.id}>`)
                   .setImage(`attachment://${logoAttachment.name}`)
                   .setFooter({ text: 'Barracks • Clan Logo Archive' });
@@ -566,9 +533,9 @@ export default {
               id: `clan_${Date.now()}_${interaction.user.id}`,
               name: draft.name,
               tag: draft.tag,
-              description: draft.description,
+              description: description,
               leaderId: interaction.user.id,
-              viceLeaderId: draft.viceLeaderId,
+              viceLeaderId: viceLeaderId,
               roleHex,
               logoMessageId: logoMessage?.id || null,
               logoChannelId: logoMessage?.channelId || null,
@@ -576,7 +543,6 @@ export default {
             };
             clanList.push(clan);
             await interaction.client.db.set(storageKey, clanList);
-            await interaction.client.db.delete(draftKey).catch(() => {});
 
             const { EmbedBuilder } = await import('discord.js');
             const logChannelId = await interaction.client.db.get(
