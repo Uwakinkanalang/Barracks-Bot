@@ -6,11 +6,6 @@ export default {
     .setDescription('Create and manage your clan')
     .addSubcommand(subcommand =>
       subcommand
-        .setName('panel')
-        .setDescription('Post the clan creation panel')
-    )
-    .addSubcommand(subcommand =>
-      subcommand
         .setName('setapproverole')
         .setDescription('Set the role allowed to approve or reject clan registrations')
         .addRoleOption(option =>
