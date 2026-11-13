@@ -73,17 +73,25 @@ export default {
             [clan.leaderId, clan.viceLeaderId, ...(clan.memberIds || [])].includes(newMember.id)
           );
 
-          // Put [CLAN]| first, then the rank prefix and the member's display name.
+          // Format clan members as TAG|Rank Name; non-clan members use 🔫Rank Name.
           const currentName = newMember.displayName;
-          let existingClanTag = '';
-          if (currentName.startsWith('[')) {
-            const closingBracket = currentName.indexOf(']');
-            if (closingBracket > 0) {
-              existingClanTag = currentName.slice(0, closingBracket + 1);
-              if (currentName[closingBracket + 1] === '|') existingClanTag += '|';
-            }
+          let baseName = currentName;
+
+          // Strip any previously applied clan tag, including the legacy [TAG]| format.
+          const knownClanTags = clanList
+            .map((clan) => String(clan.tag || '').trim())
+            .filter(Boolean)
+            .sort((a, b) => b.length - a.length);
+          const previousClanTag = knownClanTags.find((tag) =>
+            baseName.startsWith(`[${tag}]|`) || baseName.startsWith(`${tag}|`)
+          );
+          if (previousClanTag) {
+            baseName = baseName.startsWith(`[${previousClanTag}]|`)
+              ? baseName.slice(previousClanTag.length + 3)
+              : baseName.slice(previousClanTag.length + 1);
           }
-          let baseName = currentName.slice(existingClanTag.length).replace(/^🔫\\s*/u, '');
+
+          baseName = baseName.replace(/^🔫\\s*/u, '').trimStart();
           const previousRankPrefix = Object.values(rankPrefixes).find((prefix) => baseName.startsWith(prefix));
           if (previousRankPrefix) baseName = baseName.slice(previousRankPrefix.length).trimStart();
           const knownRankNames = rankRewards
@@ -95,14 +103,14 @@ export default {
           );
           if (previousRankName) baseName = baseName.slice(previousRankName.length).trimStart();
 
-          const clanTag = memberClan ? `[${memberClan.tag}]` : '';
+          const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
           const rankDisplayName = rankRole
             ? (rankPrefixes[highestRank.level] || rankRole.name)
             : '';
           const nicknameBody = rankRole
-            ? `${clanTag ? '' : '🔫'}${rankDisplayName} ${baseName.trimStart()}`
+            ? `${rankDisplayName} ${baseName.trimStart()}`
             : baseName.trimStart();
-          const desiredNickname = `${clanTag ? `${clanTag}|` : ''}${nicknameBody}`.slice(0, 32);
+          const desiredNickname = `${clanTag ? `${clanTag}|` : (rankRole ? '🔫' : '')}${nicknameBody}`.slice(0, 32);
 
           if (newMember.nickname !== desiredNickname) {
             await newMember.setNickname(
