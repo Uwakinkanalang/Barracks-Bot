@@ -138,9 +138,18 @@ export default {
             baseName = newMember.user.globalName || newMember.user.username;
           }
 
-          const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
-          // Never add rank names or the 🔫 emoji to automatic nicknames.
-          const desiredNickname = `${clanTag ? `${clanTag}| ` : ''}${baseName.trimStart()}`.slice(0, 32);
+          const rankRoleName = highestRank
+            ? newMember.guild.roles.cache.get(highestRank.roleId)?.name || ''
+            : '';
+          const rankDisplayName = highestRank
+            ? (rankPrefixes[highestRank.level] || rankRoleName)
+            : '';
+          const nicknameBody = rankDisplayName
+            ? `${rankDisplayName} ${baseName.trimStart()}`
+            : baseName.trimStart();
+
+          // Non-clan members get the gun emoji and rank title; clan members are left untouched.
+          const desiredNickname = `🔫${nicknameBody}`.slice(0, 32);
 
           if (newMember.nickname !== desiredNickname) {
             await newMember.setNickname(
