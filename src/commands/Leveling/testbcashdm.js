@@ -56,7 +56,7 @@ export default {
     const sampleMessage = [
       `• 🎉 You received **₱${formattedAmount}** in Barracks cash for earning **🔫 ${reward.rank}**!`,
       `• 💰 Your new Barracks cash balance is **₱${formattedAmount}**.`,
-    ].join('\\n');
+    ].join('\n');
 
     try {
       await interaction.user.send({ content: sampleMessage });
