@@ -44,6 +44,27 @@ export default {
                 .setDescription("The prize being given away.")
                 .setRequired(true),
         )
+        .addIntegerOption((option) =>
+            option.setName("first_place")
+                .setDescription("bCash for 1st place (optional).")
+                .setMinValue(0)
+                .setMaxValue(1000000000)
+                .setRequired(false),
+        )
+        .addIntegerOption((option) =>
+            option.setName("second_place")
+                .setDescription("bCash for 2nd place (optional).")
+                .setMinValue(0)
+                .setMaxValue(1000000000)
+                .setRequired(false),
+        )
+        .addIntegerOption((option) =>
+            option.setName("third_place")
+                .setDescription("bCash for 3rd place (optional).")
+                .setMinValue(0)
+                .setMaxValue(1000000000)
+                .setRequired(false),
+        )
         .addChannelOption((option) =>
             option
                 .setName("channel")
@@ -80,6 +101,16 @@ export default {
         const durationString = interaction.options.getString("duration");
         const winnerCount = interaction.options.getInteger("winners");
         const prize = interaction.options.getString("prize");
+        const firstPlace = interaction.options.getInteger("first_place");
+        const secondPlace = interaction.options.getInteger("second_place");
+        const thirdPlace = interaction.options.getInteger("third_place");
+        const bCashPrizes = [firstPlace, secondPlace, thirdPlace].some(value => value !== null)
+            ? { first: firstPlace ?? 0, second: secondPlace ?? 0, third: thirdPlace ?? 0 }
+            : null;
+        if (bCashPrizes && winnerCount !== 3) {
+            throw new TitanBotError('bCash prize tiers require three winners', ErrorTypes.VALIDATION,
+                'Set the winner count to 3 when using first, second, and third place bCash prizes.');
+        }
         const targetChannel = interaction.options.getChannel("channel") || interaction.channel;
 
         const durationMs = parseDuration(durationString);
@@ -106,6 +137,7 @@ export default {
             endTime: endTime,
             endsAt: endTime,
             winnerCount: winnerCount,
+            bCashPrizes,
             participants: [],
             isEnded: false,
             ended: false,
@@ -157,6 +189,7 @@ export default {
                             value: durationString,
                             inline: true
                         },
+                        ...(bCashPrizes ? [{ name: 'bCash Prizes', value: `1st: ₱${bCashPrizes.first.toLocaleString()} | 2nd: ₱${bCashPrizes.second.toLocaleString()} | 3rd: ₱${bCashPrizes.third.toLocaleString()}`, inline: false }] : []),
                         {
                             name: 'Channel',
                             value: targetChannel.toString(),
