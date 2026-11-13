@@ -7,6 +7,7 @@ import { getColor, botConfig } from '../config/bot.js';
 import { getEndedGiveaways, markGiveawayEnded } from '../utils/database.js';
 import { checkRateLimit, getRateLimitStatus } from '../utils/rateLimiter.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
+import { addMoney } from '../utils/economy.js';
 
 const GIVEAWAY_CONFIG = botConfig.giveaways || {};
 const GIVEAWAY_INTERACTION_COOLDOWN = 1000;
@@ -148,6 +149,11 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
                 { name: '👥 Entries', value: giveaway.participants?.length?.toString() || '0', inline: true }
             );
 
+        if (giveaway.bCashPrizes) {
+            const p = giveaway.bCashPrizes;
+            embed.addFields({ name: '💰 bCash Prizes', value: `🥇 ₱${(p.first || 0).toLocaleString()}\n🥈 ₱${(p.second || 0).toLocaleString()}\n🥉 ₱${(p.third || 0).toLocaleString()}`, inline: false });
+        }
+
         if (isEnded) {
             const winnerDisplay = winners.length > 0 
                 ? winners.map(id => `<@${id}>`).join(', ')
@@ -269,6 +275,30 @@ export async function recordUserInteraction(userId, giveawayId) {
     );
 }
 
+export async function awardGiveawayPrizes(client, guildId, giveaway, winners) {
+    const prizes = giveaway?.bCashPrizes;
+    if (!prizes || !Array.isArray(winners) || winners.length === 0) return [];
+
+    const amounts = [prizes.first || 0, prizes.second || 0, prizes.third || 0];
+    giveaway.bCashPaid ||= {};
+    const results = [];
+
+    for (let index = 0; index < winners.length; index++) {
+        const userId = winners[index];
+        const amount = Number(amounts[index] || 0);
+        if (!amount || giveaway.bCashPaid[userId]) continue;
+        try {
+            await addMoney(client, guildId, userId, amount, 'wallet');
+            giveaway.bCashPaid[userId] = { amount, place: index + 1, paidAt: new Date().toISOString() };
+            results.push({ userId, amount, place: index + 1, success: true });
+        } catch (error) {
+            logger.error(`Failed to award giveaway bCash to ${userId}`, error);
+            results.push({ userId, amount, place: index + 1, success: false });
+        }
+    }
+    return results;
+}
+
 export async function endGiveaway(client, giveaway, guildId, endedBy) {
     try {
         if (!giveaway) {
@@ -364,6 +394,7 @@ export async function checkGiveaways(client) {
 
         const participants = giveaway.participants || [];
         const winners = selectWinners(participants, giveaway.winnerCount || 1);
+        const payoutResults = await awardGiveawayPrizes(client, guildId, giveaway, winners);
 
         const winnerMentions = winners.length > 0
           ? winners.map(id => `<@${id}>`).join(', ')
@@ -387,7 +418,8 @@ export async function checkGiveaways(client) {
         }
 
         if (winners.length > 0) {
-          const winnerAnnouncement = `🎉 Congratulations ${winnerMentions}! You won the **${giveaway.prize || 'giveaway'}**! Please contact <@${giveaway.hostId}> to claim your prize.`;
+          const payoutText = payoutResults.filter(result => result.success).map(result => `<@${result.userId}> received **₱${result.amount.toLocaleString()}** for place #${result.place}.`).join('\n');
+          const winnerAnnouncement = `🎉 Congratulations ${winnerMentions}! You won the **${giveaway.prize || 'giveaway'}**!${payoutText ? `\n\n💰 **bCash paid automatically:**\n${payoutText}` : ''}`;
           const winnerPingMsg = await channel.send({ content: winnerAnnouncement });
           giveaway.winnerPingMessageId = winnerPingMsg.id;
           await markGiveawayEnded(client, giveawayId, giveaway);
