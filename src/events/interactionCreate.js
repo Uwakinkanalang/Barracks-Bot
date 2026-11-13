@@ -579,6 +579,41 @@ export default {
             await interaction.client.db.delete(draftKey).catch(() => {});
 
             const { EmbedBuilder } = await import('discord.js');
+            const logChannelId = await interaction.client.db.get(
+              `guild:${interaction.guildId}:clan_log_channel`,
+              null
+            );
+            if (logChannelId) {
+              try {
+                const logChannel = await interaction.guild.channels.fetch(logChannelId);
+                if (logChannel?.isTextBased() && logChannel?.send) {
+                  const logEmbed = new EmbedBuilder()
+                    .setColor(Number.parseInt(roleHex.slice(1), 16))
+                    .setTitle(`📋 New Clan Registration • ${draft.name} [${draft.tag}]`)
+                    .setDescription(draft.description)
+                    .addFields(
+                      { name: 'Clan Leader', value: `<@${interaction.user.id}> (\`${interaction.user.id}\`)`, inline: true },
+                      { name: 'Vice Clan Leader', value: `<@${draft.viceLeaderId}> (\`${draft.viceLeaderId}\`)`, inline: true },
+                      { name: 'Clan Tag', value: draft.tag, inline: true },
+                      { name: 'Clan Role Hex', value: roleHex, inline: true },
+                      { name: 'Submitted By', value: `<@${interaction.user.id}>`, inline: true }
+                    )
+                    .setTimestamp()
+                    .setFooter({ text: `Barracks Clan Registry • ${interaction.guild.name}` });
+                  const archivedLogo = logoMessage?.attachments?.first();
+                  if (archivedLogo) logEmbed.setImage(archivedLogo.url);
+                  await logChannel.send({ embeds: [logEmbed] });
+                }
+              } catch (error) {
+                logger.error('Failed to send clan registration to the configured log channel:', {
+                  error: error.message,
+                  guildId: interaction.guildId,
+                  channelId: logChannelId,
+                });
+              }
+            }
+
+
             const embed = new EmbedBuilder()
               .setColor(Number.parseInt(roleHex.slice(1), 16))
                .setTitle(`${draft.name} [${draft.tag}] • Clan Created!`)
