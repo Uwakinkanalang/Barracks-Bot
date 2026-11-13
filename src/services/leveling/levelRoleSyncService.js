@@ -84,20 +84,33 @@ export async function reconcileLevelRoles(client, guildId = null) {
                 const member = await guild.members.fetch(userId).catch(() => null);
                 if (!member) continue;
 
-                for (const [levelStr, roleId] of Object.entries(rewards)) {
-                    const requiredLevel = Number(levelStr);
-                    if (!Number.isFinite(requiredLevel) || levelData.level < requiredLevel) continue;
+                // Keep only the highest rank the member has earned, and clean up
+                // duplicate/older rank roles left by previous versions of the bot.
+                const earnedRanks = Object.entries(rewards)
+                    .map(([levelStr, roleId]) => ({ level: Number(levelStr), roleId }))
+                    .filter(({ level }) => Number.isFinite(level) && level <= levelData.level)
+                    .sort((a, b) => b.level - a.level);
+                const highestRank = earnedRanks[0] || null;
+                const rankRoleIds = [...new Set(Object.values(rewards))];
+                const staleRankRoleIds = rankRoleIds.filter(
+                    (roleId) => roleId !== highestRank?.roleId && member.roles.cache.has(roleId),
+                );
 
-                    try {
-                        const awarded = await tryAwardRole(member, roleId, requiredLevel);
-                        if (awarded) summary.rolesReAwarded += 1;
-                    } catch (awardError) {
-                        summary.errors += 1;
-                        logger.warn(
-                            `Could not re-award level ${requiredLevel} role to ${userId} in guild ${guild.id}:`,
-                            awardError.message,
-                        );
+                try {
+                    if (staleRankRoleIds.length) {
+                        await member.roles.remove(staleRankRoleIds, 'Level rank reconciliation: keep highest earned rank');
                     }
+
+                    if (highestRank) {
+                        const awarded = await tryAwardRole(member, highestRank.roleId, highestRank.level);
+                        if (awarded) summary.rolesReAwarded += 1;
+                    }
+                } catch (awardError) {
+                    summary.errors += 1;
+                    logger.warn(
+                        `Could not reconcile highest rank for ${userId} in guild ${guild.id}:`,
+                        awardError.message,
+                    );
                 }
             }
         } catch (error) {
