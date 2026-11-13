@@ -54,7 +54,7 @@ export default {
     const formattedAmount = reward.amount.toLocaleString('en-US');
 
     const sampleMessage = [
-      `• [🎉](https://discord.com/assets/f7750b45770701de.svg) You received **₱${formattedAmount}** in Barracks cash for earning **[🔫](https://discord.com/assets/445896d2723c236e.svg)${reward.rank}**!`,
+      `• 🎉 You received **₱${formattedAmount}** in Barracks cash for earning **🔫 ${reward.rank}**!`,
       `• 💰 Your new Barracks cash balance is **₱${formattedAmount}**.`,
     ].join('\\n');
 
