@@ -630,7 +630,7 @@ export default {
             clanList.push(clan);
             await interaction.client.db.set(storageKey, clanList);
 
-            const { EmbedBuilder } = await import('discord.js');
+            const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
             const logChannelId = await interaction.client.db.get(
               `guild:${interaction.guildId}:clan_log_channel`,
               null
