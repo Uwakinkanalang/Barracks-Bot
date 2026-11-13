@@ -570,6 +570,7 @@ export default {
               description,
               leaderId: interaction.user.id,
               viceLeaderId,
+              memberIds: [],
               roleHex,
               logoMessageId: logoMessage?.id || null,
               logoChannelId: logoMessage?.channelId || null,
