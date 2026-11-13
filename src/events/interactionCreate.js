@@ -539,7 +539,7 @@ export default {
             if (logoAttachment) {
               const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif'];
               const extension = logoAttachment.name?.slice(logoAttachment.name.lastIndexOf('.')).toLowerCase();
-              if (!(logoAttachment.contentType?.startsWith('image/')) && !allowedExtensions.includes(extension)) {
+              if (!logoAttachment.contentType?.startsWith('image/') || !allowedExtensions.includes(extension)) {
                 await interaction.reply({ content: 'The clan logo must be an image file (PNG, JPG, GIF, WEBP, or AVIF).', flags: MessageFlags.Ephemeral });
                 return;
               }
