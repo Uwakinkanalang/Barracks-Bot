@@ -2,6 +2,7 @@ import { Events } from 'discord.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
+import { getLevelingConfig } from '../services/leveling/leveling.js';
 
 export default {
   name: Events.GuildMemberUpdate,
@@ -29,6 +30,50 @@ export default {
           }
         });
 
+      }
+
+      // Automatically apply the highest configured Barracks rank to the member's nickname.
+      // Rank roles are read from the live leveling config, including the default Level 10–100 rewards.
+      const oldRoleIds = new Set(oldMember.roles.cache.keys());
+      const newRoleIds = new Set(newMember.roles.cache.keys());
+      const roleSetChanged = oldRoleIds.size !== newRoleIds.size ||
+        [...oldRoleIds].some((roleId) => !newRoleIds.has(roleId));
+
+      if (roleSetChanged && !newMember.user.bot) {
+        try {
+          const levelingConfig = await getLevelingConfig(newMember.client, newMember.guild.id);
+          const rankRewards = Object.entries(levelingConfig.roleRewards || {})
+            .map(([level, roleId]) => ({ level: Number(level), roleId }))
+            .filter((entry) => Number.isInteger(entry.level) && entry.level >= 1 && entry.level <= 100 &&
+              typeof entry.roleId === 'string' && entry.roleId.length > 0)
+            .sort((a, b) => b.level - a.level);
+
+          const highestRank = rankRewards.find(({ roleId }) => newMember.roles.cache.has(roleId));
+          const rankRole = highestRank
+            ? (newMember.guild.roles.cache.get(highestRank.roleId) ||
+              await newMember.guild.roles.fetch(highestRank.roleId).catch(() => null))
+            : null;
+
+          const desiredNickname = rankRole
+            ? `[${rankRole.name}] ${newMember.user.username}`.slice(0, 32)
+            : null;
+
+          if (newMember.nickname !== desiredNickname) {
+            await newMember.setNickname(
+              desiredNickname,
+              rankRole
+                ? `Automatic Barracks rank nickname for Level ${highestRank.level}`
+                : 'Removed Barracks rank nickname because no level rank role remains',
+            );
+            logger.info(
+              `[RANK_NICKNAME] Updated ${newMember.user.tag} to ${desiredNickname || newMember.user.username}`,
+            );
+          }
+        } catch (nicknameError) {
+          logger.warn(
+            `[RANK_NICKNAME] Could not update nickname for ${newMember.user.tag}: ${nicknameError.message}`,
+          );
+        }
       }
 
       // One-time wallet rewards for configured role grants.
