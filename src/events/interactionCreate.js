@@ -523,12 +523,12 @@ export default {
                       { name: '👑 Clan Leader', value: `<@${interaction.user.id}>\n` + '`' + `${interaction.user.id}` + '`', inline: true },
                       { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>\n` + '`' + `${viceLeaderId}` + '`', inline: true },
                       { name: '🏷️ Clan Tag', value: `\`${tag}\``, inline: true },
-                      { name: '🎨 Role Color', value: `\`${roleHex}\`\n\u200b`, inline: true },
-                      { name: '📝 Registration Status', value: '<:green_circle:> Successfully submitted', inline: true },
+                      { name: '🎨 Role Color', value: `\`${roleHex}\``, inline: true },
+                      { name: '📝 Status', value: '✅ Successfully submitted', inline: true },
                       { name: '📨 Submitted By', value: `<@${interaction.user.id}>`, inline: true },
                     )
                     .setTimestamp()
-                    .setFooter({ text: `Clan Registration • ${interaction.guild.name}` });
+                    .setFooter({ text: `Barracks Clan Registry • ${interaction.guild.name}` });
 
                   const logPayload = { embeds: [logEmbed] };
                   if (logoAttachment) {
@@ -536,7 +536,26 @@ export default {
                     logPayload.files = [{ attachment: logoAttachment.url, name: logoAttachment.name }];
                   }
                   await logChannel.send(logPayload);
-                       const confirmationEmbed = new EmbedBuilder()
+                } else {
+                  logger.warn('Configured clan log channel is unavailable or not text-based.', {
+                    guildId: interaction.guildId,
+                    channelId: logChannelId,
+                  });
+                }
+              } catch (error) {
+                logger.error('Failed to send clan registration to the configured log channel:', {
+                  error: error.message,
+                  guildId: interaction.guildId,
+                  channelId: logChannelId,
+                });
+              }
+            } else {
+              logger.warn('Clan registration submitted without a configured log channel.', {
+                guildId: interaction.guildId,
+              });
+            }
+
+            const confirmationEmbed = new EmbedBuilder()
               .setColor(Number.parseInt(roleHex.slice(1), 16))
               .setAuthor({ name: 'BARRACKS • CLAN REGISTRY' })
               .setTitle(`✅ ${name} [${tag}] Registered`)
