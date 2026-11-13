@@ -317,7 +317,7 @@ export default {
                   new TextInputBuilder().setCustomId('clan_name').setLabel('Clan Name').setStyle(TextInputStyle.Short).setMinLength(3).setMaxLength(32).setRequired(true)
                 ),
                 new ActionRowBuilder().addComponents(
-                  new TextInputBuilder().setCustomId('clan_tag_hex').setLabel('Clan Tag | Role Hex').setStyle(TextInputStyle.Short).setPlaceholder('e.g. ABC | #5865F2').setMinLength(12).setMaxLength(16).setRequired(true)
+                  new TextInputBuilder().setCustomId('clan_tag_hex').setLabel('Clan Tag | Role Hex').setStyle(TextInputStyle.Short).setPlaceholder('e.g. A | #5865F2').setMaxLength(16).setRequired(true)
                 ),
                 new ActionRowBuilder().addComponents(
                   new TextInputBuilder().setCustomId('clan_description').setLabel('Clan Description').setStyle(TextInputStyle.Paragraph).setMaxLength(500).setRequired(true)
@@ -451,7 +451,7 @@ export default {
               return;
             }
             if (!tagHexMatch || !tag || !roleHex) {
-              await interaction.reply({ content: 'Enter the clan tag and role hex together in this format: **ABC | #5865F2**. The tag must be 2–6 letters or numbers and the hex must be 6 digits.', flags: MessageFlags.Ephemeral });
+              await interaction.reply({ content: 'Enter the clan tag and role hex together in this format: **ABC | #5865F2**. The tag can be 1–6 letters or numbers; the hex must be 6 digits.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!viceLeaderId || viceLeaderId === interaction.user.id) {
@@ -601,8 +601,12 @@ export default {
                     .setTimestamp()
                     .setFooter({ text: `Barracks Clan Registry • ${interaction.guild.name}` });
                   const archivedLogo = logoMessage?.attachments?.first();
-                  if (archivedLogo) logEmbed.setImage(archivedLogo.url);
-                  await logChannel.send({ embeds: [logEmbed] });
+                  const logPayload = { embeds: [logEmbed] };
+                  if (archivedLogo) {
+                    logEmbed.setImage(`attachment://${archivedLogo.name}`);
+                    logPayload.files = [{ attachment: archivedLogo.url, name: archivedLogo.name }];
+                  }
+                  await logChannel.send(logPayload);
                 }
               } catch (error) {
                 logger.error('Failed to send clan registration to the configured log channel:', {
