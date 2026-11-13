@@ -32,8 +32,7 @@ export default {
 
       }
 
-      // Automatically apply the highest configured Barracks rank to the member's nickname.
-      // Rank roles are read from the live leveling config, including the default Level 10–100 rewards.
+      // Automatically apply the highest configured Barracks rank while preserving a leading [CLAN] tag.
       const oldRoleIds = new Set(oldMember.roles.cache.keys());
       const newRoleIds = new Set(newMember.roles.cache.keys());
       const roleSetChanged = oldRoleIds.size !== newRoleIds.size ||
@@ -55,30 +54,43 @@ export default {
             : null;
 
           const rankPrefixes = {
-            10: '🔫ᴾʳᶦᵛᵃᵗᵉ',
-            20: '🔫ᶜᵒʳᵖᵒʳᵃˡ',
-            30: '🔫ˢᵉʳᵍᵉᵃⁿᵗ',
-            40: '🔫ᶜᵃᵖᵗᵃᶦⁿ',
-            50: '🔫ᴸᶦᵉᵘᵗᵉⁿᵃⁿᵗ',
-            60: '🔫ᴹᵃʲᵒʳ',
-            80: '🔫ᶜᵒˡᵒⁿᵉˡ',
-            100: '🔫ᴳᵉⁿᵉʳᵃˡ',
+            10: 'ᴾʳᶦᵛᵃᵗᵉ',
+            20: 'ᶜᵒʳᵖᵒʳᵃˡ',
+            30: 'ˢᵉʳᵍᵉᵃⁿᵗ',
+            40: 'ᶜᵃᵖᵗᵃᶦⁿ',
+            50: 'ᴸᶦᵉᵘᵗᵉⁿᵃⁿᵗ',
+            60: 'ᴹᵃʲᵒʳ',
+            80: 'ᶜᵒˡᵒⁿᵉˡ',
+            100: 'ᴳᵉⁿᵉʳᵃˡ',
           };
 
+          // Preserve the [CLAN] tag, remove any previously applied rank prefix,
+          // then rebuild the nickname as [CLAN]|RANKdisplayname.
+          const currentName = newMember.displayName;
+          const clanTagMatch = currentName.match(/^(\\[[^\\]]+\\])\\|?/u);
+          const clanTag = clanTagMatch ? clanTagMatch[1] : '';
+          let baseName = clanTagMatch ? currentName.slice(clanTagMatch[0].length) : currentName;
+
+          const previousRankPrefix = Object.values(rankPrefixes).find((prefix) =>
+            baseName.startsWith(prefix),
+          );
+          if (previousRankPrefix) baseName = baseName.slice(previousRankPrefix.length);
+
           const rankPrefix = highestRank ? rankPrefixes[highestRank.level] : null;
-          const desiredNickname = rankRole && rankPrefix
-            ? `${rankPrefix} ${newMember.displayName}`.slice(0, 32)
-            : null;
+          const nicknameBody = rankRole && rankPrefix
+            ? `${rankPrefix}${baseName}`
+            : baseName;
+          const desiredNickname = `${clanTag ? `${clanTag}|` : ''}${nicknameBody}`.slice(0, 32);
 
           if (newMember.nickname !== desiredNickname) {
             await newMember.setNickname(
               desiredNickname,
               rankRole
                 ? `Automatic Barracks rank nickname for Level ${highestRank.level}`
-                : 'Removed Barracks rank nickname because no level rank role remains',
+                : 'Preserved clan tag and removed Barracks rank because no level rank role remains',
             );
             logger.info(
-              `[RANK_NICKNAME] Updated ${newMember.user.tag} to ${desiredNickname || newMember.user.username}`,
+              `[RANK_NICKNAME] Updated ${newMember.user.tag} to ${desiredNickname}`,
             );
           }
         } catch (nicknameError) {
