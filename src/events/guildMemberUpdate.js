@@ -110,7 +110,7 @@ export default {
           const nicknameBody = rankRole
             ? `${rankDisplayName} ${baseName.trimStart()}`
             : baseName.trimStart();
-          const desiredNickname = `${clanTag ? `${clanTag}|` : (rankRole ? '🔫' : '')}${nicknameBody}`.slice(0, 32);
+          const desiredNickname = `${clanTag ? `${clanTag}| ` : (rankRole ? '🔫' : '')}${nicknameBody}`.slice(0, 32);
 
           if (newMember.nickname !== desiredNickname) {
             await newMember.setNickname(
