@@ -79,10 +79,19 @@ export default {
           let baseName = currentName.slice(existingClanTag.length).replace(/^🔫\\s*/u, '');
           const previousRankPrefix = Object.values(rankPrefixes).find((prefix) => baseName.startsWith(prefix));
           if (previousRankPrefix) baseName = baseName.slice(previousRankPrefix.length).trimStart();
+          const knownRankNames = rankRewards
+            .map(({ roleId }) => newMember.guild.roles.cache.get(roleId)?.name)
+            .filter(Boolean)
+            .sort((a, b) => b.length - a.length);
+          const previousRankName = knownRankNames.find((roleName) =>
+            baseName.toLowerCase().startsWith(roleName.toLowerCase())
+          );
+          if (previousRankName) baseName = baseName.slice(previousRankName.length).trimStart();
 
           const clanTag = memberClan ? `[${memberClan.tag}]` : '';
-          const rankPrefix = highestRank ? rankPrefixes[highestRank.level] : null;
-          const nicknameBody = rankRole && rankPrefix ? `${rankPrefix} ${baseName.trimStart()}` : baseName.trimStart();
+          const nicknameBody = rankRole
+            ? `${rankRole.name} ${baseName.trimStart()}`
+            : baseName.trimStart();
           const desiredNickname = `${clanTag ? `${clanTag}|` : ''}${nicknameBody}`.slice(0, 32);
 
           if (newMember.nickname !== desiredNickname) {
