@@ -108,7 +108,7 @@ export default {
                 `• Base pay: **₱${BASE_WORK_AMOUNT.toLocaleString()}**`,
                 `• Level bonus (Level ${memberLevel}): **+₱${levelBonus.toLocaleString()}**`,
                 ...(hasLaptop > 0 ? [`• Laptop bonus (+50%): **+₱${laptopBonus.toLocaleString()}**`] : []),
-            ].join("\\n");
+            ].join("\n");
 
             const embed = successEmbed(
                 "💼 Work Complete!",
