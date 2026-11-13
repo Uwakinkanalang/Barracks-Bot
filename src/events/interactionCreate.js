@@ -424,12 +424,12 @@ export default {
           if (interaction.customId === 'clan:create:submit') {
             const name = interaction.fields.getTextInputValue('clan_name').trim();
             const tagHexInput = interaction.fields.getTextInputValue('clan_tag_hex').trim();
-            const tagHexMatch = tagHexInput.match(/^([A-Za-z0-9]{1,6})\\s*\\|\\s*#?([0-9a-fA-F]{6})$/);
+            const tagHexMatch = tagHexInput.match(/^([A-Za-z0-9]{1,6})\s*\\|\s*#?([0-9a-fA-F]{6})$/);
             const tag = tagHexMatch?.[1]?.toUpperCase();
             const roleHex = tagHexMatch ? `#${tagHexMatch[2].toUpperCase()}` : null;
             const description = interaction.fields.getTextInputValue('clan_description').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
-            const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\\d{17,20})>?$/)?.[1];
+            const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\d{17,20})>?$/)?.[1];
 
             if (!/^[a-zA-Z0-9 _-]{3,32}$/.test(name)) {
               await interaction.reply({ content: 'Clan name must be 3–32 characters and use only letters, numbers, spaces, _ or -.', flags: MessageFlags.Ephemeral });
