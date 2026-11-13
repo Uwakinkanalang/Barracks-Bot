@@ -424,7 +424,7 @@ export default {
           if (interaction.customId === 'clan:create:submit') {
             const name = interaction.fields.getTextInputValue('clan_name').trim();
             const tagHexInput = interaction.fields.getTextInputValue('clan_tag_hex').trim();
-            const tagHexMatch = tagHexInput.match(/^([A-Za-z0-9]{1,6})\s*\\|\s*#?([0-9a-fA-F]{6})$/);
+                        const tagHexMatch = tagHexInput.match(/^([A-Za-z0-9]{1,6})\s*\|\s*#?([0-9a-fA-F]{6})$/);
             const tag = tagHexMatch?.[1]?.toUpperCase();
             const roleHex = tagHexMatch ? `#${tagHexMatch[2].toUpperCase()}` : null;
             const description = interaction.fields.getTextInputValue('clan_description').trim();
