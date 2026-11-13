@@ -10,6 +10,7 @@ import {
 import { Mutex } from '../utils/mutex.js';
 import { 
     selectWinners,
+    awardGiveawayPrizes,
     isUserRateLimited,
     recordUserInteraction,
     createGiveawayEmbed,
@@ -133,6 +134,7 @@ export const giveawayEndHandler = {
 
             const participants = giveaway.participants || [];
             const winners = selectWinners(participants, giveaway.winnerCount);
+            const payoutResults = await awardGiveawayPrizes(client, interaction.guildId, giveaway, winners);
 
             giveaway.ended = true;
             giveaway.isEnded = true;
@@ -191,7 +193,7 @@ export const giveawayEndHandler = {
                 embeds: [
                     successEmbed(
                         `Giveaway Ended ✅`,
-                        `The giveaway has been ended and ${winners.length} winner(s) have been selected!`
+                        `The giveaway has been ended and ${winners.length} winner(s) have been selected!${payoutResults.some(result => result.success) ? '\\n\\n💰 bCash prizes were deposited automatically.' : ''}`
                     )
                 ],
                 flags: MessageFlags.Ephemeral
@@ -259,6 +261,7 @@ export const giveawayRerollHandler = {
             }
 
             const newWinners = selectWinners(participants, giveaway.winnerCount);
+            const payoutResults = await awardGiveawayPrizes(client, interaction.guildId, giveaway, newWinners);
 
             giveaway.winnerIds = newWinners;
             giveaway.rerolledAt = new Date().toISOString();
@@ -313,7 +316,7 @@ export const giveawayRerollHandler = {
                 embeds: [
                     successEmbed(
                         'Giveaway Rerolled ✅',
-                        `New winner(s) have been selected!`
+                        `New winner(s) have been selected!${payoutResults.some(result => result.success) ? '\\n\\n💰 bCash prizes were deposited automatically for eligible new winners.' : ''}`
                     )
                 ],
                 flags: MessageFlags.Ephemeral
