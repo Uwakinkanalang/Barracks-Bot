@@ -344,7 +344,6 @@ export default {
                       .setMinValues(0)
                       .setMaxValues(1)
                       .setRequired(false)
-                      .setFileTypes('image')
                   )
               );
             await interaction.showModal(modal);
