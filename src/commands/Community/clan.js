@@ -46,6 +46,11 @@ export default {
       subcommand
         .setName('delete')
         .setDescription('Remove the clan you lead')
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('remove')
+        .setDescription('Remove the clan you lead')
     ),
 
   category: 'Community',
@@ -151,7 +156,7 @@ export default {
       });
     }
 
-    if (subcommand === 'delete') {
+    if (subcommand === 'delete' || subcommand === 'remove') {
       const clans = await interaction.client.db.get(`guild:${interaction.guildId}:clans`, []);
       const clanList = Array.isArray(clans) ? clans : [];
       const clan = clanList.find(entry => entry.leaderId === interaction.user.id);
