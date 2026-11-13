@@ -49,6 +49,34 @@ async function handlePrefixCommand(message, client) {
     const guildConfig = await getGuildConfig(client, message.guild.id);
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
+    if (/^bclan\s+panel$/i.test(trimmedContent)) {
+      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+      const panelEmbed = new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setTitle('🏰 BARRACKS CLAN REGISTRATION')
+        .setDescription(
+          'Ready to lead your own squad? Create a clan and bring your soldiers together!\n\n' +
+          '**Information required**\n' +
+          '• Clan Name\n' +
+          '• Clan Tag + Role Hex (example: ABC | #5865F2)\n' +
+          '• Clan Description\n' +
+          '• Vice Clan Leader\n' +
+          '• Clan Logo Upload (optional image attachment)\n\n' +
+          'Your account will automatically be registered as the **Clan Leader**.\n' +
+          'All clan registrations are subject to staff approval.'
+        )
+        .setFooter({ text: 'Barracks • Clan Registry' });
+      const panelRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('clan:create')
+          .setLabel('Create a Clan')
+          .setEmoji('🏰')
+          .setStyle(ButtonStyle.Primary)
+      );
+      await message.channel.send({ embeds: [panelEmbed], components: [panelRow] });
+      return;
+    }
+
     const bareMinesMatch = trimmedContent.match(/^bmines?(?:\s+([\s\S]+))?$/i);
     const bareCashMatch = trimmedContent.match(/^bcash(?:\s+([\s\S]+))?$/i);
     const bareBlackjackMatch = trimmedContent.match(/^bbj(?:\s+([\s\S]+))?$/i);
