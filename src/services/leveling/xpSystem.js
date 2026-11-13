@@ -145,7 +145,7 @@ async function sendBcashRewardDm(member, guild, level, reward, roleId) {
     const role = roleId ? guild.roles.cache.get(roleId) : null;
     const rankName = role?.name || `Level ${level}`;
     const message = [
-      `• [🎉](https://discord.com/assets/f7750b45770701de.svg) You received **₱${reward.amount.toLocaleString('en-US')}** in Barracks cash for earning **[🔫](https://discord.com/assets/445896d2723c236e.svg)${rankName}**!`,
+      `• 🎉 You received **₱${reward.amount.toLocaleString('en-US')}** in Barracks cash for earning **🔫 ${rankName}**!`,
       `• 💰 Your new Barracks cash balance is **₱${reward.walletBalance.toLocaleString('en-US')}**.`
     ].join('\\n');
     await member.send({ content: message });
