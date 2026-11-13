@@ -32,7 +32,7 @@ export default {
       new ButtonBuilder()
         .setCustomId('birthday_remove')
         .setLabel('🗑️ Remove my Birthday')
-        .setStyle(ButtonStyle.Danger),
+        .setStyle(ButtonStyle.Secondary),
     );
 
     await interaction.channel.send({ embeds: [embed], components: [row] });
