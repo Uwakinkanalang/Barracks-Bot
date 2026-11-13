@@ -47,6 +47,24 @@ export default {
       );
 
       if (newlyAddedRoleIds.length > 0 && !newMember.user.bot) {
+        // Keep only the newly assigned reward role(s); never remove unrelated server roles.
+        const previousRewardRoleIds = Object.keys(roleRewards).filter(
+          (roleId) => !newlyAddedRoleIds.includes(roleId) && newMember.roles.cache.has(roleId),
+        );
+
+        if (previousRewardRoleIds.length > 0) {
+          try {
+            await newMember.roles.remove(
+              previousRewardRoleIds,
+              'Replaced by a newly assigned Barracks role reward role',
+            );
+          } catch (error) {
+            logger.warn(
+              `[ROLE_REWARD] Could not remove previous reward role(s) from ${newMember.user.tag}: ${error.message}`,
+            );
+          }
+        }
+
         const economyData = await getEconomyData(newMember.client, newMember.guild.id, newMember.id);
         economyData.inventory = economyData.inventory || {};
         economyData.inventory.roleRewardClaims = economyData.inventory.roleRewardClaims || {};
