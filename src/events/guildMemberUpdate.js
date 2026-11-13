@@ -54,8 +54,20 @@ export default {
               await newMember.guild.roles.fetch(highestRank.roleId).catch(() => null))
             : null;
 
-          const desiredNickname = rankRole
-            ? `[${rankRole.name}] ${newMember.user.username}`.slice(0, 32)
+          const rankPrefixes = {
+            10: '🔫ᴾʳᶦᵛᵃᵗᵉ',
+            20: '🔫ᶜᵒʳᵖᵒʳᵃˡ',
+            30: '🔫ˢᵉʳᵍᵉᵃⁿᵗ',
+            40: '🔫ᶜᵃᵖᵗᵃᶦⁿ',
+            50: '🔫ᴸᶦᵉᵘᵗᵉⁿᵃⁿᵗ',
+            60: '🔫ᴹᵃʲᵒʳ',
+            80: '🔫ᶜᵒˡᵒⁿᵉˡ',
+            100: '🔫ᴳᵉⁿᵉʳᵃˡ',
+          };
+
+          const rankPrefix = highestRank ? rankPrefixes[highestRank.level] : null;
+          const desiredNickname = rankRole && rankPrefix
+            ? `${rankPrefix} ${newMember.user.username}`.slice(0, 32)
             : null;
 
           if (newMember.nickname !== desiredNickname) {
