@@ -307,6 +307,32 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId === 'clan:join:open') {
+            const { ActionRowBuilder, StringSelectMenuBuilder } = await import('discord.js');
+            const clans = await interaction.client.db.get(`guild:${interaction.guildId}:clans`, []);
+            const approved = (Array.isArray(clans) ? clans : []).filter(clan => clan.status === 'approved' && clan.roleId);
+            if (!approved.length) {
+              await interaction.reply({ content: 'There are currently no approved clans available to join.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const options = approved.slice(0, 25).map(clan => ({
+              label: clan.name.slice(0, 100),
+              description: `Tag: ${clan.tag} • Leader: ${interaction.guild.members.cache.get(clan.leaderId)?.displayName || 'Clan Leader'}`.slice(0, 100),
+              value: clan.id,
+              emoji: '🏰',
+            }));
+            const menu = new StringSelectMenuBuilder()
+              .setCustomId('clan:join:select')
+              .setPlaceholder('Choose an approved clan')
+              .addOptions(options);
+            await interaction.reply({
+              content: 'Select the clan you want to apply to join. The Clan Leader or Vice Clan Leader must approve your application.',
+              components: [new ActionRowBuilder().addComponents(menu)],
+              flags: MessageFlags.Ephemeral,
+            });
+            return;
+          }
+
           if (interaction.customId === 'clan:create') {
             const { ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, LabelBuilder, FileUploadBuilder } = await import('discord.js');
             const modal = new ModalBuilder()
@@ -349,6 +375,78 @@ export default {
               );
             await interaction.showModal(modal);
             return;
+          }
+
+          if (interaction.customId.startsWith('clan:join:decision:')) {
+            const [, , , decision, clanId, applicantId] = interaction.customId.split(':');
+            const storageKey = `guild:${interaction.guildId}:clans`;
+            const clans = await interaction.client.db.get(storageKey, []);
+            const clanList = Array.isArray(clans) ? clans : [];
+            const clan = clanList.find(entry => entry.id === clanId && entry.status === 'approved');
+            if (!clan) {
+              await interaction.reply({ content: 'This clan is no longer available.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (![clan.leaderId, clan.viceLeaderId].includes(interaction.user.id)) {
+              await interaction.reply({ content: 'Only this clan’s Leader or Vice Clan Leader can review applications.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const requests = Array.isArray(clan.joinRequests) ? clan.joinRequests : [];
+            const requestIndex = requests.findIndex(request => request.userId === applicantId && request.status === 'pending');
+            if (requestIndex < 0) {
+              await interaction.reply({ content: 'This application has already been reviewed or withdrawn.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const applicant = await interaction.guild.members.fetch(applicantId).catch(() => null);
+            if (decision === 'accept') {
+              if (!applicant) {
+                requests[requestIndex].status = 'rejected';
+                requests[requestIndex].reviewedBy = interaction.user.id;
+                requests[requestIndex].reviewedAt = new Date().toISOString();
+                clan.joinRequests = requests;
+                await interaction.client.db.set(storageKey, clanList);
+                await interaction.update({ content: 'Applicant is no longer a member of this server. Application closed.', embeds: [], components: [] });
+                return;
+              }
+              const alreadyInAnotherClan = clanList.find(entry =>
+                entry.status === 'approved' &&
+                entry.id !== clan.id &&
+                [entry.leaderId, entry.viceLeaderId, ...(entry.memberIds || [])].includes(applicantId)
+              );
+              if (alreadyInAnotherClan) {
+                await interaction.reply({ content: 'This member already belongs to another clan.', flags: MessageFlags.Ephemeral });
+                return;
+              }
+              const role = await interaction.guild.roles.fetch(clan.roleId).catch(() => null);
+              if (!role) {
+                await interaction.reply({ content: 'The clan role could not be found. Please contact an administrator.', flags: MessageFlags.Ephemeral });
+                return;
+              }
+              await applicant.roles.add(role, `Accepted into clan ${clan.name}`);
+              const baseName = applicant.displayName.replace(/^\S{1,6}\s+/, '').trim() || applicant.user.username;
+              await applicant.setNickname(`${clan.tag} ${baseName}`.slice(0, 32), `Joined clan ${clan.name}`).catch(error => {
+                logger.warn(`Could not update clan nickname for ${applicantId}: ${error.message}`);
+              });
+              clan.memberIds = [...new Set([...(clan.memberIds || []), applicantId])];
+              requests[requestIndex].status = 'accepted';
+              requests[requestIndex].reviewedBy = interaction.user.id;
+              requests[requestIndex].reviewedAt = new Date().toISOString();
+              clan.joinRequests = requests;
+              await interaction.client.db.set(storageKey, clanList);
+              await applicant.send(`✅ Your application to join **${clan.name} [${clan.tag}]** was accepted by <@${interaction.user.id}>. Welcome to the clan!`).catch(() => {});
+              await interaction.update({ content: `✅ Application accepted. <@${applicantId}> has been added to **${clan.name} [${clan.tag}]**.`, embeds: [], components: [] });
+              return;
+            }
+            if (decision === 'reject') {
+              requests[requestIndex].status = 'rejected';
+              requests[requestIndex].reviewedBy = interaction.user.id;
+              requests[requestIndex].reviewedAt = new Date().toISOString();
+              clan.joinRequests = requests;
+              await interaction.client.db.set(storageKey, clanList);
+              if (applicant) await applicant.send(`❌ Your application to join **${clan.name} [${clan.tag}]** was declined by the clan leadership.`).catch(() => {});
+              await interaction.update({ content: `❌ Application from <@${applicantId}> declined by <@${interaction.user.id}>.`, embeds: [], components: [] });
+              return;
+            }
           }
 
           if (interaction.customId.startsWith('clan:review:')) {
@@ -591,6 +689,64 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isStringSelectMenu()) {
+          if (interaction.customId === 'clan:join:select') {
+            const clanId = interaction.values[0];
+            const storageKey = `guild:${interaction.guildId}:clans`;
+            const clans = await interaction.client.db.get(storageKey, []);
+            const clanList = Array.isArray(clans) ? clans : [];
+            const clan = clanList.find(entry => entry.id === clanId && entry.status === 'approved' && entry.roleId);
+            if (!clan) {
+              await interaction.reply({ content: 'That clan is no longer available. Please reopen the panel.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (clan.leaderId === interaction.user.id || clan.viceLeaderId === interaction.user.id || (clan.memberIds || []).includes(interaction.user.id)) {
+              await interaction.reply({ content: 'You already belong to this clan’s leadership or roster.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const currentClan = clanList.find(entry => entry.status === 'approved' &&
+              [entry.leaderId, entry.viceLeaderId, ...(entry.memberIds || [])].includes(interaction.user.id));
+            if (currentClan) {
+              await interaction.reply({ content: `You already belong to **${currentClan.name} [${currentClan.tag}]**. Leave that clan before applying to another.`, flags: MessageFlags.Ephemeral });
+              return;
+            }
+            clan.joinRequests = Array.isArray(clan.joinRequests) ? clan.joinRequests : [];
+            const existing = clan.joinRequests.find(request => request.userId === interaction.user.id && request.status === 'pending');
+            if (existing) {
+              await interaction.reply({ content: `You already have a pending application for **${clan.name} [${clan.tag}]**.`, flags: MessageFlags.Ephemeral });
+              return;
+            }
+            clan.joinRequests.push({ userId: interaction.user.id, status: 'pending', appliedAt: new Date().toISOString() });
+            await interaction.client.db.set(storageKey, clanList);
+            const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+            const requestEmbed = new EmbedBuilder()
+              .setColor(Number.parseInt((clan.roleHex || '#5865F2').slice(1), 16))
+              .setTitle('📨 Clan Membership Application')
+              .setDescription(`<@${interaction.user.id}> wants to join **${clan.name} [${clan.tag}]**.`)
+              .addFields(
+                { name: 'Applicant', value: `<@${interaction.user.id}> (${interaction.user.id})`, inline: true },
+                { name: 'Clan', value: `${clan.name} [${clan.tag}]`, inline: true },
+              )
+              .setTimestamp()
+              .setFooter({ text: 'Barracks • Clan Registry' });
+            const reviewRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId(`clan:join:decision:accept:${clan.id}:${interaction.user.id}`).setLabel('Accept').setEmoji('✅').setStyle(ButtonStyle.Success),
+              new ButtonBuilder().setCustomId(`clan:join:decision:reject:${clan.id}:${interaction.user.id}`).setLabel('Decline').setEmoji('❌').setStyle(ButtonStyle.Danger),
+            );
+            const leaders = [...new Set([clan.leaderId, clan.viceLeaderId].filter(Boolean))];
+            const deliveries = await Promise.all(leaders.map(async leaderId => {
+              const leader = await interaction.guild.members.fetch(leaderId).catch(() => null);
+              if (!leader) return false;
+              return leader.send({ embeds: [requestEmbed], components: [reviewRow] }).then(() => true).catch(() => false);
+            }));
+            if (!deliveries.some(Boolean)) {
+              clan.joinRequests = clan.joinRequests.filter(request => request.userId !== interaction.user.id);
+              await interaction.client.db.set(storageKey, clanList);
+              await interaction.reply({ content: 'I could not deliver the application to either clan leader. Please ask them to enable DMs and try again.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            await interaction.reply({ content: `✅ Your application to join **${clan.name} [${clan.tag}]** has been sent to the Clan Leader and Vice Clan Leader for review.`, flags: MessageFlags.Ephemeral });
+            return;
+          }
           const [customId, ...args] = interaction.customId.split(':');
           const selectMenu = client.selectMenus.get(customId);
 
