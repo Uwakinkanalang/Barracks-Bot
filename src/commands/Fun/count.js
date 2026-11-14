@@ -16,7 +16,7 @@ import { logger } from '../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 export default {
   data: new SlashCommandBuilder()
-    .setName('count')
+    .setName('bcount')
     .setDescription('Manage the server counting game')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false)
@@ -60,6 +60,7 @@ export default {
       subcommand.setName('leaderboard').setDescription('Show the counting game leaderboard'),
     ),
   category: 'Fun',
+  prefixOnly: true,
 
   async execute(interaction) {
     try {
@@ -78,7 +79,7 @@ export default {
       const config = await getCountingGameConfig(interaction.client, guildId);
 
       if (subcommand === 'setup') {
-        const channel = interaction.options.getChannel('channel');
+        const channel = await interaction.options.getChannel('channel');
         const system = interaction.options.getString('system');
         if (!channel || channel.type !== ChannelType.GuildText) {
           return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please choose a text channel for the counting game.' });
@@ -137,7 +138,7 @@ export default {
 
       if (subcommand === 'reset') {
         if (!config.enabled) {
-          return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Enable the counting game first with `/count setup`.' });
+          return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Enable the counting game first with `bcount setup`.' });
         }
 
         const startNumber = interaction.options.getInteger('start') || 1;
