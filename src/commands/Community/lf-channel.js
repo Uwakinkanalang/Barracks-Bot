@@ -7,7 +7,7 @@ import {
 
 export default {
   data: new SlashCommandBuilder()
-    .setName('lfg-channel')
+    .setName('lf-channel')
     .setDescription('Configure where Looking for posts are sent')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommand(subcommand =>
