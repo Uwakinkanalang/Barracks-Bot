@@ -31,13 +31,30 @@ export default {
         });
       }
 
-      // Automatically apply the highest configured Barracks rank while preserving clan tags.
+      // These department roles must not trigger automatic rank/clan nickname changes.
+      const nicknameIgnoredRoleIds = new Set([
+        '1557783753982480445', // CCL
+        '1557784202844446750', // SysOps
+        '1557784505362677892', // Personal Management
+        '1557784711072579706', // Festivities
+        '1557784915876257957', // Public Relation
+        '1557785136462831766', // Legal Affairs
+        '1557785381213311027', // Digital Athletics
+      ]);
+
       const oldRoleIds = new Set(oldMember.roles.cache.keys());
       const newRoleIds = new Set(newMember.roles.cache.keys());
-      const roleSetChanged = oldRoleIds.size !== newRoleIds.size ||
-        [...oldRoleIds].some((roleId) => !newRoleIds.has(roleId));
+      const changedRoleIds = new Set([
+        ...[...oldRoleIds].filter((roleId) => !newRoleIds.has(roleId)),
+        ...[...newRoleIds].filter((roleId) => !oldRoleIds.has(roleId)),
+      ]);
+      const roleSetChanged = changedRoleIds.size > 0;
+      const nicknameRelevantRoleChange = [...changedRoleIds].some(
+        (roleId) => !nicknameIgnoredRoleIds.has(roleId),
+      );
 
-      if (roleSetChanged && !newMember.user.bot) {
+      // Only role changes outside the ignored department roles can trigger nickname updates.
+      if (roleSetChanged && nicknameRelevantRoleChange && !newMember.user.bot) {
         try {
           const levelingConfig = await getLevelingConfig(newMember.client, newMember.guild.id);
           const rankRewards = Object.entries(levelingConfig.roleRewards || {})
@@ -94,7 +111,7 @@ export default {
               let changed = true;
               while (changed) {
                 changed = false;
-                result = result.replace(/^🔫\s*/u, '');
+                result = result.replace(/^🔫\\s*/u, '');
                 const prefix = knownRankPrefixes.find((item) => result.startsWith(item));
                 if (prefix) {
                   result = result.slice(prefix.length).trimStart();
