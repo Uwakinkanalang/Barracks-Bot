@@ -632,7 +632,7 @@ export default {
             const nameSegments = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(name)];
             const leadingMark = nameSegments[0]?.segment || '';
             const clanNameText = nameSegments.slice(1).map(segment => segment.segment).join('').trim();
-            const startsWithEmojiOrSymbol = /^[\\p{Extended_Pictographic}\\p{S}\\p{P}]/u.test(leadingMark);
+            const startsWithEmojiOrSymbol = /^[\p{Extended_Pictographic}\p{S}\p{P}]/u.test(leadingMark);
             if (!startsWithEmojiOrSymbol || !/^[a-zA-Z0-9 _-]{0,31}$/.test(clanNameText) || name.length > 32) {
               await interaction.reply({ content: 'Clan name must start with an emoji or symbol and may be followed by letters, numbers, spaces, _ or -. Maximum 32 characters. Example: **⚔️ Barracks**.', flags: MessageFlags.Ephemeral });
               return;
