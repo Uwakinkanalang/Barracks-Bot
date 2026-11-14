@@ -1,4 +1,5 @@
-import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { AttachmentBuilder, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { createReadStream } from 'node:fs';
 import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
@@ -67,13 +68,19 @@ export default {
         const payout = won ? bet * multiplier : 0;
         const betLabel = selection.type === 'number' ? `number **${selection.value}**` : `**${selection.value.toUpperCase()}**`;
 
+        const rouletteGif = new AttachmentBuilder(
+            createReadStream(new URL('../../assets/roulette-spin.gif', import.meta.url)),
+            { name: 'roulette-spin.gif' }
+        );
+
         const spinning = new EmbedBuilder()
             .setColor(0xD4AF37)
             .setTitle('🎰 BARRACKS ROULETTE')
             .setDescription(`<@${interaction.user.id}> placed **₱${bet.toLocaleString()}** on ${betLabel}.\\n\\n🎡 **The wheel is spinning...**`)
-            .setFooter({ text: 'Mini Roulette • 0–6' });
+            .setFooter({ text: 'Mini Roulette • 0–6' })
+            .setImage('attachment://roulette-spin.gif');
 
-        const sentMessage = await interaction.reply({ embeds: [spinning], fetchReply: true });
+        const sentMessage = await interaction.reply({ embeds: [spinning], files: [rouletteGif], fetchReply: true });
         await new Promise(resolve => setTimeout(resolve, 1800));
 
         if (payout > 0) {
@@ -96,7 +103,7 @@ export default {
             .setFooter({ text: 'Mini Roulette • 0–6 • Good luck, Soldier!' });
 
         if (sentMessage?.edit) {
-            await sentMessage.edit({ embeds: [resultEmbed] });
+            await sentMessage.edit({ embeds: [resultEmbed], attachments: [] });
         } else {
             await interaction.editReply({ embeds: [resultEmbed] });
         }
