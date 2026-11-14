@@ -38,7 +38,7 @@ export default {
         const bet = Number(amountInput);
         const guess = Number(guessInput);
 
-        if (!/^\\d+$/.test(amountInput) || !Number.isSafeInteger(bet) || bet <= 0) {
+        if (!/^\d+$/.test(amountInput) || !Number.isSafeInteger(bet) || bet <= 0) {
             throw createError('Invalid bet', ErrorTypes.VALIDATION, 'Enter a positive whole-number bCash bet. Usage: `bdice 100 4`.');
         }
         if (!/^[1-6]$/.test(guessInput) || !Number.isInteger(guess)) {
