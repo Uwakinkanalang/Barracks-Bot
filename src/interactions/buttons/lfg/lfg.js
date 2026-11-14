@@ -94,6 +94,14 @@ export default {
         });
       }
 
+      const joiningMember = await interaction.guild.members.fetch(interaction.user.id);
+      if (!joiningMember.voice.channelId) {
+        return interaction.reply({
+          content: 'You must join a voice channel before joining this LF party.',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
       const host = await interaction.guild.members.fetch(record.hostId).catch(() => null);
       if (!host?.voice?.channelId || host.voice.channelId !== record.voiceChannelId) {
         return interaction.reply({
@@ -102,9 +110,8 @@ export default {
         });
       }
 
-      const joiningMember = await interaction.guild.members.fetch(interaction.user.id);
       const botMember = interaction.guild.members.me;
-      const shouldMoveToHost = Boolean(joiningMember.voice.channelId);
+      const shouldMoveToHost = true;
 
       if (shouldMoveToHost) {
         const permissions = host.voice.channel.permissionsFor(botMember);
@@ -132,9 +139,7 @@ export default {
       await client.db.set(key, record);
       await updatePost(interaction, record);
       return interaction.editReply({
-        content: shouldMoveToHost
-          ? `✅ You joined **${record.game}** and were moved into <#${record.voiceChannelId}>.`
-          : `✅ You joined **${record.game}**! Join <#${record.voiceChannelId}> to talk with your party.`,
+        content: `✅ You joined **${record.game}** and were moved into <#${record.voiceChannelId}>.`,
       });
     }
 
