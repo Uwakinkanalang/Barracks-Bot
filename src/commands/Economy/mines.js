@@ -92,12 +92,10 @@ export default {
     data: new SlashCommandBuilder()
         .setName('bmine')
         .setDescription('Play Mines using your Barracks cash wallet')
-        .addIntegerOption(option =>
+        .addStringOption(option =>
             option
                 .setName('bet')
-                .setDescription('How much cash to wager')
-                .setMinValue(1)
-                .setMaxValue(1000000000)
+                .setDescription('How much cash to wager, or "all" to bet your full wallet')
                 .setRequired(true)
         )
         ,
@@ -107,11 +105,21 @@ export default {
             throw createError('Mines requires a server', ErrorTypes.VALIDATION, 'Play Mines inside a server.');
         }
 
-        const bet = interaction.options.getInteger('bet', true);
+        const betInput = interaction.options.getString('bet', true).trim().toLowerCase();
         const mineCount = FIXED_MINE_COUNT;
         const userData = await getEconomyData(client, interaction.guildId, interaction.user.id);
+        const availableCash = Math.max(0, Number(userData.wallet) || 0);
+        const bet = betInput === 'all' ? availableCash : Number(betInput);
 
-        if (bet > (userData.wallet || 0)) {
+        if (!Number.isSafeInteger(bet) || bet <= 0) {
+            throw createError(
+                'Invalid bet',
+                ErrorTypes.VALIDATION,
+                'Enter a positive whole-number bet, or use **bmine all** to wager your entire cash wallet.'
+            );
+        }
+
+        if (bet > availableCash) {
             throw createError(
                 'Insufficient cash',
                 ErrorTypes.VALIDATION,
