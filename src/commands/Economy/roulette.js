@@ -12,9 +12,7 @@ function colorOf(number) {
 function parseBet(choice) {
     const value = String(choice || '').trim().toLowerCase();
     if (['red', 'black', 'green'].includes(value)) return { type: value, value };
-    if (/^[0-6]$/.test(value)) {
-        return { type: 'number', value: Number(value) };
-    }
+    if (/^[0-6]$/.test(value)) return { type: 'number', value: Number(value) };
     return null;
 }
 
@@ -26,6 +24,7 @@ function formatNumber(number) {
 
 export default {
     prefixOnly: true,
+    category: 'economy',
     data: new SlashCommandBuilder()
         .setName('broulette')
         .setDescription('Play Mini Roulette using your bCash wallet')
@@ -37,16 +36,16 @@ export default {
             throw createError('Roulette requires a server', ErrorTypes.VALIDATION, 'Play Roulette inside a server.');
         }
 
-        const amountInput = interaction.options.getString('amount', true).trim().toLowerCase();
+        const amountInput = String(interaction.options.getString('amount', true) || '').trim().toLowerCase();
         const betInput = interaction.options.getString('bet', true);
         const bet = Number(amountInput);
         const selection = parseBet(betInput);
 
-        if (!Number.isSafeInteger(bet) || bet <= 0) {
-            throw createError('Invalid bet', ErrorTypes.VALIDATION, 'Enter a positive whole-number bCash bet.');
+        if (!/^\d+$/.test(amountInput) || !Number.isSafeInteger(bet) || bet <= 0) {
+            throw createError('Invalid bet', ErrorTypes.VALIDATION, 'Enter a positive whole-number bCash bet. Usage: `broulette 100 red`.');
         }
         if (!selection) {
-            throw createError('Invalid roulette bet', ErrorTypes.VALIDATION, 'Choose **red**, **black**, **green**, or a number from **0 to 6**.');
+            throw createError('Invalid roulette bet', ErrorTypes.VALIDATION, 'Choose **red**, **black**, **green**, or a number from **0 to 6**. Usage: `broulette 100 4`.');
         }
 
         const account = await getEconomyData(client, interaction.guildId, interaction.user.id);
@@ -66,15 +65,15 @@ export default {
                 : resultColor.toLowerCase() === selection.value;
         const multiplier = selection.type === 'number' || selection.type === 'green' ? 7 : 2;
         const payout = won ? bet * multiplier : 0;
-
         const betLabel = selection.type === 'number' ? `number **${selection.value}**` : `**${selection.value.toUpperCase()}**`;
+
         const spinning = new EmbedBuilder()
             .setColor(0xD4AF37)
             .setTitle('🎰 BARRACKS ROULETTE')
-            .setDescription(`<@${interaction.user.id}> placed **₱${bet.toLocaleString()}** on ${betLabel}.\n\n🎡 **The wheel is spinning...**`)
+            .setDescription(`<@${interaction.user.id}> placed **₱${bet.toLocaleString()}** on ${betLabel}.\\n\\n🎡 **The wheel is spinning...**`)
             .setFooter({ text: 'Mini Roulette • 0–6' });
 
-        await interaction.reply({ embeds: [spinning] });
+        const sentMessage = await interaction.reply({ embeds: [spinning], fetchReply: true });
         await new Promise(resolve => setTimeout(resolve, 1800));
 
         if (payout > 0) {
@@ -87,18 +86,17 @@ export default {
             .setColor(won ? 0x2ECC71 : 0xE74C3C)
             .setTitle('🎰 BARRACKS ROULETTE')
             .setDescription(
-                `<@${interaction.user.id}> bet **₱${bet.toLocaleString()}** on ${betLabel}.\n\n` +
-                `## ${emoji} ${number} — ${resultColor}\n\n` +
+                `<@${interaction.user.id}> bet **₱${bet.toLocaleString()}** on ${betLabel}.\\n\\n` +
+                `## ${emoji} ${number} — ${resultColor}\\n\\n` +
                 (won
-                    ? `🎉 **YOU WON!**\n**Payout:** ₱${payout.toLocaleString()} (x${multiplier})\n**Net Profit:** +₱${(payout - bet).toLocaleString()}`
-                    : `💔 **YOU LOST!**\n**Lost Bet:** ₱${bet.toLocaleString()}`)
+                    ? `🎉 **YOU WON!**\\n**Payout:** ₱${payout.toLocaleString()} (x${multiplier})\\n**Net Profit:** +₱${(payout - bet).toLocaleString()}`
+                    : `💔 **YOU LOST!**\\n**Lost Bet:** ₱${bet.toLocaleString()}`)
             )
             .addFields({ name: '💰 New bCash Balance', value: `₱${newBalance.toLocaleString()}`, inline: true })
             .setFooter({ text: 'Mini Roulette • 0–6 • Good luck, Soldier!' });
 
-        const reply = await interaction.fetchReply();
-        if (reply?.edit) {
-            await reply.edit({ embeds: [resultEmbed] });
+        if (sentMessage?.edit) {
+            await sentMessage.edit({ embeds: [resultEmbed] });
         } else {
             await interaction.editReply({ embeds: [resultEmbed] });
         }
