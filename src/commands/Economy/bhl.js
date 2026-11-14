@@ -16,8 +16,16 @@ function cardFace(value) {
 }
 
 function cardDisplay(card) {
-    const red = card.suit === '♥️' || card.suit === '♦️';
-    return `\\`\\`\\`\\n╭─────────╮\n│ ${String(card.value).padEnd(7, ' ')}│\n│         │\n│    ${card.suit}    │\n│         │\n│${cardFace(card.value).padStart(7, ' ')} │\n╰─────────╯\n\\`\\`\\``;
+    const fence = String.fromCharCode(96).repeat(3);
+    return `${fence}
+╭─────────╮
+│ ${String(card.value).padEnd(7, ' ')}│
+│         │
+│    ${card.suit}    │
+│         │
+│${cardFace(card.value).padStart(7, ' ')} │
+╰─────────╯
+${fence}`;
 }
 
 function makeButtons(disabled = false) {
