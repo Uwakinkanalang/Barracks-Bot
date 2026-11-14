@@ -34,7 +34,7 @@ const RANK_PREFIXES = [
     ['1467462861822627912', '🔫ᴳᵉⁿᵉʳᵃˡ '],
 ];
 
-async function getNicknamePrefix(member, client, guildId) {
+export async function getNicknamePrefix(member, client, guildId) {
     // Department roles always take priority.
     const department = DEPARTMENT_PREFIXES.find(([roleId]) => member.roles.cache.has(roleId));
     if (department) return department[1];
