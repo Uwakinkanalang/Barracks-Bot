@@ -97,11 +97,6 @@ export default {
                 value: `₱${amount.toLocaleString()}`,
                 inline: true
             },
-            {
-                name: '💵 Your New Cash',
-                value: `₱${result.senderNewBalance.toLocaleString()}`,
-                inline: true
-            }
         ).setFooter({
             text: `Sent to ${receiver.username}`,
             iconURL: receiver.displayAvatarURL?.()
