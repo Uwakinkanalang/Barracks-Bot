@@ -3,6 +3,7 @@ import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
 import { getLevelingConfig } from '../services/leveling/leveling.js';
+import { getNicknamePrefix } from '../commands/Economy/nickname.js';
 
 export default {
   name: Events.GuildMemberUpdate,
@@ -50,6 +51,37 @@ export default {
         ...[...newRoleIds].filter((roleId) => !oldRoleIds.has(roleId)),
       ]);
       const roleSetChanged = changedRoleIds.size > 0;
+
+      // Removing a Barracks rank role clears its old nickname prefix, then
+      // applies the next valid department, clan, or highest remaining rank prefix.
+      const rankRoleIds = [
+        '1467461731998761096',
+        '1467461918792089784',
+        '1467461953340444677',
+        '1540715496637333564',
+        '1467462639759396865',
+        '1467462740024098983',
+        '1467462823457063067',
+        '1467462861822627912',
+      ];
+      const removedRankRole = rankRoleIds.some(
+        (roleId) => oldMember.roles.cache.has(roleId) && !newMember.roles.cache.has(roleId),
+      );
+      if (removedRankRole && !newMember.user.bot) {
+        try {
+          let baseName = newMember.nickname || newMember.user.globalName || newMember.user.username;
+          // Strip the previous pistol/rank prefix, including older superscript spellings.
+          baseName = baseName.replace(/^🔫\\S+\\s*/u, '').trimStart();
+          const nextPrefix = await getNicknamePrefix(newMember, newMember.client, newMember.guild.id);
+          const desiredNickname = `${nextPrefix}${baseName}`.slice(0, 32);
+          if (newMember.nickname !== desiredNickname) {
+            await newMember.setNickname(desiredNickname, 'Rank role removed; refresh nickname prefix');
+          }
+          logger.info(`[AUTO_NICKNAME] Cleared removed rank prefix for ${newMember.user.tag}`);
+        } catch (nicknameError) {
+          logger.warn(`[RANK_NICKNAME] Could not clear removed rank prefix for ${newMember.user.tag}: ${nicknameError.message}`);
+        }
+      }
 
       // Department role grants/removals now trigger their own nickname format.
       if (roleSetChanged && !newMember.user.bot) {
