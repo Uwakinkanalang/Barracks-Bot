@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import { getNicknamePrefix } from '../Economy/nickname.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -161,10 +162,17 @@ export default {
       await interaction.client.db.set(storageKey, clanList);
       const targetMember = await interaction.guild.members.fetch(target.id).catch(() => null);
       if (targetMember && clan.roleId) {
-        await targetMember.roles.remove(clan.roleId, `Removed from clan ${clan.name}`);
+        await targetMember.roles.remove(clan.roleId, `Removed from clan ${clan.name}`).catch(() => {});
+      }
+      if (targetMember) {
+        const currentName = targetMember.nickname || targetMember.user.username;
+        const clanTagPrefix = `${clan.tag} `;
+        const baseName = currentName.startsWith(clanTagPrefix) ? currentName.slice(clanTagPrefix.length).trim() : currentName;
+        const prefix = await getNicknamePrefix(targetMember, interaction.client, interaction.guildId);
+        await targetMember.setNickname(`${prefix}${baseName}`.slice(0, 32), `Removed from clan ${clan.name}`).catch(() => {});
       }
       return interaction.reply({
-        content: `🗑️ <@${target.id}> has been removed from **${clan.name} [${clan.tag}]**. Their clan role will be removed.`,
+        content: `🗑️ <@ ${target.id}> has been removed from **${clan.name} [${clan.tag}]**. Their clan tag has been removed from their nickname.`,
         allowedMentions: { users: [target.id] },
       });
     }
