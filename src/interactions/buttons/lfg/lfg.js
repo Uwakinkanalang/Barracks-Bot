@@ -8,7 +8,6 @@ import {
 } from 'discord.js';
 
 function buildComponents(record, disabled = false) {
-  const full = record.members.length >= record.partySize;
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -16,7 +15,7 @@ function buildComponents(record, disabled = false) {
         .setLabel('Join')
         .setEmoji('🎮')
         .setStyle(ButtonStyle.Success)
-        .setDisabled(disabled || full),
+        .setDisabled(disabled),
       new ButtonBuilder()
         .setCustomId('lfg:leave')
         .setLabel('Leave')
