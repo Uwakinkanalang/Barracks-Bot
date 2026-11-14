@@ -378,13 +378,19 @@ export default {
           }
 
           if (interaction.customId.startsWith('clan:join:decision:')) {
-            const [, , , decision, clanId, applicantId] = interaction.customId.split(':');
-            const storageKey = `guild:${interaction.guildId}:clans`;
+            const [, , , decision, guildId, requestId] = interaction.customId.split(':');
+            const guild = await interaction.client.guilds.fetch(guildId).catch(() => null);
+            if (!guild) {
+              await interaction.reply({ content: 'The server for this application could not be found.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const storageKey = `guild:${guildId}:clans`;
             const clans = await interaction.client.db.get(storageKey, []);
             const clanList = Array.isArray(clans) ? clans : [];
-            const clan = clanList.find(entry => entry.id === clanId && entry.status === 'approved');
+            const clan = clanList.find(entry => entry.status === 'approved' &&
+              (Array.isArray(entry.joinRequests) ? entry.joinRequests : []).some(request => request.requestId === requestId && request.status === 'pending'));
             if (!clan) {
-              await interaction.reply({ content: 'This clan is no longer available.', flags: MessageFlags.Ephemeral });
+              await interaction.reply({ content: 'This application has already been reviewed or the clan is no longer available.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (![clan.leaderId, clan.viceLeaderId].includes(interaction.user.id)) {
@@ -392,15 +398,12 @@ export default {
               return;
             }
             const requests = Array.isArray(clan.joinRequests) ? clan.joinRequests : [];
-            const requestIndex = requests.findIndex(request => request.userId === applicantId && request.status === 'pending');
-            if (requestIndex < 0) {
-              await interaction.reply({ content: 'This application has already been reviewed or withdrawn.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            const applicant = await interaction.guild.members.fetch(applicantId).catch(() => null);
+            const requestIndex = requests.findIndex(request => request.requestId === requestId && request.status === 'pending');
+            const applicantId = requests[requestIndex].userId;
+            const applicant = await guild.members.fetch(applicantId).catch(() => null);
             if (decision === 'accept') {
               if (!applicant) {
-                requests[requestIndex].status = 'rejected';
+                requests[requestIndex].status = 'closed';
                 requests[requestIndex].reviewedBy = interaction.user.id;
                 requests[requestIndex].reviewedAt = new Date().toISOString();
                 clan.joinRequests = requests;
@@ -417,13 +420,13 @@ export default {
                 await interaction.reply({ content: 'This member already belongs to another clan.', flags: MessageFlags.Ephemeral });
                 return;
               }
-              const role = await interaction.guild.roles.fetch(clan.roleId).catch(() => null);
+              const role = await guild.roles.fetch(clan.roleId).catch(() => null);
               if (!role) {
                 await interaction.reply({ content: 'The clan role could not be found. Please contact an administrator.', flags: MessageFlags.Ephemeral });
                 return;
               }
               await applicant.roles.add(role, `Accepted into clan ${clan.name}`);
-              const baseName = applicant.displayName.replace(/^\S{1,6}\s+/, '').trim() || applicant.user.username;
+              const baseName = applicant.displayName.replace(/^\\S{1,6}\\s+/, '').trim() || applicant.user.username;
               await applicant.setNickname(`${clan.tag} ${baseName}`.slice(0, 32), `Joined clan ${clan.name}`).catch(error => {
                 logger.warn(`Could not update clan nickname for ${applicantId}: ${error.message}`);
               });
@@ -433,7 +436,7 @@ export default {
               requests[requestIndex].reviewedAt = new Date().toISOString();
               clan.joinRequests = requests;
               await interaction.client.db.set(storageKey, clanList);
-              await applicant.send(`✅ Your application to join **${clan.name} [${clan.tag}]** was accepted by <@${interaction.user.id}>. Welcome to the clan!`).catch(() => {});
+              await applicant.send(`✅ Your application to join **${clan.name} [${clan.tag}]** was accepted. Welcome to the clan!`).catch(() => {});
               await interaction.update({ content: `✅ Application accepted. <@${applicantId}> has been added to **${clan.name} [${clan.tag}]**.`, embeds: [], components: [] });
               return;
             }
@@ -715,7 +718,8 @@ export default {
               await interaction.reply({ content: `You already have a pending application for **${clan.name} [${clan.tag}]**.`, flags: MessageFlags.Ephemeral });
               return;
             }
-            clan.joinRequests.push({ userId: interaction.user.id, status: 'pending', appliedAt: new Date().toISOString() });
+            const requestId = `jr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            clan.joinRequests.push({ requestId, userId: interaction.user.id, status: 'pending', appliedAt: new Date().toISOString() });
             await interaction.client.db.set(storageKey, clanList);
             const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
             const requestEmbed = new EmbedBuilder()
@@ -729,8 +733,8 @@ export default {
               .setTimestamp()
               .setFooter({ text: 'Barracks • Clan Registry' });
             const reviewRow = new ActionRowBuilder().addComponents(
-              new ButtonBuilder().setCustomId(`clan:join:decision:accept:${clan.id}:${interaction.user.id}`).setLabel('Accept').setEmoji('✅').setStyle(ButtonStyle.Success),
-              new ButtonBuilder().setCustomId(`clan:join:decision:reject:${clan.id}:${interaction.user.id}`).setLabel('Decline').setEmoji('❌').setStyle(ButtonStyle.Danger),
+              new ButtonBuilder().setCustomId(`clan:join:decision:accept:${interaction.guildId}:${requestId}`).setLabel('Accept').setEmoji('✅').setStyle(ButtonStyle.Success),
+              new ButtonBuilder().setCustomId(`clan:join:decision:reject:${interaction.guildId}:${requestId}`).setLabel('Decline').setEmoji('❌').setStyle(ButtonStyle.Danger),
             );
             const leaders = [...new Set([clan.leaderId, clan.viceLeaderId].filter(Boolean))];
             const deliveries = await Promise.all(leaders.map(async leaderId => {
