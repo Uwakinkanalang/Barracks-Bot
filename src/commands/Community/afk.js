@@ -45,14 +45,14 @@ export default {
     if (member && status.afkNickname && member.nickname !== status.afkNickname) {
       try {
         await member.setNickname(status.afkNickname, 'Member activated AFK status');
-        nicknameNote = '\\nYour nickname now shows **[AFK]**.';
+        nicknameNote = '\nYour nickname now shows **[AFK]**.';
       } catch {
-        nicknameNote = '\\nI could not update your nickname. Please check my **Manage Nicknames** permission and role position.';
+        nicknameNote = '\nI could not update your nickname. Please check my **Manage Nicknames** permission and role position.';
       }
     }
 
     return interaction.reply({
-      content: `🌙 **AFK status activated.** I'll notify anyone who mentions you.\\n**Reason:** ${reason}${nicknameNote}`,
+      content: `🌙 **AFK status activated.** I'll notify anyone who mentions you.\n**Reason:** ${reason}${nicknameNote}`,
       flags: MessageFlags.Ephemeral,
     });
   },
