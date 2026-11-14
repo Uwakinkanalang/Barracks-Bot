@@ -40,6 +40,7 @@ export default {
         { roleId: '1557784915876257957', prefix: '🥒|' }, // Public Relation
         { roleId: '1557785136462831766', prefix: '⚖|' }, // Legal Affairs
         { roleId: '1557785381213311027', prefix: '🥥|' }, // Digital Athletics
+        { roleId: '1558672931272269834', prefix: '👮‍♂️|' }, // Police
       ];
 
       const oldRoleIds = new Set(oldMember.roles.cache.keys());
