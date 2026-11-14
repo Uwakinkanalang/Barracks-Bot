@@ -18,21 +18,21 @@ export default {
                     .setTitle('🛒 Barracks Shop')
                     .setColor(getColor('primary'))
                     .setDescription(
-                        'Spend your **bCash (₱)** on items, tools, and upgrades.\\n' +
+                        'Spend your **bCash (₱)** on items, tools, and upgrades.\n' +
                         'Purchase with `b!buy <item_id> [quantity]`.'
                     );
 
                 pageItems.forEach(item => {
                     embed.addFields({
                         name: `${item.name} — ₱${item.price.toLocaleString()}`,
-                        value: `**Item ID:** \`${item.id}\`\\n**Category:** ${item.type}\\n${item.description}`,
+                        value: `**Item ID:** \`${item.id}\`\n**Category:** ${item.type}\n${item.description}`,
                         inline: false,
                     });
                 });
 
                 embed.addFields({
                     name: 'How to purchase',
-                    value: '`b!buy <item_id>` — Buy one item\\n`b!buy <item_id> <quantity>` — Buy multiple items\\n`b!inventory` — View your items',
+                    value: '`b!buy <item_id>` — Buy one item\n`b!buy <item_id> <quantity>` — Buy multiple items\n`b!inventory` — View your items',
                     inline: false,
                 });
                 embed.setFooter({ text: `Page ${page}/${totalPages} • All prices are in Philippine pesos` });
