@@ -308,7 +308,10 @@ async function handleCountingGame(message, client) {
     const invalidAttempt = !validCount || message.author.id === config.lastUserId;
 
     if (invalidAttempt) {
-      await message.delete().catch(() => {});
+      // Keep the incorrect message visible so members can see the ❌ reaction.
+      await message.react('❌').catch(error => {
+        logger.warn('Could not add incorrect-count reaction:', error);
+      });
       await saveCountingGameConfig(client, message.guild.id, {
         ...config,
         nextNumber: 1,
@@ -325,6 +328,9 @@ async function handleCountingGame(message, client) {
     }
 
     await recordCorrectCount(client, message.guild.id, message.author.id);
+    await message.react('✅').catch(error => {
+      logger.warn('Could not add correct-count reaction:', error);
+    });
     return true;
   } catch (error) {
     logger.error('Error handling counting game:', error);
