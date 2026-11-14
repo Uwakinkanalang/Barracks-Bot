@@ -132,6 +132,7 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
+    const bareCountMatch = trimmedContent.match(/^bcount(?:\s+([\s\S]+))?$/i);
     const bareBgiveMatch = trimmedContent.match(/^bgive(?:\s+([\s\S]+))?$/i);
     const bareMinesMatch = trimmedContent.match(/^bmines?(?:\s+([\s\S]+))?$/i);
     const bareCashMatch = trimmedContent.match(/^bcash(?:\s+([\s\S]+))?$/i);
@@ -148,7 +149,9 @@ async function handlePrefixCommand(message, client) {
     const bareTicTacToeMatch = trimmedContent.match(/^(?:bttt|btictactoe)(?:\s+([\s\S]+))?$/i);
     const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\s+([\s\S]+))?$/i);
     const bareRouletteMatch = trimmedContent.match(/^broulette(?:\s+([\s\S]+))?$/i);
-    const parsed = bareBgiveMatch
+    const parsed = bareCountMatch
+      ? { commandName: 'bcount', args: bareCountMatch[1] ? bareCountMatch[1].trim().split(/\s+/) : [] }
+      : bareBgiveMatch
       ? (() => {
           const parts = bareBgiveMatch[1] ? bareBgiveMatch[1].trim().split(/\s+/) : [];
           // Accept both: bgive @receiver amount, and bgive amount @receiver.
@@ -293,6 +296,8 @@ async function handlePrefixCommand(message, client) {
 
 async function handleCountingGame(message, client) {
   try {
+    // Management commands must remain usable even inside the configured counting channel.
+    if (/^bcount(?:\s|$)/i.test(message.content.trim())) return false;
     const config = await getCountingGameConfig(client, message.guild.id);
     if (!config.enabled || !config.channelId || message.channel.id !== config.channelId) {
       return false;
