@@ -13,29 +13,8 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 
 const NICKNAME_CHANGE_PRICE = 500000;
 
-function getClanPrefix(currentNickname = '') {
-    const current = String(currentNickname || '').trim();
-    if (!current) return '';
-
-    // Preserve common clan-tag formats such as [TAG] Name, 『TAG』 Name,
-    // ★ Name, or TAG | Name. Only keep a short leading marker, not the old name.
-    const wrapped = current.match(/^(\[[^\]]{1,8}\]|【[^】]{1,8}】|『[^』]{1,8}』|「[^」]{1,8}」|〈[^〉]{1,8}〉|\([^)]{1,8}\))(?=\s|[|・•丨])/u);
-    if (wrapped) return wrapped[1];
-
-    const separated = current.match(/^([^|・•丨]{1,8})\s*[|・•丨]/u);
-    if (separated) return separated[1].trim();
-
-    const firstToken = current.match(/^([^\s]{1,6})\s+/u);
-    if (firstToken && /[^\p{L}\p{N}_-]/u.test(firstToken[1])) return firstToken[1];
-
-    return '';
-}
-
-function applyClanPrefix(member, requestedNickname) {
-    const prefix = getClanPrefix(member.nickname || member.displayName);
-    if (!prefix) return requestedNickname;
-    if (requestedNickname.startsWith(prefix)) return requestedNickname;
-    return `${prefix} ${requestedNickname}`.trim();
+function applyClanPrefix(requestedNickname) {
+    return `★| ${requestedNickname}`;
 }
 
 export default {
@@ -78,10 +57,10 @@ export default {
             const nicknameInput = new TextInputBuilder()
                 .setCustomId('nickname')
                 .setLabel('Enter your new nickname')
-                .setPlaceholder('Your new Barracks nickname')
+                .setPlaceholder('Your new nickname (★| will be added automatically)')
                 .setStyle(TextInputStyle.Short)
                 .setMinLength(1)
-                .setMaxLength(32)
+                .setMaxLength(29)
                 .setRequired(true);
 
             modal.addComponents(new ActionRowBuilder().addComponents(nicknameInput));
@@ -96,9 +75,9 @@ export default {
                 });
 
                 const requestedNickname = submitted.fields.getTextInputValue('nickname').trim();
-                if (!requestedNickname || requestedNickname.length > 32) {
+                if (!requestedNickname || requestedNickname.length > 29) {
                     await submitted.reply({
-                        content: 'Please enter a nickname between 1 and 32 characters.',
+                        content: 'Please enter a nickname between 1 and 29 characters. The ★| prefix is added automatically.',
                         flags: [MessageFlags.Ephemeral],
                     });
                     return;
@@ -113,10 +92,10 @@ export default {
                     return;
                 }
 
-                const newNickname = applyClanPrefix(member, requestedNickname);
+                const newNickname = applyClanPrefix(requestedNickname);
                 if (newNickname.length > 32) {
                     await submitted.reply({
-                        content: `Your clan tag would make that nickname exceed Discord's 32-character limit. Please enter a shorter nickname.`,
+                        content: `The ★| prefix makes your nickname exceed Discord's 32-character limit. Please enter a shorter nickname.`,
                         flags: [MessageFlags.Ephemeral],
                     });
                     return;
