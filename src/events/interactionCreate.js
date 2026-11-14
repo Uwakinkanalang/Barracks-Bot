@@ -334,6 +334,20 @@ export default {
             return;
           }
 
+          if (interaction.customId === 'clan:create:continue') {
+            const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+            const continueButton = new ButtonBuilder()
+              .setCustomId('clan:create:continue')
+              .setLabel('Continue to Step 2')
+              .setStyle(ButtonStyle.Primary);
+            await interaction.reply({
+              content: '✅ Step 1 completed. Continue to add your Clan Rules and upload your Clan Logo.',
+              components: [new ActionRowBuilder().addComponents(continueButton)],
+              flags: MessageFlags.Ephemeral,
+            });
+            return;
+          }
+
           if (interaction.customId === 'clan:create') {
             const { ModalBuilder, LabelBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
             const modal = new ModalBuilder()
