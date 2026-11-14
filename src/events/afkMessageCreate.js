@@ -15,17 +15,26 @@ export default {
       if (ownStatus) {
         await client.db.delete(ownKey);
 
-        // Restore only if the nickname still matches the AFK nickname we set.
-        // This avoids overwriting a nickname changed manually while the member was away.
-        if (ownStatus.afkNickname && message.member?.nickname === ownStatus.afkNickname) {
-          try {
-            await message.member.setNickname(
+        // Fetch a fresh member record so a stale message-member cache cannot leave [AFK] behind.
+        try {
+          const member = await message.guild.members.fetch(message.author.id);
+          const currentNickname = member.nickname;
+
+          if (ownStatus.afkNickname && currentNickname === ownStatus.afkNickname) {
+            await member.setNickname(
               ownStatus.originalNickname ?? null,
               'Member returned from AFK'
             );
-          } catch (error) {
-            logger.warn(`Could not restore nickname for returning AFK member ${message.author.id}:`, error);
+          } else if (currentNickname?.startsWith('[AFK] ')) {
+            // If the member changed their nickname while away, preserve that new name
+            // and remove only the AFK marker.
+            await member.setNickname(
+              currentNickname.slice('[AFK] '.length) || null,
+              'Remove AFK marker when member returns'
+            );
           }
+        } catch (error) {
+          logger.warn(`Could not restore nickname for returning AFK member ${message.author.id}:`, error);
         }
 
         replies.push(`👋 Welcome back, <@${message.author.id}>! Your AFK status has been cleared.`);
