@@ -19,14 +19,14 @@ function getClanPrefix(currentNickname = '') {
 
     // Preserve common clan-tag formats such as [TAG] Name, 『TAG』 Name,
     // ★ Name, or TAG | Name. Only keep a short leading marker, not the old name.
-    const wrapped = current.match(/^(\\[[^\\]]{1,8}\\]|【[^】]{1,8}】|『[^』]{1,8}』|「[^」]{1,8}」|〈[^〉]{1,8}〉|\\([^)]{1,8}\\))(?=\\s|[|・•丨])/u);
+    const wrapped = current.match(/^(\[[^\]]{1,8}\]|【[^】]{1,8}】|『[^』]{1,8}』|「[^」]{1,8}」|〈[^〉]{1,8}〉|\([^)]{1,8}\))(?=\s|[|・•丨])/u);
     if (wrapped) return wrapped[1];
 
-    const separated = current.match(/^([^|・•丨]{1,8})\\s*[|・•丨]/u);
+    const separated = current.match(/^([^|・•丨]{1,8})\s*[|・•丨]/u);
     if (separated) return separated[1].trim();
 
-    const firstToken = current.match(/^([^\\s]{1,6})\\s+/u);
-    if (firstToken && /[^\\p{L}\\p{N}_-]/u.test(firstToken[1])) return firstToken[1];
+    const firstToken = current.match(/^([^\s]{1,6})\s+/u);
+    if (firstToken && /[^\p{L}\p{N}_-]/u.test(firstToken[1])) return firstToken[1];
 
     return '';
 }
