@@ -72,6 +72,34 @@ async function handlePrefixCommand(message, client) {
       });
       return;
     }
+    if (/^bclan\s+joinpanel$/i.test(trimmedContent)) {
+      if (!message.member?.permissions?.has('ManageGuild')) {
+        await message.reply('❌ Only members with **Manage Server** permission can post the Clan Joining Panel.');
+        return;
+      }
+      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+      const approved = await client.db.get(`guild:${message.guild.id}:clans`, []);
+      const available = (Array.isArray(approved) ? approved : []).filter(clan => clan.status === 'approved' && clan.roleId);
+      const panelEmbed = new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setTitle('🛡️ JOIN AN EXISTING CLAN')
+        .setDescription(
+          'Looking to join a squad? Browse the approved clans and submit your membership application.\n\n' +
+          '**How it works**\n' +
+          '• Choose an approved clan from the list.\n' +
+          '• Your application is sent privately to the Clan Leader and Vice Clan Leader.\n' +
+          '• Either leader can accept or decline your application.\n' +
+          '• If accepted, you receive the clan role and clan tag in your nickname.\n\n' +
+          (available.length ? `**Currently available:** ${available.length} approved clan(s)` : 'There are no approved clans available right now.')
+        )
+        .setFooter({ text: 'Barracks • Clan Registry' });
+      const panelRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('clan:join:open').setLabel('Browse Clans').setEmoji('🏰').setStyle(ButtonStyle.Primary)
+      );
+      await message.channel.send({ embeds: [panelEmbed], components: [panelRow] });
+      return;
+    }
+
     if (/^bclan\s+panel$/i.test(trimmedContent)) {
       if (!message.member?.permissions?.has('ManageGuild')) {
         await message.reply('❌ Only members with **Manage Server** permission can post the Clan Registration Panel.');
