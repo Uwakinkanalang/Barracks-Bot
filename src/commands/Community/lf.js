@@ -13,7 +13,7 @@ const MAX_PARTY_SIZE = 10;
 
 export default {
   data: new SlashCommandBuilder()
-    .setName('lfg')
+    .setName('lf')
     .setDescription('Find players for a game and bring them into your voice channel')
     .addStringOption(option =>
       option.setName('game').setDescription('The game you are looking to play').setMaxLength(50).setRequired(true)
