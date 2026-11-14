@@ -207,7 +207,9 @@ export default {
               ? `${departmentRole.prefix} ${baseName.trimStart()}`.slice(0, 32)
               : memberClan
                 ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
-                : `🔫${nicknameBody}`.slice(0, 32);
+                : rankDisplayName
+                  ? `🔫${nicknameBody}`.slice(0, 32)
+                  : baseName.trimStart().slice(0, 32);
 
             if (newMember.nickname !== desiredNickname) {
               await newMember.setNickname(
