@@ -5,6 +5,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   MessageFlags,
+  ChannelType,
 } from 'discord.js';
 
 const DEFAULT_DURATION_HOURS = 2;
@@ -15,38 +16,23 @@ export default {
     .setName('lfg')
     .setDescription('Find players for a game and bring them into your voice channel')
     .addStringOption(option =>
-      option
-        .setName('game')
-        .setDescription('The game you are looking to play')
-        .setMaxLength(50)
-        .setRequired(true)
+      option.setName('game').setDescription('The game you are looking to play').setMaxLength(50).setRequired(true)
     )
     .addIntegerOption(option =>
-      option
-        .setName('players')
-        .setDescription('Total party size, including you')
-        .setMinValue(2)
-        .setMaxValue(MAX_PARTY_SIZE)
-        .setRequired(true)
+      option.setName('players').setDescription('Total party size, including you').setMinValue(2).setMaxValue(MAX_PARTY_SIZE).setRequired(true)
     )
     .addIntegerOption(option =>
-      option
-        .setName('duration')
-        .setDescription('How long the post stays open (hours)')
-        .addChoices(
-          { name: '1 hour', value: 1 },
-          { name: '2 hours', value: 2 },
-          { name: '3 hours', value: 3 },
-          { name: '4 hours', value: 4 },
-        )
+      option.setName('duration').setDescription('How long the post stays open (hours)').addChoices(
+        { name: '1 hour', value: 1 },
+        { name: '2 hours', value: 2 },
+        { name: '3 hours', value: 3 },
+        { name: '4 hours', value: 4 },
+      )
     ),
 
   async execute(interaction) {
     if (!interaction.inGuild()) {
-      return interaction.reply({
-        content: 'This command can only be used inside a server.',
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply({ content: 'This command can only be used inside a server.', flags: MessageFlags.Ephemeral });
     }
 
     const member = await interaction.guild.members.fetch(interaction.user.id);
@@ -63,35 +49,44 @@ export default {
     const durationHours = interaction.options.getInteger('duration') || DEFAULT_DURATION_HOURS;
     const expiresAt = Date.now() + durationHours * 60 * 60 * 1000;
 
+    const configuredChannelId = await interaction.client.db.get(`guild:${interaction.guildId}:lfg_channel`, null);
+    const targetChannel = configuredChannelId
+      ? await interaction.guild.channels.fetch(configuredChannelId).catch(() => null)
+      : interaction.channel;
+
+    if (!targetChannel?.isTextBased() || targetChannel.type === ChannelType.GuildVoice) {
+      return interaction.reply({
+        content: 'The configured LFG channel is unavailable. Ask an administrator to run **/lfg-channel set** again.',
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
       .setTitle(`🎮 Looking for Group: ${game}`)
       .setDescription(`<@${interaction.user.id}> is looking for ${partySize - 1} player${partySize - 1 === 1 ? '' : 's'}!`)
-      .addFields({
-        name: `Party (1/${partySize}) — ${partySize - 1} places left`,
-        value: `1. <@${interaction.user.id}> 👑`,
-      })
+      .addFields({ name: `Party (1/${partySize}) — ${partySize - 1} places left`, value: `1. <@${interaction.user.id}> 👑` })
       .setFooter({ text: `Expires in ${durationHours} hour${durationHours === 1 ? '' : 's'} • Join to enter the host's voice channel` })
       .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('lfg:join')
-        .setLabel('Join')
-        .setEmoji('🎮')
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId('lfg:leave')
-        .setLabel('Leave')
-        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('lfg:join').setLabel('Join').setEmoji('🎮').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('lfg:leave').setLabel('Leave').setStyle(ButtonStyle.Secondary),
     );
 
-    await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
-    const message = await interaction.fetchReply();
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    let message;
+    try {
+      message = await targetChannel.send({ embeds: [embed], components: [row] });
+    } catch (error) {
+      return interaction.editReply({
+        content: 'I could not post in the configured LFG channel. Please check my View Channel, Send Messages, and Embed Links permissions.',
+      });
+    }
 
     const record = {
       guildId: interaction.guildId,
-      channelId: interaction.channelId,
+      channelId: targetChannel.id,
       messageId: message.id,
       hostId: interaction.user.id,
       voiceChannelId: voiceChannel.id,
@@ -103,6 +98,7 @@ export default {
     };
 
     await interaction.client.db.set(`guild:${interaction.guildId}:lfg:${message.id}`, record);
+    await interaction.editReply({ content: `✅ Your **${game}** LFG post is live in <#${targetChannel.id}>: ${message.url}` });
 
     const timer = setTimeout(async () => {
       try {
@@ -112,12 +108,10 @@ export default {
         const channel = await interaction.client.channels.fetch(current.channelId).catch(() => null);
         const post = await channel?.messages.fetch(current.messageId).catch(() => null);
         if (post) {
-          const expiredEmbed = EmbedBuilder.from(post.embeds[0])
-            .setColor(0x747F8D)
-            .setFooter({ text: 'This party has expired.' });
+          const expiredEmbed = EmbedBuilder.from(post.embeds[0]).setColor(0x747F8D).setFooter({ text: 'This party has expired.' });
           await post.edit({ embeds: [expiredEmbed], components: [] }).catch(() => {});
         }
-        await interaction.client.db.delete?.(key);
+        await interaction.client.db.delete(key);
       } catch (error) {
         interaction.client.logger?.warn?.('Failed to expire LFG post:', error);
       }
