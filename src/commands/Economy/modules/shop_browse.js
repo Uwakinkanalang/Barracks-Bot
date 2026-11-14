@@ -16,17 +16,17 @@ export default {
                 const startIndex = (page - 1) * ITEMS_PER_PAGE;
                 const pageItems = shopItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
                 const embed = new EmbedBuilder()
-                    .setTitle('Store')
+                    .setTitle('🛒 Barracks Shop')
                     .setColor(getColor('primary'))
-                    .setDescription('Use `/buy item_id:<id> quantity:<amount>` to purchase an item.');
+                    .setDescription('Spend your **bCash (₱)** on items, tools, and upgrades.\nPurchase with `b!buy <item_id> [quantity]`.');
                 pageItems.forEach(item => {
                     embed.addFields({
-                        name: `${item.name} (${item.id})`,
+                        name: `${item.name} — ₱${item.price.toLocaleString()}`,
                         value: `**Type:** ${item.type}\n **Price:** ₱${item.price.toLocaleString()}\n${item.description}`,
                         inline: false,
                     });
                 });
-                embed.setFooter({ text: `Page ${page}/${totalPages}` });
+                embed.addFields({ name: 'How to purchase', value: '`b!buy <item_id>` — Buy one item\\n`b!buy <item_id> <quantity>` — Buy multiple items\\n`b!inventory` — View your items', inline: false });\n                embed.setFooter({ text: `Page ${page}/${totalPages} • All prices are in Philippine pesos` });
                 return embed;
             };
 
@@ -61,7 +61,7 @@ export default {
 
             collector.on('collect', async (buttonInteraction) => {
                 if (buttonInteraction.user.id !== interaction.user.id) {
-                    await buttonInteraction.reply({ content: '❌ You cannot use these buttons. Run `/shop` to get your own shop view.', flags: 64 });
+                    await buttonInteraction.reply({ content: '❌ This shop menu belongs to someone else. Run `b!shop` to open your own.', flags: 64 });
                     return;
                 }
                 const { customId } = buttonInteraction;
