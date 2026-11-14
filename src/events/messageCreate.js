@@ -49,7 +49,7 @@ async function handlePrefixCommand(message, client) {
     const guildConfig = await getGuildConfig(client, message.guild.id);
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
-    if (/^bclan\s+panel$/i.test(trimmedContent)) {
+    if (/^bclan\\s+panel$/i.test(trimmedContent)) {
       if (!message.member?.permissions?.has('ManageGuild')) {
         await message.reply('❌ Only members with **Manage Server** permission can post the Clan Registration Panel.');
         return;
@@ -59,14 +59,14 @@ async function handlePrefixCommand(message, client) {
         .setColor(0x5865F2)
         .setTitle('🏰 BARRACKS CLAN REGISTRATION')
         .setDescription(
-          'Ready to lead your own squad? Create a clan and bring your soldiers together!\n\n' +
-          '**Information required**\n' +
-          '• Clan Name\n' +
-          '• Clan Tag + Role Hex (1–6 characters; letters, numbers, symbols, or emoji)\n' +
-          '• Clan Description\n' +
-          '• Vice Clan Leader\n' +
-          '• Clan Logo\n\n' +
-          'Your account will automatically be registered as the **Clan Leader**.\n' +
+          'Ready to lead your own squad? Create a clan and bring your soldiers together!\\n\\n' +
+          '**Information required**\\n' +
+          '• Clan Name\\n' +
+          '• Clan Tag + Role Hex (1–6 characters; letters, numbers, symbols, or emoji)\\n' +
+          '• Clan Description\\n' +
+          '• Vice Clan Leader\\n' +
+          '• Clan Logo\\n\\n' +
+          'Your account will automatically be registered as the **Clan Leader**.\\n' +
           'All clan registrations are subject to staff approval.'
         )
         .setFooter({ text: 'Barracks • Clan Registry' });
@@ -81,26 +81,34 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
-    const bareBgiveMatch = trimmedContent.match(/^bgive(?:\s+([\s\S]+))?$/i);
-    const bareMinesMatch = trimmedContent.match(/^bmines?(?:\s+([\s\S]+))?$/i);
-    const bareCashMatch = trimmedContent.match(/^bcash(?:\s+([\s\S]+))?$/i);
-    const bareBlackjackMatch = trimmedContent.match(/^bbj(?:\s+([\s\S]+))?$/i);
+    const bareBgiveMatch = trimmedContent.match(/^bgive(?:\\s+([\\s\\S]+))?$/i);
+    const bareMinesMatch = trimmedContent.match(/^bmines?(?:\\s+([\\s\\S]+))?$/i);
+    const bareCashMatch = trimmedContent.match(/^bcash(?:\\s+([\\s\\S]+))?$/i);
+    const bareBlackjackMatch = trimmedContent.match(/^bbj(?:\\s+([\\s\\S]+))?$/i);
     const bareDailyMatch = trimmedContent.match(/^bdaily$/i);
     const bareWorkMatch = trimmedContent.match(/^bwork$/i);
     const bareShopMatch = trimmedContent.match(/^bshop$/i);
-    const bareTalpakMatch = trimmedContent.match(/^btalpak(?:\s+([\s\S]+))?$/i);
-    const bareDepositMatch = trimmedContent.match(/^bdeposit(?:\s+([\s\S]+))?$/i);
-    const bareWithdrawMatch = trimmedContent.match(/^bwithdraw(?:\s+([\s\S]+))?$/i);
-    const bareTicTacToeMatch = trimmedContent.match(/^(?:bttt|btictactoe)(?:\s+([\s\S]+))?$/i);
-    const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\s+([\s\S]+))?$/i);
+    const bareTalpakMatch = trimmedContent.match(/^btalpak(?:\\s+([\\s\\S]+))?$/i);
+    const bareDepositMatch = trimmedContent.match(/^bdeposit(?:\\s+([\\s\\S]+))?$/i);
+    const bareWithdrawMatch = trimmedContent.match(/^bwithdraw(?:\\s+([\\s\\S]+))?$/i);
+    const bareTicTacToeMatch = trimmedContent.match(/^(?:bttt|btictactoe)(?:\\s+([\\s\\S]+))?$/i);
+    const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\\s+([\\s\\S]+))?$/i);
     const parsed = bareBgiveMatch
-      ? { commandName: 'bgive', args: bareBgiveMatch[1] ? bareBgiveMatch[1].trim().split(/\s+/) : [] }
+      ? (() => {
+          const parts = bareBgiveMatch[1] ? bareBgiveMatch[1].trim().split(/\\s+/) : [];
+          // Accept both: bgive @receiver amount, and bgive amount @receiver.
+          const isMention = (value) => /^<@!?\\d+>$/.test(value || '');
+          const args = parts.length >= 2 && /^\\d+$/.test(parts[0]) && isMention(parts[1])
+            ? [parts[1], parts[0], ...parts.slice(2)]
+            : parts;
+          return { commandName: 'bgive', args };
+        })()
       : bareMinesMatch
-      ? { commandName: 'bmine', args: bareMinesMatch[1] ? bareMinesMatch[1].trim().split(/\s+/) : [] }
+      ? { commandName: 'bmine', args: bareMinesMatch[1] ? bareMinesMatch[1].trim().split(/\\s+/) : [] }
       : bareCashMatch
-        ? { commandName: 'balance', args: bareCashMatch[1] ? bareCashMatch[1].trim().split(/\s+/) : [] }
+        ? { commandName: 'balance', args: bareCashMatch[1] ? bareCashMatch[1].trim().split(/\\s+/) : [] }
         : bareBlackjackMatch
-          ? { commandName: 'bblackjack', args: bareBlackjackMatch[1] ? bareBlackjackMatch[1].trim().split(/\s+/) : [] }
+          ? { commandName: 'bblackjack', args: bareBlackjackMatch[1] ? bareBlackjackMatch[1].trim().split(/\\s+/) : [] }
           : bareDailyMatch
             ? { commandName: 'daily', args: [] }
             : bareWorkMatch
@@ -108,16 +116,16 @@ async function handlePrefixCommand(message, client) {
               : bareShopMatch
                 ? { commandName: 'shop', args: [] }
                 : bareTalpakMatch
-                  ? { commandName: 'btalpak', args: bareTalpakMatch[1] ? bareTalpakMatch[1].trim().split(/\s+/) : [] }
+                  ? { commandName: 'btalpak', args: bareTalpakMatch[1] ? bareTalpakMatch[1].trim().split(/\\s+/) : [] }
                   : bareDepositMatch
             ? { commandName: 'deposit', args: bareDepositMatch[1] ? [bareDepositMatch[1].trim()] : [] }
             : bareWithdrawMatch
               ? { commandName: 'withdraw', args: bareWithdrawMatch[1] ? [bareWithdrawMatch[1].trim()] : [] }
               : bareTicTacToeMatch
-                ? { commandName: 'tictactoe', args: bareTicTacToeMatch[1] ? bareTicTacToeMatch[1].trim().split(/\s+/) : [] }
+                ? { commandName: 'tictactoe', args: bareTicTacToeMatch[1] ? bareTicTacToeMatch[1].trim().split(/\\s+/) : [] }
               : bareCoinFlipMatch
               ? (() => {
-                  const parts = bareCoinFlipMatch[1] ? bareCoinFlipMatch[1].trim().split(/\s+/) : [];
+                  const parts = bareCoinFlipMatch[1] ? bareCoinFlipMatch[1].trim().split(/\\s+/) : [];
                   if (parts[0]?.toLowerCase() === 't' || parts[0]?.toLowerCase() === 'tails') {
                     return { commandName: 'coinflip', args: [parts[1] || '', 'tails'] };
                   }
@@ -127,7 +135,7 @@ async function handlePrefixCommand(message, client) {
                   return { commandName: 'coinflip', args: [parts[0] || '', 'heads'] };
                 })()
               : parsePrefixCommand(message.content, prefix);
-    
+
     if (!parsed) {
       return; 
     }
@@ -178,7 +186,7 @@ async function handlePrefixCommand(message, client) {
       if (restriction.blocked && restriction.reason) {
         const embed = createEmbed({
           title: 'Slash Command Only',
-          description: `${restriction.reason}\nUse \`/${resolvedCommandName}\` instead.`,
+          description: `${restriction.reason}\\nUse `/${resolvedCommandName}` instead.`,
           color: 'info',
         });
         await message.channel.send({ embeds: [embed] }).catch(() => {});
