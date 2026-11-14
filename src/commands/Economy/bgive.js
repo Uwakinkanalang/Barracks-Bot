@@ -90,8 +90,7 @@ export default {
 
         const embed = successEmbed(
             'BCash Sent Successfully!',
-            `You sent **₱${amount.toLocaleString()} BCash** to <@ ${receiver.id}>.`
-                .replace('<@ ', '<@')
+            `You sent **₱${amount.toLocaleString()} BCash** to <@${receiver.id}>.`
         ).addFields(
             {
                 name: '💸 Amount Sent',
@@ -122,8 +121,7 @@ export default {
         try {
             const receiverEmbed = createEmbed({
                 title: '💰 You Received BCash!',
-                description: `<@ ${senderId}> sent you **₱${amount.toLocaleString()} BCash**.`
-                    .replace('<@ ', '<@')
+                description: `<@${senderId}> sent you **₱${amount.toLocaleString()} BCash**.`
             }).addFields({
                 name: 'Your New Cash',
                 value: `₱${result.receiverNewBalance.toLocaleString()}`,
