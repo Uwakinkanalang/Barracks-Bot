@@ -39,8 +39,9 @@ export default {
                 .setStyle(ButtonStyle.Primary)
         );
 
-        await interaction.reply({ embeds: [embed], components: [row] });
-        const panelMessage = await interaction.fetchReply();
+        // This is a prefix-only command. Send the panel directly to the channel
+        // instead of relying on the mock interaction reply/fetchReply adapter.
+        const panelMessage = await interaction.channel.send({ embeds: [embed], components: [row] });
         const collector = panelMessage.createMessageComponentCollector({ time: 300000 });
 
         collector.on('collect', async buttonInteraction => {
