@@ -45,7 +45,7 @@ export default {
       subcommand
         .setName('members')
         .setDescription('View your clan membership roster')
-    ),
+    )
     .addSubcommand(subcommand =>
       subcommand
         .setName('leave')
@@ -205,7 +205,7 @@ export default {
         await targetMember.setNickname(`${prefix}${baseName}`.slice(0, 32), `Removed from clan ${clan.name}`).catch(() => {});
       }
       return interaction.reply({
-        content: `🗑️ <@ ${target.id}> has been removed from **${clan.name} [${clan.tag}]**. Their clan tag has been removed from their nickname.`,
+        content: `🗑️ <@${target.id}> has been removed from **${clan.name} [${clan.tag}]**. Their clan tag has been removed from their nickname.`,
         allowedMentions: { users: [target.id] },
       });
     }
