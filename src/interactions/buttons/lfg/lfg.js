@@ -103,30 +103,29 @@ export default {
       }
 
       const joiningMember = await interaction.guild.members.fetch(interaction.user.id);
-      if (!joiningMember.voice.channelId) {
-        return interaction.reply({
-          content: 'Join any voice channel first. I can then move you into the host\'s voice channel.',
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
       const botMember = interaction.guild.members.me;
-      const permissions = host.voice.channel.permissionsFor(botMember);
-      if (!permissions?.has(PermissionFlagsBits.Connect) ||
-          !permissions?.has(PermissionFlagsBits.MoveMembers)) {
-        return interaction.reply({
-          content: 'I need **Connect** and **Move Members** permissions in the host\'s voice channel.',
-          flags: MessageFlags.Ephemeral,
-        });
+      const shouldMoveToHost = Boolean(joiningMember.voice.channelId);
+
+      if (shouldMoveToHost) {
+        const permissions = host.voice.channel.permissionsFor(botMember);
+        if (!permissions?.has(PermissionFlagsBits.Connect) ||
+            !permissions?.has(PermissionFlagsBits.MoveMembers)) {
+          return interaction.reply({
+            content: 'I need **Connect** and **Move Members** permissions in the host\'s voice channel.',
+            flags: MessageFlags.Ephemeral,
+          });
+        }
       }
 
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      try {
-        await joiningMember.voice.setChannel(host.voice.channel, 'Joined a Barracks LFG party');
-      } catch (error) {
-        return interaction.editReply({
-          content: 'I could not move you into the host\'s voice channel. Check my Move Members permission and the channel permissions.',
-        });
+      if (shouldMoveToHost) {
+        try {
+          await joiningMember.voice.setChannel(host.voice.channel, 'Joined a Barracks LF party');
+        } catch (error) {
+          return interaction.editReply({
+            content: 'I could not move you into the host\'s voice channel. Check my Move Members permission and the channel permissions.',
+          });
+        }
       }
 
       record.members.push(interaction.user.id);
