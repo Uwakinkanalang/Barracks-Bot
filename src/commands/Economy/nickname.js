@@ -11,7 +11,7 @@ import {
 import { SlashCommandBuilder } from 'discord.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 
-const NICKNAME_CHANGE_PRICE = 500000;
+const NICKNAME_CHANGE_PRICE = 300000;
 
 const DEPARTMENT_PREFIXES = [
     ['1557783753982480445', '🍋| '],
@@ -75,7 +75,7 @@ export default {
             .setDescription(
                 'Want a new identity in the Barracks? Change your server nickname using bCash.\n\n' +
                 '**Service Price**\n' +
-                '💰 **₱500,000 bCash**\n\n' +
+                '💰 **₱300,000 bCash**\n\n' +
                 'Click the button below to enter your new nickname. Your bCash will only be charged if the nickname is changed successfully.'
             )
             .setFooter({ text: 'Barracks • Nickname Services' });
