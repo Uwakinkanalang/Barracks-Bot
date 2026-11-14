@@ -89,7 +89,7 @@ roleId: null,
     {
         id: 'laptop',
         name: '💻 Laptop',
-        price: 15000,
+        price: 150000,
         description: 'Increases work earnings',
         type: 'tool',
         durability: 200,
@@ -162,39 +162,37 @@ export function validatePurchase(itemId, userData) {
     if (item.type === 'consumable' && item.maxQuantity) {
         const currentQuantity = inventory[itemId] || 0;
         if (currentQuantity >= item.maxQuantity) {
-            return { 
-                valid: false, 
-                reason: `You can only have a maximum of ${item.maxQuantity} ${item.name}s` 
+            return {
+                valid: false,
+                reason: `You can only have a maximum of ${item.maxQuantity} ${item.name}s`
             };
         }
     }
 
     if (item.type === 'upgrade' && item.maxLevel) {
-        
         if (upgrades[itemId]) {
-            return { 
-                valid: false, 
-                reason: `You've already purchased ${item.name}` 
+            return {
+                valid: false,
+                reason: `You've already purchased ${item.name}`
             };
         }
     }
 
     if (item.type === 'tool') {
-        
         const currentQuantity = inventory[itemId] || 0;
         if (itemId !== 'bank_note' && currentQuantity > 0) {
-            return { 
-                valid: false, 
-                reason: `You already have a ${item.name}` 
+            return {
+                valid: false,
+                reason: `You already have a ${item.name}`
             };
         }
     }
 
     if (item.type === 'role' && item.roleId) {
         if (userData.roles?.includes(item.roleId)) {
-            return { 
-                valid: false, 
-                reason: `You already have the ${item.name} role` 
+            return {
+                valid: false,
+                reason: `You already have the ${item.name} role`
             };
         }
     }
