@@ -4,7 +4,7 @@ import { logger } from '../utils/logger.js';
 
 const DEFAULT_REWARD = 1000;
 const ROUND_TIME_MS = 60_000;
-const GAME_MANAGER_ROLE_IDS = new Set(['1557784711072579706', '1557781661352071239']);
+const FESTIVITIES_ROLE_ID = '1557784711072579706';
 const HERO_API = 'https://api.opendota.com/api/heroStats';
 const activeGames = new Map();
 const recentlyUsed = new Set();
@@ -30,7 +30,6 @@ async function fetchHeroes() {
   const response = await fetch(HERO_API);
   if (!response.ok) throw new Error(`OpenDota returned HTTP ${response.status}`);
   const data = await response.json();
-
   const heroes = data
     .filter(hero => hero.localized_name && hero.img)
     .map(hero => ({
@@ -51,12 +50,10 @@ async function fetchRandomHero() {
   const available = heroes.filter(hero => !recentlyUsed.has(hero.id));
   const pool = available.length ? available : heroes;
   const hero = pool[Math.floor(Math.random() * pool.length)];
-
   recentlyUsed.add(hero.id);
   if (recentlyUsed.size > Math.max(20, Math.floor(heroes.length / 2))) {
     recentlyUsed.delete(recentlyUsed.values().next().value);
   }
-
   return hero;
 }
 
@@ -99,7 +96,6 @@ async function finishGame(client, key, game, winnerId = null) {
     try {
       await addMoney(client, game.guildId, winnerId, game.reward, 'wallet');
       reward = game.reward;
-
       const winsKey = `guild:${game.guildId}:dota_hero_game_wins`;
       const wins = await client.db.get(winsKey, {});
       const nextWins = wins && typeof wins === 'object' && !Array.isArray(wins) ? wins : {};
@@ -117,7 +113,7 @@ async function finishGame(client, key, game, winnerId = null) {
 
 function canManageGame(message) {
   return message.guild.ownerId === message.author.id
-    || [...GAME_MANAGER_ROLE_IDS].some(roleId => message.member?.roles?.cache?.has(roleId));
+    || message.member?.roles?.cache?.has(FESTIVITIES_ROLE_ID);
 }
 
 async function startGame(message, client, reward = DEFAULT_REWARD) {
@@ -138,7 +134,6 @@ async function startGame(message, client, reward = DEFAULT_REWARD) {
       finished: false,
       timeout: null,
     };
-
     activeGames.set(key, game);
     await loadingMessage.edit({ content: null, embeds: [buildQuestionEmbed(hero, reward)] });
     game.timeout = setTimeout(() => {
@@ -186,16 +181,20 @@ export default {
   async execute(message, client) {
     try {
       if (!message.guild || message.author.bot) return;
-
       const content = message.content.trim();
-      if (/^bhero\s+leaderboard$/i.test(content)) {
+
+      if (/^bdota\s+leaderboard$/i.test(content)) {
+        if (!canManageGame(message)) {
+          await message.reply('⛔ Only the **Server Owner** and **Festivities** team can use this command.');
+          return;
+        }
         await showLeaderboard(message, client);
         return;
       }
 
-      if (/^bhero\s+stop$/i.test(content)) {
+      if (/^bdota\s+stop$/i.test(content)) {
         if (!canManageGame(message)) {
-          await message.reply('⛔ Only members with the **Festivities**, **Management Team**, or **Server Owner** access can manage Dota 2 hero rounds.');
+          await message.reply('⛔ Only the **Server Owner** and **Festivities** team can use this command.');
           return;
         }
         const key = gameKey(message.guild.id, message.channel.id);
@@ -208,15 +207,15 @@ export default {
         return;
       }
 
-      const startMatch = content.match(/^bhero(?:\s+start)?(?:\s+(\d+))?$/i);
+      const startMatch = content.match(/^bdota(?:\s+(\d+))?$/i);
       if (startMatch) {
         if (!canManageGame(message)) {
-          await message.reply('⛔ Only members with the **Festivities**, **Management Team**, or **Server Owner** access can start Dota 2 hero rounds.');
+          await message.reply('⛔ Only the **Server Owner** and **Festivities** team can start Dota 2 hero rounds.');
           return;
         }
         const reward = startMatch[1] ? Number(startMatch[1]) : DEFAULT_REWARD;
         if (!Number.isSafeInteger(reward) || reward < 1 || reward > 1000000000) {
-          await message.reply('Please enter a reward between **₱1 and ₱1,000,000,000**. Example: `bhero start 5000`.');
+          await message.reply('Please enter a reward between **₱1 and ₱1,000,000,000**. Example: `bdota 5000`.');
           return;
         }
         await startGame(message, client, reward);
