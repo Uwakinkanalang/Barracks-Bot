@@ -28,7 +28,7 @@ cooldown: 86400000,
     {
         id: 'diamond_pickaxe',
         name: 'Diamond Pickaxe',
-        price: 50000,
+        price: 500000,
         description: 'Increases yield from `/mine`',
         type: 'tool',
         durability: 100,
