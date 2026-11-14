@@ -46,14 +46,6 @@ export default {
 
         collector.on('collect', async buttonInteraction => {
             if (buttonInteraction.customId !== 'barracks_nickname_change') return;
-            if (buttonInteraction.user.id !== interaction.user.id) {
-                await buttonInteraction.reply({
-                    content: 'This nickname panel belongs to someone else. Run `b!nickname panel` to open your own.',
-                    flags: [MessageFlags.Ephemeral],
-                });
-                return;
-            }
-
             const modal = new ModalBuilder()
                 .setCustomId('barracks_nickname_modal')
                 .setTitle('Change Server Nickname');
