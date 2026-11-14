@@ -17,7 +17,7 @@ function cardFace(value) {
 
 function cardDisplay(card) {
     const red = card.suit === '♥️' || card.suit === '♦️';
-    return `╭─────────╮\n│ ${String(card.value).padEnd(7, ' ')}│\n│         │\n│    ${card.suit}    │\n│         │\n│${cardFace(card.value).padStart(7, ' ')} │\n╰─────────╯`;
+    return `\\`\\`\\`\\n╭─────────╮\n│ ${String(card.value).padEnd(7, ' ')}│\n│         │\n│    ${card.suit}    │\n│         │\n│${cardFace(card.value).padStart(7, ' ')} │\n╰─────────╯\n\\`\\`\\``;
 }
 
 function makeButtons(disabled = false) {
