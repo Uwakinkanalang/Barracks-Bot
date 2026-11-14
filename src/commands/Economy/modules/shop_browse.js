@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, MessageFlags } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder } from 'discord.js';
 import { shopItems } from '../../../config/shop/items.js';
 import { getColor } from '../../../config/bot.js';
 import { logger } from '../../../utils/logger.js';
@@ -7,9 +7,8 @@ import { handleInteractionError } from '../../../utils/errorHandler.js';
 export default {
     async execute(interaction, config, client) {
         try {
-            const TARGET_MAX_PAGES = 3;
-            const ITEMS_PER_PAGE = Math.max(1, Math.ceil(shopItems.length / TARGET_MAX_PAGES));
-            const totalPages = Math.ceil(shopItems.length / ITEMS_PER_PAGE);
+            const ITEMS_PER_PAGE = 5;
+            const totalPages = Math.max(1, Math.ceil(shopItems.length / ITEMS_PER_PAGE));
             let currentPage = 1;
 
             const createShopEmbed = (page) => {
@@ -18,15 +17,25 @@ export default {
                 const embed = new EmbedBuilder()
                     .setTitle('🛒 Barracks Shop')
                     .setColor(getColor('primary'))
-                    .setDescription('Spend your **bCash (₱)** on items, tools, and upgrades.\nPurchase with `b!buy <item_id> [quantity]`.');
+                    .setDescription(
+                        'Spend your **bCash (₱)** on items, tools, and upgrades.\\n' +
+                        'Purchase with `b!buy <item_id> [quantity]`.'
+                    );
+
                 pageItems.forEach(item => {
                     embed.addFields({
                         name: `${item.name} — ₱${item.price.toLocaleString()}`,
-                        value: `**Type:** ${item.type}\n **Price:** ₱${item.price.toLocaleString()}\n${item.description}`,
+                        value: `**Item ID:** \`${item.id}\`\\n**Category:** ${item.type}\\n${item.description}`,
                         inline: false,
                     });
                 });
-                embed.addFields({ name: 'How to purchase', value: '`b!buy <item_id>` — Buy one item\\n`b!buy <item_id> <quantity>` — Buy multiple items\\n`b!inventory` — View your items', inline: false });\n                embed.setFooter({ text: `Page ${page}/${totalPages} • All prices are in Philippine pesos` });
+
+                embed.addFields({
+                    name: 'How to purchase',
+                    value: '`b!buy <item_id>` — Buy one item\\n`b!buy <item_id> <quantity>` — Buy multiple items\\n`b!inventory` — View your items',
+                    inline: false,
+                });
+                embed.setFooter({ text: `Page ${page}/${totalPages} • All prices are in Philippine pesos` });
                 return embed;
             };
 
@@ -51,7 +60,6 @@ export default {
             const message = await interaction.reply({
                 embeds: [createShopEmbed(currentPage)],
                 components: createShopComponents(currentPage),
-                flags: 0,
             });
 
             const collector = message.createMessageComponentCollector({
@@ -61,14 +69,17 @@ export default {
 
             collector.on('collect', async (buttonInteraction) => {
                 if (buttonInteraction.user.id !== interaction.user.id) {
-                    await buttonInteraction.reply({ content: '❌ This shop menu belongs to someone else. Run `b!shop` to open your own.', flags: 64 });
+                    await buttonInteraction.reply({
+                        content: '❌ This shop menu belongs to someone else. Run `b!shop` to open your own.',
+                        ephemeral: true,
+                    });
                     return;
                 }
-                const { customId } = buttonInteraction;
-                if (customId === 'shop_prev' || customId === 'shop_next') {
+
+                if (buttonInteraction.customId === 'shop_prev' || buttonInteraction.customId === 'shop_next') {
                     await buttonInteraction.deferUpdate();
-                    if (customId === 'shop_prev' && currentPage > 1) currentPage--;
-                    else if (customId === 'shop_next' && currentPage < totalPages) currentPage++;
+                    if (buttonInteraction.customId === 'shop_prev' && currentPage > 1) currentPage--;
+                    if (buttonInteraction.customId === 'shop_next' && currentPage < totalPages) currentPage++;
                     await buttonInteraction.editReply({
                         embeds: [createShopEmbed(currentPage)],
                         components: createShopComponents(currentPage),
@@ -79,7 +90,7 @@ export default {
             collector.on('end', async () => {
                 try {
                     const disabledComponents = createShopComponents(currentPage);
-                    disabledComponents.forEach(row => row.components.forEach(btn => btn.setDisabled(true)));
+                    disabledComponents.forEach(row => row.components.forEach(button => button.setDisabled(true)));
                     await message.edit({ components: disabledComponents });
                 } catch (error) {
                     logger.debug('shop_browse: could not disable components on collector end', {
