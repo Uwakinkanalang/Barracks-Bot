@@ -90,7 +90,7 @@ export default {
 
         const embed = successEmbed(
             'BCash Transfer',
-            `<@${senderId}> gave BCash to <@${receiver.id}>.`
+            `<@${senderId}> sent BCash to <@${receiver.id}>.`
         ).addFields({
             name: '💸 Amount Sent',
             value: `₱${amount.toLocaleString()}`,
