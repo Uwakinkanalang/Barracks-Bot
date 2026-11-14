@@ -132,7 +132,9 @@ export default {
       await client.db.set(key, record);
       await updatePost(interaction, record);
       return interaction.editReply({
-        content: `✅ You joined **${record.game}** and were moved into <#${record.voiceChannelId}>.`,
+        content: shouldMoveToHost
+          ? `✅ You joined **${record.game}** and were moved into <#${record.voiceChannelId}>.`
+          : `✅ You joined **${record.game}**! Join <#${record.voiceChannelId}> to talk with your party.`,
       });
     }
 
