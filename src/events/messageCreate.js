@@ -50,9 +50,13 @@ async function handlePrefixCommand(message, client) {
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
 
-    // Dedicated entry point for the paid nickname panel. Keep this ahead of
-    // category/command-access gates so the panel is always reachable by prefix.
-    if (/^b!nickname$/i.test(trimmedContent)) {
+    // Server-owner-only entry point for the paid nickname panel.
+    // Keep this ahead of category/command-access gates.
+    if (/^b!nickname\s+panel$/i.test(trimmedContent)) {
+      if (message.author.id !== message.guild.ownerId) {
+        await message.reply('❌ Only the **server owner** can open the nickname change panel.');
+        return;
+      }
       const nicknameCommand = client.commands.get('nickname');
       if (!nicknameCommand?.execute) {
         logger.error('Nickname panel command is not loaded.');
