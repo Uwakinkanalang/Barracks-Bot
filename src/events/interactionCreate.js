@@ -317,7 +317,7 @@ export default {
                   .setLabel('Clan Name (Emoji/Symbol First)')
                   .setDescription('Start with an emoji or symbol, followed by your clan name. Example: ⚔️ Barracks')
                   .setTextInputComponent(
-                    new TextInputBuilder().setCustomId('clan_name').setStyle(TextInputStyle.Short).setPlaceholder('⚔️ Barracks').setMinLength(4).setMaxLength(32).setRequired(true)
+                    new TextInputBuilder().setCustomId('clan_name').setStyle(TextInputStyle.Short).setPlaceholder('⚔️ Barracks').setMaxLength(32).setRequired(true)
                   ),
                 new LabelBuilder()
                   .setLabel('Clan Tag | Role Hex')
@@ -633,8 +633,8 @@ export default {
             const leadingMark = nameSegments[0]?.segment || '';
             const clanNameText = nameSegments.slice(1).map(segment => segment.segment).join('').trim();
             const startsWithEmojiOrSymbol = /^[\\p{Extended_Pictographic}\\p{S}\\p{P}]/u.test(leadingMark);
-            if (!startsWithEmojiOrSymbol || !/^[a-zA-Z0-9 _-]{3,31}$/.test(clanNameText) || name.length > 32) {
-              await interaction.reply({ content: 'Clan name must start with an emoji or symbol, followed by 3–31 characters using only letters, numbers, spaces, _ or -. Example: **⚔️ Barracks** (total 4–32 characters).', flags: MessageFlags.Ephemeral });
+            if (!startsWithEmojiOrSymbol || !/^[a-zA-Z0-9 _-]{0,31}$/.test(clanNameText) || name.length > 32) {
+              await interaction.reply({ content: 'Clan name must start with an emoji or symbol and may be followed by letters, numbers, spaces, _ or -. Maximum 32 characters. Example: **⚔️ Barracks**.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!tagHexMatch || !validTag || !tag || !roleHex) {
