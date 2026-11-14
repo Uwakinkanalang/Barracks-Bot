@@ -15,7 +15,29 @@ export default {
   async execute(member) {
     try {
         const { guild, user } = member;
-        
+
+        // Remove departed users from any clan roster so the registry stays accurate.
+        try {
+            const clanKey = `guild:${guild.id}:clans`;
+            const clans = await member.client.db.get(clanKey, []);
+            if (Array.isArray(clans)) {
+                let changed = false;
+                for (const clan of clans) {
+                    if (Array.isArray(clan.memberIds) && clan.memberIds.includes(user.id)) {
+                        clan.memberIds = clan.memberIds.filter(userId => userId !== user.id);
+                        changed = true;
+                    }
+                    if (clan.viceLeaderId === user.id) {
+                        clan.viceLeaderId = null;
+                        changed = true;
+                    }
+                }
+                if (changed) await member.client.db.set(clanKey, clans);
+            }
+        } catch (error) {
+            logger.warn(`Could not remove departed member ${user.id} from clan rosters: ${error.message}`);
+        }
+
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
         
         const goodbyeChannelId = welcomeConfig?.goodbyeChannelId;
