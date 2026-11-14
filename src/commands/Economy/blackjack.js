@@ -83,7 +83,7 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
             `**♠️ Blackjack**\n` +
-            `**BALANCE**\n₱${game.balance.toLocaleString()} 💰\n\n` +
+            `**BALANCE**\nbCash ${game.balance.toLocaleString()} 💰\n\n` +
             `**DEALER'S HAND**  [${dealerValue}]`
         )
     );
@@ -94,7 +94,7 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
     addCompactCards(container, game.player, hiddenPlayerIndices);
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-            `**BET:** ₱${game.bet.toLocaleString()}\n` +
+            `**BET:** bCash ${game.bet.toLocaleString()}\n` +
             `${status}`
         )
     );
@@ -147,7 +147,7 @@ export default {
             throw createError(
                 'Insufficient cash',
                 ErrorTypes.VALIDATION,
-                `You only have **₱${(userData.wallet || 0).toLocaleString()}** in your cash wallet.`
+                `You only have **bCash ${(userData.wallet || 0).toLocaleString()}** in your cash wallet.`
             );
         }
 
@@ -187,11 +187,11 @@ export default {
             initialReveal = true;
             initialEnded = true;
             if (initialPlayerBlackjack && initialDealerBlackjack) {
-                initialStatus = `🤝 Push! Your ₱${bet.toLocaleString()} bet was returned.`;
+                initialStatus = `🤝 Push! Your bCash ${bet.toLocaleString()} bet was returned.`;
                 await settle(bet);
             } else if (initialPlayerBlackjack) {
                 const payout = bet + Math.floor(bet * 1.5);
-                initialStatus = `🎉 Blackjack! You won ₱${payout.toLocaleString()} (3:2 payout).`;
+                initialStatus = `🎉 Blackjack! You won bCash ${payout.toLocaleString()} (3:2 payout).`;
                 await settle(payout);
             } else {
                 initialStatus = '💥 Dealer has Blackjack. Better luck next Soldier.';
@@ -221,15 +221,15 @@ export default {
             let resultText;
 
             if (playerTotal > 21) {
-                resultText = `💥 Bust! You lost ₱${bet.toLocaleString()}. Better luck next Soldier.`;
+                resultText = `💥 Bust! You lost bCash ${bet.toLocaleString()}. Better luck next Soldier.`;
             } else if (dealerTotal > 21 || playerTotal > dealerTotal) {
                 payout = bet * 2;
-                resultText = `🎉 You won ₱${payout.toLocaleString()}!`;
+                resultText = `🎉 You won bCash ${payout.toLocaleString()}!`;
             } else if (playerTotal === dealerTotal) {
                 payout = bet;
-                resultText = `🤝 Push! Your ₱${bet.toLocaleString()} bet was returned.`;
+                resultText = `🤝 Push! Your bCash ${bet.toLocaleString()} bet was returned.`;
             } else {
-                resultText = `💥 Dealer wins. You lost ₱${bet.toLocaleString()}. Better luck next Soldier.`;
+                resultText = `💥 Dealer wins. You lost bCash ${bet.toLocaleString()}. Better luck next Soldier.`;
             }
 
             await settle(payout);
@@ -280,7 +280,7 @@ export default {
                     await settle(0);
                     collector.stop('bust');
                     return message.edit({
-                        components: [buildGame(game, `💥 Bust! You lost ₱${bet.toLocaleString()}. Better luck next Soldier.`, { revealDealer: true, ended: true })],
+                        components: [buildGame(game, `💥 Bust! You lost bCash ${bet.toLocaleString()}. Better luck next Soldier.`, { revealDealer: true, ended: true })],
                     });
                 }
 
@@ -305,13 +305,13 @@ export default {
                 let payout = 0;
                 let status;
                 if (playerTotal > 21 || (dealerTotal <= 21 && dealerTotal > playerTotal)) {
-                    status = `⏰ Time's up. Dealer wins; you lost ₱${bet.toLocaleString()}. Better luck next Soldier.`;
+                    status = `⏰ Time's up. Dealer wins; you lost bCash ${bet.toLocaleString()}. Better luck next Soldier.`;
                 } else if (dealerTotal > 21 || playerTotal > dealerTotal) {
                     payout = bet * 2;
-                    status = `⏰ Time's up. You won ₱${payout.toLocaleString()}!`;
+                    status = `⏰ Time's up. You won bCash ${payout.toLocaleString()}!`;
                 } else {
                     payout = bet;
-                    status = `⏰ Time's up. Push! Your ₱${bet.toLocaleString()} bet was returned.`;
+                    status = `⏰ Time's up. Push! Your bCash ${bet.toLocaleString()} bet was returned.`;
                 }
                 await settle(payout);
                 await message.edit({
