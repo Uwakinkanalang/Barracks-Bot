@@ -1,5 +1,5 @@
 import { AttachmentBuilder, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import { createReadStream } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
@@ -68,19 +68,17 @@ export default {
         const payout = won ? bet * multiplier : 0;
         const betLabel = selection.type === 'number' ? `number **${selection.value}**` : `**${selection.value.toUpperCase()}**`;
 
-        const rouletteGif = new AttachmentBuilder(
-            createReadStream(new URL('../../assets/roulette-spin.gif', import.meta.url)),
-            { name: 'roulette-spin.gif' }
-        );
+        const rouletteGifBuffer = readFileSync(new URL('../../assets/roulette-spin.gif', import.meta.url));
+        const spinningGif = new AttachmentBuilder(rouletteGifBuffer, { name: 'roulette-spin.gif' });
 
         const spinning = new EmbedBuilder()
             .setColor(0xD4AF37)
             .setTitle('🎰 BARRACKS ROULETTE')
-            .setDescription(`<@${interaction.user.id}> placed **₱${bet.toLocaleString()}** on ${betLabel}.\\n\\n🎡 **The wheel is spinning...**`)
+             .setDescription(`<@${interaction.user.id}> placed **₱${bet.toLocaleString()}** on ${betLabel}.\n\n🎡 **The wheel is spinning...**`)
             .setFooter({ text: 'Mini Roulette • 0–6' })
             .setImage('attachment://roulette-spin.gif');
 
-        const sentMessage = await interaction.reply({ embeds: [spinning], files: [rouletteGif], fetchReply: true });
+        const sentMessage = await interaction.reply({ embeds: [spinning], files: [spinningGif], fetchReply: true });
         await new Promise(resolve => setTimeout(resolve, 1800));
 
         if (payout > 0) {
@@ -89,23 +87,26 @@ export default {
 
         const { emoji } = formatNumber(number);
         const newBalance = wallet - bet + payout;
+        const resultGif = new AttachmentBuilder(rouletteGifBuffer, { name: 'roulette-spin.gif' });
         const resultEmbed = new EmbedBuilder()
             .setColor(won ? 0x2ECC71 : 0xE74C3C)
             .setTitle('🎰 BARRACKS ROULETTE')
-            .setDescription(
-                `<@${interaction.user.id}> bet **₱${bet.toLocaleString()}** on ${betLabel}.\\n\\n` +
-                `## ${emoji} ${number} — ${resultColor}\\n\\n` +
-                (won
-                    ? `🎉 **YOU WON!**\\n**Payout:** ₱${payout.toLocaleString()} (x${multiplier})\\n**Net Profit:** +₱${(payout - bet).toLocaleString()}`
-                    : `💔 **YOU LOST!**\\n**Lost Bet:** ₱${bet.toLocaleString()}`)
+            .setDescription(`<@${interaction.user.id}> wagered **₱${bet.toLocaleString()}** on ${betLabel}.`)
+            .addFields(
+                { name: '🎯 Winning Number', value: `${emoji} **${number} — ${resultColor}**`, inline: true },
+                { name: '🎲 Your Bet', value: `₱${bet.toLocaleString()}`, inline: true },
+                { name: won ? '🏆 Result' : '💔 Result', value: won ? '**YOU WON!**' : '**YOU LOST!**', inline: true },
+                { name: won ? '💰 Payout' : '📉 Lost Bet', value: won ? `₱${payout.toLocaleString()} (x${multiplier})` : `₱${bet.toLocaleString()}`, inline: true },
+                { name: won ? '📈 Net Profit' : '📉 Net Result', value: `${won ? '+' : '−'}₱${Math.abs(payout - bet).toLocaleString()}`, inline: true },
+                { name: '💵 New bCash Balance', value: `**₱${newBalance.toLocaleString()}**`, inline: true }
             )
-            .addFields({ name: '💰 New bCash Balance', value: `₱${newBalance.toLocaleString()}`, inline: true })
-            .setFooter({ text: 'Mini Roulette • 0–6 • Good luck, Soldier!' });
+            .setImage('attachment://roulette-spin.gif')
+            .setFooter({ text: 'BARRACKS • MINI ROULETTE • 0–6' });
 
         if (sentMessage?.edit) {
-            await sentMessage.edit({ embeds: [resultEmbed], attachments: [] });
+            await sentMessage.edit({ embeds: [resultEmbed], files: [resultGif] });
         } else {
-            await interaction.editReply({ embeds: [resultEmbed] });
+            await interaction.editReply({ embeds: [resultEmbed], files: [resultGif] });
         }
     }, { command: 'roulette' }),
 };
