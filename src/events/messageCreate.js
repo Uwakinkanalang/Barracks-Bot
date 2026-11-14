@@ -85,6 +85,7 @@ async function handlePrefixCommand(message, client) {
     const bareMinesMatch = trimmedContent.match(/^bmines?(?:\s+([\s\S]+))?$/i);
     const bareCashMatch = trimmedContent.match(/^bcash(?:\s+([\s\S]+))?$/i);
     const bareBlackjackMatch = trimmedContent.match(/^bbj(?:\s+([\s\S]+))?$/i);
+    const bareHigherLowerMatch = trimmedContent.match(/^bhl(?:\s+([\s\S]+))?$/i);
     const bareDailyMatch = trimmedContent.match(/^bdaily$/i);
     const bareWorkMatch = trimmedContent.match(/^bwork$/i);
     const bareShopMatch = trimmedContent.match(/^bshop$/i);
@@ -112,6 +113,8 @@ async function handlePrefixCommand(message, client) {
         ? { commandName: 'balance', args: bareCashMatch[1] ? bareCashMatch[1].trim().split(/\s+/) : [] }
         : bareBlackjackMatch
           ? { commandName: 'bblackjack', args: bareBlackjackMatch[1] ? bareBlackjackMatch[1].trim().split(/\s+/) : [] }
+          : bareHigherLowerMatch
+            ? { commandName: 'bhl', args: bareHigherLowerMatch[1] ? bareHigherLowerMatch[1].trim().split(/\s+/) : [] }
           : bareDailyMatch
             ? { commandName: 'daily', args: [] }
             : bareWorkMatch
