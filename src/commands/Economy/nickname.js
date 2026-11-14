@@ -89,7 +89,8 @@ export default {
         );
 
         const panelMessage = await interaction.channel.send({ embeds: [embed], components: [row] });
-        const collector = panelMessage.createMessageComponentCollector({ time: 300000 });
+        // Keep the nickname panel active so members can use it repeatedly without reposting it.
+        const collector = panelMessage.createMessageComponentCollector();
 
         collector.on('collect', async buttonInteraction => {
             if (buttonInteraction.customId !== 'barracks_nickname_change') return;
@@ -186,8 +187,5 @@ export default {
             }
         });
 
-        collector.on('end', async () => {
-            await panelMessage.edit({ components: [] }).catch(() => {});
-        });
     },
 };
