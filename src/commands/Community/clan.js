@@ -45,6 +45,11 @@ export default {
       subcommand
         .setName('members')
         .setDescription('View your clan membership roster')
+    ),
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('leave')
+        .setDescription('Leave the clan you currently belong to')
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -65,6 +70,34 @@ export default {
     }
 
     const subcommand = interaction.options.getSubcommand();
+
+    if (subcommand === 'leave') {
+      const storageKey = `guild:${interaction.guildId}:clans`;
+      const clanList = await interaction.client.db.get(storageKey, []);
+      const clans = Array.isArray(clanList) ? clanList : [];
+      const clan = clans.find(entry =>
+        entry.status === 'approved' &&
+        (entry.viceLeaderId === interaction.user.id ||
+          (Array.isArray(entry.memberIds) && entry.memberIds.includes(interaction.user.id)))
+      );
+      if (!clan) {
+        return interaction.reply({ content: 'You are not a member of an approved clan, or you are the Clan Leader. The Clan Leader must delete the clan to leave.', flags: MessageFlags.Ephemeral });
+      }
+      clan.memberIds = (clan.memberIds || []).filter(userId => userId !== interaction.user.id);
+      if (clan.viceLeaderId === interaction.user.id) clan.viceLeaderId = null;
+      await interaction.client.db.set(storageKey, clans);
+
+      const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+      if (member) {
+        if (clan.roleId) await member.roles.remove(clan.roleId, `Left clan ${clan.name}`).catch(() => {});
+        const currentName = member.nickname || member.user.username;
+        const clanTagPrefix = `${clan.tag} `;
+        const baseName = currentName.startsWith(clanTagPrefix) ? currentName.slice(clanTagPrefix.length).trim() : currentName;
+        const prefix = await getNicknamePrefix(member, interaction.client, interaction.guildId);
+        await member.setNickname(`${prefix}${baseName}`.slice(0, 32), `Left clan ${clan.name}`).catch(() => {});
+      }
+      return interaction.reply({ content: `✅ You have left **${clan.name} [${clan.tag}]**. Your clan role and clan nickname tag have been removed.`, flags: MessageFlags.Ephemeral });
+    }
 
     if (['addmember', 'kick', 'members'].includes(subcommand)) {
       const storageKey = `guild:${interaction.guildId}:clans`;
