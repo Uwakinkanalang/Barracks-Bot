@@ -19,6 +19,7 @@ import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
 import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
+import { getNicknamePrefix } from '../commands/Economy/nickname.js';
 
 const COMMAND_ERROR_SUBTYPES = {
   warn: 'warn_failed',
@@ -559,8 +560,11 @@ export default {
               }
 
               const [removedClan] = clanList.splice(clanIndex, 1);
+              // Save the registry first so the nickname resolver no longer selects this clan tag.
+              await interaction.client.db.set(storageKey, clanList);
 
-              // Remove this clan's role from the leader, vice leader, and every roster member.
+              // Remove the clan role and clan tag from every member, while restoring
+              // any applicable department or highest-rank nickname prefix.
               if (removedClan.roleId) {
                 const clanMemberIds = [...new Set([
                   removedClan.leaderId,
@@ -569,22 +573,30 @@ export default {
                 ].filter(Boolean))];
 
                 const clanRole = await interaction.guild.roles.fetch(removedClan.roleId).catch(() => null);
-                if (clanRole) {
-                  for (const userId of clanMemberIds) {
-                    const clanMember = await interaction.guild.members.fetch(userId).catch(() => null);
-                    if (clanMember?.roles.cache.has(clanRole.id)) {
-                      await clanMember.roles.remove(
-                        clanRole,
-                        `Clan ${removedClan.name} [${removedClan.tag}] was removed`,
-                      ).catch(error => {
-                        logger.warn(`Failed to remove clan role from member ${userId}: ${error.message}`);
-                      });
-                    }
+                for (const userId of clanMemberIds) {
+                  const clanMember = await interaction.guild.members.fetch(userId).catch(() => null);
+                  if (!clanMember) continue;
+
+                  if (clanRole && clanMember.roles.cache.has(clanRole.id)) {
+                    await clanMember.roles.remove(
+                      clanRole,
+                      `Clan ${removedClan.name} [${removedClan.tag}] was removed`,
+                    ).catch(error => {
+                      logger.warn(`Failed to remove clan role from member ${userId}: ${error.message}`);
+                    });
                   }
+
+                  const currentName = clanMember.nickname || clanMember.user.username;
+                  const clanTagPrefix = `${removedClan.tag} `;
+                  const baseName = currentName.startsWith(clanTagPrefix)
+                    ? currentName.slice(clanTagPrefix.length).trim()
+                    : currentName;
+                  const prefix = await getNicknamePrefix(clanMember, interaction.client, interaction.guildId);
+                  await clanMember.setNickname(`${prefix}${baseName}`.slice(0, 32), 'Clan removed; clear clan nickname tag').catch(error => {
+                    logger.warn(`Failed to clear clan nickname for member ${userId}: ${error.message}`);
+                  });
                 }
               }
-
-              await interaction.client.db.set(storageKey, clanList);
 
               const logChannelId = await interaction.client.db.get(
                 `guild:${interaction.guildId}:clan_log_channel`,
