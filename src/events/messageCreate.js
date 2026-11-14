@@ -90,6 +90,7 @@ async function handlePrefixCommand(message, client) {
     const bareShopMatch = trimmedContent.match(/^bshop$/i);
     const bareTalpakMatch = trimmedContent.match(/^btalpak(?:\s+([\s\S]+))?$/i);
     const bareDepositMatch = trimmedContent.match(/^bdeposit(?:\s+([\s\S]+))?$/i);
+    const bareBdepMatch = trimmedContent.match(/^bdep(?:\s+([\s\S]+))?$/i);
     const bareWithdrawMatch = trimmedContent.match(/^bwithdraw(?:\s+([\s\S]+))?$/i);
     const bareTicTacToeMatch = trimmedContent.match(/^(?:bttt|btictactoe)(?:\s+([\s\S]+))?$/i);
     const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\s+([\s\S]+))?$/i);
@@ -117,8 +118,8 @@ async function handlePrefixCommand(message, client) {
                 ? { commandName: 'shop', args: [] }
                 : bareTalpakMatch
                   ? { commandName: 'btalpak', args: bareTalpakMatch[1] ? bareTalpakMatch[1].trim().split(/\s+/) : [] }
-                  : bareDepositMatch
-            ? { commandName: 'deposit', args: bareDepositMatch[1] ? [bareDepositMatch[1].trim()] : [] }
+                  : (bareDepositMatch || bareBdepMatch)
+            ? { commandName: 'deposit', args: (bareDepositMatch || bareBdepMatch)[1] ? [(bareDepositMatch || bareBdepMatch)[1].trim()] : [] }
             : bareWithdrawMatch
               ? { commandName: 'withdraw', args: bareWithdrawMatch[1] ? [bareWithdrawMatch[1].trim()] : [] }
               : bareTicTacToeMatch
