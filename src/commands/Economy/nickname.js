@@ -48,7 +48,7 @@ export default {
             if (buttonInteraction.customId !== 'barracks_nickname_change') return;
             if (buttonInteraction.user.id !== interaction.user.id) {
                 await buttonInteraction.reply({
-                    content: 'This nickname panel belongs to someone else. Run `b!nickname` to open your own.',
+                    content: 'This nickname panel belongs to someone else. Run `b!nickname panel` to open your own.',
                     flags: [MessageFlags.Ephemeral],
                 });
                 return;
