@@ -12,7 +12,7 @@ function colorOf(number) {
 function parseBet(choice) {
     const value = String(choice || '').trim().toLowerCase();
     if (['red', 'black', 'green'].includes(value)) return { type: value, value };
-    if (/^[0-5]$/.test(value)) {
+    if (/^[0-6]$/.test(value)) {
         return { type: 'number', value: Number(value) };
     }
     return null;
@@ -30,7 +30,7 @@ export default {
         .setName('broulette')
         .setDescription('Play Mini Roulette using your bCash wallet')
         .addStringOption(option => option.setName('amount').setDescription('Amount of bCash to wager').setRequired(true))
-        .addStringOption(option => option.setName('bet').setDescription('red, black, green, or a number from 0 to 5').setRequired(true)),
+        .addStringOption(option => option.setName('bet').setDescription('red, black, green, or a number from 0 to 6').setRequired(true)),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         if (!interaction.inGuild()) {
@@ -46,7 +46,7 @@ export default {
             throw createError('Invalid bet', ErrorTypes.VALIDATION, 'Enter a positive whole-number bCash bet.');
         }
         if (!selection) {
-            throw createError('Invalid roulette bet', ErrorTypes.VALIDATION, 'Choose **red**, **black**, **green**, or a number from **0 to 5**.');
+            throw createError('Invalid roulette bet', ErrorTypes.VALIDATION, 'Choose **red**, **black**, **green**, or a number from **0 to 6**.');
         }
 
         const account = await getEconomyData(client, interaction.guildId, interaction.user.id);
@@ -57,14 +57,14 @@ export default {
 
         await removeMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet');
 
-        const number = Math.floor(Math.random() * 6);
+        const number = Math.floor(Math.random() * 7);
         const resultColor = colorOf(number);
         const won = selection.type === 'number'
             ? number === selection.value
             : selection.type === 'green'
                 ? number === 0
                 : resultColor.toLowerCase() === selection.value;
-        const multiplier = selection.type === 'number' || selection.type === 'green' ? 6 : 2;
+        const multiplier = selection.type === 'number' || selection.type === 'green' ? 7 : 2;
         const payout = won ? bet * multiplier : 0;
 
         const betLabel = selection.type === 'number' ? `number **${selection.value}**` : `**${selection.value.toUpperCase()}**`;
@@ -72,7 +72,7 @@ export default {
             .setColor(0xD4AF37)
             .setTitle('🎰 BARRACKS ROULETTE')
             .setDescription(`<@${interaction.user.id}> placed **₱${bet.toLocaleString()}** on ${betLabel}.\n\n🎡 **The wheel is spinning...**`)
-            .setFooter({ text: 'Mini Roulette • 0–5' });
+            .setFooter({ text: 'Mini Roulette • 0–6' });
 
         await interaction.reply({ embeds: [spinning] });
         await new Promise(resolve => setTimeout(resolve, 1800));
@@ -94,7 +94,7 @@ export default {
                     : `💔 **YOU LOST!**\n**Lost Bet:** ₱${bet.toLocaleString()}`)
             )
             .addFields({ name: '💰 New bCash Balance', value: `₱${newBalance.toLocaleString()}`, inline: true })
-            .setFooter({ text: 'Mini Roulette • 0–5 • Good luck, Soldier!' });
+            .setFooter({ text: 'Mini Roulette • 0–6 • Good luck, Soldier!' });
 
         const reply = await interaction.fetchReply();
         if (reply?.edit) {
