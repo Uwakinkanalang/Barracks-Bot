@@ -5,6 +5,7 @@ import { reconcileReactionRoleMessages } from "../services/reactionRoleService.j
 import { reconcileTicketPanels, reconcileVerificationPanels, reconcileReactionRolePanelHealth } from "../services/panelHealthService.js";
 import { reconcileLevelRoles } from "../services/leveling/levelRoleSyncService.js";
 import { initRiffyAfterReady } from "../services/music/riffySetup.js";
+import { processEvents } from "../commands/Community/event.js";
 
 export default {
   name: Events.ClientReady,
@@ -17,6 +18,9 @@ export default {
       startupLog(`Ready! Logged in as ${client.user.tag}`);
       startupLog(`Serving ${client.guilds.cache.size} guild(s)`);
       startupLog(`Loaded ${client.commands.size} commands`);
+
+      await processEvents(client);
+      setInterval(() => processEvents(client).catch(error => logger.error("Event scheduler failed:", error)), 30_000);
 
       if (client.config?.features?.music) {
         initRiffyAfterReady(client);
