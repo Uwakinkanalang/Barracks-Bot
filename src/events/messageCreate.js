@@ -95,6 +95,7 @@ async function handlePrefixCommand(message, client) {
     const bareBwithMatch = trimmedContent.match(/^bwith(?:\s+([\s\S]+))?$/i);
     const bareTicTacToeMatch = trimmedContent.match(/^(?:bttt|btictactoe)(?:\s+([\s\S]+))?$/i);
     const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\s+([\s\S]+))?$/i);
+    const bareRouletteMatch = trimmedContent.match(/^broulette(?:\s+([\s\S]+))?$/i);
     const parsed = bareBgiveMatch
       ? (() => {
           const parts = bareBgiveMatch[1] ? bareBgiveMatch[1].trim().split(/\s+/) : [];
@@ -125,6 +126,8 @@ async function handlePrefixCommand(message, client) {
               ? { commandName: 'withdraw', args: (bareWithdrawMatch || bareBwithMatch)[1] ? [(bareWithdrawMatch || bareBwithMatch)[1].trim()] : [] }
               : bareTicTacToeMatch
                 ? { commandName: 'tictactoe', args: bareTicTacToeMatch[1] ? bareTicTacToeMatch[1].trim().split(/\s+/) : [] }
+              : bareRouletteMatch
+              ? { commandName: 'broulette', args: bareRouletteMatch[1] ? bareRouletteMatch[1].trim().split(/\s+/) : [] }
               : bareCoinFlipMatch
               ? (() => {
                   const parts = bareCoinFlipMatch[1] ? bareCoinFlipMatch[1].trim().split(/\s+/) : [];
