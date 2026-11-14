@@ -31,16 +31,16 @@ export default {
         });
       }
 
-      // These department roles must not trigger automatic rank/clan nickname changes.
-      const nicknameIgnoredRoleIds = new Set([
-        '1557783753982480445', // CCL
-        '1557784202844446750', // SysOps
-        '1557784505362677892', // Personal Management
-        '1557784711072579706', // Festivities
-        '1557784915876257957', // Public Relation
-        '1557785136462831766', // Legal Affairs
-        '1557785381213311027', // Digital Athletics
-      ]);
+      // Department role prefixes take priority over clan and rank nickname formats.
+      const departmentNicknamePrefixes = [
+        { roleId: '1557783753982480445', prefix: '🍋|' }, // CCL
+        { roleId: '1557784202844446750', prefix: '☕|' }, // SysOps
+        { roleId: '1557784505362677892', prefix: '💼|' }, // Personal Management
+        { roleId: '1557784711072579706', prefix: '🍎|' }, // Festivities
+        { roleId: '1557784915876257957', prefix: '🥒|' }, // Public Relation
+        { roleId: '1557785136462831766', prefix: '⚖|' }, // Legal Affairs
+        { roleId: '1557785381213311027', prefix: '🥥|' }, // Digital Athletics
+      ];
 
       const oldRoleIds = new Set(oldMember.roles.cache.keys());
       const newRoleIds = new Set(newMember.roles.cache.keys());
@@ -49,12 +49,9 @@ export default {
         ...[...newRoleIds].filter((roleId) => !oldRoleIds.has(roleId)),
       ]);
       const roleSetChanged = changedRoleIds.size > 0;
-      const nicknameRelevantRoleChange = [...changedRoleIds].some(
-        (roleId) => !nicknameIgnoredRoleIds.has(roleId),
-      );
 
-      // Only role changes outside the ignored department roles can trigger nickname updates.
-      if (roleSetChanged && nicknameRelevantRoleChange && !newMember.user.bot) {
+      // Department role grants/removals now trigger their own nickname format.
+      if (roleSetChanged && !newMember.user.bot) {
         try {
           const levelingConfig = await getLevelingConfig(newMember.client, newMember.guild.id);
           const rankRewards = Object.entries(levelingConfig.roleRewards || {})
@@ -98,8 +95,15 @@ export default {
           );
 
           const joinedClan = Boolean(memberClan && !oldMember.roles.cache.has(memberClan.roleId));
-          if (!memberClan || joinedClan) {
+          const departmentRole = departmentNicknamePrefixes.find(({ roleId }) =>
+            newMember.roles.cache.has(roleId)
+          );
+          const joinedDepartment = Boolean(departmentRole && !oldMember.roles.cache.has(departmentRole.roleId));
+          if (departmentRole || !memberClan || joinedClan || joinedDepartment) {
             let baseName = newMember.displayName;
+            const knownDepartmentPrefixes = departmentNicknamePrefixes
+              .map(({ prefix }) => prefix)
+              .sort((a, b) => b.length - a.length);
             const knownRankPrefixes = Object.values(rankPrefixes).sort((a, b) => b.length - a.length);
             const knownRankNames = rankRewards
               .map(({ roleId }) => newMember.guild.roles.cache.get(roleId)?.name)
@@ -112,6 +116,12 @@ export default {
               while (changed) {
                 changed = false;
                 result = result.replace(/^🔫\\s*/u, '');
+                const departmentPrefix = knownDepartmentPrefixes.find((item) => result.startsWith(item));
+                if (departmentPrefix) {
+                  result = result.slice(departmentPrefix.length).trimStart();
+                  changed = true;
+                  continue;
+                }
                 const prefix = knownRankPrefixes.find((item) => result.startsWith(item));
                 if (prefix) {
                   result = result.slice(prefix.length).trimStart();
@@ -160,19 +170,23 @@ export default {
               : baseName.trimStart();
 
             const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
-            const desiredNickname = memberClan
-              ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
-              : `🔫${nicknameBody}`.slice(0, 32);
+            const desiredNickname = departmentRole
+              ? `${departmentRole.prefix} ${baseName.trimStart()}`.slice(0, 32)
+              : memberClan
+                ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
+                : `🔫${nicknameBody}`.slice(0, 32);
 
             if (newMember.nickname !== desiredNickname) {
               await newMember.setNickname(
                 desiredNickname,
-                memberClan
-                  ? 'Apply clan tag when member joins an approved clan'
-                  : 'Apply automatic rank nickname for a non-clan member',
+                departmentRole
+                  ? `Apply ${departmentRole.prefix} nickname for department role`
+                  : memberClan
+                    ? 'Apply clan tag when member joins an approved clan'
+                    : 'Apply automatic rank nickname for a non-clan member',
               );
               logger.info(
-                `[RANK_NICKNAME] Updated ${newMember.user.tag} to ${desiredNickname}`,
+                `[AUTO_NICKNAME] Updated ${newMember.user.tag} to ${desiredNickname}`,
               );
             }
           }
