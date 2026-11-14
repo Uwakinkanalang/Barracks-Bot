@@ -13,8 +13,53 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 
 const NICKNAME_CHANGE_PRICE = 500000;
 
-function applyClanPrefix(requestedNickname) {
-    return `★| ${requestedNickname}`;
+const DEPARTMENT_PREFIXES = [
+    ['1557783753982480445', '🍋| '],
+    ['1557784202844446750', '☕| '],
+    ['1557784505362677892', '💼| '],
+    ['1557784711072579706', '🍎| '],
+    ['1557784915876257957', '🥒| '],
+    ['1557785136462831766', '⚖| '],
+    ['1557785381213311027', '🥥| '],
+];
+
+const RANK_PREFIXES = [
+    ['1467461731998761096', '🔫ᴾʳⁱᵛᵃᵗᵉ '],
+    ['1467461918792089784', '🔫ᶜᵒʳᵖᵒʳᵃˡ '],
+    ['1467461953340444677', '🔫ˢᵉʳᵍᵉᵃⁿᵗ '],
+    ['1540715496637333564', '🔫ᶜᵃᵖᵗᵃⁱⁿ '],
+    ['1467462639759396865', '🔫ᴸⁱᵉᵘᵗᵉⁿᵃⁿᵗ '],
+    ['1467462740024098983', '🔫ᴹᵃʲᵒʳ '],
+    ['1467462823457063067', '🔫ᶜᵒˡᵒⁿᵉˡ '],
+    ['1467462861822627912', '🔫ᴳᵉⁿᵉʳᵃˡ '],
+];
+
+async function getNicknamePrefix(member, client, guildId) {
+    // Department roles always take priority.
+    const department = DEPARTMENT_PREFIXES.find(([roleId]) => member.roles.cache.has(roleId));
+    if (department) return department[1];
+
+    // Clan registry stores each clan's tag and the role created after approval.
+    const clans = await client.db.get(`guild:${guildId}:clans`, []);
+    if (Array.isArray(clans)) {
+        const clan = clans.find(entry =>
+            entry.status === 'approved' &&
+            entry.roleId &&
+            member.roles.cache.has(entry.roleId) &&
+            (entry.leaderId === member.id ||
+                entry.viceLeaderId === member.id ||
+                (Array.isArray(entry.memberIds) && entry.memberIds.includes(member.id)))
+        );
+        if (clan?.tag) return `${clan.tag} `;
+    }
+
+    // Rank roles are ordered lowest to highest; choose only the highest held rank.
+    for (let index = RANK_PREFIXES.length - 1; index >= 0; index--) {
+        const [roleId, prefix] = RANK_PREFIXES[index];
+        if (member.roles.cache.has(roleId)) return prefix;
+    }
+
+    return '';
 }
 
 export default {
@@ -43,8 +88,6 @@ export default {
                 .setStyle(ButtonStyle.Primary)
         );
 
-        // This is a prefix-only command. Send the panel directly to the channel
-        // instead of relying on the mock interaction reply/fetchReply adapter.
         const panelMessage = await interaction.channel.send({ embeds: [embed], components: [row] });
         const collector = panelMessage.createMessageComponentCollector({ time: 300000 });
 
@@ -56,11 +99,11 @@ export default {
 
             const nicknameInput = new TextInputBuilder()
                 .setCustomId('nickname')
-                .setLabel('Enter your new nickname')
-                .setPlaceholder('Your new nickname (★| will be added automatically)')
+                .setLabel('Enter your display name')
+                .setPlaceholder('Your display name (role prefix is added automatically)')
                 .setStyle(TextInputStyle.Short)
                 .setMinLength(1)
-                .setMaxLength(29)
+                .setMaxLength(32)
                 .setRequired(true);
 
             modal.addComponents(new ActionRowBuilder().addComponents(nicknameInput));
@@ -75,9 +118,9 @@ export default {
                 });
 
                 const requestedNickname = submitted.fields.getTextInputValue('nickname').trim();
-                if (!requestedNickname || requestedNickname.length > 29) {
+                if (!requestedNickname) {
                     await submitted.reply({
-                        content: 'Please enter a nickname between 1 and 29 characters. The ★| prefix is added automatically.',
+                        content: 'Please enter a display name.',
                         flags: [MessageFlags.Ephemeral],
                     });
                     return;
@@ -92,16 +135,19 @@ export default {
                     return;
                 }
 
-                const newNickname = applyClanPrefix(requestedNickname);
+                const client = interaction.client || interaction.guild.client;
+                const prefix = await getNicknamePrefix(member, client, interaction.guildId);
+                const newNickname = `${prefix}${requestedNickname}`;
                 if (newNickname.length > 32) {
+                    const maxNameLength = Math.max(0, 32 - prefix.length);
                     await submitted.reply({
-                        content: `The ★| prefix makes your nickname exceed Discord's 32-character limit. Please enter a shorter nickname.`,
+                        content: `Your role prefix leaves room for only ${maxNameLength} more characters. Please shorten your display name.`,
                         flags: [MessageFlags.Ephemeral],
                     });
                     return;
                 }
 
-                const userData = await getEconomyData(interaction.client || interaction.guild.client, interaction.guildId, submitted.user.id);
+                const userData = await getEconomyData(client, interaction.guildId, submitted.user.id);
                 if (!userData || userData.wallet < NICKNAME_CHANGE_PRICE) {
                     const balance = Number(userData?.wallet) || 0;
                     await submitted.reply({
@@ -122,7 +168,7 @@ export default {
                 }
 
                 userData.wallet -= NICKNAME_CHANGE_PRICE;
-                const saved = await setEconomyData(interaction.client || interaction.guild.client, interaction.guildId, submitted.user.id, userData);
+                const saved = await setEconomyData(client, interaction.guildId, submitted.user.id, userData);
                 if (!saved) {
                     await submitted.reply({
                         content: 'Your nickname was changed, but the payment could not be saved. Please contact a server administrator.',
