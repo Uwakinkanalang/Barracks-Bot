@@ -1,38 +1,15 @@
 import { logger } from '../../utils/logger.js';
-import { getLevelingConfig, getUserLevelData, saveLevelingConfig } from './leveling.js';
+import { getLevelingConfig, saveLevelingConfig } from './leveling.js';
 
-import { getUserLevelPrefix } from '../../utils/database/keys.js';
-
-async function listLevelUserIds(client, guildId) {
-    if (!client.db?.list) return [];
-
-    const prefixes = [getUserLevelPrefix(guildId), `${guildId}:leveling:users:`];
-    const userIds = new Set();
-
-    for (const prefix of prefixes) {
-        let keys = await client.db.list(prefix).catch(() => []);
-        if (!Array.isArray(keys)) {
-            keys = typeof keys === 'object' && keys !== null ? Object.keys(keys) : [];
-        }
-
-        for (const key of keys) {
-            if (!key.startsWith(prefix)) continue;
-            const userId = key.slice(prefix.length);
-            if (/^\d{17,19}$/.test(userId)) userIds.add(userId);
-        }
-    }
-
-    return [...userIds];
-}
-
-async function tryAwardRole(member, roleId, level) {
-    const role = member.guild.roles.cache.get(roleId) || (await member.guild.roles.fetch(roleId).catch(() => null));
-    if (!role || member.roles.cache.has(roleId)) return false;
-
-    await member.roles.add(role, `Level ${level} reward (startup sync)`);
-    return true;
-}
-
+/**
+ * Validate configured rank reward roles on startup.
+ *
+ * Important: do not add or remove member roles here. Startup reconciliation
+ * used to remove every rank below the member's calculated highest rank. That
+ * could unexpectedly strip roles after a restart or after leveling data was
+ * migrated/changed. Rank promotion cleanup is handled only when a new reward
+ * is actually earned in xpSystem.js.
+ */
 export async function reconcileLevelRoles(client, guildId = null) {
     const summary = {
         scannedGuilds: 0,
@@ -53,13 +30,13 @@ export async function reconcileLevelRoles(client, guildId = null) {
             if (cfg.enabled === false) continue;
 
             const rewards = { ...(cfg.roleRewards || {}) };
-            if (Object.keys(rewards).length === 0) continue;
-
             let configChanged = false;
 
             for (const [level, roleId] of Object.entries(rewards)) {
                 const role =
-                    guild.roles.cache.get(roleId) || (await guild.roles.fetch(roleId).catch(() => null));
+                    guild.roles.cache.get(roleId) ||
+                    (await guild.roles.fetch(roleId).catch(() => null));
+
                 if (!role) {
                     delete rewards[level];
                     configChanged = true;
@@ -74,48 +51,9 @@ export async function reconcileLevelRoles(client, guildId = null) {
                 cfg.roleRewards = rewards;
                 await saveLevelingConfig(client, guild.id, cfg);
             }
-
-            if (Object.keys(rewards).length === 0) continue;
-
-            const userIds = await listLevelUserIds(client, guild.id);
-
-            for (const userId of userIds) {
-                const levelData = await getUserLevelData(client, guild.id, userId);
-                const member = await guild.members.fetch(userId).catch(() => null);
-                if (!member) continue;
-
-                // Keep only the highest rank the member has earned, and clean up
-                // duplicate/older rank roles left by previous versions of the bot.
-                const earnedRanks = Object.entries(rewards)
-                    .map(([levelStr, roleId]) => ({ level: Number(levelStr), roleId }))
-                    .filter(({ level }) => Number.isFinite(level) && level <= levelData.level)
-                    .sort((a, b) => b.level - a.level);
-                const highestRank = earnedRanks[0] || null;
-                const rankRoleIds = [...new Set(Object.values(rewards))];
-                const staleRankRoleIds = rankRoleIds.filter(
-                    (roleId) => roleId !== highestRank?.roleId && member.roles.cache.has(roleId),
-                );
-
-                try {
-                    if (staleRankRoleIds.length) {
-                        await member.roles.remove(staleRankRoleIds, 'Level rank reconciliation: keep highest earned rank');
-                    }
-
-                    if (highestRank) {
-                        const awarded = await tryAwardRole(member, highestRank.roleId, highestRank.level);
-                        if (awarded) summary.rolesReAwarded += 1;
-                    }
-                } catch (awardError) {
-                    summary.errors += 1;
-                    logger.warn(
-                        `Could not reconcile highest rank for ${userId} in guild ${guild.id}:`,
-                        awardError.message,
-                    );
-                }
-            }
         } catch (error) {
             summary.errors += 1;
-            logger.warn(`Level role sync failed for guild ${guild.id}:`, error.message);
+            logger.warn(`Level role validation failed for guild ${guild.id}:`, error.message);
         }
     }
 
