@@ -49,6 +49,25 @@ async function handlePrefixCommand(message, client) {
     const guildConfig = await getGuildConfig(client, message.guild.id);
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
+
+    // Dedicated entry point for the paid nickname panel. Keep this ahead of
+    // category/command-access gates so the panel is always reachable by prefix.
+    if (/^b!nickname$/i.test(trimmedContent)) {
+      const nicknameCommand = client.commands.get('nickname');
+      if (!nicknameCommand?.execute) {
+        logger.error('Nickname panel command is not loaded.');
+        await message.channel.send('❌ The nickname panel is temporarily unavailable. Please contact an administrator.');
+        return;
+      }
+      await nicknameCommand.execute({
+        channel: message.channel,
+        user: message.author,
+        client,
+        guild: message.guild,
+        guildId: message.guild.id,
+      });
+      return;
+    }
     if (/^bclan\s+panel$/i.test(trimmedContent)) {
       if (!message.member?.permissions?.has('ManageGuild')) {
         await message.reply('❌ Only members with **Manage Server** permission can post the Clan Registration Panel.');
