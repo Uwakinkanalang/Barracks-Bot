@@ -314,9 +314,10 @@ export default {
               .setTitle('Create Your Clan')
               .addLabelComponents(
                 new LabelBuilder()
-                  .setLabel('Clan Name')
+                  .setLabel('Clan Name (Emoji/Symbol First)')
+                  .setDescription('Start with an emoji or symbol, followed by your clan name. Example: ⚔️ Barracks')
                   .setTextInputComponent(
-                    new TextInputBuilder().setCustomId('clan_name').setStyle(TextInputStyle.Short).setMinLength(3).setMaxLength(32).setRequired(true)
+                    new TextInputBuilder().setCustomId('clan_name').setStyle(TextInputStyle.Short).setPlaceholder('⚔️ Barracks').setMinLength(4).setMaxLength(32).setRequired(true)
                   ),
                 new LabelBuilder()
                   .setLabel('Clan Tag | Role Hex')
@@ -628,8 +629,12 @@ export default {
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
             const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\d{17,20})>?$/)?.[1];
 
-            if (!/^[a-zA-Z0-9 _-]{3,32}$/.test(name)) {
-              await interaction.reply({ content: 'Clan name must be 3–32 characters and use only letters, numbers, spaces, _ or -.', flags: MessageFlags.Ephemeral });
+            const nameSegments = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(name)];
+            const leadingMark = nameSegments[0]?.segment || '';
+            const clanNameText = nameSegments.slice(1).map(segment => segment.segment).join('').trim();
+            const startsWithEmojiOrSymbol = /^[\\p{Extended_Pictographic}\\p{S}\\p{P}]/u.test(leadingMark);
+            if (!startsWithEmojiOrSymbol || !/^[a-zA-Z0-9 _-]{3,31}$/.test(clanNameText) || name.length > 32) {
+              await interaction.reply({ content: 'Clan name must start with an emoji or symbol, followed by 3–31 characters using only letters, numbers, spaces, _ or -. Example: **⚔️ Barracks** (total 4–32 characters).', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!tagHexMatch || !validTag || !tag || !roleHex) {
