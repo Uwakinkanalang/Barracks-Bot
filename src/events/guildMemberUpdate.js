@@ -71,7 +71,7 @@ export default {
         try {
           let baseName = newMember.nickname || newMember.user.globalName || newMember.user.username;
           // Strip the previous pistol/rank prefix, including older superscript spellings.
-          baseName = baseName.replace(/^🔫\\S+\\s*/u, '').trimStart();
+          baseName = baseName.replace(/^🔫\S+\s*/u, '').trimStart();
           const nextPrefix = await getNicknamePrefix(newMember, newMember.client, newMember.guild.id);
           const desiredNickname = `${nextPrefix}${baseName}`.slice(0, 32);
           if (newMember.nickname !== desiredNickname) {
