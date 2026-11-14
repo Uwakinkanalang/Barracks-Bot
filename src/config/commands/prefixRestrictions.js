@@ -56,7 +56,7 @@ function isSubcommandBlocked(commandName, subcommandName) {
     return false;
   }
 
-  if (GLOBAL_BLOCKED_SUBCOMMANDS.has(subcommandName)) {
+  if (GLOBAL_BLOCKED_SUBCOMMANDS.has(subcommandName) && !(commandName === 'bcount' && subcommandName === 'setup')) {
     return true;
   }
 
