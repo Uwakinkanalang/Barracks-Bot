@@ -89,15 +89,13 @@ export default {
         );
 
         const embed = successEmbed(
-            'BCash Sent Successfully!',
-            `You sent **₱${amount.toLocaleString()} BCash** to <@${receiver.id}>.`
-        ).addFields(
-            {
-                name: '💸 Amount Sent',
-                value: `₱${amount.toLocaleString()}`,
-                inline: true
-            },
-        ).setFooter({
+            'BCash Transfer',
+            `<@${senderId}> gave BCash to <@${receiver.id}>.`
+        ).addFields({
+            name: '💸 Amount Sent',
+            value: `₱${amount.toLocaleString()}`,
+            inline: true
+        }).setFooter({
             text: `Sent to ${receiver.username}`,
             iconURL: receiver.displayAvatarURL?.()
         });
