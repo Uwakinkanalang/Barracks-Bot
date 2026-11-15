@@ -1,9 +1,72 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { isBotOwner } from '../../config/bot.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { getAFKKey } from '../../utils/database.js';
+import { logger } from '../../utils/logger.js';
 
 const CONFIG_KEY = (guildId) => `guild:${guildId}:autonick_roles`;
 const normalize = (items) => (Array.isArray(items) ? items : []).filter((x) => x && typeof x.roleId === 'string' && typeof x.prefix === 'string').map((x) => ({ roleId: x.roleId, prefix: x.prefix, priority: Number(x.priority) || 0 })).sort((a, b) => b.priority - a.priority);
+
+async function refreshGuildAutoNick(guild, configs, prefixesToStrip = configs.map(entry => entry.prefix)) {
+  const client = guild.client;
+  const members = await guild.members.fetch();
+  const prefixes = [...new Set(prefixesToStrip.map(value => String(value || '').trim()).filter(Boolean))]
+    .sort((a, b) => b.length - a.length);
+  let updated = 0;
+  let failed = 0;
+
+  for (const member of members.values()) {
+    if (member.user.bot) continue;
+    const stateKey = `guild:${guild.id}:autonick_member:${member.id}`;
+    const state = await client.db.get(stateKey, null);
+    const active = configs.find(entry => member.roles.cache.has(entry.roleId));
+
+    // Prefer the persisted unprefixed nickname. For legacy members, remove any
+    // configured prefix repeatedly before establishing the base nickname.
+    let base = typeof state?.originalNickname === 'string'
+      ? state.originalNickname
+      : (member.nickname ?? member.user.globalName ?? member.user.username);
+    base = String(base).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+    let matched;
+    do {
+      matched = prefixes.find(prefix => base.startsWith(prefix));
+      if (matched) base = base.slice(matched.length).trimStart();
+    } while (matched);
+    if (!base.trim()) base = member.user.globalName || member.user.username;
+
+    let desired;
+    if (active) {
+      await client.db.set(stateKey, { originalNickname: base, savedAt: state?.savedAt || Date.now() });
+      desired = `${active.prefix.trim()} ${base}`.slice(0, 32);
+    } else if (state) {
+      desired = base || null;
+      await client.db.delete(stateKey).catch(() => {});
+    } else {
+      continue;
+    }
+
+    const afkKey = getAFKKey(guild.id, member.id);
+    const afk = await client.db.get(afkKey, null);
+    if (afk) {
+      afk.originalNickname = desired;
+      afk.afkNickname = desired ? `[AFK] ${desired}`.slice(0, 32) : null;
+      await client.db.set(afkKey, afk);
+      desired = afk.afkNickname;
+    }
+
+    if (member.nickname !== desired) {
+      try {
+        await member.setNickname(desired, 'Refresh configured AutoNick priority and prefix');
+        updated += 1;
+      } catch (error) {
+        failed += 1;
+        logger.warn(`[AUTO_NICKNAME] Could not refresh ${member.user.tag}: ${error.message}`);
+      }
+    }
+  }
+
+  return { updated, failed, checked: members.size };
+}
 
 export default {
   data: new SlashCommandBuilder().setName('autonick').setDescription('Configure automatic nickname prefixes for Barracks roles')
@@ -26,9 +89,12 @@ export default {
       if (!prefix) return InteractionHelper.safeEditReply(interaction, { content: 'Prefix cannot be empty.' });
       if (role.id === guild.id || role.managed || role.position >= (guild.members.me?.roles.highest.position ?? 0)) return InteractionHelper.safeEditReply(interaction, { content: 'I cannot manage that role. Choose a normal role below my highest role.' });
       if (entries.some(x => x.roleId === role.id)) return InteractionHelper.safeEditReply(interaction, { content: `${role} is already configured. Use /autonick edit to change it.` });
+      const previousConfigs = entries.slice();
       entries.push({ roleId: role.id, prefix, priority });
-      await client.db.set(CONFIG_KEY(guild.id), normalize(entries));
-      return InteractionHelper.safeEditReply(interaction, { content: `✅ Added ${role} with prefix **${prefix}** and priority **${priority}**.` });
+      const updatedConfigs = normalize(entries);
+      await client.db.set(CONFIG_KEY(guild.id), updatedConfigs);
+      const result = await refreshGuildAutoNick(guild, updatedConfigs, [...previousConfigs.map(x => x.prefix), ...updatedConfigs.map(x => x.prefix)]);
+      return InteractionHelper.safeEditReply(interaction, { content: `✅ Added ${role} with prefix **${prefix}** and priority **${priority}**. Refreshed ${result.updated} member(s)${result.failed ? `; ${result.failed} failed due to nickname permissions` : ''}.` });
     }
     if (sub === 'edit') {
       const index = entries.findIndex(x => x.roleId === role.id);
@@ -36,16 +102,21 @@ export default {
       const prefix = interaction.options.getString('prefix');
       const priority = interaction.options.getInteger('priority');
       if (prefix === null && priority === null) return InteractionHelper.safeEditReply(interaction, { content: 'Provide a new prefix, priority, or both.' });
+      const previousConfigs = entries.map(entry => ({ ...entry }));
       if (prefix !== null) { if (!prefix.trim()) return InteractionHelper.safeEditReply(interaction, { content: 'Prefix cannot be empty.' }); entries[index].prefix = prefix.trim(); }
       if (priority !== null) entries[index].priority = priority;
-      await client.db.set(CONFIG_KEY(guild.id), normalize(entries));
-      return InteractionHelper.safeEditReply(interaction, { content: `✅ Updated ${role}: prefix **${entries[index].prefix}**, priority **${entries[index].priority}**.` });
+      const updatedConfigs = normalize(entries);
+      await client.db.set(CONFIG_KEY(guild.id), updatedConfigs);
+      const result = await refreshGuildAutoNick(guild, updatedConfigs, [...previousConfigs.map(x => x.prefix), ...updatedConfigs.map(x => x.prefix)]);
+      const updatedEntry = updatedConfigs.find(entry => entry.roleId === role.id);
+      return InteractionHelper.safeEditReply(interaction, { content: `✅ Updated ${role}: prefix **${updatedEntry.prefix}**, priority **${updatedEntry.priority}**. Refreshed ${result.updated} member(s)${result.failed ? `; ${result.failed} failed due to nickname permissions` : ''}.` });
     }
     if (sub === 'remove') {
       const updated = entries.filter(x => x.roleId !== role.id);
       if (updated.length === entries.length) return InteractionHelper.safeEditReply(interaction, { content: `${role} is not configured in AutoNick.` });
       await client.db.set(CONFIG_KEY(guild.id), updated);
-      return InteractionHelper.safeEditReply(interaction, { content: `✅ Removed ${role} from AutoNick. Members will be recalculated the next time their roles change.` });
+      const result = await refreshGuildAutoNick(guild, updated, entries.map(x => x.prefix));
+      return InteractionHelper.safeEditReply(interaction, { content: `✅ Removed ${role} from AutoNick. Refreshed ${result.updated} member(s)${result.failed ? `; ${result.failed} failed due to nickname permissions` : ''}.` });
     }
     if (!entries.length) return InteractionHelper.safeEditReply(interaction, { content: 'No AutoNick roles configured. Use /autonick add first.' });
     const rows = entries.map((x, i) => `**${i + 1}.** ${guild.roles.cache.get(x.roleId) || `Deleted role (${x.roleId})`} — prefix **${x.prefix}** — priority **${x.priority}**`);
