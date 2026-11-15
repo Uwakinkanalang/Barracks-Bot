@@ -99,64 +99,7 @@ export default {
       const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
       const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
 
-      // Handle configured AutoNick role changes independently from Barracks rank/clan
-      // formatting so a newly granted AutoNick role always applies its winning prefix.
-      if (changedAutoNickRole && !newMember.user.bot) {
-        const stateKey = `guild:${newMember.guild.id}:autonick_member:${newMember.id}`;
-        const savedState = await newMember.client.db.get(stateKey, null);
-        const winningConfig = autoNickConfigs.find(entry => newMember.roles.cache.has(entry.roleId));
-        const knownPrefixes = autoNickConfigs
-          .map(entry => String(entry.prefix).trim())
-          .filter(Boolean)
-          .sort((a, b) => b.length - a.length);
-
-        let baseName = typeof savedState?.originalNickname === 'string'
-          ? savedState.originalNickname
-          : String(oldMember.nickname ?? oldMember.user.globalName ?? oldMember.user.username);
-        baseName = baseName.replace(/^\\[AFK\\]\\s*/u, '').trimStart();
-
-        let matchedPrefix;
-        do {
-          matchedPrefix = knownPrefixes.find(prefix => baseName.startsWith(prefix));
-          if (matchedPrefix) baseName = baseName.slice(matchedPrefix.length).trimStart();
-        } while (matchedPrefix);
-
-        if (!baseName.trim()) baseName = newMember.user.globalName || newMember.user.username;
-
-        let targetNickname;
-        if (winningConfig) {
-          await newMember.client.db.set(stateKey, {
-            originalNickname: baseName,
-            savedAt: savedState?.savedAt || Date.now(),
-          });
-          targetNickname = `${winningConfig.prefix.trim()} ${baseName}`.slice(0, 32);
-        } else {
-          targetNickname = baseName || null;
-          if (savedState) await newMember.client.db.delete(stateKey).catch(() => {});
-        }
-
-        const afkKey = getAFKKey(newMember.guild.id, newMember.id);
-        const afkStatus = await newMember.client.db.get(afkKey, null);
-        if (afkStatus) {
-          afkStatus.originalNickname = targetNickname;
-          afkStatus.afkNickname = targetNickname ? `[AFK] ${targetNickname}`.slice(0, 32) : null;
-          await newMember.client.db.set(afkKey, afkStatus);
-          targetNickname = afkStatus.afkNickname;
-        }
-
-        if (newMember.nickname !== targetNickname) {
-          await newMember.setNickname(
-            targetNickname,
-            winningConfig
-              ? `Apply highest-priority AutoNick role ${winningConfig.roleId}`
-              : 'Restore nickname after last configured AutoNick role was removed',
-          );
-          logger.info(`[AUTO_NICKNAME] Role change applied for ${newMember.user.tag}: ${targetNickname || '(cleared)'}`);
-        }
-      }
-
-      // Keep the stored base nickname synchronized with manual edits. Strip every
-      // configured AutoNick prefix first, so old saved prefixes cannot accumulate.
+      // Keep the stored base nickname synchronized with manual edits.
       if (
         oldMember.nickname !== newMember.nickname &&
         !roleSetChanged &&
@@ -165,14 +108,14 @@ export default {
       ) {
         const activeAutoNick = autoNickConfigs.find((entry) => newMember.roles.cache.has(entry.roleId));
         if (activeAutoNick) {
-          const stateKey = \`guild:\${newMember.guild.id}:autonick_member:\${newMember.id}\`;
+          const stateKey = `guild:${newMember.guild.id}:autonick_member:${newMember.id}`;
           const currentNickname = String(newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
           const hadAfkMarker = /^\[AFK\]\s*/u.test(currentNickname);
           let baseName = currentNickname.replace(/^\[AFK\]\s*/u, '').trimStart();
           const configuredPrefixes = autoNickConfigs
             .map((entry) => String(entry.prefix).trim())
             .filter(Boolean)
-            .sort((a, b) => b.length - a.length);
+            .sort((x, y) => y.length - x.length);
           let matchedPrefix;
           do {
             matchedPrefix = configuredPrefixes.find((prefix) => baseName.startsWith(prefix));
@@ -180,31 +123,30 @@ export default {
           } while (matchedPrefix);
 
           if (!baseName.trim()) baseName = newMember.user.globalName || newMember.user.username;
-          const activePrefix = String(activeAutoNick.prefix).trim();
-          const state = { originalNickname: baseName, savedAt: Date.now() };
-          await newMember.client.db.set(stateKey, state);
+          await newMember.client.db.set(stateKey, {
+            originalNickname: baseName,
+            savedAt: Date.now(),
+          });
 
-          let desiredNickname = \`\${activePrefix} \${baseName}\`.slice(0, 32);
+          const desiredBase = `${activeAutoNick.prefix.trim()} ${baseName}`.slice(0, 32);
+          let desiredNickname = desiredBase;
           const afkKey = getAFKKey(newMember.guild.id, newMember.id);
           const afkStatus = await newMember.client.db.get(afkKey, null);
           if (afkStatus || hadAfkMarker) {
             const status = afkStatus || {};
-            status.originalNickname = desiredNickname;
-            status.afkNickname = \`[AFK] \${desiredNickname}\`.slice(0, 32);
+            status.originalNickname = desiredBase;
+            status.afkNickname = `[AFK] ${desiredBase}`.slice(0, 32);
             await newMember.client.db.set(afkKey, status);
             desiredNickname = status.afkNickname;
           }
 
           if (newMember.nickname !== desiredNickname) {
-            await newMember.setNickname(
-              desiredNickname,
-              'Synchronize manual nickname with configured AutoNick prefix',
-            );
+            await newMember.setNickname(desiredNickname, 'Save manual nickname and reapply AutoNick prefix');
           }
         }
       }
 
-      if ((isBarracksGuild || changedAutoNickRole) && roleSetChanged && !newMember.user.bot) {
+      if ((isBarracksGuild || changedAutoNickRole || [...changedRoleIds].some((id) => rankRoleIds.includes(id))) && roleSetChanged && !newMember.user.bot) {
         try {
           const levelingConfig = isBarracksGuild
             ? await getLevelingConfig(newMember.client, newMember.guild.id)
