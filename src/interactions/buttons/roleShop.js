@@ -27,10 +27,10 @@ function buildPage(items, guildId, page) {
   const currentPage = Math.min(Math.max(0, page), pageCount - 1);
   const pageItems = items.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   const container = new ContainerBuilder()
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent('# 🛒 Role Shop\nPurchase server roles with your **bCash**!'));
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('# 🛒 B-Shop\nWelcome to the **Barracks B-Shop**! Purchase exclusive server roles with your **bCash**.'));
 
   if (!pageItems.length) {
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('The Role Shop is empty. Ask an administrator to add roles with `/roleshop add`.'));
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('The B-Shop is empty. Ask a Barracks administrator to add roles with `/bshop add`.'));
   } else {
     for (const item of pageItems) {
       container.addSectionComponents(
@@ -61,7 +61,7 @@ export default {
   async execute(interaction, client, args) {
     const [action, guildId, value] = args;
     if (!interaction.guild || interaction.guildId !== guildId) {
-      return interaction.reply({ content: 'This Role Shop button is not valid in this server.', flags: MessageFlags.Ephemeral });
+      return interaction.reply({ content: 'This B-Shop button is not valid in this server.', flags: MessageFlags.Ephemeral });
     }
 
     if (action === 'page') {
@@ -101,7 +101,7 @@ export default {
     }
 
     try {
-      await member.roles.add(role, `Purchased Role Shop role for ${item.price} bCash`);
+      await member.roles.add(role, `Purchased B-Shop role for ${item.price} bCash`);
     } catch (error) {
       return interaction.editReply({ content: 'I could not assign that role. Your bCash was not deducted. Check my Manage Roles permission and role hierarchy.' });
     }
@@ -109,7 +109,7 @@ export default {
     economy.wallet = balance - item.price;
     const saved = await setEconomyData(client, guildId, interaction.user.id, economy);
     if (!saved) {
-      await member.roles.remove(role, 'Role Shop purchase rolled back because wallet save failed').catch(() => {});
+      await member.roles.remove(role, 'B-Shop purchase rolled back because wallet save failed').catch(() => {});
       return interaction.editReply({ content: 'The purchase could not be saved, so the role assignment was rolled back. No bCash was deducted.' });
     }
 
