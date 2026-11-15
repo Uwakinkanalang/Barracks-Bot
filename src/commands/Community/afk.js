@@ -22,6 +22,7 @@ export default {
     const key = getAFKKey(interaction.guildId, interaction.user.id);
     const previous = await interaction.client.db.get(key, null);
     const reason = interaction.options.getString('reason')?.trim() || 'AFK';
+    const isBarracksGuild = Boolean(process.env.GUILD_ID) && interaction.guildId === process.env.GUILD_ID;
     const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
 
     const status = {
@@ -33,7 +34,7 @@ export default {
       afkNickname: previous?.afkNickname ?? null,
     };
 
-    if (member && !status.afkNickname) {
+    if (isBarracksGuild && member && !status.afkNickname) {
       const baseName = member.nickname ?? member.user.globalName ?? member.user.username;
       status.afkNickname = `${AFK_PREFIX}${baseName}`.slice(0, 32);
     }
@@ -42,7 +43,7 @@ export default {
     await interaction.client.db.set(key, status);
 
     let nicknameNote = '';
-    if (member && status.afkNickname && member.nickname !== status.afkNickname) {
+    if (isBarracksGuild && member && status.afkNickname && member.nickname !== status.afkNickname) {
       try {
         await member.setNickname(status.afkNickname, 'Member activated AFK status');
         nicknameNote = '\nYour nickname now shows **[AFK]**.';
