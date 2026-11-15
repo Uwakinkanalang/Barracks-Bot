@@ -13,7 +13,7 @@ export default {
     .addSubcommand(s => s.setName('list').setDescription('List configured AutoNick roles')),
   async execute(interaction) {
     if (!interaction.inGuild()) return interaction.reply({ content: 'Use this command inside the Barracks server.', ephemeral: true });
-    if (!process.env.GUILD_ID || interaction.guildId !== process.env.GUILD_ID) return interaction.reply({ content: 'AutoNick role settings are only available in Barracks.', ephemeral: true });
+    // AutoNick settings are stored per guild, so each server manages its own role prefixes.
     if (!isBotOwner(interaction.user.id)) return interaction.reply({ content: 'Only the bot owner can manage AutoNick settings.', ephemeral: true });
     await InteractionHelper.safeDefer(interaction);
     const { guild, client } = interaction;
