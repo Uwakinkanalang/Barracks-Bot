@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.js';
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
 import { getLevelingConfig } from '../services/leveling/leveling.js';
 import { getNicknamePrefix } from '../commands/Economy/nickname.js';
+import { getAFKKey } from '../utils/database.js';
 
 export default {
   name: Events.GuildMemberUpdate,
@@ -223,7 +224,7 @@ export default {
               : baseName.trimStart();
 
             const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
-            const desiredNickname = activeAutoNick
+            let desiredNickname = activeAutoNick
               ? `${String(activeAutoNick.prefix).trim()} ${baseName.trimStart()}`.slice(0, 32)
               : departmentRole
                 ? `${departmentRole.prefix} ${baseName.trimStart()}`.slice(0, 32)
@@ -232,6 +233,16 @@ export default {
                   : rankDisplayName
                     ? `🔫${nicknameBody}`.slice(0, 32)
                     : baseName.trimStart().slice(0, 32);
+
+            // Keep the AFK marker while refreshing the underlying nickname format.
+            const afkKey = getAFKKey(newMember.guild.id, newMember.id);
+            const afkStatus = await newMember.client.db.get(afkKey, null);
+            if (afkStatus) {
+              afkStatus.originalNickname = desiredNickname;
+              afkStatus.afkNickname = `[AFK] ${desiredNickname}`.slice(0, 32);
+              await newMember.client.db.set(afkKey, afkStatus);
+              desiredNickname = afkStatus.afkNickname;
+            }
 
             if (newMember.nickname !== desiredNickname) {
               await newMember.setNickname(
