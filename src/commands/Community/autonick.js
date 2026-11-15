@@ -3,7 +3,6 @@ import { isBotOwner } from '../../config/bot.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const CONFIG_KEY = (guildId) => `guild:${guildId}:autonick_roles`;
-const DEPARTMENT_ROLE_IDS = new Set(["1557783753982480445","1557784202844446750","1557784505362677892","1557784711072579706","1557784915876257957","1557785136462831766","1557785381213311027","1558672931272269834"]);
 const normalize = (items) => (Array.isArray(items) ? items : []).filter((x) => x && typeof x.roleId === 'string' && typeof x.prefix === 'string').map((x) => ({ roleId: x.roleId, prefix: x.prefix, priority: Number(x.priority) || 0 })).sort((a, b) => b.priority - a.priority);
 
 export default {
@@ -19,14 +18,9 @@ export default {
     await InteractionHelper.safeDefer(interaction);
     const { guild, client } = interaction;
     const sub = interaction.options.getSubcommand();
-    const storedEntries = normalize(await client.db.get(CONFIG_KEY(guild.id), []));
-    const entries = storedEntries.filter((entry) => !DEPARTMENT_ROLE_IDS.has(entry.roleId));
-    if (entries.length !== storedEntries.length) {
-      await client.db.set(CONFIG_KEY(guild.id), entries);
-    }
+    const entries = normalize(await client.db.get(CONFIG_KEY(guild.id), []));
     const role = interaction.options.getRole('role');
     if (sub === 'add') {
-      if (DEPARTMENT_ROLE_IDS.has(role.id)) return InteractionHelper.safeEditReply(interaction, { content: 'Departmental roles cannot be configured for AutoNick. Their department nickname prefix is handled automatically.' });
       const prefix = interaction.options.getString('prefix').trim();
       const priority = interaction.options.getInteger('priority');
       if (!prefix) return InteractionHelper.safeEditReply(interaction, { content: 'Prefix cannot be empty.' });
@@ -37,7 +31,6 @@ export default {
       return InteractionHelper.safeEditReply(interaction, { content: `✅ Added ${role} with prefix **${prefix}** and priority **${priority}**.` });
     }
     if (sub === 'edit') {
-      if (DEPARTMENT_ROLE_IDS.has(role.id)) return InteractionHelper.safeEditReply(interaction, { content: 'Departmental roles cannot be configured for AutoNick. Their department nickname prefix is handled automatically.' });
       const index = entries.findIndex(x => x.roleId === role.id);
       if (index < 0) return InteractionHelper.safeEditReply(interaction, { content: `${role} is not configured. Use /autonick add first.` });
       const prefix = interaction.options.getString('prefix');
