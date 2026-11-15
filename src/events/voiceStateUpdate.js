@@ -10,6 +10,7 @@ import { sanitizeInput } from '../utils/validation.js';
 import { logger } from '../utils/logger.js';
 import { handleMusicVoiceState } from '../services/music/musicVoiceState.js';
 import { addXp } from '../services/leveling/xpSystem.js';
+import { getAFKKey } from '../utils/database.js';
 
 const channelCreationCooldown = new Map();
 const VOICE_CREATE_COOLDOWN_MS = 2000;
@@ -22,6 +23,66 @@ const MAX_TRACKED_COOLDOWNS = 10000;
 const VOICE_XP_PER_MINUTE = 5;
 const VOICE_XP_INTERVAL_MS = 60_000;
 const voiceXpClients = new Set();
+
+async function refreshAutoNickOnVoiceJoin(member) {
+    if (!member?.guild || member.user.bot) return;
+
+    const guildId = member.guild.id;
+    const configsRaw = await member.client.db.get(`guild:${guildId}:autonick_roles`, []);
+    const configs = (Array.isArray(configsRaw) ? configsRaw : [])
+        .filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
+        .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
+
+    if (configs.length === 0) return;
+
+    const activeConfig = configs.find(entry => member.roles.cache.has(entry.roleId));
+    if (!activeConfig) return;
+
+    const stateKey = `guild:${guildId}:autonick_member:${member.id}`;
+    let state = await member.client.db.get(stateKey, null);
+    let baseName = state && typeof state.originalNickname === 'string'
+        ? state.originalNickname
+        : (member.nickname ?? member.user.globalName ?? member.user.username);
+
+    baseName = String(baseName).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+
+    // Repair old prefixed nicknames only when no persistent base nickname exists.
+    if (!state) {
+        const prefixes = configs
+            .map(entry => String(entry.prefix).trim())
+            .filter(Boolean)
+            .sort((a, b) => b.length - a.length);
+        let matchedPrefix;
+        do {
+            matchedPrefix = prefixes.find(prefix => baseName.startsWith(prefix));
+            if (matchedPrefix) baseName = baseName.slice(matchedPrefix.length).trimStart();
+        } while (matchedPrefix);
+
+        if (!baseName.trim()) {
+            baseName = member.user.globalName || member.user.username;
+        }
+        state = { originalNickname: baseName, savedAt: Date.now() };
+        await member.client.db.set(stateKey, state);
+    }
+
+    const desiredNickname = `${String(activeConfig.prefix).trim()} ${baseName.trimStart()}`.slice(0, 32);
+    const afkKey = getAFKKey(guildId, member.id);
+    const afkStatus = await member.client.db.get(afkKey, null);
+    let finalNickname = desiredNickname;
+
+    if (afkStatus) {
+        afkStatus.originalNickname = desiredNickname;
+        afkStatus.afkNickname = `[AFK] ${desiredNickname}`.slice(0, 32);
+        await member.client.db.set(afkKey, afkStatus);
+        finalNickname = afkStatus.afkNickname;
+    }
+
+    if (member.nickname !== finalNickname) {
+        await member.setNickname(finalNickname, `Reapply highest-priority AutoNick role (${activeConfig.roleId}) on voice join`);
+        logger.info(`[AUTO_NICKNAME] Refreshed ${member.user.tag} on voice join: ${finalNickname}`);
+    }
+}
+
 
 const voiceXpTimer = setInterval(() => {
     for (const client of voiceXpClients) {
@@ -64,6 +125,16 @@ export default {
         const userId = newState.member.id;
         const cooldownKey = `${guildId}-${userId}`;
         cleanupCooldownEntries();
+
+        // Re-evaluate the highest-priority configured AutoNick role whenever a member
+        // reconnects to voice. This is independent of Join-to-Create configuration.
+        if (!oldState.channelId && newState.channelId) {
+            try {
+                await refreshAutoNickOnVoiceJoin(newState.member);
+            } catch (error) {
+                logger.warn(`[AUTO_NICKNAME] Voice-join refresh failed for ${newState.member.user.tag}: ${error.message}`);
+            }
+        }
 
         try {
             const config = await getJoinToCreateConfig(client, guildId);
