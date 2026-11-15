@@ -72,7 +72,6 @@ function isAdmin(interaction) {
 }
 
 export default {
-  prefixOnly: true,
   data: new SlashCommandBuilder()
     .setName('bshop')
     .setDescription('Browse and manage the Barracks B-Shop')
@@ -82,29 +81,20 @@ export default {
     .addSubcommand(sub => sub
       .setName('add')
       .setDescription('Add a role and bCash price to the shop')
-      .addRoleOption(option => option.setName('role').setDescription('Role to sell').setRequired(true))
+      .addRoleOption(option => option.setName('item').setDescription('Role item to sell').setRequired(true))
       .addIntegerOption(option => option.setName('price').setDescription('Price in bCash').setMinValue(1).setMaxValue(2147483647).setRequired(true)))
     .addSubcommand(sub => sub
       .setName('remove')
       .setDescription('Remove a role from the shop')
-      .addRoleOption(option => option.setName('role').setDescription('Role to remove').setRequired(true))),
+      .addRoleOption(option => option.setName('item').setDescription('Role item to remove').setRequired(true))),
 
-  async execute() {
-    throw new Error('B-Shop is a prefix-only command. Use `bshop list`.');
-  },
-
-  async prefixExecute() {
-    throw new Error('B-Shop prefix handling is registered in messageCreate.');
-  },
-
-  /* legacy slash implementation disabled */
-  async legacyExecute(interaction, config, client) {
+  async execute(interaction, config, client) {
     const subcommand = interaction.options.getSubcommand();
     const guildId = interaction.guildId;
     if (!guildId) {
-      return InteractionHelper.universalReply(interaction, {
+      return interaction.reply({
         content: 'The B-Shop can only be used inside a server.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -116,14 +106,11 @@ export default {
       });
     }
 
-    if (!isAdmin(interaction)) {
-      return InteractionHelper.universalReply(interaction, {
-        content: 'Only server administrators can manage the B-Shop.',
-        ephemeral: true,
-      });
+    if (interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: '❌ Only the **server owner** can manage the B-Shop.', flags: MessageFlags.Ephemeral });
     }
 
-    const role = interaction.options.getRole('role', true);
+    const role = interaction.options.getRole('item', true);
     const items = await getItems(client, guildId);
 
     if (subcommand === 'add') {
