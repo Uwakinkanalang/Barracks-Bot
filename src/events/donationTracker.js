@@ -1,5 +1,6 @@
 import { EmbedBuilder, Events } from 'discord.js';
 import { logger } from '../utils/logger.js';
+import { getDonationExpiryDate } from '../services/donationExpiryService.js';
 
 const DONATION_KEY = (guildId) => `guild:${guildId}:donations:records`;
 const PESO = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 });
@@ -27,9 +28,11 @@ export default {
         const amountToken = args.shift();
         const userId = targetToken?.match(/^<@!?(\d+)>$/)?.[1] || (targetToken && /^\d{17,20}$/.test(targetToken) ? targetToken : null);
         const amount = Number(String(amountToken || '').replace(/[₱,]/g, ''));
+        const durationToken = args[0];
+        const durationMonths = /^\\d+$/.test(durationToken || '') ? Number(args.shift()) : 1;
         const note = args.join(' ').slice(0, 300);
 
-        if (!userId || !Number.isFinite(amount) || amount <= 0 || amount > 1000000000) {
+        if (!userId || !Number.isFinite(amount) || amount <= 0 || amount > 1000000000 || !Number.isInteger(durationMonths) || durationMonths < 1 || durationMonths > 120) {
           await message.reply('Usage: `bdonate add @member amount [note]`\nExample: `bdonate add @Soldier 5000 Server support`');
           return;
         }
@@ -46,7 +49,12 @@ export default {
           amount: Math.round(amount * 100) / 100,
           note,
           recordedBy: message.author.id,
-          createdAt: new Date().toISOString(),
+          createdAt: createdAt.toISOString(),
+          durationMonths,
+          expiresAt: getDonationExpiryDate(createdAt, durationMonths),
+          status: 'active',
+          channelId: message.channel.id,
+          remindersSent: [],
         };
         records.push(record);
         await writeRecords(client, message.guild.id, records);
@@ -59,6 +67,8 @@ export default {
             { name: 'Donation', value: `**${PESO.format(record.amount)}**`, inline: true },
             { name: 'Record ID', value: `\`${record.id}\``, inline: true },
             { name: 'Recorded by', value: `<@${record.recordedBy}>`, inline: true },
+            { name: 'Valid for', value: `**${durationMonths} month(s)**`, inline: true },
+            { name: 'Expires', value: `<t:${Math.floor(new Date(record.expiresAt).getTime() / 1000)}:D>`, inline: true },
             ...(note ? [{ name: 'Note', value: note }] : []),
           )
           .setThumbnail(member.displayAvatarURL())
@@ -142,7 +152,7 @@ export default {
 
       await message.reply([
         '**💎 Barracks Donation Tracker**',
-        '`bdonate add @member amount [note]` — Record a donation (staff only)',
+        '`bdonate add @member amount [months] [note]` — Record a donation (staff only; defaults to 1 month)',
         '`bdonate remove record_id` — Remove a record (staff only)',
         '`bdonate list` — Show latest donation records',
         '`bdonate profile [@member]` — View a donor profile',
