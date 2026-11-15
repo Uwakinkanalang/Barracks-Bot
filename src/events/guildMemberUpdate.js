@@ -36,17 +36,8 @@ export default {
         });
       }
 
-      // Department role prefixes take priority over clan and rank nickname formats.
-      const departmentNicknamePrefixes = [
-        { roleId: '1557783753982480445', prefix: '🍋|' }, // CCL
-        { roleId: '1557784202844446750', prefix: '☕|' }, // SysOps
-        { roleId: '1557784505362677892', prefix: '💼|' }, // Personal Management
-        { roleId: '1557784711072579706', prefix: '🍎|' }, // Festivities
-        { roleId: '1557784915876257957', prefix: '🥒|' }, // Public Relation
-        { roleId: '1557785136462831766', prefix: '⚖|' }, // Legal Affairs
-        { roleId: '1557785381213311027', prefix: '🥥|' }, // Digital Athletics
-        { roleId: '1558672931272269834', prefix: '👮‍♂️|' }, // Police
-      ];
+      // Legacy department prefixes are only stripped when applying an explicitly configured AutoNick prefix.
+      const legacyDepartmentPrefixes = ['🍋|', '☕|', '💼|', '🍎|', '🥒|', '⚖|', '🥥|', '👮‍♂️|'];
 
       const oldRoleIds = new Set(oldMember.roles.cache.keys());
       const newRoleIds = new Set(newMember.roles.cache.keys());
@@ -68,7 +59,7 @@ export default {
         '1467462861822627912',
       ];
 
-      // Department role grants/removals now trigger their own nickname format.
+      // Nickname automation runs only for explicitly configured AutoNick roles (plus existing clan/rank rules).
       if (isBarracksGuild && roleSetChanged && !newMember.user.bot) {
         try {
           const levelingConfig = await getLevelingConfig(newMember.client, newMember.guild.id);
@@ -113,14 +104,9 @@ export default {
           );
 
           const joinedClan = Boolean(memberClan && !oldMember.roles.cache.has(memberClan.roleId));
-          const departmentRole = departmentNicknamePrefixes.find(({ roleId }) =>
-            newMember.roles.cache.has(roleId)
-          );
-          const joinedDepartment = Boolean(departmentRole && !oldMember.roles.cache.has(departmentRole.roleId));
           const autoNickConfigsRaw = await newMember.client.db.get(`guild:${newMember.guild.id}:autonick_roles`, []);
-          const departmentRoleIds = new Set(departmentNicknamePrefixes.map(({ roleId }) => roleId));
           const autoNickConfigs = (Array.isArray(autoNickConfigsRaw) ? autoNickConfigsRaw : [])
-            .filter((entry) => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string' && !departmentRoleIds.has(entry.roleId))
+            .filter((entry) => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
             .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
           const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
           const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
@@ -133,11 +119,11 @@ export default {
             : null;
           const shouldUpdateForConfiguredAutoNick = Boolean(activeAutoNick);
           const shouldUpdateForOtherNicknameRules = !changedRankRole &&
-            (departmentRole || !memberClan || joinedClan || joinedDepartment);
+            (!memberClan || joinedClan);
           if (shouldUpdateForConfiguredAutoNick || shouldUpdateForOtherNicknameRules) {
             let baseName = newMember.displayName.replace(/^\\[AFK\\]\\s*/u, '');
-            const knownDepartmentPrefixes = departmentNicknamePrefixes
-              .map(({ prefix }) => prefix)
+            const knownDepartmentPrefixes = legacyDepartmentPrefixes
+              .slice()
               .sort((a, b) => b.length - a.length);
             const knownRankPrefixes = Object.values(rankPrefixes).sort((a, b) => b.length - a.length);
             const knownRankNames = rankRewards
@@ -217,9 +203,7 @@ export default {
             const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
             let desiredNickname = activeAutoNick
               ? `${String(activeAutoNick.prefix).trim()} ${baseName.trimStart()}`.slice(0, 32)
-              : departmentRole
-                ? `${departmentRole.prefix} ${baseName.trimStart()}`.slice(0, 32)
-                : memberClan
+              : memberClan
                   ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
                   : rankDisplayName
                     ? `🔫${nicknameBody}`.slice(0, 32)
@@ -240,9 +224,7 @@ export default {
                 desiredNickname,
                 activeAutoNick
                   ? `Apply configured AutoNick prefix for role ${activeAutoNick.roleId}`
-                  : departmentRole
-                    ? `Apply ${departmentRole.prefix} nickname for department role`
-                    : memberClan
+                  : memberClan
                       ? 'Apply clan tag when member joins an approved clan'
                       : 'Apply automatic rank nickname for a non-clan member',
               );
