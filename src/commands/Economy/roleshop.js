@@ -1,6 +1,5 @@
 import {
   SlashCommandBuilder,
-  PermissionFlagsBits,
   MessageFlags,
   ContainerBuilder,
   SectionBuilder,
@@ -67,10 +66,6 @@ export function buildShopPage(items, guildId, page) {
   return container;
 }
 
-function isAdmin(interaction) {
-  return interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
-}
-
 export default {
   data: new SlashCommandBuilder()
     .setName('bshop')
@@ -116,10 +111,7 @@ export default {
     if (subcommand === 'add') {
       const price = interaction.options.getInteger('price', true);
       if (role.id === guildId || role.managed || role.position >= interaction.guild.members.me.roles.highest.position) {
-        return InteractionHelper.universalReply(interaction, {
-          content: 'That role cannot be sold. Choose a normal role below the bot’s highest role.',
-          ephemeral: true,
-        });
+        return interaction.reply({ content: 'That role cannot be sold. Choose a normal role below the bot’s highest role.', flags: MessageFlags.Ephemeral });
       }
       const existing = items.find(item => item.roleId === role.id);
       if (existing) {
@@ -128,25 +120,16 @@ export default {
         items.push({ roleId: role.id, price });
       }
       await client.db.set(SHOP_KEY(guildId), items);
-      return InteractionHelper.universalReply(interaction, {
-        content: `✅ ${role} is now available in the B-Shop for **${price.toLocaleString()} bCash**.${existing ? ' Its price was updated.' : ''}`,
-        ephemeral: true,
-      });
+      return interaction.reply({ content: `✅ ${role} is now available in the B-Shop for **${price.toLocaleString()} bCash**.${existing ? ' Its price was updated.' : ''}`, flags: MessageFlags.Ephemeral });
     }
 
     if (subcommand === 'remove') {
       const nextItems = items.filter(item => item.roleId !== role.id);
       if (nextItems.length === items.length) {
-        return InteractionHelper.universalReply(interaction, {
-          content: 'That role is not currently listed in the Role Shop.',
-          ephemeral: true,
-        });
+        return interaction.reply({ content: 'That role is not currently listed in the B-Shop.', flags: MessageFlags.Ephemeral });
       }
       await client.db.set(SHOP_KEY(guildId), nextItems);
-      return InteractionHelper.universalReply(interaction, {
-        content: `✅ Removed ${role} from the B-Shop.`,
-        ephemeral: true,
-      });
+      return interaction.reply({ content: `✅ Removed ${role} from the B-Shop.`, flags: MessageFlags.Ephemeral });
     }
   },
 };
