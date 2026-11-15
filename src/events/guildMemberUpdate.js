@@ -135,7 +135,14 @@ export default {
             newMember.roles.cache.has(roleId)
           );
           const joinedDepartment = Boolean(departmentRole && !oldMember.roles.cache.has(departmentRole.roleId));
-          if (departmentRole || !memberClan || joinedClan || joinedDepartment) {
+          const autoNickConfigsRaw = await newMember.client.db.get(`guild:${newMember.guild.id}:autonick_roles`, []);
+          const autoNickConfigs = (Array.isArray(autoNickConfigsRaw) ? autoNickConfigsRaw : [])
+            .filter((entry) => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
+            .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
+          const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
+          const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
+          const activeAutoNick = autoNickConfigs.find((entry) => newMember.roles.cache.has(entry.roleId));
+          if (departmentRole || activeAutoNick || changedAutoNickRole || !memberClan || joinedClan || joinedDepartment) {
             let baseName = newMember.displayName;
             const knownDepartmentPrefixes = departmentNicknamePrefixes
               .map(({ prefix }) => prefix)
@@ -191,6 +198,16 @@ export default {
             }
 
             baseName = stripRankDecorations(baseName);
+            // Remove any previously applied configurable AutoNick prefix before selecting
+            // the highest-priority role that the member currently has.
+            const previousAutoNickPrefix = autoNickConfigs
+              .map((entry) => String(entry.prefix).trim())
+              .filter(Boolean)
+              .sort((a, b) => b.length - a.length)
+              .find((prefix) => baseName.startsWith(prefix));
+            if (previousAutoNickPrefix) {
+              baseName = baseName.slice(previousAutoNickPrefix.length).trimStart();
+            }
             if (!baseName.trim()) {
               baseName = newMember.user.globalName || newMember.user.username;
             }
@@ -206,13 +223,15 @@ export default {
               : baseName.trimStart();
 
             const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
-            const desiredNickname = departmentRole
-              ? `${departmentRole.prefix} ${baseName.trimStart()}`.slice(0, 32)
-              : memberClan
-                ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
-                : rankDisplayName
-                  ? `🔫${nicknameBody}`.slice(0, 32)
-                  : baseName.trimStart().slice(0, 32);
+            const desiredNickname = activeAutoNick
+              ? `${String(activeAutoNick.prefix).trim()} ${baseName.trimStart()}`.slice(0, 32)
+              : departmentRole
+                ? `${departmentRole.prefix} ${baseName.trimStart()}`.slice(0, 32)
+                : memberClan
+                  ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
+                  : rankDisplayName
+                    ? `🔫${nicknameBody}`.slice(0, 32)
+                    : baseName.trimStart().slice(0, 32);
 
             if (newMember.nickname !== desiredNickname) {
               await newMember.setNickname(
