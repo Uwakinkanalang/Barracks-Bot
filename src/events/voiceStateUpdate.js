@@ -28,7 +28,7 @@ async function refreshAutoNickOnVoiceJoin(member) {
     if (!member?.guild || member.user.bot) return;
 
     const guildId = member.guild.id;
-    const configsRaw = await member.client.db.get(`guild:${guildId}:autonick_roles`, []);
+    const configsRaw = await member.client.db.get(\`guild:\${guildId}:autonick_roles\`, []);
     const configs = (Array.isArray(configsRaw) ? configsRaw : [])
         .filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
         .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
@@ -38,51 +38,49 @@ async function refreshAutoNickOnVoiceJoin(member) {
     const activeConfig = configs.find(entry => member.roles.cache.has(entry.roleId));
     if (!activeConfig) return;
 
-    const stateKey = `guild:${guildId}:autonick_member:${member.id}`;
+    const stateKey = \`guild:\${guildId}:autonick_member:\${member.id}\`;
     let state = await member.client.db.get(stateKey, null);
     let baseName = state && typeof state.originalNickname === 'string'
         ? state.originalNickname
         : (member.nickname ?? member.user.globalName ?? member.user.username);
 
-    baseName = String(baseName).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+    baseName = String(baseName).replace(/^\[AFK\]\s*/u, '').trimStart();
 
-    // Repair old prefixed nicknames only when no persistent base nickname exists.
-    if (!state) {
-        const prefixes = configs
-            .map(entry => String(entry.prefix).trim())
-            .filter(Boolean)
-            .sort((a, b) => b.length - a.length);
-        let matchedPrefix;
-        do {
-            matchedPrefix = prefixes.find(prefix => baseName.startsWith(prefix));
-            if (matchedPrefix) baseName = baseName.slice(matchedPrefix.length).trimStart();
-        } while (matchedPrefix);
+    // Normalize legacy or polluted saved state before applying the winning prefix.
+    const configuredPrefixes = configs
+        .map(entry => String(entry.prefix).trim())
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+    let matchedPrefix;
+    do {
+        matchedPrefix = configuredPrefixes.find(prefix => baseName.startsWith(prefix));
+        if (matchedPrefix) baseName = baseName.slice(matchedPrefix.length).trimStart();
+    } while (matchedPrefix);
 
-        if (!baseName.trim()) {
-            baseName = member.user.globalName || member.user.username;
-        }
-        state = { originalNickname: baseName, savedAt: Date.now() };
-        await member.client.db.set(stateKey, state);
+    if (!baseName.trim()) {
+        baseName = member.user.globalName || member.user.username;
     }
 
-    const desiredNickname = `${String(activeConfig.prefix).trim()} ${baseName.trimStart()}`.slice(0, 32);
+    state = { ...(state || {}), originalNickname: baseName, savedAt: state?.savedAt || Date.now() };
+    await member.client.db.set(stateKey, state);
+
+    const desiredNickname = \`\${String(activeConfig.prefix).trim()} \${baseName}\`.slice(0, 32);
     const afkKey = getAFKKey(guildId, member.id);
     const afkStatus = await member.client.db.get(afkKey, null);
     let finalNickname = desiredNickname;
 
     if (afkStatus) {
         afkStatus.originalNickname = desiredNickname;
-        afkStatus.afkNickname = `[AFK] ${desiredNickname}`.slice(0, 32);
+        afkStatus.afkNickname = \`[AFK] \${desiredNickname}\`.slice(0, 32);
         await member.client.db.set(afkKey, afkStatus);
         finalNickname = afkStatus.afkNickname;
     }
 
     if (member.nickname !== finalNickname) {
-        await member.setNickname(finalNickname, `Reapply highest-priority AutoNick role (${activeConfig.roleId}) on voice join`);
-        logger.info(`[AUTO_NICKNAME] Refreshed ${member.user.tag} on voice join: ${finalNickname}`);
+        await member.setNickname(finalNickname, \`Reapply highest-priority AutoNick role (\${activeConfig.roleId}) on voice join\`);
+        logger.info(\`[AUTO_NICKNAME] Refreshed \${member.user.tag} on voice join: \${finalNickname}\`);
     }
 }
-
 
 const voiceXpTimer = setInterval(() => {
     for (const client of voiceXpClients) {
