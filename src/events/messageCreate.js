@@ -52,14 +52,14 @@ async function handlePrefixCommand(message, client) {
     const trimmedContent = message.content.trim();
 
     // Barracks B-Shop is a prefix-only, server-owner-only command.
-    const bshopMatch = trimmedContent.match(/^bshop(?:\\s+([\\s\\S]+))?$/i);
+    const bshopMatch = trimmedContent.match(/^bshop(?:\s+([\s\S]+))?$/i);
     if (bshopMatch) {
       if (message.author.id !== message.guild.ownerId) {
         await message.reply('❌ Only the **server owner** can use B-Shop commands.');
         return;
       }
 
-      const parts = (bshopMatch[1] || 'list').trim().split(/\\s+/);
+      const parts = (bshopMatch[1] || 'list').trim().split(/\s+/);
       const subcommand = (parts.shift() || 'list').toLowerCase();
 
       if (subcommand === 'list') {
@@ -72,8 +72,8 @@ async function handlePrefixCommand(message, client) {
       }
 
       if (subcommand === 'add') {
-        const roleMention = parts[0]?.match(/^<@&(\\d+)>$/);
-        const roleId = roleMention?.[1] || (parts[0]?.match(/^\\d{17,20}$/) ? parts[0] : null);
+        const roleMention = parts[0]?.match(/^<@&(\d+)>$/);
+        const roleId = roleMention?.[1] || (parts[0]?.match(/^\d{17,20}$/) ? parts[0] : null);
         const price = Number(parts[1]);
         if (!roleId || !Number.isSafeInteger(price) || price < 1 || price > 2147483647) {
           await message.reply('Usage: `bshop add @role price`');
@@ -97,8 +97,8 @@ async function handlePrefixCommand(message, client) {
       }
 
       if (subcommand === 'remove') {
-        const roleMention = parts[0]?.match(/^<@&(\\d+)>$/);
-        const roleId = roleMention?.[1] || (parts[0]?.match(/^\\d{17,20}$/) ? parts[0] : null);
+        const roleMention = parts[0]?.match(/^<@&(\d+)>$/);
+        const roleId = roleMention?.[1] || (parts[0]?.match(/^\d{17,20}$/) ? parts[0] : null);
         if (!roleId) {
           await message.reply('Usage: `bshop remove @role`');
           return;
