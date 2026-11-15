@@ -12,6 +12,7 @@ import { getCommandPrefix, getBotMessage, isBotOwner, isCommandCategoryEnabled, 
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
+import { getItems as getBShopItems, buildShopPage as buildBShopPage } from '../commands/Economy/roleshop.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
@@ -49,6 +50,20 @@ async function handlePrefixCommand(message, client) {
     const guildConfig = await getGuildConfig(client, message.guild.id);
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
+
+    // B-Shop list remains a plain-text command; management uses slash subcommands.
+    if (/^bshop\\s+list$/i.test(trimmedContent)) {
+      if (message.author.id !== message.guild.ownerId) {
+        await message.reply('❌ Only the **server owner** can use this command.');
+        return;
+      }
+      const items = await getBShopItems(client, message.guild.id);
+      await message.channel.send({
+        components: [buildBShopPage(items, message.guild.id, 0)],
+        flags: MessageFlags.IsComponentsV2,
+      });
+      return;
+    }
 
     // Owner-only test utility for the Barracks invite bCash reward.
     if (/^b!testinvite\s+reward$/i.test(trimmedContent)) {
