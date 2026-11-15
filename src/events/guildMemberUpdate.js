@@ -59,10 +59,19 @@ export default {
         '1467462861822627912',
       ];
 
-      // Nickname automation runs only for explicitly configured AutoNick roles (plus existing clan/rank rules).
-      if (isBarracksGuild && roleSetChanged && !newMember.user.bot) {
+      // AutoNick is available in every server; Barracks rank/clan nickname rules remain server-specific.
+      const autoNickConfigsRaw = await newMember.client.db.get(`guild:${newMember.guild.id}:autonick_roles`, []);
+      const autoNickConfigs = (Array.isArray(autoNickConfigsRaw) ? autoNickConfigsRaw : [])
+        .filter((entry) => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
+        .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
+      const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
+      const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
+
+      if ((isBarracksGuild || changedAutoNickRole) && roleSetChanged && !newMember.user.bot) {
         try {
-          const levelingConfig = await getLevelingConfig(newMember.client, newMember.guild.id);
+          const levelingConfig = isBarracksGuild
+            ? await getLevelingConfig(newMember.client, newMember.guild.id)
+            : { roleRewards: {} };
           const rankRewards = Object.entries(levelingConfig.roleRewards || {})
             .map(([level, roleId]) => ({ level: Number(level), roleId }))
             .filter((entry) => Number.isInteger(entry.level) && entry.level >= 1 && entry.level <= 100 &&
@@ -95,7 +104,9 @@ export default {
             100: 'ᴳᵉⁿᵉʳᵃˡ',
           };
 
-          const clans = await newMember.client.db.get(`guild:${newMember.guild.id}:clans`, []);
+          const clans = isBarracksGuild
+            ? await newMember.client.db.get(`guild:${newMember.guild.id}:clans`, [])
+            : [];
           const clanList = Array.isArray(clans) ? clans : [];
           const memberClan = clanList.find((clan) =>
             clan.status === 'approved' &&
@@ -104,12 +115,7 @@ export default {
           );
 
           const joinedClan = Boolean(memberClan && !oldMember.roles.cache.has(memberClan.roleId));
-          const autoNickConfigsRaw = await newMember.client.db.get(`guild:${newMember.guild.id}:autonick_roles`, []);
-          const autoNickConfigs = (Array.isArray(autoNickConfigsRaw) ? autoNickConfigsRaw : [])
-            .filter((entry) => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
-            .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
-          const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
-          const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
+
           const changedRankRole = [...changedRoleIds].some((roleId) =>
             rankRoleIds.includes(roleId) || rankRewards.some((entry) => entry.roleId === roleId)
           );
@@ -118,7 +124,7 @@ export default {
             ? autoNickConfigs.find((entry) => newMember.roles.cache.has(entry.roleId))
             : null;
           const shouldUpdateForConfiguredAutoNick = Boolean(activeAutoNick);
-          const shouldUpdateForOtherNicknameRules = !changedRankRole &&
+          const shouldUpdateForOtherNicknameRules = isBarracksGuild && !changedRankRole &&
             (!memberClan || joinedClan);
           if (shouldUpdateForConfiguredAutoNick || shouldUpdateForOtherNicknameRules) {
             let baseName = newMember.displayName.replace(/^\\[AFK\\]\\s*/u, '');
