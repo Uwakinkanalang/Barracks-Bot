@@ -29,7 +29,7 @@ export function buildShopPage(items, guildId, page) {
     .addTextDisplayComponents(new TextDisplayBuilder().setContent('# 🛒 B-Shop\nWelcome to the **Barracks B-Shop**! Purchase exclusive server roles with your **bCash**.'));
 
   if (!pageItems.length) {
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('The B-Shop is empty. The server owner can add roles with `bshop add @role price`.'));
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('The B-Shop is empty. The server owner can add roles with `/bshop add`.'));
   } else {
     for (const item of pageItems) {
       const section = new SectionBuilder()
@@ -69,10 +69,7 @@ export function buildShopPage(items, guildId, page) {
 export default {
   data: new SlashCommandBuilder()
     .setName('bshop')
-    .setDescription('Browse and manage the Barracks B-Shop')
-    .addSubcommand(sub => sub
-      .setName('list')
-      .setDescription('View roles available for purchase'))
+    .setDescription('Manage the Barracks B-Shop')
     .addSubcommand(sub => sub
       .setName('add')
       .setDescription('Add a role and bCash price to the shop')
@@ -90,14 +87,6 @@ export default {
       return interaction.reply({
         content: 'The B-Shop can only be used inside a server.',
         flags: MessageFlags.Ephemeral,
-      });
-    }
-
-    if (subcommand === 'list') {
-      const items = await getItems(client, guildId);
-      return interaction.reply({
-        components: [buildShopPage(items, guildId, 0)],
-        flags: MessageFlags.IsComponentsV2,
       });
     }
 
