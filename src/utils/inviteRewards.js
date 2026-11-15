@@ -237,13 +237,17 @@ async function awardOnce(client, guild, invitedMember, inviter) {
       .setDescription('Thanks for helping grow the **Barracks** community! Your reward has been added to your wallet.')
       .addFields(
         { name: '💰 Reward Earned', value: `**+${amountText} bCash**`, inline: true },
-        { name: '🪖 New Recruit', value: `${invitedMember.user.username}`, inline: true },
+        { name: '🪖 New Recruit', value: `<@${invitedMember.id}>`, inline: true },
         { name: '💳 New Wallet Balance', value: `**${balanceText} bCash**`, inline: false },
       )
       .setFooter({ text: 'Barracks • Invite Rewards' })
       .setTimestamp();
 
-    await inviter.send({ embeds: [rewardEmbed] })
+    await inviter.send({
+      content: `🪖 New recruit: <@${invitedMember.id}>`,
+      embeds: [rewardEmbed],
+      allowedMentions: { users: [invitedMember.id] },
+    })
       .catch(error => logger.info(`Could not DM invite reward confirmation to ${inviter.id}: ${error.message}`));
 
     const channelId = await client.db.get(`guild:${guild.id}:invite_reward_channel`, null);
