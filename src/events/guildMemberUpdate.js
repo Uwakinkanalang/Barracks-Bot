@@ -47,38 +47,6 @@ export default {
       ]);
       const roleSetChanged = changedRoleIds.size > 0;
 
-      // Barracks rank roles are mutually exclusive: a member may keep only
-      // the highest rank they currently hold, even if several are granted together.
-      // This is deliberately separate from AutoNick roles, which may stack by priority.
-      const barracksRankRoleOrder = [
-        '1467461731998761096',
-        '1467461918792089784',
-        '1467461953340444677',
-        '1540715496637333564',
-        '1467462639759396865',
-        '1467462740024098983',
-        '1467462823457063067',
-        '1467462861822627912',
-      ];
-      if (roleSetChanged && !newMember.user.bot) {
-        // Rank IDs are unique to the Barracks rank system. Do not gate this
-        // cleanup on GUILD_ID: a missing/misconfigured env var must not disable it.
-        const heldRankRoles = barracksRankRoleOrder.filter(roleId => newMember.roles.cache.has(roleId));
-        const highestHeldRankRole = heldRankRoles.at(-1);
-        const duplicateRankRoles = heldRankRoles.filter(roleId => roleId !== highestHeldRankRole);
-        if (duplicateRankRoles.length) {
-          try {
-            await newMember.roles.remove(
-              duplicateRankRoles,
-              'Keep only the highest Barracks rank role',
-            );
-            logger.info(`[RANK_ROLE] Removed duplicate lower rank roles from ${newMember.user.tag}; kept ${highestHeldRankRole}`);
-          } catch (error) {
-            logger.error(`[RANK_ROLE] Failed to remove duplicate rank roles from ${newMember.user.tag}. Check Manage Roles permission and role hierarchy. Roles: ${duplicateRankRoles.join(', ')}. Error: ${error.message}`);
-          }
-        }
-      }
-
       // These are Barracks rank roles. They may also be configured in /autonick.
       const rankRoleIds = [
         '1467461731998761096',
@@ -146,9 +114,15 @@ export default {
         }
       }
 
-      if ((isBarracksGuild || changedAutoNickRole || [...changedRoleIds].some((id) => rankRoleIds.includes(id))) && roleSetChanged && !newMember.user.bot) {
+      const isRankRoleMember = rankRoleIds.some((roleId) =>
+        oldMember.roles.cache.has(roleId) || newMember.roles.cache.has(roleId) || changedRoleIds.has(roleId)
+      );
+
+      if ((isBarracksGuild || changedAutoNickRole || isRankRoleMember) && roleSetChanged && !newMember.user.bot) {
         try {
-          const levelingConfig = isBarracksGuild
+          // Load the authoritative role-reward map whenever a Barracks rank role
+          // changes, even if GUILD_ID is missing or misconfigured in Railway.
+          const levelingConfig = (isBarracksGuild || isRankRoleMember)
             ? await getLevelingConfig(newMember.client, newMember.guild.id)
             : { roleRewards: {} };
           const rankRewards = Object.entries(levelingConfig.roleRewards || {})
