@@ -13,7 +13,7 @@ import {
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const PAGE_SIZE = 18;
+const PAGE_SIZE = 11;
 const SHOP_KEY = (guildId) => `guild:${guildId}:roleShop`;
 
 async function getItems(client, guildId) {
