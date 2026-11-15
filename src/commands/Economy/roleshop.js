@@ -29,10 +29,10 @@ function buildShopPage(items, guildId, page) {
   const currentPage = Math.min(Math.max(0, page), pageCount - 1);
   const pageItems = items.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   const container = new ContainerBuilder()
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent('# 🛒 Role Shop\nPurchase server roles with your **bCash**!'));
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('# 🛒 B-Shop\nWelcome to the **Barracks B-Shop**! Purchase exclusive server roles with your **bCash**.'));
 
   if (!pageItems.length) {
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('The Role Shop is empty. Ask an administrator to add some roles with `/roleshop add`.'));
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('The B-Shop is empty. Ask a Barracks administrator to add some roles with `/bshop add`.'));
   } else {
     for (const item of pageItems) {
       const section = new SectionBuilder()
@@ -75,8 +75,8 @@ function isAdmin(interaction) {
 
 export default {
   data: new SlashCommandBuilder()
-    .setName('roleshop')
-    .setDescription('Browse and manage the server role shop')
+    .setName('bshop')
+    .setDescription('Browse and manage the Barracks B-Shop')
     .addSubcommand(sub => sub
       .setName('list')
       .setDescription('View roles available for purchase'))
@@ -95,7 +95,7 @@ export default {
     const guildId = interaction.guildId;
     if (!guildId) {
       return InteractionHelper.universalReply(interaction, {
-        content: 'The Role Shop can only be used inside a server.',
+        content: 'The B-Shop can only be used inside a server.',
         ephemeral: true,
       });
     }
@@ -110,7 +110,7 @@ export default {
 
     if (!isAdmin(interaction)) {
       return InteractionHelper.universalReply(interaction, {
-        content: 'Only server administrators can manage the Role Shop.',
+        content: 'Only server administrators can manage the B-Shop.',
         ephemeral: true,
       });
     }
@@ -134,7 +134,7 @@ export default {
       }
       await client.db.set(SHOP_KEY(guildId), items);
       return InteractionHelper.universalReply(interaction, {
-        content: `✅ ${role} is now in the Role Shop for **${price.toLocaleString()} bCash**.${existing ? ' Its price was updated.' : ''}`,
+        content: `✅ ${role} is now available in the B-Shop for **${price.toLocaleString()} bCash**.${existing ? ' Its price was updated.' : ''}`,
         ephemeral: true,
       });
     }
@@ -149,7 +149,7 @@ export default {
       }
       await client.db.set(SHOP_KEY(guildId), nextItems);
       return InteractionHelper.universalReply(interaction, {
-        content: `✅ Removed ${role} from the Role Shop.`,
+        content: `✅ Removed ${role} from the B-Shop.`,
         ephemeral: true,
       });
     }
