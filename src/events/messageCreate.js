@@ -51,7 +51,7 @@ async function handlePrefixCommand(message, client) {
     const trimmedContent = message.content.trim();
 
     // Owner-only test utility for the Barracks invite bCash reward.
-    if (/^b!testinvite\\s+reward$/i.test(trimmedContent)) {
+    if (/^b!testinvite\s+reward$/i.test(trimmedContent)) {
       const BARRACKS_GUILD_ID = '1137695060096471160';
       if (message.guild.id !== BARRACKS_GUILD_ID) {
         await message.reply('❌ This test command is only available in the Barracks server.');
@@ -65,7 +65,7 @@ async function handlePrefixCommand(message, client) {
       const { addMoney } = await import('../utils/economy.js');
       const reward = await addMoney(client, message.guild.id, message.author.id, 100000, 'wallet');
       await message.reply(
-        `🧪 **Invite reward test successful!**\\n\\nAdded **100,000 bCash** to your wallet.\\n**New wallet balance:** ${Number(reward.newBalance || 0).toLocaleString()} bCash\\n\\nThis is a test credit; it does not count as a real invite.`
+        `🧪 **Invite reward test successful!**\n\nAdded **100,000 bCash** to your wallet.\n**New wallet balance:** ${Number(reward.newBalance || 0).toLocaleString()} bCash\n\nThis is a test credit; it does not count as a real invite.`
       );
       return;
     }
