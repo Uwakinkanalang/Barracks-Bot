@@ -69,13 +69,13 @@ async function handlePrefixCommand(message, client) {
       const testEmbed = new EmbedBuilder()
         .setColor(0xD4AF37)
         .setTitle('🎉 Invite Reward Received!')
-        .setDescription('Thanks for helping grow the **Barracks** community! This is a simulated invite-reward test; no real member named John Smith joined.')
+        .setDescription('Thanks for helping grow the **Barracks** community! Your invite brought a new recruit to Barracks.')
         .addFields(
           { name: '💰 Reward Earned', value: `**+${amountText} bCash**`, inline: true },
-          { name: '🪖 New Recruit', value: '**John Smith**', inline: true },
+          { name: '🪖 New Recruit', value: '**@John Smith**', inline: true },
           { name: '💳 New Wallet Balance', value: `**${balanceText} bCash**`, inline: false },
         )
-        .setFooter({ text: 'Barracks • Invite Rewards • Simulated Test' })
+        .setFooter({ text: 'Barracks • Invite Rewards' })
         .setTimestamp();
 
       try {
