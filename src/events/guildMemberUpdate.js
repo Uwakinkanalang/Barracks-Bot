@@ -13,6 +13,9 @@ export default {
     try {
       if (!newMember.guild) return;
 
+      // Automatic Barracks nickname formatting must never run in other servers.
+      const isBarracksGuild = Boolean(process.env.GUILD_ID) && newMember.guild.id === process.env.GUILD_ID;
+
       if (oldMember.nickname !== newMember.nickname) {
         await logEvent({
           client: newMember.client,
@@ -67,7 +70,7 @@ export default {
       const removedRankRole = rankRoleIds.some(
         (roleId) => oldMember.roles.cache.has(roleId) && !newMember.roles.cache.has(roleId),
       );
-      if (removedRankRole && !newMember.user.bot) {
+      if (isBarracksGuild && removedRankRole && !newMember.user.bot) {
         try {
           let baseName = newMember.nickname || newMember.user.globalName || newMember.user.username;
           // Strip the previous pistol/rank prefix, including older superscript spellings.
@@ -84,7 +87,7 @@ export default {
       }
 
       // Department role grants/removals now trigger their own nickname format.
-      if (roleSetChanged && !newMember.user.bot) {
+      if (isBarracksGuild && roleSetChanged && !newMember.user.bot) {
         try {
           const levelingConfig = await getLevelingConfig(newMember.client, newMember.guild.id);
           const rankRewards = Object.entries(levelingConfig.roleRewards || {})
