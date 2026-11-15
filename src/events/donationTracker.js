@@ -29,7 +29,7 @@ export default {
         const userId = targetToken?.match(/^<@!?(\d+)>$/)?.[1] || (targetToken && /^\d{17,20}$/.test(targetToken) ? targetToken : null);
         const amount = Number(String(amountToken || '').replace(/[₱,]/g, ''));
         const durationToken = args[0];
-        const durationMonths = /^\\d+$/.test(durationToken || '') ? Number(args.shift()) : 1;
+        const durationMonths = /^\d+$/.test(durationToken || '') ? Number(args.shift()) : 1;
         const note = args.join(' ').slice(0, 300);
 
         if (!userId || !Number.isFinite(amount) || amount <= 0 || amount > 1000000000 || !Number.isInteger(durationMonths) || durationMonths < 1 || durationMonths > 120) {
@@ -43,6 +43,13 @@ export default {
           return;
         }
 
+        const createdAt = new Date();
+        for (const previous of records) {
+          if (previous.userId === userId && previous.status !== 'expired' && previous.status !== 'renewed') {
+            previous.status = 'renewed';
+            previous.renewedAt = createdAt.toISOString();
+          }
+        }
         const record = {
           id: `D${Date.now().toString(36).toUpperCase()}`,
           userId,
