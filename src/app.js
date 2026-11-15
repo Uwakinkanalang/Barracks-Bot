@@ -25,6 +25,7 @@ class TitanBot extends Client {
         
         GatewayIntentBits.Guilds,                        
         GatewayIntentBits.GuildMembers,                 
+        GatewayIntentBits.GuildInvites,                 
 
         GatewayIntentBits.GuildMessages,                
         GatewayIntentBits.GuildMessageReactions,        
