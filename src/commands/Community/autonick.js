@@ -24,7 +24,7 @@ export default {
       const prefix = interaction.options.getString('prefix').trim();
       const priority = interaction.options.getInteger('priority');
       if (!prefix) return InteractionHelper.safeEditReply(interaction, { content: 'Prefix cannot be empty.' });
-      if (role.id === guild.id || role.managed || role.position >= guild.members.me.roles.highest.position) return InteractionHelper.safeEditReply(interaction, { content: 'I cannot manage that role. Choose a normal role below my highest role.' });
+      if (role.id === guild.id || role.managed || role.position >= (guild.members.me?.roles.highest.position ?? 0)) return InteractionHelper.safeEditReply(interaction, { content: 'I cannot manage that role. Choose a normal role below my highest role.' });
       if (entries.some(x => x.roleId === role.id)) return InteractionHelper.safeEditReply(interaction, { content: `${role} is already configured. Use /autonick edit to change it.` });
       entries.push({ roleId: role.id, prefix, priority });
       await client.db.set(CONFIG_KEY(guild.id), normalize(entries));
