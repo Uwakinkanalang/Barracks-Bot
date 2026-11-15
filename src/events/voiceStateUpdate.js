@@ -28,7 +28,7 @@ async function refreshAutoNickOnVoiceJoin(member) {
     if (!member?.guild || member.user.bot) return;
 
     const guildId = member.guild.id;
-    const configsRaw = await member.client.db.get(\`guild:\${guildId}:autonick_roles\`, []);
+    const configsRaw = await member.client.db.get(`guild:${guildId}:autonick_roles`, []);
     const configs = (Array.isArray(configsRaw) ? configsRaw : [])
         .filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
         .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
@@ -38,7 +38,7 @@ async function refreshAutoNickOnVoiceJoin(member) {
     const activeConfig = configs.find(entry => member.roles.cache.has(entry.roleId));
     if (!activeConfig) return;
 
-    const stateKey = \`guild:\${guildId}:autonick_member:\${member.id}\`;
+    const stateKey = `guild:${guildId}:autonick_member:${member.id}`;
     let state = await member.client.db.get(stateKey, null);
     let baseName = state && typeof state.originalNickname === 'string'
         ? state.originalNickname
@@ -64,21 +64,21 @@ async function refreshAutoNickOnVoiceJoin(member) {
     state = { ...(state || {}), originalNickname: baseName, savedAt: state?.savedAt || Date.now() };
     await member.client.db.set(stateKey, state);
 
-    const desiredNickname = \`\${String(activeConfig.prefix).trim()} \${baseName}\`.slice(0, 32);
+    const desiredNickname = `${String(activeConfig.prefix).trim()} ${baseName}`.slice(0, 32);
     const afkKey = getAFKKey(guildId, member.id);
     const afkStatus = await member.client.db.get(afkKey, null);
     let finalNickname = desiredNickname;
 
     if (afkStatus) {
         afkStatus.originalNickname = desiredNickname;
-        afkStatus.afkNickname = \`[AFK] \${desiredNickname}\`.slice(0, 32);
+        afkStatus.afkNickname = `[AFK] ${desiredNickname}`.slice(0, 32);
         await member.client.db.set(afkKey, afkStatus);
         finalNickname = afkStatus.afkNickname;
     }
 
     if (member.nickname !== finalNickname) {
-        await member.setNickname(finalNickname, \`Reapply highest-priority AutoNick role (\${activeConfig.roleId}) on voice join\`);
-        logger.info(\`[AUTO_NICKNAME] Refreshed \${member.user.tag} on voice join: \${finalNickname}\`);
+        await member.setNickname(finalNickname, `Reapply highest-priority AutoNick role (${activeConfig.roleId}) on voice join`);
+        logger.info(`[AUTO_NICKNAME] Refreshed ${member.user.tag} on voice join: ${finalNickname}`);
     }
 }
 
