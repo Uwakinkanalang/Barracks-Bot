@@ -1,4 +1,4 @@
-import { Events } from 'discord.js';
+import { EmbedBuilder, Events } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { getLevelingConfig, getUserLevelData } from '../services/leveling/leveling.js';
 import { addXp } from '../services/leveling/xpSystem.js';
@@ -64,9 +64,27 @@ async function handlePrefixCommand(message, client) {
 
       const { addMoney } = await import('../utils/economy.js');
       const reward = await addMoney(client, message.guild.id, message.author.id, 100000, 'wallet');
-      await message.reply(
-        `🧪 **Invite reward test successful!**\n\nAdded **100,000 bCash** to your wallet.\n**New wallet balance:** ${Number(reward.newBalance || 0).toLocaleString()} bCash\n\nThis is a test credit; it does not count as a real invite.`
-      );
+      const amountText = '100,000';
+      const balanceText = Number(reward.newBalance || 0).toLocaleString('en-US');
+      const testEmbed = new EmbedBuilder()
+        .setColor(0xD4AF37)
+        .setTitle('🧪 Invite Reward Test Successful!')
+        .setDescription('Your test reward has been added to your Barracks wallet.')
+        .addFields(
+          { name: '💰 Test Reward', value: `**+${amountText} bCash**`, inline: true },
+          { name: '🪖 Test Account', value: `${message.author.username}`, inline: true },
+          { name: '💳 New Wallet Balance', value: `**${balanceText} bCash**`, inline: false },
+        )
+        .setFooter({ text: 'Barracks • Invite Rewards • Test Credit Only' })
+        .setTimestamp();
+
+      try {
+        await message.author.send({ embeds: [testEmbed] });
+        await message.reply('✅ Test reward credited! I sent the confirmation to your DMs.');
+      } catch (error) {
+        logger.info(`Could not DM invite reward test confirmation to ${message.author.id}: ${error.message}`);
+        await message.reply('✅ Test reward was credited, but I could not DM you. Please enable server-member DMs and check your wallet before running the command again.');
+      }
       return;
     }
 
