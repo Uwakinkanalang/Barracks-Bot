@@ -6,8 +6,9 @@ import { logger } from './logger.js';
 export const INVITE_REWARD_GUILD_ID = '1137695060096471160';
 export const INVITE_REWARD_AMOUNT = 100000;
 
-const snapshotKey = guildId => `guild:${guildId}:invite_rewards:snapshot`;
-const claimKey = (guildId, memberId) => `guild:${guildId}:invite_rewards:claims:${memberId}`;
+// Explicit cache: keys route to PostgreSQL cache_data with no expiry (unlike temp: keys).
+const snapshotKey = guildId => `cache:invite_rewards:${guildId}:snapshot`;
+const claimKey = (guildId, memberId) => `cache:invite_rewards:${guildId}:claims:${memberId}`;
 
 const guildLocks = new Map();
 const inviterLocks = new Map();
