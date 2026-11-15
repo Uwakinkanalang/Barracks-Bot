@@ -7,6 +7,9 @@ export default {
   async execute(message, client) {
     if (!message.guild || message.author.bot) return;
 
+    // AFK nickname restoration is Barracks-only; AFK status/replies still work elsewhere.
+    const isBarracksGuild = Boolean(process.env.GUILD_ID) && message.guild.id === process.env.GUILD_ID;
+
     try {
       const replies = [];
       const ownKey = getAFKKey(message.guild.id, message.author.id);
@@ -16,7 +19,7 @@ export default {
         await client.db.delete(ownKey);
 
         // Fetch a fresh member record so a stale message-member cache cannot leave [AFK] behind.
-        try {
+        if (isBarracksGuild) try {
           const member = await message.guild.members.fetch(message.author.id);
           const currentNickname = member.nickname;
 
