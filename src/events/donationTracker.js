@@ -64,7 +64,7 @@ export default {
           .setThumbnail(member.displayAvatarURL())
           .setTimestamp(new Date(record.createdAt))
           .setFooter({ text: 'Barracks • Donor Registry' });
-        await message.channel.send({ embeds: [embed] ]);
+        await message.channel.send({ embeds: [embed] });
         return;
       }
 
