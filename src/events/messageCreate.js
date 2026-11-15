@@ -1,4 +1,5 @@
-import { EmbedBuilder, Events } from 'discord.js';
+import { EmbedBuilder, Events, MessageFlags } from 'discord.js';
+import { getItems as getBShopItems, buildShopPage as buildBShopPage } from '../commands/Economy/roleshop.js';
 import { logger } from '../utils/logger.js';
 import { getLevelingConfig, getUserLevelData } from '../services/leveling/leveling.js';
 import { addXp } from '../services/leveling/xpSystem.js';
@@ -49,6 +50,73 @@ async function handlePrefixCommand(message, client) {
     const guildConfig = await getGuildConfig(client, message.guild.id);
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
+
+    // Barracks B-Shop is a prefix-only, server-owner-only command.
+    const bshopMatch = trimmedContent.match(/^bshop(?:\\s+([\\s\\S]+))?$/i);
+    if (bshopMatch) {
+      if (message.author.id !== message.guild.ownerId) {
+        await message.reply('❌ Only the **server owner** can use B-Shop commands.');
+        return;
+      }
+
+      const parts = (bshopMatch[1] || 'list').trim().split(/\\s+/);
+      const subcommand = (parts.shift() || 'list').toLowerCase();
+
+      if (subcommand === 'list') {
+        const items = await getBShopItems(client, message.guild.id);
+        await message.channel.send({
+          components: [buildBShopPage(items, message.guild.id, 0)],
+          flags: MessageFlags.IsComponentsV2,
+        });
+        return;
+      }
+
+      if (subcommand === 'add') {
+        const roleMention = parts[0]?.match(/^<@&(\\d+)>$/);
+        const roleId = roleMention?.[1] || (parts[0]?.match(/^\\d{17,20}$/) ? parts[0] : null);
+        const price = Number(parts[1]);
+        if (!roleId || !Number.isSafeInteger(price) || price < 1 || price > 2147483647) {
+          await message.reply('Usage: `bshop add @role price`');
+          return;
+        }
+
+        const role = await message.guild.roles.fetch(roleId).catch(() => null);
+        const botMember = message.guild.members.me || await message.guild.members.fetch(client.user.id);
+        if (!role || role.id === message.guild.id || role.managed || role.position >= botMember.roles.highest.position) {
+          await message.reply('❌ Choose a normal role below the bot’s highest role.');
+          return;
+        }
+
+        const items = await getBShopItems(client, message.guild.id);
+        const existing = items.find(item => item.roleId === role.id);
+        if (existing) existing.price = price;
+        else items.push({ roleId: role.id, price });
+        await client.db.set(`guild:${message.guild.id}:roleShop`, items);
+        await message.reply(`✅ Added **${role.name}** to the B-Shop for **${price.toLocaleString()} bCash**.${existing ? ' Price updated.' : ''}`);
+        return;
+      }
+
+      if (subcommand === 'remove') {
+        const roleMention = parts[0]?.match(/^<@&(\\d+)>$/);
+        const roleId = roleMention?.[1] || (parts[0]?.match(/^\\d{17,20}$/) ? parts[0] : null);
+        if (!roleId) {
+          await message.reply('Usage: `bshop remove @role`');
+          return;
+        }
+        const items = await getBShopItems(client, message.guild.id);
+        const updated = items.filter(item => item.roleId !== roleId);
+        if (updated.length === items.length) {
+          await message.reply('That role is not currently listed in the B-Shop.');
+          return;
+        }
+        await client.db.set(`guild:${message.guild.id}:roleShop`, updated);
+        await message.reply('✅ Removed that role from the B-Shop.');
+        return;
+      }
+
+      await message.reply('B-Shop commands: `bshop list`, `bshop add @role price`, `bshop remove @role`.');
+      return;
+    }
 
     // Owner-only test utility for the Barracks invite bCash reward.
     if (/^b!testinvite\s+reward$/i.test(trimmedContent)) {
