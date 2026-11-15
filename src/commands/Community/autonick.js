@@ -9,7 +9,15 @@ const normalize = (items) => (Array.isArray(items) ? items : []).filter((x) => x
 
 async function refreshGuildAutoNick(guild, configs, prefixesToStrip = configs.map(entry => entry.prefix)) {
   const client = guild.client;
-  const members = await guild.members.fetch();
+  // Do not request a full guild member download from a slash command: large
+  // guilds can take too long and leave the interaction showing "thinking".
+  const members = new Map(guild.members.cache);
+  for (const entry of configs) {
+    const role = guild.roles.cache.get(entry.roleId);
+    if (role) {
+      for (const member of role.members.values()) members.set(member.id, member);
+    }
+  }
   const prefixes = [...new Set(prefixesToStrip.map(value => String(value || '').trim()).filter(Boolean))]
     .sort((a, b) => b.length - a.length);
   let updated = 0;
@@ -26,7 +34,7 @@ async function refreshGuildAutoNick(guild, configs, prefixesToStrip = configs.ma
     let base = typeof state?.originalNickname === 'string'
       ? state.originalNickname
       : (member.nickname ?? member.user.globalName ?? member.user.username);
-    base = String(base).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+    base = String(base).replace(/^\[AFK\]\s*/u, '').trimStart();
     let matched;
     do {
       matched = prefixes.find(prefix => base.startsWith(prefix));
@@ -78,11 +86,13 @@ export default {
     if (!interaction.inGuild()) return interaction.reply({ content: 'Use this command inside the Barracks server.', ephemeral: true });
     // AutoNick settings are stored per guild, so each server manages its own role prefixes.
     if (!isBotOwner(interaction.user.id)) return interaction.reply({ content: 'Only the bot owner can manage AutoNick settings.', ephemeral: true });
-    await InteractionHelper.safeDefer(interaction);
+    const deferred = await InteractionHelper.safeDefer(interaction);
+    if (!deferred) return;
     const { guild, client } = interaction;
     const sub = interaction.options.getSubcommand();
     const entries = normalize(await client.db.get(CONFIG_KEY(guild.id), []));
     const role = interaction.options.getRole('role');
+    try {
     if (sub === 'add') {
       const prefix = interaction.options.getString('prefix').trim();
       const priority = interaction.options.getInteger('priority');
@@ -121,5 +131,11 @@ export default {
     if (!entries.length) return InteractionHelper.safeEditReply(interaction, { content: 'No AutoNick roles configured. Use /autonick add first.' });
     const rows = entries.map((x, i) => `**${i + 1}.** ${guild.roles.cache.get(x.roleId) || `Deleted role (${x.roleId})`} — prefix **${x.prefix}** — priority **${x.priority}**`);
     return InteractionHelper.safeEditReply(interaction, { content: `**Barracks AutoNick Roles**\n${rows.join('\n')}\n\nHigher priority numbers take precedence.` });
+    } catch (error) {
+      logger.error('[AUTO_NICKNAME] Command failed:', error);
+      return InteractionHelper.safeEditReply(interaction, {
+        content: '❌ AutoNick could not finish. Check the bot logs for the error. Make sure the bot has Manage Nicknames permission and its role is above the members it needs to rename.',
+      });
+    }
   },
 };
