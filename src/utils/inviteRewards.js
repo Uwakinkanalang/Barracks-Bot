@@ -100,13 +100,24 @@ export async function processInviteReward(member) {
       }
 
       const pendingInviters = [...previous.pendingInviters];
+      const increases = [];
       for (const [code, invite] of Object.entries(current)) {
         const old = previous.invites[code];
         const increase = Math.max(0, invite.uses - Number(old?.uses || 0));
         const inviterId = invite.inviterId || old?.inviterId;
-        if (inviterId) {
-          for (let i = 0; i < increase; i += 1) pendingInviters.push(inviterId);
-        }
+        if (increase > 0 && inviterId) increases.push({ inviterId, increase });
+      }
+
+      // Discord exposes aggregate invite-use counts, not a member-to-invite
+      // mapping. If several inviters' codes increased between fetches, attribution
+      // is ambiguous; skip that batch instead of paying the wrong person.
+      const changedInviters = [...new Set(increases.map(item => item.inviterId))];
+      if (changedInviters.length === 1) {
+        const inviterId = changedInviters[0];
+        const totalUses = increases.reduce((sum, item) => sum + item.increase, 0);
+        for (let i = 0; i < totalUses; i += 1) pendingInviters.push(inviterId);
+      } else if (changedInviters.length > 1) {
+        logger.warn(`Skipped ambiguous invite batch in Barracks: multiple inviter codes increased for join event ${user.id}.`);
       }
 
       // Persist the new counts and any unassigned invite-use increments before
