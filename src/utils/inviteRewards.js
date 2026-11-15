@@ -1,4 +1,4 @@
-import { PermissionFlagsBits } from 'discord.js';
+import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getEconomyData, setEconomyData } from './economy.js';
 import { getEconomyKey } from './database.js';
 import { logger } from './logger.js';
@@ -231,9 +231,20 @@ async function awardOnce(client, guild, invitedMember, inviter) {
 
     const amountText = INVITE_REWARD_AMOUNT.toLocaleString('en-US');
     const balanceText = newWalletBalance.toLocaleString('en-US');
-    await inviter.send(
-      `🎉 **Invite reward received!** You earned **${amountText} bCash** for inviting **${invitedMember.user.tag}** to Barracks. Your new wallet balance is **${balanceText} bCash**.`
-    ).catch(error => logger.info(`Could not DM invite reward confirmation to ${inviter.id}: ${error.message}`));
+    const rewardEmbed = new EmbedBuilder()
+      .setColor(0xD4AF37)
+      .setTitle('🎉 Invite Reward Received!')
+      .setDescription('Thanks for helping grow the **Barracks** community! Your reward has been added to your wallet.')
+      .addFields(
+        { name: '💰 Reward Earned', value: `**+${amountText} bCash**`, inline: true },
+        { name: '🪖 New Recruit', value: `${invitedMember.user.username}`, inline: true },
+        { name: '💳 New Wallet Balance', value: `**${balanceText} bCash**`, inline: false },
+      )
+      .setFooter({ text: 'Barracks • Invite Rewards' })
+      .setTimestamp();
+
+    await inviter.send({ embeds: [rewardEmbed] })
+      .catch(error => logger.info(`Could not DM invite reward confirmation to ${inviter.id}: ${error.message}`));
 
     const channelId = await client.db.get(`guild:${guild.id}:invite_reward_channel`, null);
     if (channelId) {
