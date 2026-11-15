@@ -139,62 +139,98 @@ export async function processInviteReward(member) {
 
 async function awardOnce(client, guild, invitedMember, inviter) {
   return withLock(inviterLocks, inviter.id, async () => {
-    const key = claimKey(guild.id, invitedMember.id);
-    const existing = await client.db.get(key, null);
-    if (existing) {
-      // A processing claim is deliberately not retried automatically: the prior
-      // process may have written the wallet before crashing. Retrying could double-pay.
-      if (existing.status === 'processing') {
-        logger.error(`Invite reward claim for ${invitedMember.id} is pending manual reconciliation; refusing a possible duplicate credit.`);
+    const claimKeyValue = claimKey(guild.id, invitedMember.id);
+    const pool = client.db?.db?.pool;
+    if (!pool || typeof pool.connect !== 'function' || client.db?.isDegraded?.()) {
+      throw new Error('Persistent PostgreSQL transaction support is required for invite rewards.');
+    }
+
+    // Prime defaults through the existing economy normalizer. The transaction
+    // then locks the wallet row and applies both the claim and credit atomically.
+    const economyDefaults = await getEconomyData(client, guild.id, inviter.id);
+    const walletKey = getEconomyKey(guild.id, inviter.id);
+    const { pgConfig } = await import('../config/database/postgres.js');
+    const connection = await pool.connect();
+    let newWalletBalance = null;
+
+    try {
+      await connection.query('BEGIN');
+
+      const claim = {
+        status: 'paid',
+        guildId: guild.id,
+        invitedUserId: invitedMember.id,
+        inviterId: inviter.id,
+        amount: INVITE_REWARD_AMOUNT,
+        createdAt: new Date().toISOString(),
+      };
+      const claimInsert = await connection.query(
+        `INSERT INTO ${pgConfig.tables.cache_data} (key, value, expires_at)
+         VALUES ($1, $2::jsonb, NULL)
+         ON CONFLICT (key) DO NOTHING
+         RETURNING key`,
+        [claimKeyValue, JSON.stringify({ ...claim, status: 'processing' })],
+      );
+
+      if (claimInsert.rowCount === 0) {
+        await connection.query('ROLLBACK');
+        return false;
       }
-      return false;
-    }
 
-    const claim = {
-      status: 'processing',
-      guildId: guild.id,
-      invitedUserId: invitedMember.id,
-      inviterId: inviter.id,
-      amount: INVITE_REWARD_AMOUNT,
-      createdAt: new Date().toISOString(),
-    };
-    await client.db.set(key, claim);
-    const persisted = await client.db.get(key, null);
-    if (!persisted || persisted.inviterId !== inviter.id) {
-      throw new Error('Could not verify the durable one-time invite claim; reward was not credited.');
-    }
+      // global:economy keys are stored in temp_data by the existing key router.
+      // Advisory locking also covers the first-credit case where no row exists.
+      await connection.query('SELECT pg_advisory_xact_lock(hashtext($1))', [walletKey]);
+      await connection.query(
+        `INSERT INTO ${pgConfig.tables.temp_data} (key, value, expires_at)
+         VALUES ($1, $2::jsonb, NULL)
+         ON CONFLICT (key) DO NOTHING`,
+        [walletKey, JSON.stringify(economyDefaults)],
+      );
 
-    // Serialize credits to the same inviter so simultaneous invite rewards do not
-    // overwrite one another's global wallet balance.
-    const economy = await getEconomyData(client, guild.id, inviter.id);
-    const currentWallet = Number(economy.wallet) || 0;
-    const nextWallet = currentWallet + INVITE_REWARD_AMOUNT;
-    if (!Number.isSafeInteger(nextWallet)) {
-      throw new Error('Inviter wallet would exceed the safe integer limit.');
-    }
+      const walletResult = await connection.query(
+        `SELECT value FROM ${pgConfig.tables.temp_data} WHERE key = $1 FOR UPDATE`,
+        [walletKey],
+      );
+      if (!walletResult.rows[0]) {
+        throw new Error('Could not lock the inviter wallet row.');
+      }
 
-    economy.wallet = nextWallet;
-    const saved = await setEconomyData(client, guild.id, inviter.id, economy);
-    if (!saved) {
-      // Keep the processing claim for review rather than risking duplicate payment
-      // if the storage layer returned an ambiguous result.
-      throw new Error('Wallet save failed or returned an ambiguous result; claim retained for manual reconciliation.');
-    }
+      const economy = { ...economyDefaults, ...walletResult.rows[0].value };
+      const currentWallet = Number(economy.wallet) || 0;
+      newWalletBalance = currentWallet + INVITE_REWARD_AMOUNT;
+      if (!Number.isSafeInteger(newWalletBalance)) {
+        throw new Error('Inviter wallet would exceed the safe integer limit.');
+      }
 
-    const storedEconomy = await client.db.get(getEconomyKey(guild.id, inviter.id), null);
-    if (!storedEconomy || Number(storedEconomy.wallet) !== nextWallet) {
-      throw new Error('Wallet balance read-back did not match the expected reward; claim retained for manual reconciliation.');
-    }
+      economy.wallet = newWalletBalance;
+      await connection.query(
+        `UPDATE ${pgConfig.tables.temp_data}
+         SET value = $2::jsonb, expires_at = NULL
+         WHERE key = $1`,
+        [walletKey, JSON.stringify(economy)],
+      );
+      await connection.query(
+        `UPDATE ${pgConfig.tables.cache_data}
+         SET value = $2::jsonb
+         WHERE key = $1`,
+        [claimKeyValue, JSON.stringify({
+          ...claim,
+          status: 'paid',
+          newWalletBalance,
+          awardedAt: new Date().toISOString(),
+        })],
+      );
 
-    await client.db.set(key, {
-      ...claim,
-      status: 'paid',
-      newWalletBalance: nextWallet,
-      awardedAt: new Date().toISOString(),
-    });
+      await connection.query('COMMIT');
+    } catch (error) {
+      await connection.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      connection.release();
+    }
 
     const amountText = INVITE_REWARD_AMOUNT.toLocaleString('en-US');
-    const balanceText = nextWallet.toLocaleString('en-US');
+    const balanceText = newWalletBalance.toLocaleString('en-US');
     await inviter.send(
       `🎉 **Invite reward received!** You earned **${amountText} bCash** for inviting **${invitedMember.user.tag}** to Barracks. Your new wallet balance is **${balanceText} bCash**.`
     ).catch(error => logger.info(`Could not DM invite reward confirmation to ${inviter.id}: ${error.message}`));
