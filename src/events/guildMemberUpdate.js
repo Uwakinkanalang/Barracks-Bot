@@ -67,6 +67,62 @@ export default {
       const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
       const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
 
+      // Handle configured AutoNick role changes independently from Barracks rank/clan
+      // formatting so a newly granted AutoNick role always applies its winning prefix.
+      if (changedAutoNickRole && !newMember.user.bot) {
+        const stateKey = `guild:${newMember.guild.id}:autonick_member:${newMember.id}`;
+        const savedState = await newMember.client.db.get(stateKey, null);
+        const winningConfig = autoNickConfigs.find(entry => newMember.roles.cache.has(entry.roleId));
+        const knownPrefixes = autoNickConfigs
+          .map(entry => String(entry.prefix).trim())
+          .filter(Boolean)
+          .sort((a, b) => b.length - a.length);
+
+        let baseName = typeof savedState?.originalNickname === 'string'
+          ? savedState.originalNickname
+          : String(oldMember.nickname ?? oldMember.user.globalName ?? oldMember.user.username);
+        baseName = baseName.replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+
+        let matchedPrefix;
+        do {
+          matchedPrefix = knownPrefixes.find(prefix => baseName.startsWith(prefix));
+          if (matchedPrefix) baseName = baseName.slice(matchedPrefix.length).trimStart();
+        } while (matchedPrefix);
+
+        if (!baseName.trim()) baseName = newMember.user.globalName || newMember.user.username;
+
+        let targetNickname;
+        if (winningConfig) {
+          await newMember.client.db.set(stateKey, {
+            originalNickname: baseName,
+            savedAt: savedState?.savedAt || Date.now(),
+          });
+          targetNickname = `${winningConfig.prefix.trim()} ${baseName}`.slice(0, 32);
+        } else {
+          targetNickname = baseName || null;
+          if (savedState) await newMember.client.db.delete(stateKey).catch(() => {});
+        }
+
+        const afkKey = getAFKKey(newMember.guild.id, newMember.id);
+        const afkStatus = await newMember.client.db.get(afkKey, null);
+        if (afkStatus) {
+          afkStatus.originalNickname = targetNickname;
+          afkStatus.afkNickname = targetNickname ? `[AFK] ${targetNickname}`.slice(0, 32) : null;
+          await newMember.client.db.set(afkKey, afkStatus);
+          targetNickname = afkStatus.afkNickname;
+        }
+
+        if (newMember.nickname !== targetNickname) {
+          await newMember.setNickname(
+            targetNickname,
+            winningConfig
+              ? `Apply highest-priority AutoNick role ${winningConfig.roleId}`
+              : 'Restore nickname after last configured AutoNick role was removed',
+          );
+          logger.info(`[AUTO_NICKNAME] Role change applied for ${newMember.user.tag}: ${targetNickname || '(cleared)'}`);
+        }
+      }
+
       // Keep the stored base nickname synchronized with manual edits. Strip every
       // configured AutoNick prefix first, so old saved prefixes cannot accumulate.
       if (
