@@ -68,14 +68,14 @@ async function handlePrefixCommand(message, client) {
       const balanceText = Number(reward.newBalance || 0).toLocaleString('en-US');
       const testEmbed = new EmbedBuilder()
         .setColor(0xD4AF37)
-        .setTitle('🧪 Invite Reward Test Successful!')
-        .setDescription('Your test reward has been added to your Barracks wallet.')
+        .setTitle('🎉 Invite Reward Received!')
+        .setDescription('Thanks for helping grow the **Barracks** community! This is a simulated invite-reward test; no real member named John Smith joined.')
         .addFields(
-          { name: '💰 Test Reward', value: `**+${amountText} bCash**`, inline: true },
-          { name: '🪖 Test Account', value: `${message.author.username}`, inline: true },
+          { name: '💰 Reward Earned', value: `**+${amountText} bCash**`, inline: true },
+          { name: '🪖 New Recruit', value: '**John Smith**', inline: true },
           { name: '💳 New Wallet Balance', value: `**${balanceText} bCash**`, inline: false },
         )
-        .setFooter({ text: 'Barracks • Invite Rewards • Test Credit Only' })
+        .setFooter({ text: 'Barracks • Invite Rewards • Simulated Test' })
         .setTimestamp();
 
       try {
