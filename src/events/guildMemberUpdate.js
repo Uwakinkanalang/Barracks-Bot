@@ -123,11 +123,19 @@ export default {
           const activeAutoNick = changedAutoNickRole
             ? autoNickConfigs.find((entry) => newMember.roles.cache.has(entry.roleId))
             : null;
-          const shouldUpdateForConfiguredAutoNick = Boolean(activeAutoNick);
+          // Recalculate whenever a configured AutoNick role is added OR removed.
+          const shouldUpdateForConfiguredAutoNick = changedAutoNickRole;
           const shouldUpdateForOtherNicknameRules = isBarracksGuild && !changedRankRole &&
             (!memberClan || joinedClan);
           if (shouldUpdateForConfiguredAutoNick || shouldUpdateForOtherNicknameRules) {
-            let baseName = newMember.displayName.replace(/^\\[AFK\\]\\s*/u, '');
+            const autoNickStateKey = `guild:${newMember.guild.id}:autonick_member:${newMember.id}`;
+            let autoNickState = changedAutoNickRole
+              ? await newMember.client.db.get(autoNickStateKey, null)
+              : null;
+            let baseName = autoNickState && typeof autoNickState.originalNickname === 'string'
+              ? autoNickState.originalNickname
+              : (newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
+            baseName = baseName.replace(/^\[AFK\]\s*/u, '');
             const knownDepartmentPrefixes = legacyDepartmentPrefixes
               .slice()
               .sort((a, b) => b.length - a.length);
@@ -142,7 +150,7 @@ export default {
               let changed = true;
               while (changed) {
                 changed = false;
-                result = result.replace(/^🔫\\s*/u, '');
+                result = result.replace(/^🔫\s*/u, '');
                 const departmentPrefix = knownDepartmentPrefixes.find((item) => result.startsWith(item));
                 if (departmentPrefix) {
                   result = result.slice(departmentPrefix.length).trimStart();
@@ -182,15 +190,19 @@ export default {
             }
 
             baseName = stripRankDecorations(baseName);
-            // Remove any previously applied configurable AutoNick prefix before selecting
-            // the highest-priority role that the member currently has.
-            const previousAutoNickPrefix = autoNickConfigs
-              .map((entry) => String(entry.prefix).trim())
-              .filter(Boolean)
-              .sort((a, b) => b.length - a.length)
-              .find((prefix) => baseName.startsWith(prefix));
-            if (previousAutoNickPrefix) {
-              baseName = baseName.slice(previousAutoNickPrefix.length).trimStart();
+            // If this member predates saved AutoNick state, remove repeated configured
+            // prefixes from the front so an old duplicate such as "🛡️| 🛡️| Uwak"
+            // is repaired instead of being saved as their permanent base nickname.
+            if (!autoNickState && changedAutoNickRole) {
+              const configuredPrefixes = autoNickConfigs
+                .map((entry) => String(entry.prefix).trim())
+                .filter(Boolean)
+                .sort((a, b) => b.length - a.length);
+              let previousPrefix;
+              do {
+                previousPrefix = configuredPrefixes.find((prefix) => baseName.startsWith(prefix));
+                if (previousPrefix) baseName = baseName.slice(previousPrefix.length).trimStart();
+              } while (previousPrefix);
             }
             if (!baseName.trim()) {
               baseName = newMember.user.globalName || newMember.user.username;
@@ -207,13 +219,24 @@ export default {
               : baseName.trimStart();
 
             const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
+            if (changedAutoNickRole && activeAutoNick && !autoNickState) {
+              autoNickState = { originalNickname: baseName.trimStart(), savedAt: Date.now() };
+              await newMember.client.db.set(autoNickStateKey, autoNickState);
+            }
             let desiredNickname = activeAutoNick
               ? `${String(activeAutoNick.prefix).trim()} ${baseName.trimStart()}`.slice(0, 32)
-              : memberClan
+              : changedAutoNickRole && autoNickState
+                ? (autoNickState.originalNickname || null)
+                : memberClan
                   ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
                   : rankDisplayName
                     ? `🔫${nicknameBody}`.slice(0, 32)
                     : baseName.trimStart().slice(0, 32);
+
+            // Clear saved AutoNick state after the last configured role is removed.
+            if (changedAutoNickRole && !activeAutoNick && autoNickState) {
+              await newMember.client.db.delete(autoNickStateKey).catch(() => {});
+            }
 
             // Keep the AFK marker while refreshing the underlying nickname format.
             const afkKey = getAFKKey(newMember.guild.id, newMember.id);
