@@ -142,7 +142,14 @@ export default {
             .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
           const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
           const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
-          const activeAutoNick = autoNickConfigs.find((entry) => newMember.roles.cache.has(entry.roleId));
+          const changedRankRole = [...changedRoleIds].some((roleId) =>
+            rankRoleIds.includes(roleId) || rankRewards.some((entry) => entry.roleId === roleId)
+          );
+          // Custom AutoNick prefixes only react to configured AutoNick role changes.
+          // Rank role changes always use the normal Barracks rank nickname format.
+          const activeAutoNick = changedAutoNickRole && !changedRankRole
+            ? autoNickConfigs.find((entry) => newMember.roles.cache.has(entry.roleId))
+            : null;
           if (departmentRole || activeAutoNick || changedAutoNickRole || !memberClan || joinedClan || joinedDepartment) {
             let baseName = newMember.displayName.replace(/^\\[AFK\\]\\s*/u, '');
             const knownDepartmentPrefixes = departmentNicknamePrefixes
