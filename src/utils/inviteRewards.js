@@ -1,5 +1,6 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { getEconomyData, setEconomyData } from './economy.js';
+import { getEconomyKey } from './database.js';
 import { logger } from './logger.js';
 
 export const INVITE_REWARD_GUILD_ID = '1137695060096471160';
@@ -50,7 +51,7 @@ async function canTrack(guild) {
 export async function initializeInviteTracking(client) {
   const guild = client.guilds.cache.get(INVITE_REWARD_GUILD_ID);
   if (!guild) return;
-  if (client.db?.isDegraded?.()) {
+  if (client.db?.getStatus?.().isDegraded) {
     logger.error('Invite rewards disabled: persistent database is unavailable; durable one-time claims cannot be guaranteed.');
     return;
   }
@@ -168,8 +169,8 @@ async function awardOnce(client, guild, invitedMember, inviter) {
       throw new Error('Wallet save failed or returned an ambiguous result; claim retained for manual reconciliation.');
     }
 
-    const verifiedEconomy = await getEconomyData(client, guild.id, inviter.id);
-    if (Number(verifiedEconomy.wallet) !== nextWallet) {
+    const storedEconomy = await client.db.get(getEconomyKey(guild.id, inviter.id), null);
+    if (!storedEconomy || Number(storedEconomy.wallet) !== nextWallet) {
       throw new Error('Wallet balance read-back did not match the expected reward; claim retained for manual reconciliation.');
     }
 
