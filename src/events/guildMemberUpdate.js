@@ -118,8 +118,9 @@ export default {
           );
           const joinedDepartment = Boolean(departmentRole && !oldMember.roles.cache.has(departmentRole.roleId));
           const autoNickConfigsRaw = await newMember.client.db.get(`guild:${newMember.guild.id}:autonick_roles`, []);
+          const departmentRoleIds = new Set(departmentNicknamePrefixes.map(({ roleId }) => roleId));
           const autoNickConfigs = (Array.isArray(autoNickConfigsRaw) ? autoNickConfigsRaw : [])
-            .filter((entry) => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
+            .filter((entry) => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string' && !departmentRoleIds.has(entry.roleId))
             .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
           const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
           const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
