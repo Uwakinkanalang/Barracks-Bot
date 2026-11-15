@@ -60,7 +60,9 @@ export default {
         '1467462823457063067',
         '1467462861822627912',
       ];
-      if (isBarracksGuild && roleSetChanged && !newMember.user.bot) {
+      if (roleSetChanged && !newMember.user.bot) {
+        // Rank IDs are unique to the Barracks rank system. Do not gate this
+        // cleanup on GUILD_ID: a missing/misconfigured env var must not disable it.
         const heldRankRoles = barracksRankRoleOrder.filter(roleId => newMember.roles.cache.has(roleId));
         const highestHeldRankRole = heldRankRoles.at(-1);
         const duplicateRankRoles = heldRankRoles.filter(roleId => roleId !== highestHeldRankRole);
@@ -72,7 +74,7 @@ export default {
             );
             logger.info(`[RANK_ROLE] Removed duplicate lower rank roles from ${newMember.user.tag}; kept ${highestHeldRankRole}`);
           } catch (error) {
-            logger.warn(`[RANK_ROLE] Could not remove duplicate rank roles from ${newMember.user.tag}: ${error.message}`);
+            logger.error(`[RANK_ROLE] Failed to remove duplicate rank roles from ${newMember.user.tag}. Check Manage Roles permission and role hierarchy. Roles: ${duplicateRankRoles.join(', ')}. Error: ${error.message}`);
           }
         }
       }
