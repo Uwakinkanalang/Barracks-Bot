@@ -33,7 +33,7 @@ export default {
         const note = args.join(' ').slice(0, 300);
 
         if (!userId || !Number.isFinite(amount) || amount <= 0 || amount > 1000000000 || !Number.isInteger(durationMonths) || durationMonths < 1 || durationMonths > 120) {
-          await message.reply('Usage: `bdonate add @member amount [note]`\nExample: `bdonate add @Soldier 5000 Server support`');
+          await message.reply('Usage: `bdonate add @member amount [months] [note]`\nExample: `bdonate add @Soldier 5000 3 Server support`');
           return;
         }
 
