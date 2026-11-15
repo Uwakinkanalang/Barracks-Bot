@@ -11,7 +11,7 @@ import {
 } from 'discord.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 
-const PAGE_SIZE = 18;
+const PAGE_SIZE = 11;
 const SHOP_KEY = guildId => `guild:${guildId}:roleShop`;
 
 async function getItems(client, guildId) {
