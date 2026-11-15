@@ -56,8 +56,17 @@ export default {
       ]);
       const roleSetChanged = changedRoleIds.size > 0;
 
-      // Rank-role changes must never rewrite a member's nickname.
-      // Rank rewards and role cleanup below continue to work independently.
+      // These are Barracks rank roles. They may also be configured in /autonick.
+      const rankRoleIds = [
+        '1467461731998761096',
+        '1467461918792089784',
+        '1467461953340444677',
+        '1540715496637333564',
+        '1467462639759396865',
+        '1467462740024098983',
+        '1467462823457063067',
+        '1467462861822627912',
+      ];
 
       // Department role grants/removals now trigger their own nickname format.
       if (isBarracksGuild && roleSetChanged && !newMember.user.bot) {
@@ -117,12 +126,14 @@ export default {
           const changedRankRole = [...changedRoleIds].some((roleId) =>
             rankRoleIds.includes(roleId) || rankRewards.some((entry) => entry.roleId === roleId)
           );
-          // Custom AutoNick prefixes only react to configured AutoNick role changes.
-          // Rank role changes always use the normal Barracks rank nickname format.
-          const activeAutoNick = changedAutoNickRole && !changedRankRole
+          // Configured AutoNick roles, including rank roles, use the same priority system.
+          const activeAutoNick = changedAutoNickRole
             ? autoNickConfigs.find((entry) => newMember.roles.cache.has(entry.roleId))
             : null;
-          if (!changedRankRole && (departmentRole || activeAutoNick || changedAutoNickRole || !memberClan || joinedClan || joinedDepartment)) {
+          const shouldUpdateForConfiguredAutoNick = Boolean(activeAutoNick);
+          const shouldUpdateForOtherNicknameRules = !changedRankRole &&
+            (departmentRole || !memberClan || joinedClan || joinedDepartment);
+          if (shouldUpdateForConfiguredAutoNick || shouldUpdateForOtherNicknameRules) {
             let baseName = newMember.displayName.replace(/^\\[AFK\\]\\s*/u, '');
             const knownDepartmentPrefixes = departmentNicknamePrefixes
               .map(({ prefix }) => prefix)
@@ -226,11 +237,13 @@ export default {
             if (newMember.nickname !== desiredNickname) {
               await newMember.setNickname(
                 desiredNickname,
-                departmentRole
-                  ? `Apply ${departmentRole.prefix} nickname for department role`
-                  : memberClan
-                    ? 'Apply clan tag when member joins an approved clan'
-                    : 'Apply automatic rank nickname for a non-clan member',
+                activeAutoNick
+                  ? `Apply configured AutoNick prefix for role ${activeAutoNick.roleId}`
+                  : departmentRole
+                    ? `Apply ${departmentRole.prefix} nickname for department role`
+                    : memberClan
+                      ? 'Apply clan tag when member joins an approved clan'
+                      : 'Apply automatic rank nickname for a non-clan member',
               );
               logger.info(
                 `[AUTO_NICKNAME] Updated ${newMember.user.tag} to ${desiredNickname}`,
