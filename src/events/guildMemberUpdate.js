@@ -144,7 +144,7 @@ export default {
           const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
           const activeAutoNick = autoNickConfigs.find((entry) => newMember.roles.cache.has(entry.roleId));
           if (departmentRole || activeAutoNick || changedAutoNickRole || !memberClan || joinedClan || joinedDepartment) {
-            let baseName = newMember.displayName;
+            let baseName = newMember.displayName.replace(/^\\[AFK\\]\\s*/u, '');
             const knownDepartmentPrefixes = departmentNicknamePrefixes
               .map(({ prefix }) => prefix)
               .sort((a, b) => b.length - a.length);
