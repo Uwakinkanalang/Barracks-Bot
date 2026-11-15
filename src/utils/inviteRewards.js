@@ -244,9 +244,7 @@ async function awardOnce(client, guild, invitedMember, inviter) {
       .setTimestamp();
 
     await inviter.send({
-      content: `🪖 New recruit: <@${invitedMember.id}>`,
       embeds: [rewardEmbed],
-      allowedMentions: { users: [invitedMember.id] },
     })
       .catch(error => logger.info(`Could not DM invite reward confirmation to ${inviter.id}: ${error.message}`));
 
