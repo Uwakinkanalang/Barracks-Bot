@@ -10,13 +10,11 @@ import {
   ButtonStyle,
   ActionRowBuilder,
 } from 'discord.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
-import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const PAGE_SIZE = 11;
 const SHOP_KEY = (guildId) => `guild:${guildId}:roleShop`;
 
-async function getItems(client, guildId) {
+export async function getItems(client, guildId) {
   const value = await client.db.get(SHOP_KEY(guildId), []);
   return Array.isArray(value) ? value.filter(item =>
     item && typeof item.roleId === 'string' &&
@@ -24,7 +22,7 @@ async function getItems(client, guildId) {
   ) : [];
 }
 
-function buildShopPage(items, guildId, page) {
+export function buildShopPage(items, guildId, page) {
   const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const currentPage = Math.min(Math.max(0, page), pageCount - 1);
   const pageItems = items.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
@@ -32,7 +30,7 @@ function buildShopPage(items, guildId, page) {
     .addTextDisplayComponents(new TextDisplayBuilder().setContent('# 🛒 B-Shop\nWelcome to the **Barracks B-Shop**! Purchase exclusive server roles with your **bCash**.'));
 
   if (!pageItems.length) {
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('The B-Shop is empty. Ask a Barracks administrator to add some roles with `/bshop add`.'));
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('The B-Shop is empty. The server owner can add roles with `bshop add @role price`.'));
   } else {
     for (const item of pageItems) {
       const section = new SectionBuilder()
@@ -74,6 +72,7 @@ function isAdmin(interaction) {
 }
 
 export default {
+  prefixOnly: true,
   data: new SlashCommandBuilder()
     .setName('bshop')
     .setDescription('Browse and manage the Barracks B-Shop')
@@ -90,7 +89,16 @@ export default {
       .setDescription('Remove a role from the shop')
       .addRoleOption(option => option.setName('role').setDescription('Role to remove').setRequired(true))),
 
-  async execute(interaction, config, client) {
+  async execute() {
+    throw new Error('B-Shop is a prefix-only command. Use `bshop list`.');
+  },
+
+  async prefixExecute() {
+    throw new Error('B-Shop prefix handling is registered in messageCreate.');
+  },
+
+  /* legacy slash implementation disabled */
+  async legacyExecute(interaction, config, client) {
     const subcommand = interaction.options.getSubcommand();
     const guildId = interaction.guildId;
     if (!guildId) {
