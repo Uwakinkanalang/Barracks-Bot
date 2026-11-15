@@ -39,7 +39,7 @@ export default async function loadEvents(client) {
                 logger.info(`✅ Registered event: ${event.name}`);
             }
         } catch (error) {
-            logger.error(`Error loading event ${file}:`, error);
+            logger.error(`Error loading event ${file}: ${error?.stack || error}`);
         }
     }
 }
