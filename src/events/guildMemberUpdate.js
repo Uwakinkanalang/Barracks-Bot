@@ -67,6 +67,51 @@ export default {
       const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
       const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
 
+      // If a member or moderator manually changes the nickname, refresh the saved
+      // AutoNick base name. Ignore our own prefixed nickname updates to avoid loops.
+      if (
+        oldMember.nickname !== newMember.nickname &&
+        !roleSetChanged &&
+        !newMember.user.bot &&
+        autoNickConfigs.length > 0
+      ) {
+        const activeAutoNick = autoNickConfigs.find((entry) => newMember.roles.cache.has(entry.roleId));
+        if (activeAutoNick) {
+          const stateKey = `guild:${newMember.guild.id}:autonick_member:${newMember.id}`;
+          const currentNickname = String(newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
+          const hadAfkMarker = /^\\[AFK\\]\\s*/u.test(currentNickname);
+          const cleanNickname = currentNickname.replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+          const activePrefix = String(activeAutoNick.prefix).trim();
+
+          if (!cleanNickname.startsWith(activePrefix)) {
+            const originalNickname = cleanNickname || newMember.user.globalName || newMember.user.username;
+            await newMember.client.db.set(stateKey, {
+              originalNickname,
+              savedAt: Date.now(),
+            });
+
+            let desiredNickname = `${activePrefix} ${originalNickname}`.slice(0, 32);
+            const afkKey = getAFKKey(newMember.guild.id, newMember.id);
+            const afkStatus = await newMember.client.db.get(afkKey, null);
+            if (afkStatus || hadAfkMarker) {
+              const status = afkStatus || {};
+              status.originalNickname = desiredNickname;
+              status.afkNickname = `[AFK] ${desiredNickname}`.slice(0, 32);
+              await newMember.client.db.set(afkKey, status);
+              desiredNickname = status.afkNickname;
+            }
+
+            if (newMember.nickname !== desiredNickname) {
+              await newMember.setNickname(
+                desiredNickname,
+                'Update AutoNick base nickname after a manual nickname change',
+              );
+              logger.info(`[AUTO_NICKNAME] Saved manual nickname for ${newMember.user.tag}: ${originalNickname}`);
+            }
+          }
+        }
+      }
+
       if ((isBarracksGuild || changedAutoNickRole) && roleSetChanged && !newMember.user.bot) {
         try {
           const levelingConfig = isBarracksGuild
