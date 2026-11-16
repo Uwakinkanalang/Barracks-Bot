@@ -137,7 +137,7 @@ export function buildBoosterColorShopPage(items, guild, page) {
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**<@&${item.roleId}>**\n🪙 **${item.price.toLocaleString()} bCash**`))
         .setButtonAccessory(new ButtonBuilder()
           .setCustomId(`roleShopBoosterColor:buy:${guild.id}:${item.roleId}`)
-          .setLabel('Buy')
+          .setLabel('Pick')
           .setStyle(ButtonStyle.Success));
       container.addSectionComponents(section);
     }
