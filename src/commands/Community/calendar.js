@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 import { randomUUID } from 'node:crypto';
 import {
-  getCalendarConfig, getCalendarEvents, saveCalendarEvents, publishCalendar, canManageCalendar
+  getCalendarConfig, getCalendarEvents, saveCalendarEvents, publishCalendar, canManageCalendar, buildCalendarPayload
 } from '../../services/calendarService.js';
 
 const data = new SlashCommandBuilder()
@@ -56,6 +56,9 @@ export default {
       return interaction.reply({ content: `✅ Barracks Calendar is now published in ${channel} and will update automatically.`, ephemeral: true });
     }
     const events = await getCalendarEvents(client, interaction.guildId);
+    if (sub === 'view') {
+      return interaction.reply({ ...buildCalendarPayload(interaction.guild, events, new Date()), ephemeral: true });
+    }
     if (sub === 'add') {
       const startsAt = parseManilaDate(interaction.options.getString('date'), interaction.options.getString('time'));
       if (!startsAt || new Date(startsAt).getTime() <= Date.now()) return interaction.reply({ content: 'Enter a valid future date and time in Manila time.', ephemeral: true });
