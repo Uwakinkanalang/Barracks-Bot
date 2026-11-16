@@ -76,8 +76,17 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
     const dealerHidden = hideDealerHole || (!revealDealer && !ended);
     const dealerValue = revealDealer ? handValue(game.dealer) : String(game.dealer[0].rank) + '+?';
     const playerValue = handValue(game.player);
+    const statusLower = String(status).toLowerCase();
+    const resultColor = !ended
+        ? 0x3498DB
+        : statusLower.includes('push') || statusLower.includes('tie')
+            ? 0x95A5A6
+            : statusLower.includes('won') || statusLower.includes('blackjack')
+                ? 0x2ECC71
+                : 0xE74C3C;
+
     const embed = new EmbedBuilder()
-        .setColor(0x5865F2)
+        .setColor(resultColor)
         .setAuthor({
             name: game.displayName + ', you bet ₱' + game.bet.toLocaleString() + ' to play blackjack',
             iconURL: game.avatarURL || undefined,
