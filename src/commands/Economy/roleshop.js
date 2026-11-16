@@ -12,13 +12,22 @@ import {
 
 const PAGE_SIZE = 11;
 const SHOP_KEY = (guildId) => `guild:${guildId}:roleShop`;
+const COLOR_SHOP_KEY = (guildId) => `guild:${guildId}:colorRoleShop`;
 
-export async function getItems(client, guildId) {
-  const value = await client.db.get(SHOP_KEY(guildId), []);
+async function getItemsFromKey(client, key) {
+  const value = await client.db.get(key, []);
   return Array.isArray(value) ? value.filter(item =>
     item && typeof item.roleId === 'string' &&
     Number.isSafeInteger(item.price) && item.price > 0
   ) : [];
+}
+
+export async function getItems(client, guildId) {
+  return getItemsFromKey(client, SHOP_KEY(guildId));
+}
+
+export async function getColorItems(client, guildId) {
+  return getItemsFromKey(client, COLOR_SHOP_KEY(guildId));
 }
 
 export function buildShopPage(items, guildId, page) {
@@ -114,8 +123,17 @@ export default {
       .addIntegerOption(option => option.setName('price').setDescription('Price in bCash').setMinValue(1).setMaxValue(2147483647).setRequired(true)))
     .addSubcommand(sub => sub
       .setName('remove')
-      .setDescription('Remove a role from the shop')
-      .addRoleOption(option => option.setName('item').setDescription('Role item to remove').setRequired(true))),
+      .setDescription('Remove a role from the regular shop')
+      .addRoleOption(option => option.setName('item').setDescription('Role item to remove').setRequired(true)))
+    .addSubcommand(sub => sub
+      .setName('add-color')
+      .setDescription('Add a colored role to the color shop')
+      .addRoleOption(option => option.setName('item').setDescription('Colored role item to sell').setRequired(true))
+      .addIntegerOption(option => option.setName('price').setDescription('Price in bCash').setMinValue(1).setMaxValue(2147483647).setRequired(true)))
+    .addSubcommand(sub => sub
+      .setName('remove-color')
+      .setDescription('Remove a role from the color shop')
+      .addRoleOption(option => option.setName('item').setDescription('Colored role item to remove').setRequired(true))),
 
   async execute(interaction, config, client) {
     const subcommand = interaction.options.getSubcommand();
@@ -132,12 +150,18 @@ export default {
     }
 
     const role = interaction.options.getRole('item', true);
-    const items = await getItems(client, guildId);
+    const isColorShop = subcommand.endsWith('-color');
+    const shopKey = isColorShop ? COLOR_SHOP_KEY(guildId) : SHOP_KEY(guildId);
+    const shopLabel = isColorShop ? 'Color B-Shop' : 'B-Shop';
+    const items = isColorShop ? await getColorItems(client, guildId) : await getItems(client, guildId);
 
-    if (subcommand === 'add') {
+    if (subcommand === 'add' || subcommand === 'add-color') {
       const price = interaction.options.getInteger('price', true);
       if (role.id === guildId || role.managed || role.position >= interaction.guild.members.me.roles.highest.position) {
         return interaction.reply({ content: 'That role cannot be sold. Choose a normal role below the bot’s highest role.', flags: MessageFlags.Ephemeral });
+      }
+      if (isColorShop && role.color === 0) {
+        return interaction.reply({ content: 'That role has no color. Choose a role with a Discord role color for the Color B-Shop.', flags: MessageFlags.Ephemeral });
       }
       const existing = items.find(item => item.roleId === role.id);
       if (existing) {
@@ -145,17 +169,17 @@ export default {
       } else {
         items.push({ roleId: role.id, price });
       }
-      await client.db.set(SHOP_KEY(guildId), items);
-      return interaction.reply({ content: `✅ ${role} is now available in the B-Shop for **${price.toLocaleString()} bCash**.${existing ? ' Its price was updated.' : ''}`, flags: MessageFlags.Ephemeral });
+      await client.db.set(shopKey, items);
+      return interaction.reply({ content: `✅ ${role} is now available in the ${shopLabel} for **${price.toLocaleString()} bCash**.${existing ? ' Its price was updated.' : ''}`, flags: MessageFlags.Ephemeral });
     }
 
-    if (subcommand === 'remove') {
+    if (subcommand === 'remove' || subcommand === 'remove-color') {
       const nextItems = items.filter(item => item.roleId !== role.id);
       if (nextItems.length === items.length) {
-        return interaction.reply({ content: 'That role is not currently listed in the B-Shop.', flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: `That role is not currently listed in the ${shopLabel}.`, flags: MessageFlags.Ephemeral });
       }
-      await client.db.set(SHOP_KEY(guildId), nextItems);
-      return interaction.reply({ content: `✅ Removed ${role} from the B-Shop.`, flags: MessageFlags.Ephemeral });
+      await client.db.set(shopKey, nextItems);
+      return interaction.reply({ content: `✅ Removed ${role} from the ${shopLabel}.`, flags: MessageFlags.Ephemeral });
     }
   },
 };
