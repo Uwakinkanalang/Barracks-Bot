@@ -5,11 +5,13 @@ import { getCustomRolePanelKey, validateRoleForPanel, refreshCustomRolePanel, CU
 function parseEmoji(raw, lineNumber) {
   const value = String(raw || '').trim();
   if (!value) return '';
-  const custom = value.match(/<(?:(a):)?([A-Za-z0-9_]{2,32}):(\d{17,20})>/);
+
+  // Accept Discord's full markup, markup without angle brackets, or a raw emoji ID.
+  const custom = value.match(/<?(a?):?([A-Za-z0-9_]{2,32}):(\d{17,20})>?/);
   if (custom) return { id: custom[3], name: custom[2], ...(custom[1] ? { animated: true } : {}) };
   if (/^\d{17,20}$/.test(value)) return { id: value };
   if (/^<a?:/.test(value) || value.includes(':')) {
-    throw new Error('Line ' + lineNumber + ': custom emoji must look like <:emoji_name:123456789012345678>.');
+    throw new Error('Line ' + lineNumber + ': invalid custom emoji. Use <:emoji_name:emoji_id> or paste the emoji directly.');
   }
   return { name: value };
 }
@@ -19,20 +21,21 @@ function parseOptions(raw) {
     let line = originalLine.trim();
     if (!line) return null;
 
-    // Accept a custom emoji anywhere in the line, including:
-    // <:emoji_name:123456789012345678>: Role Name
-    // Role Name|ROLE_ID|Description|<:emoji_name:123456789012345678>
-    const inlineEmoji = line.match(/<(?:(?:a):)?[A-Za-z0-9_]{2,32}:\d{17,20}>/);
+    // Extract custom emoji before splitting pipe-delimited fields.
+    const customMatch = line.match(/<?a?:?[A-Za-z0-9_]{2,32}:\d{17,20}>?/);
     let emoji = '';
-    if (inlineEmoji) {
-      emoji = inlineEmoji[0];
-      line = line.replace(inlineEmoji[0], '').trim();
-      line = line.replace(/^:\s*/, '').trim();
+    if (customMatch) {
+      emoji = customMatch[0];
+      line = line.replace(customMatch[0], '').trim().replace(/^:\s*/, '').trim();
     }
 
-    const [rawLabel, roleId, description = '', separateEmoji = ''] = line.split('|').map(value => value.trim());
-    const label = rawLabel;
+    const fields = line.split('|').map(value => value.trim());
+    const label = fields[0] || '';
+    const roleId = fields[1] || '';
+    const description = fields[2] || '';
+    const separateEmoji = fields[3] || '';
     if (!emoji) emoji = separateEmoji;
+
     if (!label || (roleId && !/^\d{17,19}$/.test(roleId))) {
       throw new Error(`Line ${index + 1}: use <:emoji_name:emoji_id>: Role Name, or Label|Role ID|Description|Emoji.`);
     }
