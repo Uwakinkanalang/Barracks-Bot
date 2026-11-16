@@ -23,12 +23,13 @@ function monthLabel(date) {
   return new Intl.DateTimeFormat('en-PH', { timeZone: TZ, month: 'long', year: 'numeric' }).format(date);
 }
 export function buildCalendarEmbed(guild, events, date = new Date()) {
-  const month = date.toLocaleString('en-US', { timeZone: TZ, month: '2-digit' });
-  const year = Number(new Intl.DateTimeFormat('en', { timeZone: TZ, year: 'numeric' }).format(date));
-  const monthNum = Number(month);
+  const dateParts = new Intl.DateTimeFormat('en', { timeZone: TZ, year: 'numeric', month: '2-digit' }).formatToParts(date);
+  const year = Number(dateParts.find(part => part.type === 'year')?.value);
+  const monthNum = Number(dateParts.find(part => part.type === 'month')?.value);
   const inMonth = events.filter(e => {
-    const d = new Date(e.startsAt);
-    return d.getFullYear() === year && d.getMonth() + 1 === monthNum;
+    const parts = new Intl.DateTimeFormat('en', { timeZone: TZ, year: 'numeric', month: '2-digit' }).formatToParts(new Date(e.startsAt));
+    return Number(parts.find(part => part.type === 'year')?.value) === year
+      && Number(parts.find(part => part.type === 'month')?.value) === monthNum;
   }).sort((a,b) => new Date(a.startsAt) - new Date(b.startsAt));
   const embed = new EmbedBuilder()
     .setColor(0x336699)
