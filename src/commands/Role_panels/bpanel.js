@@ -20,7 +20,8 @@ export default {
     .addSubcommand(s => s.setName('add-menu').setDescription('Add a dropdown menu to an existing panel')
       .addStringOption(o => o.setName('message-id').setDescription('Panel message ID').setRequired(true))
       .addStringOption(o => o.setName('placeholder').setDescription('Text shown before a selection').setMaxLength(150).setRequired(true))
-      .addStringOption(o => o.setName('options').setDescription('One per line: Label|Role ID|Description|Emoji').setMaxLength(4000).setRequired(true))\n      .addBooleanOption(o => o.setName('multiple').setDescription('Allow members to select more than one role').setRequired(false)))
+      .addStringOption(o => o.setName('options').setDescription('One per line: Label|Role ID|Description|Emoji').setMaxLength(4000).setRequired(true))
+      .addBooleanOption(o => o.setName('multiple').setDescription('Allow members to select more than one role').setRequired(false)))
     .addSubcommand(s => s.setName('delete').setDescription('Delete a role panel')
       .addStringOption(o => o.setName('message-id').setDescription('Panel message ID').setRequired(true)))
     .addSubcommand(s => s.setName('list').setDescription('List role panels in this server')),
