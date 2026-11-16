@@ -10,6 +10,17 @@ const __dirname = path.dirname(__filename);
 const MAX_COMMANDS = 100;
 const COMMAND_COUNT_WARN_THRESHOLD = 90;
 
+// Commands intentionally removed from Barracks-Bot's command registry.
+const DISABLED_COMMAND_NAMES = new Set([
+    'apply',
+    'beg',
+    'calculate',
+    'hexcolor',
+    'roll',
+    'search',
+    'weather',
+]);
+
 function getSubcommandInfo(commandData) {
     const subcommands = [];
     
@@ -65,6 +76,10 @@ export async function loadCommands(client) {
             const normalizedPath = filePath.replace(/\\/g, '/');
             
             const commandName = path.basename(filePath, '.js');
+            if (DISABLED_COMMAND_NAMES.has(commandName)) {
+                logger.info(`Skipping disabled command: ${commandName}`);
+                continue;
+            }
             const commandDir = path.dirname(filePath);
             const category = path.basename(commandDir);
             
