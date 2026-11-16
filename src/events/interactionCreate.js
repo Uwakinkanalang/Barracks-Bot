@@ -368,13 +368,15 @@ export default {
               await interaction.editReply('I cannot assign this role. Ask the server owner to move my role above it and enable Manage Roles.');
               return;
             }
-            const economy = await getEconomyData(interaction.client, guildId, interaction.user.id);
+            const economy = isBoosterColorPurchase ? null : await getEconomyData(interaction.client, guildId, interaction.user.id);
             const wallet = Number(economy?.wallet) || 0;
-            if (wallet < item.price) {
+            if (!isBoosterColorPurchase && wallet < item.price) {
               await interaction.editReply(`You need **${item.price.toLocaleString()} bCash**, but you only have **${wallet.toLocaleString()} bCash** in your wallet.`);
               return;
             }
-            await removeMoney(interaction.client, guildId, interaction.user.id, item.price, 'wallet');
+            if (!isBoosterColorPurchase) {
+              await removeMoney(interaction.client, guildId, interaction.user.id, item.price, 'wallet');
+            }
             const removedColorRoles = [];
             try {
               if (isColorPurchase || isBoosterColorPurchase) {
@@ -401,13 +403,21 @@ export default {
                   logger.error('Could not restore previous B-Shop color roles after failed purchase.', { guildId, userId: interaction.user.id, error: restoreError.message });
                 });
               }
-              await addMoney(interaction.client, guildId, interaction.user.id, item.price, 'wallet').catch(() => {});
-              logger.error('B-Shop role assignment failed; purchase refunded.', { guildId, userId: interaction.user.id, roleId, error: error.message });
-              await interaction.editReply('Role assignment failed, so your bCash was refunded.');
+              if (!isBoosterColorPurchase) {
+                await addMoney(interaction.client, guildId, interaction.user.id, item.price, 'wallet').catch(() => {});
+              }
+              logger.error('B-Shop role assignment failed.', { guildId, userId: interaction.user.id, roleId, error: error.message });
+              await interaction.editReply(isBoosterColorPurchase
+                ? 'Role assignment failed. Please try again or contact a server admin.'
+                : 'Role assignment failed, so your bCash was refunded.');
               return;
             }
-            const updated = await getEconomyData(interaction.client, guildId, interaction.user.id);
-            await interaction.editReply(`✅ You purchased ${role} for **${item.price.toLocaleString()} bCash**. Remaining wallet: **${(Number(updated?.wallet) || 0).toLocaleString()} bCash**.`);
+            if (isBoosterColorPurchase) {
+              await interaction.editReply(`✅ You picked ${role}! This Booster color role is free.`);
+            } else {
+              const updated = await getEconomyData(interaction.client, guildId, interaction.user.id);
+              await interaction.editReply(`✅ You purchased ${role} for **${item.price.toLocaleString()} bCash**. Remaining wallet: **${(Number(updated?.wallet) || 0).toLocaleString()} bCash**.`);
+            }
             return;
           }
 
