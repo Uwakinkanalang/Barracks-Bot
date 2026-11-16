@@ -322,16 +322,18 @@ export default {
             return;
           }
 
-          if (interaction.customId.startsWith('roleShop:buy:')) {
+          if (interaction.customId.startsWith('roleShop:buy:') || interaction.customId.startsWith('roleShopColor:buy:')) {
             const [, , guildId, roleId] = interaction.customId.split(':');
             if (!interaction.guild || interaction.guildId !== guildId) {
               await interaction.reply({ content: 'This shop belongs to another server.', flags: MessageFlags.Ephemeral });
               return;
             }
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-            const regularItems = await getBShopItems(interaction.client, guildId);
-            const colorItems = await getBShopColorItems(interaction.client, guildId);
-            const item = [...regularItems, ...colorItems].find(entry => entry.roleId === roleId);
+            const isColorPurchase = interaction.customId.startsWith('roleShopColor:buy:');
+            const items = isColorPurchase
+              ? await getBShopColorItems(interaction.client, guildId)
+              : await getBShopItems(interaction.client, guildId);
+            const item = items.find(entry => entry.roleId === roleId);
             const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
             if (!item || !role || role.managed || role.id === guildId) {
               await interaction.editReply('That role is no longer available to purchase.');
