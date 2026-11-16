@@ -12,7 +12,7 @@ import { getCommandPrefix, getBotMessage, isBotOwner, isCommandCategoryEnabled, 
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
-import { getItems as getBShopItems, buildShopPage as buildBShopPage, buildColorShopPage as buildBShopColorPage } from '../commands/Economy/roleshop.js';
+import { getItems as getBShopItems, getColorItems as getBShopColorItems, buildShopPage as buildBShopPage, buildColorShopPage as buildBShopColorPage } from '../commands/Economy/roleshop.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
@@ -66,8 +66,8 @@ async function handlePrefixCommand(message, client) {
     }
 
     // Separate public panel for purchasable color roles.
-    if (/^bshop\\s+color$/i.test(trimmedContent)) {
-      const items = await getBShopItems(client, message.guild.id);
+    if (/^bshop\s+color$/i.test(trimmedContent)) {
+      const items = await getBShopColorItems(client, message.guild.id);
       await message.channel.send({
         components: [buildBShopColorPage(items, message.guild, 0)],
         flags: MessageFlags.IsComponentsV2,
