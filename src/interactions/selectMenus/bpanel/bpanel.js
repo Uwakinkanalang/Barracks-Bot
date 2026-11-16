@@ -38,4 +38,4 @@ export async function execute(interaction, client) {
   if (!lines.length) lines.push('No role changes were needed.');
   return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x5865F2).setDescription(lines.join('\n'))] });
 }
-export default { execute };
+export default { name: 'bpanel', execute };
