@@ -20,7 +20,7 @@ import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
 import { getNicknamePrefix } from '../commands/Economy/nickname.js';
-import { getItems as getBShopItems, getColorItems as getBShopColorItems, buildColorShopPage } from '../commands/Economy/roleshop.js';
+import { getItems as getBShopItems, getColorItems as getBShopColorItems, getBoosterColorItems as getBShopBoosterColorItems, buildColorShopPage, buildBoosterColorShopPage } from '../commands/Economy/roleshop.js';
 import { getEconomyData, removeMoney, addMoney } from '../utils/economy.js';
 
 const COMMAND_ERROR_SUBTYPES = {
@@ -310,6 +310,18 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('roleShopBoosterColor:page:')) {
+            const [, , guildId, pageText] = interaction.customId.split(':');
+            const page = Number.parseInt(pageText, 10);
+            if (!interaction.guild || interaction.guildId !== guildId || !Number.isInteger(page) || page < 0) {
+              await interaction.reply({ content: 'This booster color shop page is invalid.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const items = await getBShopBoosterColorItems(interaction.client, guildId);
+            await interaction.update({ components: [buildBoosterColorShopPage(items, interaction.guild, page)], flags: MessageFlags.IsComponentsV2 });
+            return;
+          }
+
           if (interaction.customId.startsWith('roleShopColor:page:')) {
             const [, , guildId, pageText] = interaction.customId.split(':');
             const page = Number.parseInt(pageText, 10);
@@ -322,17 +334,20 @@ export default {
             return;
           }
 
-          if (interaction.customId.startsWith('roleShop:buy:') || interaction.customId.startsWith('roleShopColor:buy:')) {
+          if (interaction.customId.startsWith('roleShop:buy:') || interaction.customId.startsWith('roleShopColor:buy:') || interaction.customId.startsWith('roleShopBoosterColor:buy:')) {
             const [, , guildId, roleId] = interaction.customId.split(':');
             if (!interaction.guild || interaction.guildId !== guildId) {
               await interaction.reply({ content: 'This shop belongs to another server.', flags: MessageFlags.Ephemeral });
               return;
             }
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const isBoosterColorPurchase = interaction.customId.startsWith('roleShopBoosterColor:buy:');
             const isColorPurchase = interaction.customId.startsWith('roleShopColor:buy:');
-            const items = isColorPurchase
-              ? await getBShopColorItems(interaction.client, guildId)
-              : await getBShopItems(interaction.client, guildId);
+            const items = isBoosterColorPurchase
+              ? await getBShopBoosterColorItems(interaction.client, guildId)
+              : isColorPurchase
+                ? await getBShopColorItems(interaction.client, guildId)
+                : await getBShopItems(interaction.client, guildId);
             const item = items.find(entry => entry.roleId === roleId);
             const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
             if (!item || !role || role.managed || role.id === guildId) {
@@ -340,6 +355,10 @@ export default {
               return;
             }
             const member = await interaction.guild.members.fetch(interaction.user.id);
+            if (isBoosterColorPurchase && !member.roles.cache.some(memberRole => memberRole.name.toLowerCase() === 'booster')) {
+              await interaction.editReply('💎 This color shop is exclusive to members with the **Booster** role in Barracks.');
+              return;
+            }
             if (member.roles.cache.has(roleId)) {
               await interaction.editReply('You already own this role.');
               return;
