@@ -65,6 +65,16 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
+    // Separate public panel for purchasable color roles.
+    if (/^bshop\\s+color$/i.test(trimmedContent)) {
+      const items = await getBShopItems(client, message.guild.id);
+      await message.channel.send({
+        components: [buildBShopColorPage(items, message.guild, 0)],
+        flags: MessageFlags.IsComponentsV2,
+      });
+      return;
+    }
+
     // Owner-only test utility for the Barracks invite bCash reward.
     if (/^b!testinvite\s+reward$/i.test(trimmedContent)) {
       const BARRACKS_GUILD_ID = '1137695060096471160';
