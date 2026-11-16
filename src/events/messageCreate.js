@@ -86,7 +86,7 @@ async function handlePrefixCommand(message, client) {
     }
 
     // Manage public invite reward announcements with prefix commands.
-    const inviteRewardsMatch = trimmedContent.match(/^b!invite\\s+rewards\\s+(view|disable)$/i);
+    const inviteRewardsMatch = trimmedContent.match(/^b!invite\s+rewards\s+(view|disable)$/i);
     if (inviteRewardsMatch) {
       if (!message.member?.permissions?.has('ManageGuild')) {
         await message.reply('❌ You need **Manage Server** permission to use this command.');
