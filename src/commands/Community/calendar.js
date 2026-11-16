@@ -42,7 +42,7 @@ function upcoming(events) {
 }
 export default {
   data,
-  async execute(interaction, client) {
+  async execute(interaction, guildConfig, client) {
     const sub = interaction.options.getSubcommand();
     if (['setup','add','edit','delete'].includes(sub) && !canManageCalendar(interaction)) {
       return interaction.reply({ content: '⛔ Only server administrators or members with Manage Server can manage the calendar.', ephemeral: true });
