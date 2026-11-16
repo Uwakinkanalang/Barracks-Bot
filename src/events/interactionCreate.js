@@ -413,7 +413,7 @@ export default {
               return;
             }
             if (isBoosterColorPurchase) {
-              await interaction.editReply(`✅ You picked ${role}! This Booster color role is free.`);
+              await interaction.editReply(`✅ You picked ${role}! Thank you for boosting Barracks.`);
             } else {
               const updated = await getEconomyData(interaction.client, guildId, interaction.user.id);
               await interaction.editReply(`✅ You purchased ${role} for **${item.price.toLocaleString()} bCash**. Remaining wallet: **${(Number(updated?.wallet) || 0).toLocaleString()} bCash**.`);
