@@ -1,4 +1,7 @@
-import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import {
+  ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionFlagsBits,
+  StringSelectMenuBuilder
+} from 'discord.js';
 
 const TZ = 'Asia/Manila';
 const key = (guildId) => `guild:${guildId}:calendar:events`;
@@ -14,33 +17,86 @@ export async function getCalendarEvents(client, guildId) {
 export async function saveCalendarEvents(client, guildId, events) {
   await client.db.set(key(guildId), events);
 }
-function dateLabel(value) {
-  return new Intl.DateTimeFormat('en-PH', {
-    timeZone: TZ, dateStyle: 'medium', timeStyle: 'short'
-  }).format(new Date(value));
+function partsInManila(value) {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date(value));
+  return Object.fromEntries(parts.filter(p => p.type !== 'literal').map(p => [p.type, Number(p.value)]));
+}
+function monthKey(date) {
+  const p = partsInManila(date);
+  return `${p.year}-${String(p.month).padStart(2, '0')}`;
+}
+function parseMonth(value) {
+  if (!/^\d{4}-\d{2}$/.test(value || '')) return new Date();
+  const [year, month] = value.split('-').map(Number);
+  if (month < 1 || month > 12) return new Date();
+  return new Date(Date.UTC(year, month - 1, 1, 12));
 }
 function monthLabel(date) {
   return new Intl.DateTimeFormat('en-PH', { timeZone: TZ, month: 'long', year: 'numeric' }).format(date);
 }
-export function buildCalendarEmbed(guild, events, date = new Date()) {
-  const dateParts = new Intl.DateTimeFormat('en', { timeZone: TZ, year: 'numeric', month: '2-digit' }).formatToParts(date);
-  const year = Number(dateParts.find(part => part.type === 'year')?.value);
-  const monthNum = Number(dateParts.find(part => part.type === 'month')?.value);
-  const inMonth = events.filter(e => {
-    const parts = new Intl.DateTimeFormat('en', { timeZone: TZ, year: 'numeric', month: '2-digit' }).formatToParts(new Date(e.startsAt));
-    return Number(parts.find(part => part.type === 'year')?.value) === year
-      && Number(parts.find(part => part.type === 'month')?.value) === monthNum;
-  }).sort((a,b) => new Date(a.startsAt) - new Date(b.startsAt));
+function eventDateKey(event) {
+  const p = partsInManila(event.startsAt);
+  return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+}
+function dateLabel(value) {
+  return new Intl.DateTimeFormat('en-PH', { timeZone: TZ, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+function buildCalendarEmbed(guild, events, date = new Date()) {
+  const keyForMonth = monthKey(date);
+  const [year, month] = keyForMonth.split('-').map(Number);
+  const monthEvents = events.filter(e => !e.cancelled && eventDateKey(e).startsWith(keyForMonth))
+    .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+  const eventDays = new Set(monthEvents.map(eventDateKey));
+  const firstWeekday = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const cells = Array(firstWeekday).fill('  ');
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dayKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    cells.push(`${String(day).padStart(2, '0')}${eventDays.has(dayKey) ? '•' : ' '}`);
+  }
+  while (cells.length % 7) cells.push('  ');
+  const weeks = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7).join(' '));
+  const grid = ['Su Mo Tu We Th Fr Sa', ...weeks].join('\n');
+  const agenda = monthEvents.slice(0, 12).map(e => {
+    const p = partsInManila(e.startsAt);
+    const clock = new Intl.DateTimeFormat('en-PH', { timeZone: TZ, hour: 'numeric', minute: '2-digit' }).format(new Date(e.startsAt));
+    return `**${String(p.day).padStart(2, '0')}** ${e.emoji || '📌'} **${e.title}** · ${clock}`;
+  });
   const embed = new EmbedBuilder()
-    .setColor(0x336699)
+    .setColor(0x243B53)
     .setAuthor({ name: 'BARRACKS • OPERATIONS CALENDAR', iconURL: guild.iconURL() || undefined })
     .setTitle(`📅 ${monthLabel(date)}`)
-    .setDescription(inMonth.length
-      ? inMonth.map(e => `**${dateLabel(e.startsAt)}** • ${e.emoji || '📌'} **${e.title}**\n${e.description || 'No additional details.'}\n${e.location ? `📍 ${e.location}\n` : ''}🆔 \`${e.id}\``).join('\n\n').slice(0, 4000)
-      : 'No operations scheduled this month. Enjoy the downtime, soldiers!')
-    .setFooter({ text: 'Barracks • Stay ready, stay on schedule' })
+    .setDescription(`\`\`\`\n${grid}\n\`\`\`\n**• Scheduled event**\n\n${agenda.length ? agenda.join('\n') : 'No operations scheduled this month. Enjoy the downtime, soldiers!'}`)
+    .setFooter({ text: 'Use the arrows to change months • Select an event for details • Asia/Manila time' })
     .setTimestamp();
-  return embed;
+  return { embed, monthEvents };
+}
+export function buildCalendarPayload(guild, events, date = new Date()) {
+  const { embed, monthEvents } = buildCalendarEmbed(guild, events, date);
+  const guildId = guild.id;
+  const month = monthKey(date);
+  const navigation = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`bcal:prev:${guildId}:${month}`).setLabel('Previous').setEmoji('◀️').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`bcal:today:${guildId}:${month}`).setLabel('Today').setEmoji('📍').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`bcal:next:${guildId}:${month}`).setLabel('Next').setEmoji('▶️').setStyle(ButtonStyle.Secondary)
+  );
+  const components = [navigation];
+  if (monthEvents.length) {
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId(`bcal:event:${guildId}`)
+      .setPlaceholder('View event details…')
+      .addOptions(monthEvents.slice(0, 25).map(e => ({
+        label: e.title.slice(0, 100),
+        description: `${dateLabel(e.startsAt)} · ${e.category || 'Event'}`.slice(0, 100),
+        value: e.id,
+        emoji: e.emoji || '📌'
+      })));
+    components.push(new ActionRowBuilder().addComponents(menu));
+  }
+  return { embeds: [embed], components };
 }
 export async function publishCalendar(client, guild) {
   const config = await getCalendarConfig(client, guild.id);
@@ -48,11 +104,9 @@ export async function publishCalendar(client, guild) {
   const channel = await guild.channels.fetch(config.channelId).catch(() => null);
   if (!channel?.isTextBased() || !channel.send) return false;
   const events = await getCalendarEvents(client, guild.id);
-  const embed = buildCalendarEmbed(guild, events);
+  const payload = buildCalendarPayload(guild, events, new Date());
   const existing = config.messageId ? await channel.messages.fetch(config.messageId).catch(() => null) : null;
-  const message = existing
-    ? await existing.edit({ embeds: [embed] })
-    : await channel.send({ embeds: [embed] });
+  const message = existing ? await existing.edit(payload) : await channel.send(payload);
   await client.db.set(configKey(guild.id), { ...config, messageId: message.id });
   return true;
 }
@@ -88,4 +142,18 @@ export async function processCalendarReminders(client) {
 }
 export function canManageCalendar(interaction) {
   return Boolean(interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) || interaction.guild?.ownerId === interaction.user.id);
+}
+export function parseCalendarMonth(value) {
+  return parseMonth(value);
+}
+export function formatCalendarEvent(event) {
+  return [
+    `📅 **${event.title}**`,
+    `🕒 ${dateLabel(event.startsAt)}`,
+    `🏷️ ${event.category || 'Event'}`,
+    event.location ? `📍 ${event.location}` : null,
+    event.description || 'No additional details provided.',
+    `🆔 \`${event.id}\``,
+    event.createdBy ? `Hosted by <@${event.createdBy}>` : null
+  ].filter(Boolean).join('\n');
 }
