@@ -2,8 +2,12 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    EmbedBuilder,
+    ContainerBuilder,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
+    MessageFlags,
     SlashCommandBuilder,
+    TextDisplayBuilder,
 } from 'discord.js';
 import { removeMoney, addMoney, getEconomyData } from '../../utils/economy.js';
 import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHandler.js';
@@ -47,28 +51,20 @@ function isBlackjack(cards) {
     return cards.length === 2 && handValue(cards) === 21;
 }
 
-function cardFace(card, hidden = false) {
-    // Custom Barracks card emojis supplied for the game.
-    if (hidden) return '<:cardback:457084762230751254>';
-    const customCards = {
-        'A♦': '<:ad:802675572143554601>',
-        '8♠': '<:8s:457412291004989441>',
-        '8♦': '<:8d:457412292976574476>',
-    };
-    const custom = customCards[String(card.rank) + card.suit];
-    if (custom) return custom;
-
-    // Use a playing-card glyph for cards without a supplied custom emoji.
-    const suitBase = { '♠': 0x1F0A0, '♥': 0x1F0B0, '♦': 0x1F0C0, '♣': 0x1F0D0 }[card.suit];
-    const rankOffset = {
-        A: 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
-        '8': 8, '9': 9, '10': 10, J: 11, Q: 13, K: 14,
-    }[card.rank];
-    return String.fromCodePoint(suitBase + rankOffset);
+function cardImageUrl(card, hidden = false) {
+    if (hidden) return 'https://images.weserv.nl/?url=' + encodeURIComponent('https://deckofcardsapi.com/static/img/back.png') + '&w=120&h=168&fit=contain&bg=00000000';
+    const suitCode = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' }[card.suit];
+    const rankCode = { A: 'A', J: 'J', Q: 'Q', K: 'K', '10': '0' }[card.rank] || card.rank;
+    const source = 'https://deckofcardsapi.com/static/img/' + rankCode + suitCode + '.png';
+    return 'https://images.weserv.nl/?url=' + encodeURIComponent(source) + '&w=120&h=168&fit=contain&bg=00000000';
 }
 
-function handText(cards, hiddenIndices = []) {
-    return cards.map((card, index) => cardFace(card, hiddenIndices.includes(index))).join('  ');
+function addCardGallery(container, cards, hiddenIndices = []) {
+    const gallery = new MediaGalleryBuilder();
+    cards.forEach((card, index) => {
+        gallery.addItems(new MediaGalleryItemBuilder().setURL(cardImageUrl(card, hiddenIndices.includes(index))));
+    });
+    container.addMediaGalleryComponents(gallery);
 }
 
 function buildGame(game, status = '🎲 Game in progress', options = {}) {
@@ -77,35 +73,31 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
     const dealerValue = revealDealer ? handValue(game.dealer) : String(game.dealer[0].rank) + '+?';
     const playerValue = handValue(game.player);
     const statusLower = String(status).toLowerCase();
-    const resultColor = !ended
-        ? 0x3498DB
-        : statusLower.includes('push') || statusLower.includes('tie')
-            ? 0x95A5A6
-            : statusLower.includes('won') || statusLower.includes('blackjack')
-                ? 0x2ECC71
-                : 0xE74C3C;
+    const resultColor = !ended ? 0x3498DB :
+        statusLower.includes('push') || statusLower.includes('tie') ? 0x95A5A6 :
+        statusLower.includes('won') || statusLower.includes('blackjack') ? 0x2ECC71 : 0xE74C3C;
 
-    const embed = new EmbedBuilder()
-        .setColor(resultColor)
-        .setAuthor({
-            name: game.displayName + ', you bet ₱' + game.bet.toLocaleString() + ' to play blackjack',
-            iconURL: game.avatarURL || undefined,
-        })
-        .setDescription(
-            '**Dealer [' + dealerValue + ']**\n' + handText(game.dealer, dealerHidden ? [1] : []) + '\n\n' +
-            '**' + game.displayName + ' [' + playerValue + ']**\n' + handText(game.player, hiddenPlayerIndices)
-        )
-        .setFooter({ text: status });
+    const container = new ContainerBuilder().setAccentColor(resultColor);
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+        '**' + game.displayName + ', you bet ₱' + game.bet.toLocaleString() + ' to play blackjack**\\n\\n' +
+        '**Dealer [' + dealerValue + ']**'
+    ));
+    addCardGallery(container, game.dealer, dealerHidden ? [1] : []);
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+        '**' + game.displayName + ' [' + playerValue + ']**'
+    ));
+    addCardGallery(container, game.player, hiddenPlayerIndices);
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**' + status + '**'));
 
-    const components = [];
     if (!ended) {
-        components.push(new ActionRowBuilder().addComponents(
+        container.addActionRowComponents(new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('blackjack:' + game.id + ':hit').setLabel('Hit').setEmoji('👊').setStyle(ButtonStyle.Primary).setDisabled(Boolean(game.busy)),
             new ButtonBuilder().setCustomId('blackjack:' + game.id + ':stand').setLabel('Stand').setEmoji('🛑').setStyle(ButtonStyle.Danger).setDisabled(Boolean(game.busy))
         ));
     }
-    return { embeds: [embed], components };
+    return container;
 }
+
 function waitForFlip() {
     return new Promise(resolve => setTimeout(resolve, FLIP_DELAY));
 }
@@ -190,7 +182,7 @@ export default {
         let message;
         try {
             message = await interaction.reply({
-                ...buildGame(game, initialStatus, { revealDealer: initialReveal, ended: initialEnded }),
+                flags: MessageFlags.IsComponentsV2,\n                components: [buildGame(game, initialStatus, { revealDealer: initialReveal, ended: initialEnded })],
                 fetchReply: true,
             });
         } catch (error) {
