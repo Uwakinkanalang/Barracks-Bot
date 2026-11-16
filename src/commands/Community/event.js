@@ -64,7 +64,7 @@ export default {
  data: new SlashCommandBuilder().setName('event').setDescription('Create and view Barracks events')
   .addSubcommand(s => s.setName('create').setDescription('Create an event with RSVPs')
    .addStringOption(o => o.setName('title').setDescription('Event title').setMaxLength(100).setRequired(true))
-   .addStringOption(o => o.setName('date').setDescription('Date and time in PHT (YYYY-MM-DD HH:mm)').setRequired(true))
+   .addStringOption(o => o.setName('date').setDescription('Date and time in PHT (MM-DD-YYYY HH:mm)').setRequired(true))
    .addChannelOption(o => o.setName('channel').setDescription('Where to post the event card').addChannelTypes(ChannelType.GuildText).setRequired(true))
    .addBooleanOption(o => o.setName('weekly').setDescription('Repeat every week').setRequired(false)))
   .addSubcommand(s => s.setName('list').setDescription('Show upcoming events')),
@@ -77,12 +77,12 @@ export default {
   }
   const title = interaction.options.getString('title');
   const raw = interaction.options.getString('date');
-  const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/.exec(raw);
-  if (!match) return interaction.reply({ content: 'Use YYYY-MM-DD HH:mm in Philippine Time (24-hour format).', flags: MessageFlags.Ephemeral });
-  const [, y, mo, d, h, mi] = match.map(Number);
+  const match = /^(\d{2})-(\d{2})-(\d{4}) (\d{2}):(\d{2})$/.exec(raw);
+  if (!match) return interaction.reply({ content: 'Use MM-DD-YYYY HH:mm in Philippine Time (24-hour format).', flags: MessageFlags.Ephemeral });
+  const [, mo, d, y, h, mi] = match.map(Number);
   const startsAt = Date.UTC(y, mo-1, d, h-8, mi);
-  const check = new Date(startsAt);
-  if (check.getUTCFullYear() !== y || check.getUTCMonth() !== mo-1 || check.getUTCDate() !== d || check.getUTCHours() !== h-8 || check.getUTCMinutes() !== mi || startsAt <= Date.now()) return interaction.reply({ content: 'Please provide a valid future date and time in Philippine Time.', flags: MessageFlags.Ephemeral });
+  const check = new Date(startsAt + 8 * 60 * 60 * 1000);
+  if (check.getUTCFullYear() !== y || check.getUTCMonth() !== mo-1 || check.getUTCDate() !== d || check.getUTCHours() !== h || check.getUTCMinutes() !== mi || startsAt <= Date.now()) return interaction.reply({ content: 'Please provide a valid future date and time in Philippine Time.', flags: MessageFlags.Ephemeral });
   const channel = interaction.options.getChannel('channel');
   const event = { id: `${Date.now().toString(36)}${interaction.user.id.slice(-4)}`, title, startsAt, channelId: channel.id, repeatWeekly: interaction.options.getBoolean('weekly') || false, reminded: false, closed: false, rsvps: { going: [], maybe: [], cant: [] } };
   const message = await channel.send(card(event));
