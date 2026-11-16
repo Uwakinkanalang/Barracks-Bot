@@ -52,11 +52,11 @@ function isBlackjack(cards) {
 }
 
 function cardImageUrl(card, hidden = false) {
-    if (hidden) return 'https://images.weserv.nl/?url=' + encodeURIComponent('https://deckofcardsapi.com/static/img/back.png') + '&w=120&h=168&fit=contain&bg=00000000';
+    if (hidden) return 'https://images.weserv.nl/?url=' + encodeURIComponent('https://deckofcardsapi.com/static/img/back.png') + '&w=72&h=101&fit=contain&bg=00000000';
     const suitCode = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' }[card.suit];
     const rankCode = { A: 'A', J: 'J', Q: 'Q', K: 'K', '10': '0' }[card.rank] || card.rank;
     const source = 'https://deckofcardsapi.com/static/img/' + rankCode + suitCode + '.png';
-    return 'https://images.weserv.nl/?url=' + encodeURIComponent(source) + '&w=120&h=168&fit=contain&bg=00000000';
+    return 'https://images.weserv.nl/?url=' + encodeURIComponent(source) + '&w=72&h=101&fit=contain&bg=00000000';
 }
 
 function addCardGallery(container, cards, hiddenIndices = []) {
