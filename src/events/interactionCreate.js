@@ -375,9 +375,32 @@ export default {
               return;
             }
             await removeMoney(interaction.client, guildId, interaction.user.id, item.price, 'wallet');
+            const removedColorRoles = [];
             try {
+              if (isColorPurchase || isBoosterColorPurchase) {
+                const [regularColorItems, boosterColorItems] = await Promise.all([
+                  getBShopColorItems(interaction.client, guildId),
+                  getBShopBoosterColorItems(interaction.client, guildId),
+                ]);
+                const otherColorRoleIds = [...new Set([...regularColorItems, ...boosterColorItems]
+                  .map(entry => entry.roleId)
+                  .filter(id => id !== roleId && member.roles.cache.has(id)))];
+                for (const otherRoleId of otherColorRoleIds) {
+                  const otherRole = interaction.guild.roles.cache.get(otherRoleId)
+                    || await interaction.guild.roles.fetch(otherRoleId).catch(() => null);
+                  if (otherRole && otherRole.color !== 0) removedColorRoles.push(otherRole);
+                }
+                if (removedColorRoles.length) {
+                  await member.roles.remove(removedColorRoles, 'Replaced by another B-Shop color role');
+                }
+              }
               await member.roles.add(role, 'B-Shop role purchase');
             } catch (error) {
+              if (removedColorRoles.length) {
+                await member.roles.add(removedColorRoles, 'Restore previous B-Shop color roles after failed purchase').catch(restoreError => {
+                  logger.error('Could not restore previous B-Shop color roles after failed purchase.', { guildId, userId: interaction.user.id, error: restoreError.message });
+                });
+              }
               await addMoney(interaction.client, guildId, interaction.user.id, item.price, 'wallet').catch(() => {});
               logger.error('B-Shop role assignment failed; purchase refunded.', { guildId, userId: interaction.user.id, roleId, error: error.message });
               await interaction.editReply('Role assignment failed, so your bCash was refunded.');
