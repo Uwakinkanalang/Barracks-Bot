@@ -21,7 +21,7 @@ function buildEmbed(game, phase = 'challenge', result = null) {
 
   if (phase === 'challenge') {
     embed.setDescription(
-      `<@\u200b${game.challengerId}> challenged <@\u200b${game.opponentId}> to Rock Paper Scissors!\n\n` +
+      `<@${game.challengerId}> challenged <@${game.opponentId}> to Rock Paper Scissors!\n\n` +
       '**<@' + game.opponentId + '>**, accept the challenge to begin.'
     );
     embed.addFields(
@@ -67,7 +67,7 @@ function buildEmbed(game, phase = 'challenge', result = null) {
   } else {
     embed.addFields({
       name: '🏆 Winner',
-      value: `<@\u200b${result.winnerId}> wins this round and scores **1 point**!`,
+      value: `<@${result.winnerId}> wins this round and scores **1 point**!`,
     });
   }
 
@@ -183,7 +183,7 @@ export default {
           game.finished = true;
           collector.stop('declined');
           await message.edit({
-            embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK • PAPER • SCISSORS').setDescription(`<@\u200b${game.opponentId}> declined the challenge from <@\u200b${game.challengerId}>.`).setFooter({ text: 'Barracks • Two-Player Challenge' })],
+            embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK • PAPER • SCISSORS').setDescription(`<@${game.opponentId}> declined the challenge from <@${game.challengerId}>.`).setFooter({ text: 'Barracks • Two-Player Challenge' })],
             components: [],
           });
           return;
