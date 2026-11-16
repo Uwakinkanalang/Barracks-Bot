@@ -30,11 +30,7 @@ export async function execute(interaction, client) {
     try { await member.roles.remove(roleId); removed.push(role.name); }
     catch { skipped.push(role.name); }
   }
-  const lines = [];
-  if (added.length) lines.push(`✅ Added: ${added.join(', ')}`);
-  if (removed.length) lines.push(`➖ Removed: ${removed.join(', ')}`);
-  if (skipped.length) lines.push(`⚠️ Skipped: ${skipped.join(', ')}`);
-  if (!lines.length) lines.push('No role changes were needed.');
-  return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x5865F2).setDescription(lines.join('\n'))] });
+  // Intentionally do not send a confirmation message after role selection.
+  return;
 }
 export default { name: 'bpanel', execute };
