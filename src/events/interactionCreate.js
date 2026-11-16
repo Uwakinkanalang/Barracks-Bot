@@ -378,10 +378,6 @@ export default {
               return;
             }
             const debit = await removeMoney(interaction.client, guildId, interaction.user.id, item.price, 'wallet');
-            if (!debit?.success) {
-              await interaction.editReply('Your bCash could not be deducted. Please try again.');
-              return;
-            }
             try {
               await member.roles.add(role, 'Clan Shop role purchase');
             } catch (error) {
