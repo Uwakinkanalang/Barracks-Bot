@@ -138,7 +138,7 @@ export default {
             userId: interaction.user.id,
             userMention: interaction.user.toString(),
             displayName: interaction.member?.displayName || interaction.user.globalName || interaction.user.username,
-            avatarURL: interaction.user.displayAvatarURL({ size: 64 }),
+            avatarURL: interaction.user.displayAvatarURL({ size: 64 })],
             bet,
             balance: Math.max(0, (userData.wallet || 0) - bet),
             deck,
@@ -214,12 +214,12 @@ export default {
             await settle(payout);
             if (!alreadyAcknowledged) {
                 await button.update({
-                    ...buildGame(game, '🂠 Dealer is revealing the hidden card...', { ended: true, hideDealerHole: true }),
+                    components: [buildGame(game, '🂠 Dealer is revealing the hidden card...', { ended: true, hideDealerHole: true })],
                 });
             }
             await waitForFlip();
             return message.edit({
-                ...buildGame(game, resultText, { revealDealer: true, ended: true }),
+                components: [buildGame(game, resultText, { revealDealer: true, ended: true })],
             });
         };
 
@@ -247,7 +247,7 @@ export default {
                 game.busy = true;
 
                 await button.update({
-                    ...buildGame(game, '🂠 Your new card is flipping...', { hiddenPlayerIndices: [newCardIndex] }),
+                    components: [buildGame(game, '🂠 Your new card is flipping...', { hiddenPlayerIndices: [newCardIndex] })],
                 });
                 await waitForFlip();
                 game.busy = false;
@@ -259,12 +259,12 @@ export default {
                     await settle(0);
                     collector.stop('bust');
                     return message.edit({
-                        ...buildGame(game, `💥 Bust! You lost ₱${bet.toLocaleString()}. Better luck next Soldier.`, { revealDealer: true, ended: true }),
+                        components: [buildGame(game, `💥 Bust! You lost ₱${bet.toLocaleString()}. Better luck next Soldier.`, { revealDealer: true, ended: true })],
                     });
                 }
 
                 return message.edit({
-                    ...buildGame(game, '🎲 Game in progress'),
+                    components: [buildGame(game, '🎲 Game in progress'),
                 });
             }
 
@@ -294,15 +294,15 @@ export default {
                 }
                 await settle(payout);
                 await message.edit({
-                    ...buildGame(game, '🂠 Dealer is revealing the hidden card...', { ended: true, hideDealerHole: true }),
+                    components: [buildGame(game, '🂠 Dealer is revealing the hidden card...', { ended: true, hideDealerHole: true })],
                 });
                 await waitForFlip();
                 await message.edit({
-                    ...buildGame(game, status, { revealDealer: true, ended: true }),
+                    components: [buildGame(game, status, { revealDealer: true, ended: true })],
                 });
             } catch (error) {
                 console.error('[BLACKJACK] Failed to settle timed-out game:', error);
             }
         });
-    }, { command: 'blackjack' }),
+    }, { command: 'blackjack' })],
 };
