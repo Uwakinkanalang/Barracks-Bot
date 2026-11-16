@@ -66,6 +66,43 @@ export function buildShopPage(items, guildId, page) {
   return container;
 }
 
+export function buildColorShopPage(items, guild, page) {
+  const colorItems = items.filter(item => {
+    const role = guild.roles.cache.get(item.roleId);
+    return role && role.color !== 0;
+  });
+  const pageCount = Math.max(1, Math.ceil(colorItems.length / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(0, page), pageCount - 1);
+  const pageItems = colorItems.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('# 🎨 B-Shop • Color Roles\\nChoose a color for your name and purchase it with **bCash**.'));
+
+  if (!pageItems.length) {
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('No color roles are currently available. Ask the server owner to add colored roles with `/bshop add`.'));
+  } else {
+    for (const item of pageItems) {
+      const role = guild.roles.cache.get(item.roleId);
+      const hex = `#${role.color.toString(16).padStart(6, '0').toUpperCase()}`;
+      const section = new SectionBuilder()
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**<@&${item.roleId}>** • ${hex}\\n🪙 **${item.price.toLocaleString()} bCash**`))
+        .setButtonAccessory(new ButtonBuilder()
+          .setCustomId(`roleShop:buy:${guild.id}:${item.roleId}`)
+          .setLabel('Buy')
+          .setStyle(ButtonStyle.Success));
+      container.addSectionComponents(section);
+    }
+  }
+
+  if (pageCount > 1) {
+    container.addSeparatorComponents(new SeparatorBuilder());
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`roleShopColor:page:${guild.id}:${currentPage - 1}`).setLabel('Previous').setStyle(ButtonStyle.Secondary).setDisabled(currentPage === 0),
+      new ButtonBuilder().setCustomId(`roleShopColor:page:${guild.id}:${currentPage + 1}`).setLabel('Next').setStyle(ButtonStyle.Secondary).setDisabled(currentPage >= pageCount - 1),
+    ));
+  }
+  return container;
+}
+
 export default {
   data: new SlashCommandBuilder()
     .setName('bshop')
