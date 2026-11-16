@@ -49,8 +49,13 @@ function isBlackjack(cards) {
 
 function cardFace(card, hidden = false) {
     if (hidden) return '🂠';
-    const suit = { '♠': '♠️', '♥': '♥️', '♦': '♦️', '♣': '♣️' }[card.suit];
-    return String(card.rank) + suit;
+    // Unicode playing-card glyphs show each hand as proper poker cards.
+    const suitBase = { '♠': 0x1F0A0, '♥': 0x1F0B0, '♦': 0x1F0C0, '♣': 0x1F0D0 }[card.suit];
+    const rankOffset = {
+        A: 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
+        '8': 8, '9': 9, '10': 10, J: 11, Q: 13, K: 14,
+    }[card.rank];
+    return String.fromCodePoint(suitBase + rankOffset);
 }
 
 function handText(cards, hiddenIndices = []) {
