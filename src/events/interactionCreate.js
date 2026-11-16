@@ -20,7 +20,7 @@ import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
 import { getNicknamePrefix } from '../commands/Economy/nickname.js';
-import { getItems as getBShopItems, buildColorShopPage } from '../commands/Economy/roleshop.js';
+import { getItems as getBShopItems, getColorItems as getBShopColorItems, buildColorShopPage } from '../commands/Economy/roleshop.js';
 import { getEconomyData, removeMoney, addMoney } from '../utils/economy.js';
 
 const COMMAND_ERROR_SUBTYPES = {
@@ -317,7 +317,7 @@ export default {
               await interaction.reply({ content: 'This color shop page is invalid.', flags: MessageFlags.Ephemeral });
               return;
             }
-            const items = await getBShopItems(interaction.client, guildId);
+            const items = await getBShopColorItems(interaction.client, guildId);
             await interaction.update({ components: [buildColorShopPage(items, interaction.guild, page)], flags: MessageFlags.IsComponentsV2 });
             return;
           }
@@ -329,8 +329,9 @@ export default {
               return;
             }
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-            const items = await getBShopItems(interaction.client, guildId);
-            const item = items.find(entry => entry.roleId === roleId);
+            const regularItems = await getBShopItems(interaction.client, guildId);
+            const colorItems = await getBShopColorItems(interaction.client, guildId);
+            const item = [...regularItems, ...colorItems].find(entry => entry.roleId === roleId);
             const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
             if (!item || !role || role.managed || role.id === guildId) {
               await interaction.editReply('That role is no longer available to purchase.');
