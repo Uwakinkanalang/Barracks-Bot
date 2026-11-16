@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
+import { buildCustomRolePanelPayload } from '../../services/customRolePanelService.js';
 import { getCustomRolePanelKey, validateRoleForPanel, refreshCustomRolePanel, CUSTOM_ROLE_PANEL_LIMITS } from '../../services/customRolePanelService.js';
 
 function parseOptions(raw) {
@@ -35,7 +36,7 @@ export default {
         return interaction.reply({ content: 'I need Manage Roles and permission to send messages in that channel.', flags: MessageFlags.Ephemeral });
       }
       const panel = { guildId: interaction.guildId, channelId: channel.id, messageId: null, title: interaction.options.getString('title'), description: interaction.options.getString('description') || '', menus: [], createdAt: new Date().toISOString() };
-      const message = await channel.send({ embeds: [{ color: 0x5865F2, title: panel.title, description: panel.description || 'Use the dropdown menus below to choose your roles.', footer: { text: 'Add dropdowns with /bpanel add-menu' } }] });
+      const message = await channel.send(buildCustomRolePanelPayload(panel));
       panel.messageId = message.id;
       try { await db.set(getCustomRolePanelKey(interaction.guildId,message.id), panel); }
       catch (error) { await message.delete().catch(()=>{}); throw error; }

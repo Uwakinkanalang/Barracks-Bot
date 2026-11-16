@@ -1,5 +1,12 @@
-import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
-import { getColor } from '../config/bot.js';
+import {
+  ActionRowBuilder,
+  ContainerBuilder,
+  MessageFlags,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  StringSelectMenuBuilder,
+  TextDisplayBuilder,
+} from 'discord.js';
 
 const MAX_MENUS = 5;
 const MAX_OPTIONS = 25;
@@ -14,11 +21,23 @@ export function validateRoleForPanel(role, guild) {
   return null;
 }
 
-export function buildCustomRolePanelPayload(panel, guild) {
-  const embed = new EmbedBuilder().setColor(getColor('info')).setTitle(panel.title);
-  if (typeof panel.description === 'string' && panel.description.trim()) embed.setDescription(panel.description.trim());
-  embed.setFooter({ text: 'Choose an option below to manage your roles.' });
-  const components = panel.menus.map(menu => {
+export function buildCustomRolePanelPayload(panel) {
+  const container = new ContainerBuilder().setAccentColor(0x5865F2);
+  const title = String(panel.title || 'Role Selection').trim();
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${title}`));
+  if (typeof panel.description === 'string' && panel.description.trim()) {
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(panel.description.trim()));
+  }
+  if (panel.menus.length) {
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+  } else {
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('*Staff can add dropdowns with `/bpanel add-menu`.*'));
+  }
+
+  for (const [index, menu] of panel.menus.entries()) {
+    if (index > 0) container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${menu.placeholder || 'Choose your roles'}**`));
     const select = new StringSelectMenuBuilder().setCustomId(`bpanel:${menu.id}`)
       .setPlaceholder(menu.placeholder || 'Choose your roles')
       .setMinValues(0).setMaxValues(menu.multiple ? menu.options.length : 1)
@@ -27,9 +46,12 @@ export function buildCustomRolePanelPayload(panel, guild) {
         ...(option.description ? { description: option.description } : {}),
         ...(option.emoji ? { emoji: option.emoji } : {})
       })));
-    return new ActionRowBuilder().addComponents(select);
-  });
-  return { embeds: [embed], components };
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(select));
+  }
+
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent('-# BARRACKS • Select or change your roles anytime.'));
+  return { components: [container], flags: MessageFlags.IsComponentsV2 };
 }
 
 export async function refreshCustomRolePanel(client, guild, panel) {
@@ -37,7 +59,20 @@ export async function refreshCustomRolePanel(client, guild, panel) {
   if (!channel?.isTextBased()) throw new Error('The panel channel is unavailable.');
   const message = await channel.messages.fetch(panel.messageId).catch(() => null);
   if (!message) throw new Error('The panel message was deleted. Create a new panel.');
-  await message.edit(buildCustomRolePanelPayload(panel, guild));
+
+  // Discord message flags are not safely convertible on an already-posted legacy embed.
+  // Re-post it as a V2 message, persist the new ID, then remove the old message.
+  if (!message.flags.has(MessageFlags.IsComponentsV2)) {
+    const previousMessageId = panel.messageId;
+    const replacementMessage = await channel.send(buildCustomRolePanelPayload(panel));
+    panel.messageId = replacementMessage.id;
+    await client.db.set(getCustomRolePanelKey(guild.id, replacementMessage.id), panel);
+    await client.db.delete(getCustomRolePanelKey(guild.id, previousMessageId));
+    await message.delete().catch(() => {});
+    return replacementMessage;
+  }
+
+  await message.edit(buildCustomRolePanelPayload(panel));
   await client.db.set(getCustomRolePanelKey(guild.id, panel.messageId), panel);
   return message;
 }
