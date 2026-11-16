@@ -4,7 +4,8 @@ import {
   ButtonStyle,
   EmbedBuilder,
   SlashCommandBuilder,
-} from 'discord.js';
+
+import { getEconomyData, addMoney, removeMoney } from '../../utils/economy.js';} from 'discord.js';
 
 const GAME_TIMEOUT = 2 * 60 * 1000;
 const PICK_OPTIONS = {
@@ -28,6 +29,7 @@ function buildEmbed(game, phase = 'challenge', result = null) {
       { name: 'Player 1', value: `<@${game.challengerId}>`, inline: true },
       { name: 'Player 2', value: `<@${game.opponentId}>`, inline: true },
     );
+    if (game.bet > 0) embed.addFields({ name: '💰 Bet', value: `₱${game.bet.toLocaleString()} each • Pot: ₱${(game.bet * 2).toLocaleString()}` });
     return embed;
   }
 
@@ -63,12 +65,9 @@ function buildEmbed(game, phase = 'challenge', result = null) {
   );
 
   if (result.draw) {
-    embed.addFields({ name: '🤝 Result', value: '**It is a draw!** Nobody scores a point.' });
+    embed.addFields({ name: '🤝 Result', value: game.bet > 0 ? `Draw! Both players get ₱${game.bet.toLocaleString()} back.` : '**It is a draw!** Nobody scores a point.' });
   } else {
-    embed.addFields({
-      name: '🏆 Winner',
-      value: `<@${result.winnerId}> wins this round and scores **1 point**!`,
-    });
+    embed.addFields({ name: '🏆 Winner', value: game.bet > 0 ? `<@${result.winnerId}> wins the pot of **₱${(game.bet * 2).toLocaleString()}**!` : `<@${result.winnerId}> wins this round and scores **1 point**!` });
   }
 
   return embed;
@@ -118,7 +117,9 @@ export default {
         .setName('opponent')
         .setDescription('The member you want to challenge')
         .setRequired(true)
-    ),
+    ).addIntegerOption(option => option.setName('bet').setDescription('Cash each player wagers (optional)').setMinValue(1).setMaxValue(1000000000).setRequired(false)),
+
+  async execute(interaction)    ),
 
   async execute(interaction) {
     if (!interaction.inGuild()) {
@@ -126,6 +127,14 @@ export default {
       return;
     }
 
+    const bet = interaction.options.getInteger('bet') || 0;
+    if (bet > 0) {
+      const data = await getEconomyData(interaction.client, interaction.guildId, interaction.user.id);
+      if ((data?.wallet || 0) < bet) {
+        await interaction.reply({ content: `You need ₱${bet.toLocaleString()} cash to offer this bet. Your cash: ₱${(data?.wallet || 0).toLocaleString()}.`, ephemeral: true });
+        return;
+      }
+    }
     const opponent = interaction.options.getUser('opponent', true);
     if (opponent.bot) {
       await interaction.reply({ content: 'You cannot challenge a bot. Choose another server member.', ephemeral: true });
@@ -148,6 +157,8 @@ export default {
       opponentId: opponent.id,
       challengerName: interaction.member?.displayName || interaction.user.username,
       opponentName: opponentMember.displayName || opponent.username,
+      bet,
+      escrowed: false,
       choices: {},
       accepted: false,
       finished: false,
@@ -190,6 +201,27 @@ export default {
         }
 
         if (game.accepted) return;
+        if (game.bet > 0) {
+          const [a, b] = await Promise.all([
+            getEconomyData(interaction.client, interaction.guildId, game.challengerId),
+            getEconomyData(interaction.client, interaction.guildId, game.opponentId),
+          ]);
+          if ((a?.wallet || 0) < game.bet || (b?.wallet || 0) < game.bet) {
+            game.finished = true;
+            collector.stop('insufficient_funds');
+            await message.edit({ embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK • PAPER • SCISSORS').setDescription('Challenge cancelled: both players must have enough cash to cover the bet.')], components: [] });
+            return;
+          }
+          await removeMoney(interaction.client, interaction.guildId, game.challengerId, game.bet, 'wallet');
+          try {
+            await removeMoney(interaction.client, interaction.guildId, game.opponentId, game.bet, 'wallet');
+            game.escrowed = true;
+          } catch (error) {
+            await addMoney(interaction.client, interaction.guildId, game.challengerId, game.bet, 'wallet');
+            throw error;
+          }
+        }
+        game.accepted = true;        if (game.accepted) return;
         game.accepted = true;
         await message.edit({
           embeds: [buildEmbed(game, 'picking')],
@@ -229,6 +261,15 @@ export default {
 
       game.finished = true;
       const result = getWinner(game);
+      if (game.escrowed && game.bet > 0) {
+        if (result.draw) {
+          await addMoney(interaction.client, interaction.guildId, game.challengerId, game.bet, 'wallet');
+          await addMoney(interaction.client, interaction.guildId, game.opponentId, game.bet, 'wallet');
+        } else {
+          await addMoney(interaction.client, interaction.guildId, result.winnerId, game.bet * 2, 'wallet');
+        }
+        game.escrowed = false;
+      }      const result = getWinner(game);
       collector.stop('finished');
       await message.edit({
         embeds: [buildEmbed(game, 'result', result)],
@@ -239,6 +280,13 @@ export default {
     collector.on('end', async (_collected, reason) => {
       if (game.finished || reason === 'finished' || reason === 'declined') return;
       game.finished = true;
+      if (game.escrowed && game.bet > 0) {
+        await addMoney(interaction.client, interaction.guildId, game.challengerId, game.bet, 'wallet');
+        await addMoney(interaction.client, interaction.guildId, game.opponentId, game.bet, 'wallet');
+        game.escrowed = false;
+      }
+
+      const description      game.finished = true;
 
       const description = !game.accepted
         ? 'The challenge expired because it was not accepted in time.'
