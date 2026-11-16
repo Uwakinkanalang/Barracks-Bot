@@ -14,6 +14,7 @@ import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
 import { getItems as getBShopItems, getColorItems as getBShopColorItems, getBoosterColorItems as getBShopBoosterColorItems, buildShopPage as buildBShopPage, buildColorShopPage as buildBShopColorPage, buildBoosterColorShopPage as buildBShopBoosterColorPage } from '../commands/Economy/roleshop.js';
 import { handleClanShopPrefixCommand } from '../commands/Economy/clanshop.js';
+import { handleClanShopPrefixCommand } from '../commands/Economy/clanshop.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
@@ -51,6 +52,9 @@ async function handlePrefixCommand(message, client) {
     const guildConfig = await getGuildConfig(client, message.guild.id);
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
+
+    // Clan Shop public panel command.
+    if (await handleClanShopPrefixCommand(message, client)) return;
 
     // Clan Shop public panel command.
     if (await handleClanShopPrefixCommand(message, client)) return;
