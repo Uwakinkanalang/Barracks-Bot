@@ -359,6 +359,50 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
+    // RPS prefix aliases accept the opponent and optional wager in either order:
+    // brps @member bet:50000 | brps bet:50000 @member | b!rps ...
+    if (resolvedCommandName === 'rps' && /^(?:brps|b!rps|b\\s+rps)\\b/i.test(trimmedContent)) {
+      const tail = trimmedContent.replace(/^(?:brps|b!rps|b\\s+rps)\\b/i, '').trim();
+      const mention = tail.match(/<@!?(\\d+)>/);
+      const betMatch = tail.match(/(?:^|\\s)bet\\s*:\\s*(\\d+)(?=\\s|$)/i);
+      if (!mention) {
+        await message.reply('Usage: `brps @member bet:50000` or `brps bet:50000 @member`');
+        return;
+      }
+      const opponent = await client.users.fetch(mention[1]).catch(() => null);
+      if (!opponent) {
+        await message.reply('❌ I could not find that member. Please mention a server member.');
+        return;
+      }
+      const bet = betMatch ? Number(betMatch[1]) : null;
+      if (betMatch && (!Number.isSafeInteger(bet) || bet < 1 || bet > 1000000000)) {
+        await message.reply('❌ Bet must be between 1 and 1,000,000,000 bCash.');
+        return;
+      }
+      const rpsCommand = client.commands.get('rps');
+      const fakeInteraction = {
+        id: message.id,
+        client,
+        guild: message.guild,
+        guildId: message.guild.id,
+        user: message.author,
+        member: message.member,
+        inGuild: () => true,
+        options: {
+          getUser: () => opponent,
+          getInteger: () => bet,
+        },
+        reply: async payload => message.channel.send({
+          content: payload.content,
+          embeds: payload.embeds,
+          components: payload.components,
+          allowedMentions: { parse: ['users'] },
+        }),
+      };
+      await rpsCommand.execute(fakeInteraction);
+      return;
+    }
+
     const restriction = getPrefixRestriction(command, args, resolveSubcommandAlias);
     if (!supportsPrefixExecution(command) || restriction.blocked) {
       if (restriction.blocked && restriction.reason) {
