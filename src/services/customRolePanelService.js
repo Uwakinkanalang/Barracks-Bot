@@ -37,7 +37,6 @@ export function buildCustomRolePanelPayload(panel) {
 
   for (const [index, menu] of panel.menus.entries()) {
     if (index > 0) container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${menu.placeholder || 'Choose your roles'}**`));
     const select = new StringSelectMenuBuilder().setCustomId(`bpanel:${menu.id}`)
       .setPlaceholder(menu.placeholder || 'Choose your roles')
       .setMinValues(0).setMaxValues(menu.multiple ? menu.options.length : 1)
@@ -49,8 +48,6 @@ export function buildCustomRolePanelPayload(panel) {
     container.addActionRowComponents(new ActionRowBuilder().addComponents(select));
   }
 
-  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
-  container.addTextDisplayComponents(new TextDisplayBuilder().setContent('-# BARRACKS • Select or change your roles anytime.'));
   return { components: [container], flags: MessageFlags.IsComponentsV2 };
 }
 
