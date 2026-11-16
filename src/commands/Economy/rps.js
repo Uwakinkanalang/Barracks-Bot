@@ -4,8 +4,8 @@ import {
   ButtonStyle,
   EmbedBuilder,
   SlashCommandBuilder,
-
-import { getEconomyData, addMoney, removeMoney } from '../../utils/economy.js';} from 'discord.js';
+} from 'discord.js';
+import { getEconomyData, addMoney, removeMoney } from '../../utils/economy.js';
 
 const GAME_TIMEOUT = 2 * 60 * 1000;
 const PICK_OPTIONS = {
@@ -118,8 +118,6 @@ export default {
         .setDescription('The member you want to challenge')
         .setRequired(true)
     ).addIntegerOption(option => option.setName('bet').setDescription('Cash each player wagers (optional)').setMinValue(1).setMaxValue(1000000000).setRequired(false)),
-
-  async execute(interaction)    ),
 
   async execute(interaction) {
     if (!interaction.inGuild()) {
@@ -284,8 +282,6 @@ export default {
         await addMoney(interaction.client, interaction.guildId, game.opponentId, game.bet, 'wallet');
         game.escrowed = false;
       }
-
-      const description      game.finished = true;
 
       const description = !game.accepted
         ? 'The challenge expired because it was not accepted in time.'
