@@ -262,6 +262,7 @@ async function handlePrefixCommand(message, client) {
     const bareTicTacToeMatch = trimmedContent.match(/^(?:bttt|btictactoe)(?:\s+([\s\S]+))?$/i);
     const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\s+([\s\S]+))?$/i);
     const bareRouletteMatch = trimmedContent.match(/^broulette(?:\s+([\s\S]+))?$/i);
+    const bareRpsMatch = trimmedContent.match(/^(?:brps|b!rps)(?:\s+([\s\S]+))?$/i);
     const parsed = bareCountMatch
       ? { commandName: 'bcount', args: bareCountMatch[1] ? bareCountMatch[1].trim().split(/\s+/) : [] }
       : bareBgiveMatch
@@ -298,6 +299,8 @@ async function handlePrefixCommand(message, client) {
                 ? { commandName: 'tictactoe', args: bareTicTacToeMatch[1] ? bareTicTacToeMatch[1].trim().split(/\s+/) : [] }
               : bareRouletteMatch
               ? { commandName: 'broulette', args: bareRouletteMatch[1] ? bareRouletteMatch[1].trim().split(/\s+/) : [] }
+              : bareRpsMatch
+              ? { commandName: 'rps', args: bareRpsMatch[1] ? bareRpsMatch[1].trim().split(/\s+/) : [] }
               : bareCoinFlipMatch
               ? (() => {
                   const parts = bareCoinFlipMatch[1] ? bareCoinFlipMatch[1].trim().split(/\s+/) : [];
