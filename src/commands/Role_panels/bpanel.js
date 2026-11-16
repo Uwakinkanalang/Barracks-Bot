@@ -14,8 +14,17 @@ function parseEmoji(raw, lineNumber) {
 
 function parseOptions(raw) {
   return String(raw || '').split('\n').map(line => line.trim()).filter(Boolean).map((line,index) => {
-    const [label, roleId, description = '', emoji = ''] = line.split('|').map(value => value.trim());
-    if (!label || !/^\d{17,19}$/.test(roleId || '')) throw new Error(`Line ${index+1}: use Label|Role ID|Description|Emoji.`);
+    let [label, roleId, description = '', emoji = ''] = line.split('|').map(value => value.trim());
+
+    // Also accept a custom emoji written at the start of the label, e.g.
+    // <:mobilelegends:123456789012345678>: Mobile Legends
+    const inlineEmoji = label.match(/^(<(?:(?:a):)?[\\w]{2,32}:\\d{17,20}>):?\\s*(.+)$/);
+    if (inlineEmoji) {
+      if (!emoji) emoji = inlineEmoji[1];
+      label = inlineEmoji[2].trim();
+    }
+
+    if (!label || !/^\\d{17,19}$/.test(roleId || '')) throw new Error(`Line ${index+1}: use Label|Role ID|Description|Emoji.`);
     if (label.length > 100 || description.length > 100) throw new Error(`Line ${index+1}: label and description must be 100 characters or fewer.`);
     return { label, roleId, description, emoji: parseEmoji(emoji, index + 1) };
   });
