@@ -16,7 +16,7 @@ export default {
     .setName('lf')
     .setDescription('Find players for a game and bring them into your voice channel')
     .addStringOption(option =>
-      option.setName('game').setDescription('The game you are looking to play').setMaxLength(50).setRequired(true)
+      option.setName('what').setDescription('What you are looking to play').setMaxLength(50).setRequired(true)
     )
     .addIntegerOption(option =>
       option.setName('players').setDescription('Total party size, including you').setMinValue(2).setMaxValue(MAX_PARTY_SIZE).setRequired(true)
@@ -44,7 +44,7 @@ export default {
       });
     }
 
-    const game = interaction.options.getString('game', true).trim();
+    const game = interaction.options.getString('what', true).trim();
     const partySize = interaction.options.getInteger('players', true);
     const durationHours = interaction.options.getInteger('duration') || DEFAULT_DURATION_HOURS;
     const expiresAt = Date.now() + durationHours * 60 * 60 * 1000;
