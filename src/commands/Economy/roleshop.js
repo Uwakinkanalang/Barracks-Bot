@@ -75,7 +75,7 @@ export function buildColorShopPage(items, guild, page) {
   const currentPage = Math.min(Math.max(0, page), pageCount - 1);
   const pageItems = colorItems.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   const container = new ContainerBuilder()
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent('# 🎨 B-Shop • Color Roles\\nChoose a color for your name and purchase it with **bCash**.'));
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('# 🎨 B-Shop • Color Roles\nChoose a color for your name and purchase it with **bCash**.'));
 
   if (!pageItems.length) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent('No color roles are currently available. Ask the server owner to add colored roles with `/bshop add`.'));
@@ -84,7 +84,7 @@ export function buildColorShopPage(items, guild, page) {
       const role = guild.roles.cache.get(item.roleId);
       const hex = `#${role.color.toString(16).padStart(6, '0').toUpperCase()}`;
       const section = new SectionBuilder()
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**<@&${item.roleId}>** • ${hex}\\n🪙 **${item.price.toLocaleString()} bCash**`))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**<@&${item.roleId}>** • ${hex}\n🪙 **${item.price.toLocaleString()} bCash**`))
         .setButtonAccessory(new ButtonBuilder()
           .setCustomId(`roleShop:buy:${guild.id}:${item.roleId}`)
           .setLabel('Buy')
