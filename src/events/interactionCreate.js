@@ -23,7 +23,6 @@ import { getNicknamePrefix } from '../commands/Economy/nickname.js';
 import { getItems as getBShopItems, getColorItems as getBShopColorItems, getBoosterColorItems as getBShopBoosterColorItems, buildColorShopPage, buildBoosterColorShopPage } from '../commands/Economy/roleshop.js';
 import { getEconomyData, removeMoney, addMoney } from '../utils/economy.js';
 import { getClanShopItems, buildClanShopPage } from '../commands/Economy/clanshop.js';
-import { getCalendarEvents, buildCalendarPayload, parseCalendarMonth, formatCalendarEvent } from '../services/calendarService.js';
 
 const COMMAND_ERROR_SUBTYPES = {
   warn: 'warn_failed',
@@ -312,24 +311,6 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
-          if (interaction.customId.startsWith('bcal:')) {
-            const [, action, guildId, month] = interaction.customId.split(':');
-            if (!interaction.guild || interaction.guildId !== guildId) {
-              await interaction.reply({ content: 'This Barracks Calendar belongs to another server.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            let targetMonth = parseCalendarMonth(month);
-            if (action === 'prev') targetMonth.setUTCMonth(targetMonth.getUTCMonth() - 1);
-            else if (action === 'next') targetMonth.setUTCMonth(targetMonth.getUTCMonth() + 1);
-            else if (action === 'today') targetMonth = new Date();
-            else {
-              await interaction.reply({ content: 'That calendar control is not recognized.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            const events = await getCalendarEvents(client, guildId);
-            await interaction.update(buildCalendarPayload(interaction.guild, events, targetMonth));
-            return;
-          }
           if (interaction.customId.startsWith('roleShopBoosterColor:page:')) {
             const [, , guildId, pageText] = interaction.customId.split(':');
             const page = Number.parseInt(pageText, 10);
@@ -895,21 +876,6 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isStringSelectMenu()) {
-          if (interaction.customId.startsWith('bcal:event:')) {
-            const [, , guildId] = interaction.customId.split(':');
-            if (!interaction.guild || interaction.guildId !== guildId) {
-              await interaction.reply({ content: 'This Barracks Calendar belongs to another server.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            const events = await getCalendarEvents(client, guildId);
-            const event = events.find(entry => entry.id === interaction.values[0] && !entry.cancelled);
-            if (!event) {
-              await interaction.reply({ content: 'That event is no longer available. Refresh the calendar and try again.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            await interaction.reply({ content: formatCalendarEvent(event), flags: MessageFlags.Ephemeral });
-            return;
-          }
           if (interaction.customId === 'clan:join:select') {
             const clanId = interaction.values[0];
             const storageKey = `guild:${interaction.guildId}:clans`;
