@@ -48,8 +48,17 @@ function isBlackjack(cards) {
 }
 
 function cardFace(card, hidden = false) {
-    if (hidden) return '🂠';
-    // Unicode playing-card glyphs show each hand as proper poker cards.
+    // Custom Barracks card emojis supplied for the game.
+    if (hidden) return '<:cardback:457084762230751254>';
+    const customCards = {
+        'A♦': '<:ad:802675572143554601>',
+        '8♠': '<:8s:457412291004989441>',
+        '8♦': '<:8d:457412292976574476>',
+    };
+    const custom = customCards[String(card.rank) + card.suit];
+    if (custom) return custom;
+
+    // Use a playing-card glyph for cards without a supplied custom emoji.
     const suitBase = { '♠': 0x1F0A0, '♥': 0x1F0B0, '♦': 0x1F0C0, '♣': 0x1F0D0 }[card.suit];
     const rankOffset = {
         A: 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
