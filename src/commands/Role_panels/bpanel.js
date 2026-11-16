@@ -5,9 +5,9 @@ import { getCustomRolePanelKey, validateRoleForPanel, refreshCustomRolePanel, CU
 function parseEmoji(raw, lineNumber) {
   const value = String(raw || '').trim();
   if (!value) return '';
-  const custom = value.match(/^<(?:(a):)?(\\w{2,32}):(\\d{17,20})>$/);
+  const custom = value.match(/^<(?:(a):)?(\w{2,32}):(\d{17,20})>$/);
   if (custom) return { id: custom[3], name: custom[2], ...(custom[1] ? { animated: true } : {}) };
-  if (/^\\d{17,20}$/.test(value)) return { id: value };
+  if (/^\d{17,20}$/.test(value)) return { id: value };
   if (/^<a?:/.test(value) || value.includes(':')) throw new Error('Line ' + lineNumber + ': use <:emoji_name:123456789012345678>, or a Unicode emoji.');
   return { name: value };
 }
