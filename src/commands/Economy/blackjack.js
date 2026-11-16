@@ -138,7 +138,7 @@ export default {
             userId: interaction.user.id,
             userMention: interaction.user.toString(),
             displayName: interaction.member?.displayName || interaction.user.globalName || interaction.user.username,
-            avatarURL: interaction.user.displayAvatarURL({ size: 64 })],
+            avatarURL: interaction.user.displayAvatarURL({ size: 64 }),
             bet,
             balance: Math.max(0, (userData.wallet || 0) - bet),
             deck,
@@ -264,7 +264,7 @@ export default {
                 }
 
                 return message.edit({
-                    components: [buildGame(game, '🎲 Game in progress'),
+                    components: [buildGame(game, '🎲 Game in progress')],
                 });
             }
 
@@ -304,5 +304,5 @@ export default {
                 console.error('[BLACKJACK] Failed to settle timed-out game:', error);
             }
         });
-    }, { command: 'blackjack' })],
+    }, { command: 'blackjack' }),
 };
