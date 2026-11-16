@@ -133,9 +133,8 @@ export function buildBoosterColorShopPage(items, guild, page) {
   } else {
     for (const item of pageItems) {
       const role = guild.roles.cache.get(item.roleId);
-      const hex = `#${role.color.toString(16).padStart(6, '0').toUpperCase()}`;
       const section = new SectionBuilder()
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**<@&${item.roleId}>** • ${hex}\n🪙 **${item.price.toLocaleString()} bCash**`))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**<@&${item.roleId}>**\n🪙 **${item.price.toLocaleString()} bCash**`))
         .setButtonAccessory(new ButtonBuilder()
           .setCustomId(`roleShopBoosterColor:buy:${guild.id}:${item.roleId}`)
           .setLabel('Buy')
