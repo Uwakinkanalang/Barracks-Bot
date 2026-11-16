@@ -13,7 +13,6 @@ import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abusePr
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
 import { getItems as getBShopItems, getColorItems as getBShopColorItems, getBoosterColorItems as getBShopBoosterColorItems, buildShopPage as buildBShopPage, buildColorShopPage as buildBShopColorPage, buildBoosterColorShopPage as buildBShopBoosterColorPage } from '../commands/Economy/roleshop.js';
-import { handleClanShopPrefixCommand } from '../commands/Economy/clanshop.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
