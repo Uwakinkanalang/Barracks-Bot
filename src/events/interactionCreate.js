@@ -20,6 +20,8 @@ import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
 import { getNicknamePrefix } from '../commands/Economy/nickname.js';
+import { getItems as getBShopItems, buildColorShopPage } from '../commands/Economy/roleshop.js';
+import { getEconomyData, removeMoney, addMoney } from '../utils/economy.js';
 
 const COMMAND_ERROR_SUBTYPES = {
   warn: 'warn_failed',
@@ -308,6 +310,63 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('roleShopColor:page:')) {
+            const [, , guildId, pageText] = interaction.customId.split(':');
+            const page = Number.parseInt(pageText, 10);
+            if (!interaction.guild || interaction.guildId !== guildId || !Number.isInteger(page) || page < 0) {
+              await interaction.reply({ content: 'This color shop page is invalid.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const items = await getBShopItems(interaction.client, guildId);
+            await interaction.update({ components: [buildColorShopPage(items, interaction.guild, page)], flags: MessageFlags.IsComponentsV2 });
+            return;
+          }
+
+          if (interaction.customId.startsWith('roleShop:buy:')) {
+            const [, , guildId, roleId] = interaction.customId.split(':');
+            if (!interaction.guild || interaction.guildId !== guildId) {
+              await interaction.reply({ content: 'This shop belongs to another server.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const items = await getBShopItems(interaction.client, guildId);
+            const item = items.find(entry => entry.roleId === roleId);
+            const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
+            if (!item || !role || role.managed || role.id === guildId) {
+              await interaction.editReply('That role is no longer available to purchase.');
+              return;
+            }
+            const member = await interaction.guild.members.fetch(interaction.user.id);
+            if (member.roles.cache.has(roleId)) {
+              await interaction.editReply('You already own this role.');
+              return;
+            }
+            const botMember = interaction.guild.members.me || await interaction.guild.members.fetch(interaction.client.user.id);
+            if (!botMember.permissions.has('ManageRoles') || role.position >= botMember.roles.highest.position) {
+              await interaction.editReply('I cannot assign this role. Ask the server owner to move my role above it and enable Manage Roles.');
+              return;
+            }
+            const economy = await getEconomyData(interaction.client, guildId, interaction.user.id);
+            const wallet = Number(economy?.wallet) || 0;
+            if (wallet < item.price) {
+              await interaction.editReply(`You need **${item.price.toLocaleString()} bCash**, but you only have **${wallet.toLocaleString()} bCash** in your wallet.`);
+              return;
+            }
+            await removeMoney(interaction.client, guildId, interaction.user.id, item.price, 'wallet');
+            try {
+              await member.roles.add(role, 'B-Shop role purchase');
+            } catch (error) {
+              await addMoney(interaction.client, guildId, interaction.user.id, item.price, 'wallet').catch(() => {});
+              logger.error('B-Shop role assignment failed; purchase refunded.', { guildId, userId: interaction.user.id, roleId, error: error.message });
+              await interaction.editReply('Role assignment failed, so your bCash was refunded.');
+              return;
+            }
+            const updated = await getEconomyData(interaction.client, guildId, interaction.user.id);
+            await interaction.editReply(`✅ You purchased ${role} for **${item.price.toLocaleString()} bCash**. Remaining wallet: **${(Number(updated?.wallet) || 0).toLocaleString()} bCash**.`);
+            return;
+          }
+
+
           if (interaction.customId === 'clan:join:open') {
             const { ActionRowBuilder, StringSelectMenuBuilder } = await import('discord.js');
             const clans = await interaction.client.db.get(`guild:${interaction.guildId}:clans`, []);
