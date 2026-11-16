@@ -182,7 +182,8 @@ export default {
         let message;
         try {
             message = await interaction.reply({
-                flags: MessageFlags.IsComponentsV2,\n                components: [buildGame(game, initialStatus, { revealDealer: initialReveal, ended: initialEnded })],
+                flags: MessageFlags.IsComponentsV2,
+                components: [buildGame(game, initialStatus, { revealDealer: initialReveal, ended: initialEnded })],
                 fetchReply: true,
             });
         } catch (error) {
