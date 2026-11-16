@@ -8,7 +8,7 @@ import {
   TextDisplayBuilder,
 } from 'discord.js';
 
-const MAX_MENUS = 5;
+const MAX_MENUS = 10;
 const MAX_OPTIONS = 25;
 const DANGEROUS = ['Administrator','ManageGuild','ManageRoles','ManageChannels','ManageWebhooks','BanMembers','KickMembers','MentionEveryone'];
 export const getCustomRolePanelKey = (guildId, messageId) => `guild:${guildId}:bpanels:${messageId}`;
