@@ -59,6 +59,19 @@ export async function refreshCustomRolePanel(client, guild, panel) {
   if (!channel?.isTextBased()) throw new Error('The panel channel is unavailable.');
   const message = await channel.messages.fetch(panel.messageId).catch(() => null);
   if (!message) throw new Error('The panel message was deleted. Create a new panel.');
+
+  // Discord message flags are not safely convertible on an already-posted legacy embed.
+  // Re-post it as a V2 message, persist the new ID, then remove the old message.
+  if (!message.flags.has(MessageFlags.IsComponentsV2)) {
+    const previousMessageId = panel.messageId;
+    const replacementMessage = await channel.send(buildCustomRolePanelPayload(panel));
+    panel.messageId = replacementMessage.id;
+    await client.db.set(getCustomRolePanelKey(guild.id, replacementMessage.id), panel);
+    await client.db.delete(getCustomRolePanelKey(guild.id, previousMessageId));
+    await message.delete().catch(() => {});
+    return replacementMessage;
+  }
+
   await message.edit(buildCustomRolePanelPayload(panel));
   await client.db.set(getCustomRolePanelKey(guild.id, panel.messageId), panel);
   return message;
