@@ -1,4 +1,5 @@
 import {
+  SlashCommandBuilder,
   ContainerBuilder,
   SectionBuilder,
   TextDisplayBuilder,
@@ -62,6 +63,45 @@ export function buildClanShopPage(items, guildId, page = 0) {
   }
 
   return container;
+}
+
+async function manageClanShop(interaction, client) {
+  if (!interaction.guildId) {
+    return interaction.reply({ content: 'The Clan Shop can only be used inside a server.', flags: MessageFlags.Ephemeral });
+  }
+  if (interaction.user.id !== interaction.guild.ownerId) {
+    return interaction.reply({ content: '❌ Only the **server owner** can manage the Clan Shop.', flags: MessageFlags.Ephemeral });
+  }
+
+  const action = interaction.options.getSubcommand();
+  const items = await getClanShopItems(client, interaction.guildId);
+  if (action === 'list') {
+    const description = items.length
+      ? items.map(item => `<@&${item.roleId}> — **${item.price.toLocaleString()} bCash**`).join('\\n')
+      : 'The Clan Shop is currently empty.';
+    return interaction.reply({ content: `**Clan Shop items**\\n${description}`, flags: MessageFlags.Ephemeral });
+  }
+
+  const role = interaction.options.getRole('item', true);
+  if (action === 'add') {
+    const price = interaction.options.getInteger('price', true);
+    const botMember = interaction.guild.members.me || await interaction.guild.members.fetch(client.user.id);
+    if (role.id === interaction.guildId || role.managed || role.position >= botMember.roles.highest.position) {
+      return interaction.reply({ content: 'That role cannot be sold. Choose a normal role below the bot’s highest role.', flags: MessageFlags.Ephemeral });
+    }
+    const existing = items.find(item => item.roleId === role.id);
+    if (existing) existing.price = price;
+    else items.push({ roleId: role.id, price });
+    await client.db.set(SHOP_KEY(interaction.guildId), items);
+    return interaction.reply({ content: `✅ ${role} is now available in the **Clan Shop** for **${price.toLocaleString()} bCash**.${existing ? ' Its price was updated.' : ''}`, flags: MessageFlags.Ephemeral });
+  }
+
+  const nextItems = items.filter(item => item.roleId !== role.id);
+  if (nextItems.length === items.length) {
+    return interaction.reply({ content: 'That role is not currently listed in the **Clan Shop**.', flags: MessageFlags.Ephemeral });
+  }
+  await client.db.set(SHOP_KEY(interaction.guildId), nextItems);
+  return interaction.reply({ content: `✅ Removed ${role} from the **Clan Shop**.`, flags: MessageFlags.Ephemeral });
 }
 
 export async function handleClanShopPrefixCommand(message, client) {
