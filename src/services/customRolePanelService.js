@@ -20,7 +20,7 @@ export function buildCustomRolePanelPayload(panel, guild) {
   const components = panel.menus.map(menu => {
     const select = new StringSelectMenuBuilder().setCustomId(`bpanel:${menu.id}`)
       .setPlaceholder(menu.placeholder || 'Choose your roles')
-      .setMinValues(0).setMaxValues(menu.options.length)
+      .setMinValues(0).setMaxValues(menu.multiple ? menu.options.length : 1)
       .addOptions(menu.options.map(option => ({
         label: option.label, value: option.roleId,
         ...(option.description ? { description: option.description } : {}),
