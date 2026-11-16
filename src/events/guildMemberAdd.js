@@ -1,4 +1,4 @@
-import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { Events, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder } from 'discord.js';
 import { getColor, botConfig } from '../config/bot.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { getWelcomeConfig } from '../utils/database.js';
@@ -50,8 +50,26 @@ export default {
                     : `Welcome to ${guild.name}!`;
 
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
+                const cardBackground = welcomeConfig.welcomeImage || welcomeConfig.welcomeEmbed?.image?.url;
 
-                if (!canEmbed) {
+                // When a welcome background is configured, send a personalized military-style
+                // welcome card as a file. The background is uploaded through /greet dashboard.
+                if (cardBackground) {
+                    try {
+                        const card = await buildWelcomeCard(member, cardBackground, guild.memberCount);
+                        await channel.send({
+                            content: user.toString(),
+                            files: [new AttachmentBuilder(card, { name: 'barracks-welcome-card.svg' })],
+                            allowedMentions: { users: [user.id] },
+                        });
+                    } catch (cardError) {
+                        logger.warn('Welcome card rendering failed; using the standard welcome embed:', cardError);
+                        await sendStandardWelcome(channel, {
+                            messageContent, welcomeMessage, canEmbed, embedTitle, embedFooter,
+                            welcomeConfig, user, guild
+                        });
+                    }
+                } else if (!canEmbed) {
                     await channel.send({
                         content: messageContent || welcomeMessage
                     });
@@ -199,4 +217,77 @@ async function assignRoleSafely(member, role) {
     } catch (error) {
         logger.warn(`Failed to assign role ${role.id} to member ${member.id}:`, error);
     }
+}\n\nasync function buildWelcomeCard(member, backgroundUrl, memberCount) {
+    const [backgroundResponse, avatarResponse] = await Promise.all([
+        fetch(backgroundUrl),
+        fetch(member.user.displayAvatarURL({ extension: 'png', size: 256 })),
+    ]);
+    if (!backgroundResponse.ok || !avatarResponse.ok) {
+        throw new Error('Could not download the welcome background or member avatar.');
+    }
+
+    const backgroundType = backgroundResponse.headers.get('content-type') || 'image/jpeg';
+    const avatarType = avatarResponse.headers.get('content-type') || 'image/png';
+    if (!backgroundType.startsWith('image/') || !avatarType.startsWith('image/')) {
+        throw new Error('Welcome background and avatar must be image files.');
+    }
+
+    const background = Buffer.from(await backgroundResponse.arrayBuffer()).toString('base64');
+    const avatar = Buffer.from(await avatarResponse.arrayBuffer()).toString('base64');
+    const displayName = escapeSvgText(member.displayName || member.user.username);
+    const memberNumber = Number(memberCount).toLocaleString('en-US');
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="670" viewBox="0 0 1200 670">
+      <defs>
+        <clipPath id="avatarClip"><circle cx="190" cy="335" r="112"/></clipPath>
+        <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10150c" stop-opacity=".38"/><stop offset="1" stop-color="#10150c" stop-opacity=".76"/></linearGradient>
+        <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>
+      </defs>
+      <image x="0" y="0" width="1200" height="670" preserveAspectRatio="xMidYMid slice" xlink:href="data:${backgroundType};base64,${background}"/>
+      <rect width="1200" height="670" fill="#17200f" opacity=".18"/>
+      <path d="M0 0H1200V670H0Z" fill="url(#shade)"/>
+      <rect x="34" y="34" width="1132" height="602" rx="26" fill="none" stroke="#d0c79e" stroke-width="5" opacity=".86"/>
+      <path d="M75 88H1125M75 582H1125" stroke="#d0c79e" stroke-width="4" opacity=".75"/>
+      <g fill="#d8d0ad" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700">
+        <text x="600" y="126" font-size="25" letter-spacing="12">BARRACKS • NEW RECRUIT</text>
+      </g>
+      <circle cx="190" cy="335" r="128" fill="#1c2815" opacity=".75" filter="url(#shadow)"/>
+      <circle cx="190" cy="335" r="120" fill="#d0c79e" stroke="#26351d" stroke-width="9"/>
+      <image x="78" y="223" width="224" height="224" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:${avatarType};base64,${avatar}"/>
+      <circle cx="190" cy="335" r="116" fill="none" stroke="#e3dcc0" stroke-width="5"/>
+      <g font-family="Arial, Helvetica, sans-serif" fill="#fff" text-anchor="start">
+        <text x="360" y="292" font-size="92" font-weight="900" letter-spacing="2" stroke="#18210f" stroke-width="8" paint-order="stroke">WELCOME</text>
+        <text x="366" y="376" font-size="58" font-weight="800" stroke="#18210f" stroke-width="5" paint-order="stroke">${displayName}</text>
+        <text x="370" y="445" font-size="34" font-weight="700" fill="#e3dcc0" stroke="#18210f" stroke-width="3" paint-order="stroke">MEMBER #${memberNumber}</text>
+      </g>
+      <g fill="#d0c79e"><path d="M1015 510l18 38 42 6-30 29 7 41-37-20-37 20 7-41-30-29 42-6z" opacity=".9"/></g>
+      <text x="600" y="610" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#e8e1c5" letter-spacing="5">HONOR • COURAGE • COMMITMENT</text>
+    </svg>`;
+    return Buffer.from(svg, 'utf8');
+}
+
+function escapeSvgText(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'
+    })[character]);
+}
+
+async function sendStandardWelcome(channel, data) {
+    const { messageContent, welcomeMessage, canEmbed, embedTitle, embedFooter, welcomeConfig, user, guild } = data;
+    if (!canEmbed) {
+        await channel.send({ content: messageContent || welcomeMessage });
+        return;
+    }
+    const embed = new EmbedBuilder()
+        .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
+        .setTitle(embedTitle)
+        .setDescription(welcomeMessage)
+        .setThumbnail(user.displayAvatarURL())
+        .addFields(
+            { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
+            { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
+        )
+        .setTimestamp()
+        .setFooter({ text: embedFooter });
+    await channel.send({ content: messageContent, embeds: [embed] });
 }
