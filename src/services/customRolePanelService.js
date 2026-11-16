@@ -28,9 +28,6 @@ export function buildCustomRolePanelPayload(panel, guild) {
       })));
     return new ActionRowBuilder().addComponents(select);
   });
-  if (panel.menus.length) {
-    embed.addFields({ name: 'Available Role Menus', value: panel.menus.map((m,i) => `**${i+1}.** ${m.placeholder || 'Role selection'} — ${m.options.length} options`).join('\n') });
-  }
   return { embeds: [embed], components };
 }
 
