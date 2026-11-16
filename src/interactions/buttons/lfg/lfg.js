@@ -33,7 +33,7 @@ function buildEmbed(record, expired = false) {
 
   return new EmbedBuilder()
     .setColor(expired ? 0x747F8D : spotsLeft === 0 ? 0x57F287 : 0x5865F2)
-    .setTitle(`🎮 Looking for Group: ${record.game}`)
+    .setTitle(`🎮 Looking for: ${record.game}`)
     .setDescription(`<@${record.hostId}> is looking for ${record.partySize - 1} player${record.partySize - 1 === 1 ? '' : 's'}!`)
     .addFields({
       name: `Party (${record.members.length}/${record.partySize}) — ${spotsLeft} places left`,
