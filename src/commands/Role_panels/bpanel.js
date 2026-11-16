@@ -47,7 +47,7 @@ export default {
       const key = getCustomRolePanelKey(interaction.guildId,messageId);
       const panel = await db.get(key);
       if (!panel) return interaction.reply({ content: 'I could not find a Barracks role panel with that message ID.', flags: MessageFlags.Ephemeral });
-      if (panel.menus.length >= CUSTOM_ROLE_PANEL_LIMITS.menus) return interaction.reply({ content: 'This panel already has the maximum of 5 dropdown menus.', flags: MessageFlags.Ephemeral });
+      if (panel.menus.length >= CUSTOM_ROLE_PANEL_LIMITS.menus) return interaction.reply({ content: 'This panel already has the maximum of ${CUSTOM_ROLE_PANEL_LIMITS.menus} dropdown menus.', flags: MessageFlags.Ephemeral });
       const options = parseOptions(interaction.options.getString('options'));
       if (!options.length || options.length > CUSTOM_ROLE_PANEL_LIMITS.options) return interaction.reply({ content: 'Add between 1 and 25 options, one per line.', flags: MessageFlags.Ephemeral });
       const seen = new Set();
@@ -61,7 +61,7 @@ export default {
       const menu = { id: `m${Date.now().toString(36)}`, placeholder: interaction.options.getString('placeholder'), multiple: interaction.options.getBoolean('multiple') ?? true, options };
       panel.menus.push(menu);
       const message = await refreshCustomRolePanel(interaction.client,interaction.guild,panel);
-      return interaction.reply({ content: `✅ Dropdown added to ${message.url}. This panel now has ${panel.menus.length}/5 menus.`, flags: MessageFlags.Ephemeral });
+      return interaction.reply({ content: `✅ Dropdown added to ${message.url}. This panel now has ${panel.menus.length}/${CUSTOM_ROLE_PANEL_LIMITS.menus} menus.`, flags: MessageFlags.Ephemeral });
     }
     if (sub === 'delete') {
       const messageId = interaction.options.getString('message-id');
