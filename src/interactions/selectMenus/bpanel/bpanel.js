@@ -1,16 +1,15 @@
-import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getCustomRolePanelKey, validateRoleForPanel } from '../../../services/customRolePanelService.js';
 
 export async function execute(interaction, client) {
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-  if (!interaction.inGuild()) return interaction.editReply({ content: 'This menu only works inside a server.' });
+  await interaction.deferUpdate();
+  if (!interaction.inGuild()) return;
   const menuId = interaction.customId.split(':')[1];
   const panel = await client.db.get(getCustomRolePanelKey(interaction.guildId,interaction.message.id));
   const menu = panel?.menus?.find(item => item.id === menuId);
-  if (!menu) return interaction.editReply({ content: 'This role menu is no longer active. Please ask a staff member to refresh it.' });
+  if (!menu) return;
   const member = await interaction.guild.members.fetch(interaction.user.id);
   const botMember = interaction.guild.members.me ?? await interaction.guild.members.fetchMe();
-  if (!botMember.permissions.has('ManageRoles')) return interaction.editReply({ content: 'I need Manage Roles permission to update your roles.' });
+  if (!botMember.permissions.has('ManageRoles')) return;
   const available = new Set(menu.options.map(option => option.roleId));
   const selected = new Set(interaction.values);
   const added = [], removed = [], skipped = [];
