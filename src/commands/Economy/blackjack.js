@@ -79,7 +79,7 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
 
     const container = new ContainerBuilder().setAccentColor(resultColor);
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-        '**' + game.displayName + ', you bet ₱' + game.bet.toLocaleString() + ' to play blackjack**\\n\\n' +
+        '**' + game.displayName + ', you bet ₱' + game.bet.toLocaleString() + ' to play blackjack**\n\n' +
         '**Dealer [' + dealerValue + ']**'
     ));
     addCardGallery(container, game.dealer, dealerHidden ? [1] : []);
