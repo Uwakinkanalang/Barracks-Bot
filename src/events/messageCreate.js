@@ -51,8 +51,8 @@ async function handlePrefixCommand(message, client) {
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
 
-    // B-Shop list remains a plain-text command; management uses slash subcommands.
-    if (/^bshop\s+list$/i.test(trimmedContent)) {
+    // B-Shop panel remains a plain-text command; management uses slash subcommands.
+    if (/^bshop\s+panel$/i.test(trimmedContent)) {
       if (message.author.id !== message.guild.ownerId) {
         await message.reply('❌ Only the **server owner** can use this command.');
         return;
