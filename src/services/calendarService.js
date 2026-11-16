@@ -2,7 +2,7 @@ import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 
 const TZ = 'Asia/Manila';
 const key = (guildId) => `guild:${guildId}:calendar:events`;
-const configKey = (guildId) => `guild:${guildId}:calendar:config';
+const configKey = (guildId) => `guild:${guildId}:calendar:config`;
 
 export async function getCalendarConfig(client, guildId) {
   return client.db.get(configKey(guildId), { channelId: null, messageId: null });
