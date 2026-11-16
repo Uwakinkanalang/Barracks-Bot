@@ -20,7 +20,7 @@ export default {
     .addSubcommand(s => s.setName('add-menu').setDescription('Add a dropdown menu to an existing panel')
       .addStringOption(o => o.setName('message-id').setDescription('Panel message ID').setRequired(true))
       .addStringOption(o => o.setName('placeholder').setDescription('Text shown before a selection').setMaxLength(150).setRequired(true))
-      .addStringOption(o => o.setName('options').setDescription('One per line: Label|Role ID|Description|Emoji').setMaxLength(4000).setRequired(true)))
+      .addStringOption(o => o.setName('options').setDescription('One per line: Label|Role ID|Description|Emoji').setMaxLength(4000).setRequired(true))\n      .addBooleanOption(o => o.setName('multiple').setDescription('Allow members to select more than one role').setRequired(false)))
     .addSubcommand(s => s.setName('delete').setDescription('Delete a role panel')
       .addStringOption(o => o.setName('message-id').setDescription('Panel message ID').setRequired(true)))
     .addSubcommand(s => s.setName('list').setDescription('List role panels in this server')),
@@ -56,7 +56,7 @@ export default {
         const reason = validateRoleForPanel(role,interaction.guild);
         if (reason) throw new Error(`<@&${option.roleId}>: ${reason}`);
       }
-      const menu = { id: `m${Date.now().toString(36)}`, placeholder: interaction.options.getString('placeholder'), options };
+      const menu = { id: `m${Date.now().toString(36)}`, placeholder: interaction.options.getString('placeholder'), multiple: interaction.options.getBoolean('multiple') ?? true, options };
       panel.menus.push(menu);
       const message = await refreshCustomRolePanel(interaction.client,interaction.guild,panel);
       return interaction.reply({ content: `✅ Dropdown added to ${message.url}. This panel now has ${panel.menus.length}/5 menus.`, flags: MessageFlags.Ephemeral });
