@@ -134,7 +134,7 @@ export function buildBoosterColorShopPage(items, guild, page) {
     for (const item of pageItems) {
       const role = guild.roles.cache.get(item.roleId);
       const section = new SectionBuilder()
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**<@&${item.roleId}>**\n🪙 **${item.price.toLocaleString()} bCash**`))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**<@&${item.roleId}>**\n✨ **Free for Barracks Boosters**`))
         .setButtonAccessory(new ButtonBuilder()
           .setCustomId(`roleShopBoosterColor:buy:${guild.id}:${item.roleId}`)
           .setLabel('Pick')
