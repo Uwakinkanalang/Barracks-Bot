@@ -18,15 +18,15 @@ function parseOptions(raw) {
 
     // Also accept a custom emoji written at the start of the label, e.g.
     // <:mobilelegends:123456789012345678>: Mobile Legends
-    const inlineEmoji = label.match(/^(<(?:(?:a):)?[\\w]{2,32}:\\d{17,20}>):?\\s*(.+)$/);
+    const inlineEmoji = label.match(/^(<(?:(?:a):)?[\w]{2,32}:\d{17,20}>):?\s*(.+)$/);
     if (inlineEmoji) {
       if (!emoji) emoji = inlineEmoji[1];
       label = inlineEmoji[2].trim();
     }
 
-    if (!label || !/^\\d{17,19}$/.test(roleId || '')) throw new Error(`Line ${index+1}: use Label|Role ID|Description|Emoji.`);
+    if (!label || (roleId && !/^\d{17,19}$/.test(roleId))) throw new Error(`Line ${index+1}: use <:emoji_name:emoji_id>: Role Name, or Label|Role ID|Description|Emoji.`);
     if (label.length > 100 || description.length > 100) throw new Error(`Line ${index+1}: label and description must be 100 characters or fewer.`);
-    return { label, roleId, description, emoji: parseEmoji(emoji, index + 1) };
+    return { label, roleId: roleId || null, description, emoji: parseEmoji(emoji, index + 1) };
   });
 }
 
@@ -68,6 +68,16 @@ export default {
       if (!panel) return interaction.reply({ content: 'I could not find a Barracks role panel with that message ID.', flags: MessageFlags.Ephemeral });
       if (panel.menus.length >= CUSTOM_ROLE_PANEL_LIMITS.menus) return interaction.reply({ content: 'This panel already has the maximum of ${CUSTOM_ROLE_PANEL_LIMITS.menus} dropdown menus.', flags: MessageFlags.Ephemeral });
       const options = parseOptions(interaction.options.getString('options'));
+      const guildRoles = await interaction.guild.roles.fetch();
+      for (const option of options) {
+        if (!option.roleId) {
+          const matchingRoles = guildRoles.filter(role => role.name.toLowerCase() === option.label.toLowerCase());
+          if (matchingRoles.size !== 1) {
+            throw new Error(`Could not uniquely find a role named "${option.label}". Add its Role ID using Label|Role ID|Description|Emoji.`);
+          }
+          option.roleId = matchingRoles.first().id;
+        }
+      }
       if (!options.length || options.length > CUSTOM_ROLE_PANEL_LIMITS.options) return interaction.reply({ content: 'Add between 1 and 25 options, one per line.', flags: MessageFlags.Ephemeral });
       const seen = new Set();
       for (const option of options) {
@@ -98,7 +108,7 @@ export default {
       const allKeys = Array.isArray(keys) ? keys : (keys?.value || []);
       const panels = [];
       for (const key of allKeys) { const panel = await db.get(key); if (panel) panels.push(panel); }
-      return interaction.reply({ content: panels.length ? panels.map(p => `• **${p.title}** — <#${p.channelId}> — \`${p.messageId}\` (${p.menus.length}/5 menus)`).join('\n') : 'No custom role panels found.', flags: MessageFlags.Ephemeral });
+      return interaction.reply({ content: panels.length ? panels.map(p => `• **${p.title}** — <#${p.channelId}> — \`${p.messageId}\` (${p.menus.length}/${CUSTOM_ROLE_PANEL_LIMITS.menus} menus)`).join('\n') : 'No custom role panels found.', flags: MessageFlags.Ephemeral });
     }
   }
 };
