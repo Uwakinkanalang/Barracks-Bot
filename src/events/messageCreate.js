@@ -12,7 +12,7 @@ import { getCommandPrefix, getBotMessage, isBotOwner, isCommandCategoryEnabled, 
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
-import { getItems as getBShopItems, getColorItems as getBShopColorItems, buildShopPage as buildBShopPage, buildColorShopPage as buildBShopColorPage } from '../commands/Economy/roleshop.js';
+import { getItems as getBShopItems, getColorItems as getBShopColorItems, getBoosterColorItems as getBShopBoosterColorItems, buildShopPage as buildBShopPage, buildColorShopPage as buildBShopColorPage, buildBoosterColorShopPage as buildBShopBoosterColorPage } from '../commands/Economy/roleshop.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
@@ -70,6 +70,16 @@ async function handlePrefixCommand(message, client) {
       const items = await getBShopColorItems(client, message.guild.id);
       await message.channel.send({
         components: [buildBShopColorPage(items, message.guild, 0)],
+        flags: MessageFlags.IsComponentsV2,
+      });
+      return;
+    }
+
+    // Public panel for Barracks Booster members' exclusive color roles.
+    if (/^bshop\\s+booster-color$/i.test(trimmedContent)) {
+      const items = await getBShopBoosterColorItems(client, message.guild.id);
+      await message.channel.send({
+        components: [buildBShopBoosterColorPage(items, message.guild, 0)],
         flags: MessageFlags.IsComponentsV2,
       });
       return;
