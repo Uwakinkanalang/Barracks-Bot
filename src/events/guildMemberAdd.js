@@ -217,7 +217,9 @@ async function assignRoleSafely(member, role) {
     } catch (error) {
         logger.warn(`Failed to assign role ${role.id} to member ${member.id}:`, error);
     }
-}\n\nasync function buildWelcomeCard(member, backgroundUrl, memberCount) {
+}
+
+async function buildWelcomeCard(member, backgroundUrl, memberCount) {
     const [backgroundResponse, avatarResponse] = await Promise.all([
         fetch(backgroundUrl),
         fetch(member.user.displayAvatarURL({ extension: 'png', size: 256 })),
