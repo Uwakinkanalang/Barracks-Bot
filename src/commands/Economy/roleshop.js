@@ -95,7 +95,7 @@ export function buildColorShopPage(items, guild, page) {
       const section = new SectionBuilder()
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**<@&${item.roleId}>** • ${hex}\n🪙 **${item.price.toLocaleString()} bCash**`))
         .setButtonAccessory(new ButtonBuilder()
-          .setCustomId(`roleShop:buy:${guild.id}:${item.roleId}`)
+          .setCustomId(`roleShopColor:buy:${guild.id}:${item.roleId}`)
           .setLabel('Buy')
           .setStyle(ButtonStyle.Success));
       container.addSectionComponents(section);
