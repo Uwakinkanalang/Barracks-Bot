@@ -106,14 +106,14 @@ async function manageClanShop(interaction, client) {
 
 export async function handleClanShopPrefixCommand(message, client) {
   const content = message.content.trim();
-  if (!/^clanshop(?:\\s|$)/i.test(content)) return false;
+  if (!/^clanshop(?:\s|$)/i.test(content)) return false;
 
   if (message.author.id !== message.guild.ownerId) {
     await message.reply('❌ Only the **server owner** can manage or post the Clan Shop.');
     return true;
   }
 
-  const panelMatch = content.match(/^clanshop\\s+panel$/i);
+  const panelMatch = content.match(/^clanshop\s+panel$/i);
   if (panelMatch) {
     const items = await getClanShopItems(client, message.guild.id);
     await message.channel.send({
@@ -123,7 +123,7 @@ export async function handleClanShopPrefixCommand(message, client) {
     return true;
   }
 
-  const addMatch = content.match(/^clanshop\\s+add\\s+(?:<@&)?(\\d{17,20})>?\\s+(\\d+)$/i);
+  const addMatch = content.match(/^clanshop\s+add\s+(?:<@&)?(\d{17,20})>?\s+(\d+)$/i);
   if (addMatch) {
     const [, roleId, priceText] = addMatch;
     const price = Number(priceText);
@@ -149,7 +149,7 @@ export async function handleClanShopPrefixCommand(message, client) {
     return true;
   }
 
-  const removeMatch = content.match(/^clanshop\\s+remove\\s+(?:<@&)?(\\d{17,20})>?$/i);
+  const removeMatch = content.match(/^clanshop\s+remove\s+(?:<@&)?(\d{17,20})>?$/i);
   if (removeMatch) {
     const roleId = removeMatch[1];
     const items = await getClanShopItems(client, message.guild.id);
