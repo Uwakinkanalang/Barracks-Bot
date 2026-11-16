@@ -15,8 +15,9 @@ export function validateRoleForPanel(role, guild) {
 }
 
 export function buildCustomRolePanelPayload(panel, guild) {
-  const embed = new EmbedBuilder().setColor(getColor('info')).setTitle(panel.title).setDescription(panel.description || null)
-    .setFooter({ text: 'Choose an option below to manage your roles.' });
+  const embed = new EmbedBuilder().setColor(getColor('info')).setTitle(panel.title);
+  if (typeof panel.description === 'string' && panel.description.trim()) embed.setDescription(panel.description.trim());
+  embed.setFooter({ text: 'Choose an option below to manage your roles.' });
   const components = panel.menus.map(menu => {
     const select = new StringSelectMenuBuilder().setCustomId(`bpanel:${menu.id}`)
       .setPlaceholder(menu.placeholder || 'Choose your roles')
