@@ -356,7 +356,7 @@ export default {
             }
             const member = await interaction.guild.members.fetch(interaction.user.id);
             if (isBoosterColorPurchase && !member.roles.cache.some(memberRole => memberRole.name.toLowerCase() === 'booster')) {
-              await interaction.editReply('💎 This color shop is exclusive to members with the **Booster** role in Barracks.');
+              await interaction.editReply('💎 Boost the server to purchase exclusive color roles.');
               return;
             }
             if (member.roles.cache.has(roleId)) {
