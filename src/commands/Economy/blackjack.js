@@ -3,7 +3,6 @@ import {
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
-    MessageFlags,
     SlashCommandBuilder,
 } from 'discord.js';
 import { removeMoney, addMoney, getEconomyData } from '../../utils/economy.js';
@@ -72,10 +71,6 @@ function buildGame(game, status = '🎲 Game in progress', options = {}) {
         .setDescription(
             '**Dealer [' + dealerValue + ']**\n' + handText(game.dealer, dealerHidden ? [1] : []) + '\n\n' +
             '**' + game.displayName + ' [' + playerValue + ']**\n' + handText(game.player, hiddenPlayerIndices)
-        )
-        .addFields(
-            { name: '💰 Balance', value: '₱' + game.balance.toLocaleString(), inline: true },
-            { name: '🎟️ Bet', value: '₱' + game.bet.toLocaleString(), inline: true },
         )
         .setFooter({ text: status });
 
