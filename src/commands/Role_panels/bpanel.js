@@ -2,12 +2,22 @@ import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } f
 import { buildCustomRolePanelPayload } from '../../services/customRolePanelService.js';
 import { getCustomRolePanelKey, validateRoleForPanel, refreshCustomRolePanel, CUSTOM_ROLE_PANEL_LIMITS } from '../../services/customRolePanelService.js';
 
+function parseEmoji(raw, lineNumber) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  const custom = value.match(/^<(?:(a):)?(\w{2,32}):(\d{17,20})>$/);
+  if (custom) return { id: custom[3], name: custom[2], ...(custom[1] ? { animated: true } : {}) };
+  if (/^\d{17,20}$/.test(value)) return { id: value };
+  if (/^<a?:/.test(value) || value.includes(':')) throw new Error('Line ' + lineNumber + ': use <:emoji_name:123456789012345678>, or a Unicode emoji.');
+  return { name: value };
+}
+
 function parseOptions(raw) {
   return String(raw || '').split('\n').map(line => line.trim()).filter(Boolean).map((line,index) => {
     const [label, roleId, description = '', emoji = ''] = line.split('|').map(value => value.trim());
     if (!label || !/^\d{17,19}$/.test(roleId || '')) throw new Error(`Line ${index+1}: use Label|Role ID|Description|Emoji.`);
     if (label.length > 100 || description.length > 100) throw new Error(`Line ${index+1}: label and description must be 100 characters or fewer.`);
-    return { label, roleId, description, emoji };
+    return { label, roleId, description, emoji: parseEmoji(emoji, index + 1) };
   });
 }
 

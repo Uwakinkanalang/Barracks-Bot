@@ -44,7 +44,7 @@ export function buildCustomRolePanelPayload(panel) {
       .addOptions(menu.options.map(option => ({
         label: option.label, value: option.roleId,
         ...(option.description ? { description: option.description } : {}),
-        ...(option.emoji ? { emoji: option.emoji } : {})
+        ...(option.emoji ? { emoji: typeof option.emoji === 'string' ? { name: option.emoji } : option.emoji } : {})
       })));
     container.addActionRowComponents(new ActionRowBuilder().addComponents(select));
   }
