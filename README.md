@@ -289,6 +289,30 @@ TitanBot requires the following Discord intents:
 - **Moderate Members**
 - **Connect**
 
+
+## Barracks Calendar
+
+The Barracks Calendar is managed with the `/calendar` slash command and stores events in the bot's existing per-guild database.
+
+### Setup
+1. Invite the bot with **Send Messages**, **Embed Links**, **Read Message History**, and **View Channel** permissions in the channel you want to use.
+2. In the Barracks server, run `/calendar setup channel:#your-calendar-channel`. The bot posts the monthly calendar there.
+3. Staff with **Manage Server** (or the server owner) can manage events. Members can use the read-only commands.
+
+### Commands
+- `/calendar view` — show this month's schedule privately.
+- `/calendar list` — list upcoming events.
+- `/calendar today` — list today's events (Asia/Manila).
+- `/calendar add` — add an event using a date (`YYYY-MM-DD`) and 24-hour time (`HH:MM`), both in Asia/Manila.
+- `/calendar edit id:<event-id>` — update an event. Supply any fields to change.
+- `/calendar delete id:<event-id>` — remove an event.
+- `/calendar setup channel:#channel` — choose or change the public calendar channel.
+
+The public calendar message is edited in place after setup whenever staff add, edit, or delete an event. It is also republished on the first day of each month. The bot sends reminders to the configured calendar channel 24 hours, 1 hour, and 15 minutes before each event. Events and calendar message configuration are stored under each guild's database keys, so separate servers have separate calendars.
+
+### Time zone and permissions
+All entered dates/times and scheduled reminders use **Asia/Manila**. Calendar management requires **Manage Server** or server ownership. Ensure the bot can view and send messages in the configured channel and has **Embed Links**.
+
 ## License
 
 TitanBot is released under the MIT License. See [LICENSE](LICENSE) for details.
