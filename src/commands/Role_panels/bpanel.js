@@ -5,29 +5,42 @@ import { getCustomRolePanelKey, validateRoleForPanel, refreshCustomRolePanel, CU
 function parseEmoji(raw, lineNumber) {
   const value = String(raw || '').trim();
   if (!value) return '';
-  const custom = value.match(/^<(?:(a):)?(\w{2,32}):(\d{17,20})>$/);
+  const custom = value.match(/<(?:(a):)?([A-Za-z0-9_]{2,32}):(\d{17,20})>/);
   if (custom) return { id: custom[3], name: custom[2], ...(custom[1] ? { animated: true } : {}) };
   if (/^\d{17,20}$/.test(value)) return { id: value };
-  if (/^<a?:/.test(value) || value.includes(':')) throw new Error('Line ' + lineNumber + ': use <:emoji_name:123456789012345678>, or a Unicode emoji.');
+  if (/^<a?:/.test(value) || value.includes(':')) {
+    throw new Error('Line ' + lineNumber + ': custom emoji must look like <:emoji_name:123456789012345678>.');
+  }
   return { name: value };
 }
 
 function parseOptions(raw) {
-  return String(raw || '').split('\n').map(line => line.trim()).filter(Boolean).map((line,index) => {
-    let [label, roleId, description = '', emoji = ''] = line.split('|').map(value => value.trim());
+  return String(raw || '').split('\n').map((originalLine, index) => {
+    let line = originalLine.trim();
+    if (!line) return null;
 
-    // Also accept a custom emoji written at the start of the label, e.g.
-    // <:mobilelegends:123456789012345678>: Mobile Legends
-    const inlineEmoji = label.match(/^(<(?:(?:a):)?[\w]{2,32}:\d{17,20}>):?\s*(.+)$/);
+    // Accept a custom emoji anywhere in the line, including:
+    // <:emoji_name:123456789012345678>: Role Name
+    // Role Name|ROLE_ID|Description|<:emoji_name:123456789012345678>
+    const inlineEmoji = line.match(/<(?:(?:a):)?[A-Za-z0-9_]{2,32}:\d{17,20}>/);
+    let emoji = '';
     if (inlineEmoji) {
-      if (!emoji) emoji = inlineEmoji[1];
-      label = inlineEmoji[2].trim();
+      emoji = inlineEmoji[0];
+      line = line.replace(inlineEmoji[0], '').trim();
+      line = line.replace(/^:\s*/, '').trim();
     }
 
-    if (!label || (roleId && !/^\d{17,19}$/.test(roleId))) throw new Error(`Line ${index+1}: use <:emoji_name:emoji_id>: Role Name, or Label|Role ID|Description|Emoji.`);
-    if (label.length > 100 || description.length > 100) throw new Error(`Line ${index+1}: label and description must be 100 characters or fewer.`);
+    const [rawLabel, roleId, description = '', separateEmoji = ''] = line.split('|').map(value => value.trim());
+    const label = rawLabel;
+    if (!emoji) emoji = separateEmoji;
+    if (!label || (roleId && !/^\d{17,19}$/.test(roleId))) {
+      throw new Error(`Line ${index + 1}: use <:emoji_name:emoji_id>: Role Name, or Label|Role ID|Description|Emoji.`);
+    }
+    if (label.length > 100 || description.length > 100) {
+      throw new Error(`Line ${index + 1}: label and description must be 100 characters or fewer.`);
+    }
     return { label, roleId: roleId || null, description, emoji: parseEmoji(emoji, index + 1) };
-  });
+  }).filter(Boolean);
 }
 
 export default {
