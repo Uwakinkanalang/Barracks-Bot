@@ -12,7 +12,7 @@ import { getCommandPrefix, getBotMessage, isBotOwner, isCommandCategoryEnabled, 
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
-import { getItems as getBShopItems, buildShopPage as buildBShopPage } from '../commands/Economy/roleshop.js';
+import { getItems as getBShopItems, buildShopPage as buildBShopPage, buildColorShopPage as buildBShopColorPage } from '../commands/Economy/roleshop.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
