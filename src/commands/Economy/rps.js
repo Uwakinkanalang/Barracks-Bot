@@ -221,7 +221,6 @@ export default {
             throw error;
           }
         }
-        game.accepted = true;        if (game.accepted) return;
         game.accepted = true;
         await message.edit({
           embeds: [buildEmbed(game, 'picking')],
@@ -269,7 +268,7 @@ export default {
           await addMoney(interaction.client, interaction.guildId, result.winnerId, game.bet * 2, 'wallet');
         }
         game.escrowed = false;
-      }      const result = getWinner(game);
+      }
       collector.stop('finished');
       await message.edit({
         embeds: [buildEmbed(game, 'result', result)],
