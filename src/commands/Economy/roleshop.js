@@ -13,6 +13,7 @@ import {
 const PAGE_SIZE = 11;
 const SHOP_KEY = (guildId) => `guild:${guildId}:roleShop`;
 const COLOR_SHOP_KEY = (guildId) => `guild:${guildId}:colorRoleShop`;
+const BOOSTER_COLOR_SHOP_KEY = (guildId) => `guild:${guildId}:boosterColorRoleShop`;
 
 async function getItemsFromKey(client, key) {
   const value = await client.db.get(key, []);
@@ -28,6 +29,10 @@ export async function getItems(client, guildId) {
 
 export async function getColorItems(client, guildId) {
   return getItemsFromKey(client, COLOR_SHOP_KEY(guildId));
+}
+
+export async function getBoosterColorItems(client, guildId) {
+  return getItemsFromKey(client, BOOSTER_COLOR_SHOP_KEY(guildId));
 }
 
 export function buildShopPage(items, guildId, page) {
@@ -112,6 +117,43 @@ export function buildColorShopPage(items, guild, page) {
   return container;
 }
 
+export function buildBoosterColorShopPage(items, guild, page) {
+  const colorItems = items.filter(item => {
+    const role = guild.roles.cache.get(item.roleId);
+    return role && role.color !== 0;
+  });
+  const pageCount = Math.max(1, Math.ceil(colorItems.length / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(0, page), pageCount - 1);
+  const pageItems = colorItems.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('# 💎 B-Shop • Booster Color Roles\nExclusive color roles for Barracks members with the **Booster** role.'));
+
+  if (!pageItems.length) {
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('No booster-exclusive color roles are currently available.'));
+  } else {
+    for (const item of pageItems) {
+      const role = guild.roles.cache.get(item.roleId);
+      const hex = `#${role.color.toString(16).padStart(6, '0').toUpperCase()}`;
+      const section = new SectionBuilder()
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**<@&${item.roleId}>** • ${hex}\n🪙 **${item.price.toLocaleString()} bCash**`))
+        .setButtonAccessory(new ButtonBuilder()
+          .setCustomId(`roleShopBoosterColor:buy:${guild.id}:${item.roleId}`)
+          .setLabel('Buy')
+          .setStyle(ButtonStyle.Success));
+      container.addSectionComponents(section);
+    }
+  }
+
+  if (pageCount > 1) {
+    container.addSeparatorComponents(new SeparatorBuilder());
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`roleShopBoosterColor:page:${guild.id}:${currentPage - 1}`).setLabel('Previous').setStyle(ButtonStyle.Secondary).setDisabled(currentPage === 0),
+      new ButtonBuilder().setCustomId(`roleShopBoosterColor:page:${guild.id}:${currentPage + 1}`).setLabel('Next').setStyle(ButtonStyle.Secondary).setDisabled(currentPage >= pageCount - 1),
+    ));
+  }
+  return container;
+}
+
 export default {
   data: new SlashCommandBuilder()
     .setName('bshop')
@@ -133,7 +175,16 @@ export default {
     .addSubcommand(sub => sub
       .setName('remove-color')
       .setDescription('Remove a role from the color shop')
-      .addRoleOption(option => option.setName('item').setDescription('Colored role item to remove').setRequired(true))),
+      .addRoleOption(option => option.setName('item').setDescription('Colored role item to remove').setRequired(true)))
+    .addSubcommand(sub => sub
+      .setName('add-booster-color')
+      .setDescription('Add a colored role to the Booster-only color shop')
+      .addRoleOption(option => option.setName('item').setDescription('Booster color role to sell').setRequired(true))
+      .addIntegerOption(option => option.setName('price').setDescription('Price in bCash').setMinValue(1).setMaxValue(2147483647).setRequired(true)))
+    .addSubcommand(sub => sub
+      .setName('remove-booster-color')
+      .setDescription('Remove a role from the Booster-only color shop')
+      .addRoleOption(option => option.setName('item').setDescription('Booster color role to remove').setRequired(true))),
 
   async execute(interaction, config, client) {
     const subcommand = interaction.options.getSubcommand();
@@ -150,12 +201,13 @@ export default {
     }
 
     const role = interaction.options.getRole('item', true);
-    const isColorShop = subcommand.endsWith('-color');
-    const shopKey = isColorShop ? COLOR_SHOP_KEY(guildId) : SHOP_KEY(guildId);
-    const shopLabel = isColorShop ? 'Color B-Shop' : 'B-Shop';
-    const items = isColorShop ? await getColorItems(client, guildId) : await getItems(client, guildId);
+    const isBoosterColorShop = subcommand.endsWith('-booster-color');
+    const isColorShop = subcommand.endsWith('-color') || isBoosterColorShop;
+    const shopKey = isBoosterColorShop ? BOOSTER_COLOR_SHOP_KEY(guildId) : isColorShop ? COLOR_SHOP_KEY(guildId) : SHOP_KEY(guildId);
+    const shopLabel = isBoosterColorShop ? 'Booster Color B-Shop' : isColorShop ? 'Color B-Shop' : 'B-Shop';
+    const items = isBoosterColorShop ? await getBoosterColorItems(client, guildId) : isColorShop ? await getColorItems(client, guildId) : await getItems(client, guildId);
 
-    if (subcommand === 'add' || subcommand === 'add-color') {
+    if (subcommand === 'add' || subcommand === 'add-color' || subcommand === 'add-booster-color') {
       const price = interaction.options.getInteger('price', true);
       if (role.id === guildId || role.managed || role.position >= interaction.guild.members.me.roles.highest.position) {
         return interaction.reply({ content: 'That role cannot be sold. Choose a normal role below the bot’s highest role.', flags: MessageFlags.Ephemeral });
@@ -173,7 +225,7 @@ export default {
       return interaction.reply({ content: `✅ ${role} is now available in the ${shopLabel} for **${price.toLocaleString()} bCash**.${existing ? ' Its price was updated.' : ''}`, flags: MessageFlags.Ephemeral });
     }
 
-    if (subcommand === 'remove' || subcommand === 'remove-color') {
+    if (subcommand === 'remove' || subcommand === 'remove-color' || subcommand === 'remove-booster-color') {
       const nextItems = items.filter(item => item.roleId !== role.id);
       if (nextItems.length === items.length) {
         return interaction.reply({ content: `That role is not currently listed in the ${shopLabel}.`, flags: MessageFlags.Ephemeral });
