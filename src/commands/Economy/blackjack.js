@@ -2,12 +2,9 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    ContainerBuilder,
+    EmbedBuilder,
     MessageFlags,
-    MediaGalleryBuilder,
-    MediaGalleryItemBuilder,
     SlashCommandBuilder,
-    TextDisplayBuilder,
 } from 'discord.js';
 import { removeMoney, addMoney, getEconomyData } from '../../utils/economy.js';
 import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHandler.js';
@@ -51,74 +48,46 @@ function isBlackjack(cards) {
     return cards.length === 2 && handValue(cards) === 21;
 }
 
-// Use real playing-card image assets so every card has a printed rank and suit.
-function cardImageUrl(card) {
-    const suitCode = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' }[card.suit];
-    const rankCode = { A: 'A', J: 'J', Q: 'Q', K: 'K', '10': '0' }[card.rank] || card.rank;
-    return `https://deckofcardsapi.com/static/img/${rankCode}${suitCode}.png`;
+function cardFace(card, hidden = false) {
+    if (hidden) return '🂠';
+    const suit = { '♠': '♠️', '♥': '♥️', '♦': '♦️', '♣': '♣️' }[card.suit];
+    return String(card.rank) + suit;
 }
 
-function addCompactCards(container, cards, hiddenIndices = []) {
-    const gallery = new MediaGalleryBuilder();
-    for (const [index, card] of cards.entries()) {
-        const hidden = hiddenIndices.includes(index);
-        const sourceUrl = hidden
-            ? 'https://deckofcardsapi.com/static/img/back.png'
-            : cardImageUrl(card);
-        const imageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(sourceUrl)}&w=120&h=168&fit=contain&bg=00000000`;
-        gallery.addItems(
-            new MediaGalleryItemBuilder().setURL(imageUrl)
-        );
-    }
-    container.addMediaGalleryComponents(gallery);
+function handText(cards, hiddenIndices = []) {
+    return cards.map((card, index) => cardFace(card, hiddenIndices.includes(index))).join('  ');
 }
 
 function buildGame(game, status = '🎲 Game in progress', options = {}) {
     const { revealDealer = false, ended = false, hiddenPlayerIndices = [], hideDealerHole = false } = options;
     const dealerHidden = hideDealerHole || (!revealDealer && !ended);
-    const dealerValue = revealDealer ? handValue(game.dealer) : `${game.dealer[0].rank} + ?`;
+    const dealerValue = revealDealer ? handValue(game.dealer) : String(game.dealer[0].rank) + '+?';
     const playerValue = handValue(game.player);
-    const container = new ContainerBuilder().setAccentColor(0x2ECC71);
-
-    container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-            `**♠️ Blackjack**\n` +
-            `**BALANCE**\n₱${game.balance.toLocaleString()} 💰\n\n` +
-            `**DEALER'S HAND**  [${dealerValue}]`
+    const embed = new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setAuthor({
+            name: game.displayName + ', you bet ₱' + game.bet.toLocaleString() + ' to play blackjack',
+            iconURL: game.avatarURL || undefined,
+        })
+        .setDescription(
+            '**Dealer [' + dealerValue + ']**\n' + handText(game.dealer, dealerHidden ? [1] : []) + '\n\n' +
+            '**' + game.displayName + ' [' + playerValue + ']**\n' + handText(game.player, hiddenPlayerIndices)
         )
-    );
-    addCompactCards(container, game.dealer, dealerHidden ? [1] : []);
-    container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`**YOUR HAND**  [${playerValue}]`)
-    );
-    addCompactCards(container, game.player, hiddenPlayerIndices);
-    container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-            `**BET:** ₱${game.bet.toLocaleString()}\n` +
-            `${status}`
+        .addFields(
+            { name: '💰 Balance', value: '₱' + game.balance.toLocaleString(), inline: true },
+            { name: '🎟️ Bet', value: '₱' + game.bet.toLocaleString(), inline: true },
         )
-    );
+        .setFooter({ text: status });
 
+    const components = [];
     if (!ended) {
-        container.addActionRowComponents(
-            new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`blackjack:${game.id}:hit`)
-                    .setLabel('👊 Hit')
-                    .setStyle(ButtonStyle.Primary)
-                    .setDisabled(Boolean(game.busy)),
-                new ButtonBuilder()
-                    .setCustomId(`blackjack:${game.id}:stand`)
-                    .setLabel('🛑 Stand')
-                    .setStyle(ButtonStyle.Danger)
-                    .setDisabled(Boolean(game.busy))
-            )
-        );
+        components.push(new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('blackjack:' + game.id + ':hit').setLabel('Hit').setEmoji('👊').setStyle(ButtonStyle.Primary).setDisabled(Boolean(game.busy)),
+            new ButtonBuilder().setCustomId('blackjack:' + game.id + ':stand').setLabel('Stand').setEmoji('🛑').setStyle(ButtonStyle.Danger).setDisabled(Boolean(game.busy))
+        ));
     }
-
-    return container;
+    return { embeds: [embed], components };
 }
-
 function waitForFlip() {
     return new Promise(resolve => setTimeout(resolve, FLIP_DELAY));
 }
@@ -159,6 +128,7 @@ export default {
             userId: interaction.user.id,
             userMention: interaction.user.toString(),
             displayName: interaction.member?.displayName || interaction.user.globalName || interaction.user.username,
+            avatarURL: interaction.user.displayAvatarURL({ size: 64 }),
             bet,
             balance: Math.max(0, (userData.wallet || 0) - bet),
             deck,
@@ -202,8 +172,7 @@ export default {
         let message;
         try {
             message = await interaction.reply({
-                flags: MessageFlags.IsComponentsV2,
-                components: [buildGame(game, initialStatus, { revealDealer: initialReveal, ended: initialEnded })],
+                ...buildGame(game, initialStatus, { revealDealer: initialReveal, ended: initialEnded }),
                 fetchReply: true,
             });
         } catch (error) {
@@ -235,12 +204,12 @@ export default {
             await settle(payout);
             if (!alreadyAcknowledged) {
                 await button.update({
-                    components: [buildGame(game, '🂠 Dealer is revealing the hidden card...', { ended: true, hideDealerHole: true })],
+                    ...buildGame(game, '🂠 Dealer is revealing the hidden card...', { ended: true, hideDealerHole: true }),
                 });
             }
             await waitForFlip();
             return message.edit({
-                components: [buildGame(game, resultText, { revealDealer: true, ended: true })],
+                ...buildGame(game, resultText, { revealDealer: true, ended: true }),
             });
         };
 
@@ -268,7 +237,7 @@ export default {
                 game.busy = true;
 
                 await button.update({
-                    components: [buildGame(game, '🂠 Your new card is flipping...', { hiddenPlayerIndices: [newCardIndex] })],
+                    ...buildGame(game, '🂠 Your new card is flipping...', { hiddenPlayerIndices: [newCardIndex] }),
                 });
                 await waitForFlip();
                 game.busy = false;
@@ -280,12 +249,12 @@ export default {
                     await settle(0);
                     collector.stop('bust');
                     return message.edit({
-                        components: [buildGame(game, `💥 Bust! You lost ₱${bet.toLocaleString()}. Better luck next Soldier.`, { revealDealer: true, ended: true })],
+                        ...buildGame(game, `💥 Bust! You lost ₱${bet.toLocaleString()}. Better luck next Soldier.`, { revealDealer: true, ended: true }),
                     });
                 }
 
                 return message.edit({
-                    components: [buildGame(game, '🎲 Game in progress')],
+                    ...buildGame(game, '🎲 Game in progress'),
                 });
             }
 
@@ -315,11 +284,11 @@ export default {
                 }
                 await settle(payout);
                 await message.edit({
-                    components: [buildGame(game, '🂠 Dealer is revealing the hidden card...', { ended: true, hideDealerHole: true })],
+                    ...buildGame(game, '🂠 Dealer is revealing the hidden card...', { ended: true, hideDealerHole: true }),
                 });
                 await waitForFlip();
                 await message.edit({
-                    components: [buildGame(game, status, { revealDealer: true, ended: true })],
+                    ...buildGame(game, status, { revealDealer: true, ended: true }),
                 });
             } catch (error) {
                 console.error('[BLACKJACK] Failed to settle timed-out game:', error);
