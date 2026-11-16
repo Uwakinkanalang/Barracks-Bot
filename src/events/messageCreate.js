@@ -76,7 +76,7 @@ async function handlePrefixCommand(message, client) {
     }
 
     // Public panel for Barracks Booster members' exclusive color roles.
-    if (/^bshop\\s+booster-color$/i.test(trimmedContent)) {
+    if (/^bshop\s+booster-color$/i.test(trimmedContent)) {
       const items = await getBShopBoosterColorItems(client, message.guild.id);
       await message.channel.send({
         components: [buildBShopBoosterColorPage(items, message.guild, 0)],
