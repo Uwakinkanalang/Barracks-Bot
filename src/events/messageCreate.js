@@ -85,6 +85,39 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
+    // Manage public invite reward announcements with prefix commands.
+    const inviteRewardsMatch = trimmedContent.match(/^b!invite\\s+rewards\\s+(view|disable)$/i);
+    if (inviteRewardsMatch) {
+      if (!message.member?.permissions?.has('ManageGuild')) {
+        await message.reply('❌ You need **Manage Server** permission to use this command.');
+        return;
+      }
+
+      const inviteRewardChannelKey = `guild:${message.guild.id}:invite_reward_channel`;
+      const action = inviteRewardsMatch[1].toLowerCase();
+
+      if (action === 'view') {
+        const channelId = await client.db.get(inviteRewardChannelKey, null);
+        if (!channelId) {
+          await message.reply('No public invite reward channel is configured. Inviter DMs will still be sent when possible.');
+          return;
+        }
+
+        const channel = await message.guild.channels.fetch(channelId).catch(() => null);
+        if (!channel) {
+          await message.reply('The saved channel no longer exists. Use **/invite-rewards set-channel** to choose another one.');
+          return;
+        }
+
+        await message.reply(`📍 Invite reward announcements: <#${channel.id}>`);
+        return;
+      }
+
+      await client.db.delete(inviteRewardChannelKey);
+      await message.reply('✅ Public invite reward announcements are disabled. Inviter DMs will still be sent when possible.');
+      return;
+    }
+
     // Owner-only test utility for the Barracks invite bCash reward.
     if (/^b!testinvite\s+reward$/i.test(trimmedContent)) {
       const BARRACKS_GUILD_ID = '1137695060096471160';
