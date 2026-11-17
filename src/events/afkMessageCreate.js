@@ -40,7 +40,13 @@ export default {
           logger.warn(`Could not restore nickname for returning AFK member ${message.author.id}:`, error);
         }
 
-        replies.push(`👋 Welcome back, <@${message.author.id}>! Your AFK status has been cleared.`);
+        try {
+          await message.author.send({
+            content: `👋 Welcome back to **${message.guild.name}**! Your AFK status has been cleared.`,
+          });
+        } catch (error) {
+          logger.debug(`Could not send private AFK return message to ${message.author.id}; their DMs may be closed.`);
+        }
       }
 
       const mentioned = [...message.mentions.users.values()]
