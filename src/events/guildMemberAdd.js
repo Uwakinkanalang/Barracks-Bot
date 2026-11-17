@@ -251,7 +251,9 @@ async function buildWelcomeCard(member, backgroundUrl, memberCount) {
 
     const background = Buffer.from(await backgroundResponse.arrayBuffer()).toString('base64');
     const avatar = Buffer.from(await avatarResponse.arrayBuffer()).toString('base64');
-    const displayName = escapeSvgText(member.displayName || member.user.username);
+    const rawDisplayName = member.displayName || member.user.username;
+    const displayName = escapeSvgText(rawDisplayName);
+    const nameFontSize = Math.max(30, Math.min(52, Math.floor(1000 / Math.max(rawDisplayName.length, 1))));
     const memberNumber = Number(memberCount).toLocaleString('en-US');
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="670" viewBox="0 0 1200 670">
@@ -273,9 +275,9 @@ async function buildWelcomeCard(member, backgroundUrl, memberCount) {
       <image x="488" y="180" width="224" height="224" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:${avatarType};base64,${avatar}"/>
       <circle cx="600" cy="292" r="116" fill="none" stroke="#e3dcc0" stroke-width="5"/>
       <g font-family="Arial, Helvetica, sans-serif" fill="#fff" text-anchor="start">
-        <text x="600" y="482" text-anchor="middle" font-size="82" font-weight="900" letter-spacing="2" stroke="#18210f" stroke-width="8" paint-order="stroke">Welcome</text>
-        <text x="600" y="548" text-anchor="middle" font-size="52" font-weight="800" stroke="#18210f" stroke-width="5" paint-order="stroke">${displayName}</text>
-        <text x="600" y="598" text-anchor="middle" font-size="30" font-weight="700" fill="#e3dcc0" stroke="#18210f" stroke-width="3" paint-order="stroke">MEMBER #${memberNumber}</text>
+        <text x="600" y="468" text-anchor="middle" font-size="78" font-weight="900" letter-spacing="2" fill="#fff7dc" stroke="#18210f" stroke-width="9" paint-order="stroke">Welcome</text>
+        <text x="600" y="535" text-anchor="middle" font-size="${nameFontSize}" font-weight="900" fill="#ffffff" stroke="#18210f" stroke-width="8" paint-order="stroke">${displayName}</text>
+        <text x="600" y="595" text-anchor="middle" font-size="28" font-weight="700" fill="#e3dcc0" stroke="#18210f" stroke-width="4" paint-order="stroke">MEMBER #${memberNumber}</text>
       </g>
       <g fill="#d0c79e"><path d="M1015 510l18 38 42 6-30 29 7 41-37-20-37 20 7-41-30-29 42-6z" opacity=".9"/></g>
       <text x="600" y="610" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#e8e1c5" letter-spacing="5">HONOR • COURAGE • COMMITMENT</text>
