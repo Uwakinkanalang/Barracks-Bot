@@ -5,6 +5,7 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const MAX_BET = 500000;
+const WIN_CHANCE = 0.4;
 
 export default {
     prefixOnly: true,
@@ -39,7 +40,7 @@ export default {
         const betInput = String(interaction.options.getString('amount') ?? interaction.options.getInteger('amount') ?? '').trim().toLowerCase();
         const guess = (interaction.options.getString('guess') || 'heads').toLowerCase();
 
-        if (betInput !== 'all' && (!/^\d+$/.test(betInput) || !Number.isSafeInteger(Number(betInput)) || Number(betInput) <= 0)) {
+        if (betInput !== 'all' && (!/^\\d+$/.test(betInput) || !Number.isSafeInteger(Number(betInput)) || Number(betInput) <= 0)) {
             throw createError(
                 'Invalid coin flip bet',
                 ErrorTypes.VALIDATION,
@@ -91,15 +92,14 @@ export default {
             );
         }
 
-        const result = Math.random() < 0.5 ? 'heads' : 'tails';
-        const won = guess === result;
+        // Every guess has a 40% chance to match and a 60% chance to miss.
+        const won = Math.random() < WIN_CHANCE;
+        const result = won ? guess : (guess === 'heads' ? 'tails' : 'heads');
 
-        // The stake is removed first. Correct guesses receive 2x the stake,
-        // including the returned original bet; incorrect guesses lose the stake.
+        // Correct guesses receive 2x the stake, including the returned original bet.
         userData.wallet = wallet - betAmount + (won ? betAmount * 2 : 0);
         await setEconomyData(client, guildId, userId, userData);
 
-        const coin = result === 'heads' ? '🪙' : '🪙';
         const embed = won
             ? successEmbed(
                 'Coin Flip — You Win :green_circle: 😄',
@@ -110,7 +110,7 @@ export default {
                 `😢 The coin landed on **${result.toUpperCase()}**. You guessed **${guess.toUpperCase()}** and lost your **₱${betAmount.toLocaleString()}** bet.`
             );
 
-        embed.setFooter({ text: `Your guess: ${guess.toUpperCase()} • Payout on a win: 2x your bet` });
+        embed.setFooter({ text: `Your guess: ${guess.toUpperCase()} • Win chance: 40% • Payout on a win: 2x your bet` });
 
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'coinflip' })
