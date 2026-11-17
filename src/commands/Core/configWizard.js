@@ -114,6 +114,11 @@ function buildDashboardEmbed(config, guild) {
                 inline: true,
             },
             {
+                name: '🎰 Slot Machine',
+                value: `House edge: **${config.slotsHouseEdge ?? 10}%**\nEmojis: ${(config.slotsEmojis || ['🍒', '🍋', '🍉', '⭐', '💎']).join('  ')}`,
+                inline: false,
+            },
+            {
                 name: '💚 Bot Status',
                 value: getBotPresenceText(),
                 inline: false,
@@ -161,6 +166,16 @@ function buildSettingsSelect(guildId) {
                     .setDescription('Channel for system log messages')
                     .setValue('logChannelId')
                     .setEmoji('📋'),
+                new StringSelectMenuOptionBuilder()
+                    .setLabel('Slots House Edge')
+                    .setDescription('Set the slot machine house edge from 0% to 20%')
+                    .setValue('slotsHouseEdge')
+                    .setEmoji('🎰'),
+                new StringSelectMenuOptionBuilder()
+                    .setLabel('Slots Emojis')
+                    .setDescription('Choose 3–15 Unicode emojis, one per row')
+                    .setValue('slotsEmojis')
+                    .setEmoji('😀'),
             ),
     );
 }
@@ -467,6 +482,23 @@ async function runSetupWizard(buttonInteraction, config, guild, client, rootInte
 async function showSettingModal(selectInteraction, guildId, setting) {
     const modalCustomId = `config_wizard_modal:${setting}:${guildId}`;
 
+    if (setting === 'slotsHouseEdge' || setting === 'slotsEmojis') {
+        const isEmojiList = setting === 'slotsEmojis';
+        const modal = new ModalBuilder()
+            .setCustomId(modalCustomId)
+            .setTitle(isEmojiList ? '😀 Update Slot Emojis' : '🎰 Update Slots House Edge');
+        const textInput = new TextInputBuilder()
+            .setCustomId('value')
+            .setLabel(isEmojiList ? 'One Unicode emoji per row (3–15)' : 'House edge percentage (0–20)')
+            .setStyle(isEmojiList ? TextInputStyle.Paragraph : TextInputStyle.Short)
+            .setRequired(true)
+            .setMaxLength(isEmojiList ? 500 : 5)
+            .setValue(isEmojiList ? '🍒\n🍋\n🍉\n⭐\n💎' : '10');
+        modal.addComponents(new ActionRowBuilder().addComponents(textInput));
+        await selectInteraction.showModal(modal);
+        return;
+    }
+
     if (setting === 'logChannelId') {
         const modal = new ModalBuilder()
             .setCustomId(modalCustomId)
@@ -529,6 +561,21 @@ async function showSettingModal(selectInteraction, guildId, setting) {
 }
 
 function resolveSettingModalValue(setting, submitted) {
+    if (setting === 'slotsHouseEdge') {
+        const value = Number(submitted.fields.getTextInputValue('value')?.trim());
+        if (!Number.isFinite(value) || value < 0 || value > 20) throw new Error('House edge must be a number from 0 to 20.');
+        return value;
+    }
+
+    if (setting === 'slotsEmojis') {
+        const value = submitted.fields.getTextInputValue('value').split(/\r?\n/).map(item => item.trim()).filter(Boolean);
+        const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
+        if (value.length < 3 || value.length > 15 || value.some(item => [...segmenter.segment(item)].length !== 1 || !/[\p{Extended_Pictographic}\p{Regional_Indicator}\u20E3]/u.test(item)) || new Set(value).size !== value.length) {
+            throw new Error('Enter 3–15 unique Unicode emojis, with exactly one emoji on each row.');
+        }
+        return value;
+    }
+
     if (setting === 'logChannelId') {
         const channelId = submitted.fields.getField('log_channel')?.values?.[0];
         if (!channelId) {
@@ -553,6 +600,9 @@ function resolveSettingModalValue(setting, submitted) {
 }
 
 function buildSettingSuccessMessage(setting, value, guild) {
+    if (setting === 'slotsHouseEdge') return `Slots house edge set to **${value}%**.`;
+    if (setting === 'slotsEmojis') return `Slot emojis updated: ${value.join('  ')}`;
+
     if (setting === 'logChannelId') {
         const channel = guild.channels.cache.get(value);
         return `Log channel set to ${channel ?? `<#${value}>`}.`;
