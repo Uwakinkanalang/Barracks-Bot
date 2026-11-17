@@ -40,6 +40,10 @@ export default {
           logger.warn(`Could not restore nickname for returning AFK member ${message.author.id}:`, error);
         }
 
+        await message.reply({
+          content: `👋 Welcome back, <@${message.author.id}>! Your AFK status has been removed.`,
+          allowedMentions: { users: [message.author.id] },
+        });
       }
 
       const mentioned = [...message.mentions.users.values()]
