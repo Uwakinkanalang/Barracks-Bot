@@ -157,6 +157,7 @@ export default {
       });
 
       collector.on('end', async (_, reason) => {
+        activeGames.delete(lockKey);
         if (reason === 'completed') return;
         if (!finished) {
           if (charged) {
