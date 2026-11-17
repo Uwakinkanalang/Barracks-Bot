@@ -291,11 +291,15 @@ class ConfigService {
             }
             const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
             const valid = value.every((emoji) => {
-                if (typeof emoji !== 'string' || [...segmenter.segment(emoji)].length !== 1) return false;
-                return /[\p{Extended_Pictographic}\p{Regional_Indicator}\u20E3]/u.test(emoji);
+                if (typeof emoji !== 'string') return false;
+                const customMention = /^<a?:[A-Za-z0-9_]{2,32}:\\d{17,20}>$/.test(emoji);
+                const customName = /^:[A-Za-z0-9_]{2,32}:$/.test(emoji);
+                const unicodeEmoji = [...segmenter.segment(emoji)].length === 1
+                    && /[\\p{Extended_Pictographic}\\p{Regional_Indicator}\\u20E3]/u.test(emoji);
+                return customMention || customName || unicodeEmoji;
             });
             if (!valid || new Set(value).size !== value.length) {
-                throw createError('Invalid slot emojis', ErrorTypes.VALIDATION, 'Each row must contain one unique Unicode emoji.', { key });
+                throw createError('Invalid slot emojis', ErrorTypes.VALIDATION, 'Each row must contain one unique Unicode emoji or Discord custom emoji (mention or :name: format).', { key });
             }
             return true;
         }
