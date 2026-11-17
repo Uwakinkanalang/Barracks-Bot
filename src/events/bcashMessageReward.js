@@ -4,7 +4,7 @@ import { logger } from '../utils/logger.js';
 
 const REWARD_CHANNEL_ID = '1563763070915051601';
 const REWARD_AMOUNT = 100000;
-const COOLDOWN_MS = 60 * 60 * 1000;
+const COOLDOWN_MS = 3 * 60 * 60 * 1000;
 
 // Prevent two messages from the same member being credited concurrently.
 const processingUsers = new Set();
@@ -44,7 +44,7 @@ export default {
       const newBalance = Number(reward?.newBalance);
 
       await message.reply({
-        content: `💰 <@${userId}> earned **100,000 Bcash** for posting! Your wallet now has **${Number.isFinite(newBalance) ? newBalance.toLocaleString('en-US') : 'updated'} Bcash**. You can earn another message reward in **1 hour**.`,
+        content: `💰 <@${userId}> earned **100,000 Bcash** for posting! Your wallet now has **${Number.isFinite(newBalance) ? newBalance.toLocaleString('en-US') : 'updated'} Bcash**. You can earn another message reward in **3 hours**.`,
         allowedMentions: { users: [userId], repliedUser: false },
       });
     } catch (error) {
