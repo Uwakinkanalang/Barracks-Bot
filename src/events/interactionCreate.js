@@ -327,7 +327,7 @@ export default {
             const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
             const botMember = interaction.guild.members.me || await interaction.guild.members.fetchMe();
             if (!role || role.id === guildId || role.managed || role.position >= botMember.roles.highest.position ||
-                role.permissions.has(PermissionFlagsBits.Administrator | PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageRoles | PermissionFlagsBits.BanMembers | PermissionFlagsBits.KickMembers)) {
+                role.permissions.toArray().some(permission => ['Administrator', 'ManageGuild', 'ManageRoles', 'BanMembers', 'KickMembers', 'ManageChannels', 'ManageWebhooks', 'MentionEveryone'].includes(permission))) {
               await interaction.reply({ content: 'This role cannot be self-assigned. Please contact a server administrator.', flags: MessageFlags.Ephemeral });
               return;
             }
