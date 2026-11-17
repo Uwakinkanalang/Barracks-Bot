@@ -30,7 +30,7 @@ function renderBoard(cards, revealed, matched, tries, bet, status) {
     `💰 Entry: **₱${bet.toLocaleString()} bCash**   •   🔁 Tries: **${tries}**`,
     '',
     `╭───────┬───────┬───────┬───────╮`,
-    ...[0, 1].map(row => `│ ${visible.slice(row * 4, row * 4 + 4).join(' │ ')} │`),
+    ...[0, 1, 2, 3].map(row => `│ ${visible.slice(row * 4, row * 4 + 4).join(' │ ')} │`),
     `╰───────┴───────┴───────┴───────╯`,
     '',
     status,
@@ -149,7 +149,7 @@ export default {
 
         const status = pendingMismatch
           ? '❌ No match! Choose another card to turn both cards back over.'
-          : matched.size === 8 ? '🏆 All pairs found!' : '👇 Choose your next card.';
+          : matched.size === 16 ? '🏆 All pairs found!' : '👇 Choose your next card.';
         await component.update({
           content: renderBoard(cards, revealed, matched, tries, bet, status),
           components: makeRows(gameId, false),
