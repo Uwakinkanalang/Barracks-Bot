@@ -60,7 +60,15 @@ export default {
       const newBalance = Number(reward?.newBalance);
 
       await message.reply({
-        content: `💰 <@${userId}> earned **100,000 Bcash** for posting! Your wallet now has **${Number.isFinite(newBalance) ? newBalance.toLocaleString('en-US') : 'updated'} Bcash**. You can earn another message reward in **3 hours**.`,
+        content: [
+          '💰 **Bcash Message Reward**',
+          '',
+          `🎖️ <@${userId}> earned **₱100,000 Bcash** for posting!`,
+          `💳 **Wallet Balance:** ₱${Number.isFinite(newBalance) ? newBalance.toLocaleString('en-US') : 'Updated'}`,
+          '⏳ **Next Reward:** Available in **3 hours**.',
+          '',
+          '🫡 Keep posting, soldier!',
+        ].join('\n'),
         allowedMentions: { users: [userId], repliedUser: false },
       });
     } catch (error) {
