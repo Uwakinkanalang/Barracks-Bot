@@ -25,7 +25,7 @@ function renderBoard(cards, revealed, matched, tries, bet, status) {
   const visible = makeBoard(cards, revealed, matched);
   const lines = [
     '**🪖 BARRACKS MEMORY MATCH**',
-    'Find all **4 matching pairs**. Only you can play this round.',
+    'Find all **8 matching pairs**. Only you can play this round.',
     '',
     `💰 Entry: **₱${bet.toLocaleString()} bCash**   •   🔁 Tries: **${tries}**`,
     '',
@@ -39,7 +39,7 @@ function renderBoard(cards, revealed, matched, tries, bet, status) {
 }
 
 function makeRows(gameId, disabled = false) {
-  return [0, 1].map(row => new ActionRowBuilder().addComponents(
+  return [0, 1, 2, 3].map(row => new ActionRowBuilder().addComponents(
     ...Array.from({ length: 4 }, (_, col) => {
       const number = row * 4 + col;
       return new ButtonBuilder()
@@ -85,7 +85,7 @@ export default {
       await setEconomyData(client, interaction.guildId, interaction.user.id, account);
       charged = true;
 
-      const animals = shuffle(ANIMALS).slice(0, 4);
+      const animals = shuffle(ANIMALS).slice(0, 8);
       const cards = shuffle([...animals, ...animals]);
       const revealed = [];
       const matched = new Set();
@@ -110,7 +110,7 @@ export default {
         }
 
         const index = Number(component.customId.split(':').at(-1));
-        if (!Number.isInteger(index) || index < 0 || index > 7 || matched.has(index) || revealed.includes(index)) {
+        if (!Number.isInteger(index) || index < 0 || index > 15 || matched.has(index) || revealed.includes(index)) {
           await component.deferUpdate();
           return;
         }
@@ -132,7 +132,7 @@ export default {
           }
         }
 
-        if (matched.size === 8) {
+        if (matched.size === 16) {
           finished = true;
           collector.stop('completed');
           const latest = await getEconomyData(client, interaction.guildId, interaction.user.id);
@@ -141,7 +141,7 @@ export default {
           await setEconomyData(client, interaction.guildId, interaction.user.id, latest);
           await component.update({
             content: renderBoard(cards, cards.map((_, i) => i), matched, tries, bet,
-              `🏆 **Mission complete!** You found all 4 pairs in **${tries} tries** and won **₱${prize.toLocaleString()} bCash**!`),
+              `🏆 **Mission complete!** You found all 8 pairs in **${tries} tries** and won **₱${prize.toLocaleString()} bCash**!`),
             components: makeRows(gameId, true),
           });
           return;
