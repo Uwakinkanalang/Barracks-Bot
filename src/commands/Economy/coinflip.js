@@ -4,6 +4,8 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
+const MAX_BET = 500000;
+
 export default {
     prefixOnly: true,
     category: 'economy',
@@ -70,6 +72,14 @@ export default {
 
         if (betAmount <= 0) {
             throw createError('No cash to bet', ErrorTypes.VALIDATION, 'You do not have any cash in your wallet to bet.');
+        }
+        if (betAmount > MAX_BET) {
+            throw createError(
+                'Coin flip bet limit exceeded',
+                ErrorTypes.VALIDATION,
+                `The maximum BCF bet is **₱${MAX_BET.toLocaleString()}**.`,
+                { userId, betAmount, maxBet: MAX_BET }
+            );
         }
         if (betAmount > wallet) {
             throw createError(
