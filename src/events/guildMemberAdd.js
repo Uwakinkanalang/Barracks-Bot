@@ -255,7 +255,7 @@ async function buildWelcomeCard(member, backgroundUrl, memberCount) {
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="670" viewBox="0 0 1200 670">
       <defs>
-        <clipPath id="avatarClip"><circle cx="190" cy="335" r="112"/></clipPath>
+        <clipPath id="avatarClip"><circle cx="600" cy="292" r="112"/></clipPath>
         <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10150c" stop-opacity=".38"/><stop offset="1" stop-color="#10150c" stop-opacity=".76"/></linearGradient>
         <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>
       </defs>
@@ -267,14 +267,14 @@ async function buildWelcomeCard(member, backgroundUrl, memberCount) {
       <g fill="#d8d0ad" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700">
         <text x="600" y="126" font-size="25" letter-spacing="12">BARRACKS • NEW RECRUIT</text>
       </g>
-      <circle cx="190" cy="335" r="128" fill="#1c2815" opacity=".75" filter="url(#shadow)"/>
-      <circle cx="190" cy="335" r="120" fill="#d0c79e" stroke="#26351d" stroke-width="9"/>
-      <image x="78" y="223" width="224" height="224" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:${avatarType};base64,${avatar}"/>
-      <circle cx="190" cy="335" r="116" fill="none" stroke="#e3dcc0" stroke-width="5"/>
+      <circle cx="600" cy="292" r="128" fill="#1c2815" opacity=".75" filter="url(#shadow)"/>
+      <circle cx="600" cy="292" r="120" fill="#d0c79e" stroke="#26351d" stroke-width="9"/>
+      <image x="488" y="180" width="224" height="224" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:${avatarType};base64,${avatar}"/>
+      <circle cx="600" cy="292" r="116" fill="none" stroke="#e3dcc0" stroke-width="5"/>
       <g font-family="Arial, Helvetica, sans-serif" fill="#fff" text-anchor="start">
-        <text x="360" y="292" font-size="92" font-weight="900" letter-spacing="2" stroke="#18210f" stroke-width="8" paint-order="stroke">WELCOME</text>
-        <text x="366" y="376" font-size="58" font-weight="800" stroke="#18210f" stroke-width="5" paint-order="stroke">${displayName}</text>
-        <text x="370" y="445" font-size="34" font-weight="700" fill="#e3dcc0" stroke="#18210f" stroke-width="3" paint-order="stroke">MEMBER #${memberNumber}</text>
+        <text x="600" y="482" text-anchor="middle" font-size="82" font-weight="900" letter-spacing="2" stroke="#18210f" stroke-width="8" paint-order="stroke">WELCOME</text>
+        <text x="600" y="548" text-anchor="middle" font-size="52" font-weight="800" stroke="#18210f" stroke-width="5" paint-order="stroke">${displayName}</text>
+        <text x="600" y="598" text-anchor="middle" font-size="30" font-weight="700" fill="#e3dcc0" stroke="#18210f" stroke-width="3" paint-order="stroke">MEMBER #${memberNumber}</text>
       </g>
       <g fill="#d0c79e"><path d="M1015 510l18 38 42 6-30 29 7 41-37-20-37 20 7-41-30-29 42-6z" opacity=".9"/></g>
       <text x="600" y="610" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#e8e1c5" letter-spacing="5">HONOR • COURAGE • COMMITMENT</text>
