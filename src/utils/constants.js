@@ -38,7 +38,9 @@ export const DEFAULT_GUILD_CONFIG = {
     },
     verification: {
         enabled: false
-    }
+    },
+    slotsHouseEdge: 10,
+    slotsEmojis: ['🍒', '🍋', '🍉', '⭐', '💎']
 };
 
 export const INTERACTION_TIMEOUTS = {
