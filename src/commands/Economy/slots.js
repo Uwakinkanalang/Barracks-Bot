@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { randomInt } from 'node:crypto';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
@@ -19,29 +19,41 @@ const shuffle = items => {
     return result;
 };
 
-function createSpin(emojis, houseEdge) {
-    // RTP is exactly 100% minus the configured house edge.
-    const rtp = 1 - houseEdge / 100;
-    const roll = randomInt(1_000_000);
-    const tripleCutoff = Math.floor((rtp / 20) * 1_000_000);
-    const pairCutoff = tripleCutoff + Math.floor((rtp / 6) * 1_000_000);
+const WIN_SYMBOLS = {
+    eggplant: { reels: ['🍆', '🍆', '🍆'], multiplier: 1, chance: 20, image: 'https://static.wikia.nocookie.net/owobot/images/5/56/SlotsEggplant.png/revision/latest?cb=20201231080844', label: 'Eggplant' },
+    heart: { reels: ['❤️', '❤️', '❤️'], multiplier: 2, chance: 20, image: 'https://static.wikia.nocookie.net/owobot/images/b/bb/SlotsHeart.png/revision/latest?cb=20201231081114', label: 'Heart' },
+    cherry: { reels: ['🍒', '🍒', '🍒'], multiplier: 3, chance: 5, image: 'https://static.wikia.nocookie.net/owobot/images/8/80/SlotsCherry.png/revision/latest?cb=20201231081252', label: 'Cherry' },
+    note: { reels: ['💵', '💵', '💵'], multiplier: 4, chance: 2.5, image: 'https://static.wikia.nocookie.net/owobot/images/0/06/Cowoncy_Note.png/revision/latest/scale-to-width-down/24?cb=20191203153323', label: 'Cowoncy Note' },
+    owo: { reels: ['Ⓞ', 'Ⓦ', 'Ⓞ'], multiplier: 10, chance: 1, images: ['https://static.wikia.nocookie.net/owobot/images/8/8c/SlotsO.png/revision/latest?cb=20201231081619', 'https://static.wikia.nocookie.net/owobot/images/7/74/SlotsW.png/revision/latest?cb=20201231081703', 'https://static.wikia.nocookie.net/owobot/images/8/8c/SlotsO.png/revision/latest?cb=20201231081619'], label: 'O-W-O' },
+};
 
-    if (roll < tripleCutoff) {
-        const symbol = emojis[randomInt(emojis.length)];
-        return { reels: [symbol, symbol, symbol], multiplier: 10 };
-    }
-    if (roll < pairCutoff) {
-        const pair = emojis[randomInt(emojis.length)];
-        const alternatives = emojis.filter(emoji => emoji !== pair);
-        return { reels: shuffle([pair, pair, alternatives[randomInt(alternatives.length)]]), multiplier: 3 };
-    }
+function createSpin(emojis) {
+    // Exact odds requested: 20%, 20%, 5%, 2.5%, and 1% (48.5% total wins).
+    // These payouts produce a fixed 5% theoretical house edge.
+    const roll = randomInt(10_000);
+    const outcomes = [
+        { cutoff: 2000, key: 'eggplant' },
+        { cutoff: 4000, key: 'heart' },
+        { cutoff: 4500, key: 'cherry' },
+        { cutoff: 4750, key: 'note' },
+        { cutoff: 4850, key: 'owo' },
+    ];
+    const winner = outcomes.find(item => roll < item.cutoff);
+    if (winner) return { ...WIN_SYMBOLS[winner.key], win: true };
 
-    const reels = [];
-    while (reels.length < 3) {
-        const symbol = emojis[randomInt(emojis.length)];
-        if (!reels.includes(symbol)) reels.push(symbol);
-    }
-    return { reels: shuffle(reels), multiplier: 0 };
+    return {
+        reels: Array.from({ length: 3 }, () => emojis[randomInt(emojis.length)]),
+        multiplier: 0,
+        win: false,
+        label: 'No match',
+    };
+}
+
+function buildReelEmbeds(spin, stoppedCount) {
+    const urls = spin.images || (spin.image ? [spin.image, spin.image, spin.image] : []);
+    return urls.slice(0, stoppedCount).map((url, index) =>
+        new EmbedBuilder().setColor(0x5865F2).setTitle(`Reel ${index + 1}`).setThumbnail(url)
+    );
 }
 
 function renderSpin(reels, stoppedCount, bet, status) {
@@ -98,8 +110,7 @@ export default {
             if (emojis.length < 3 || emojis.length > 15) {
                 throw createError('Slots are not configured', ErrorTypes.CONFIGURATION, 'An admin must configure between 3 and 15 slot emojis in the config wizard.');
             }
-            const houseEdge = Number(guildConfig.slotsHouseEdge ?? 10);
-            const spin = createSpin(emojis, houseEdge);
+            const spin = createSpin(emojis);
             const payout = bet * spin.multiplier;
             if (!Number.isSafeInteger(payout) || !Number.isSafeInteger(wallet - bet + payout)) {
                 throw createError('Bet is too large', ErrorTypes.VALIDATION, 'That bet is too large to calculate safely.');
@@ -108,11 +119,12 @@ export default {
             const deferred = await InteractionHelper.safeDefer(interaction);
             if (!deferred) return;
 
-            await InteractionHelper.safeEditReply(interaction, { content: renderSpin(spin.reels, 0, bet, '⏳ Spinning...') });
+            await InteractionHelper.safeEditReply(interaction, { content: renderSpin(spin.reels, 0, bet, '⏳ Spinning...'), embeds: buildReelEmbeds(spin, 0) });
             for (let stopped = 1; stopped <= 3; stopped++) {
                 await wait(SPIN_DELAY);
                 await InteractionHelper.safeEditReply(interaction, {
                     content: renderSpin(spin.reels, stopped, bet, stopped === 3 ? '🎯 Reels stopped!' : '⏳ Spinning...'),
+                    embeds: buildReelEmbeds(spin, stopped),
                 });
             }
 
@@ -128,13 +140,12 @@ export default {
             latestAccount.wallet = latestWallet - bet + payout;
             await setEconomyData(client, interaction.guildId, interaction.user.id, latestAccount);
 
-            const outcome = spin.multiplier === 10
-                ? `🎉 **JACKPOT! Three of a kind!** You received **₱${payout.toLocaleString()} bCash** (10×).`
-                : spin.multiplier === 3
-                    ? `✨ **A pair!** You received **₱${payout.toLocaleString()} bCash** (3×).`
-                    : `💥 **No match.** You lost **₱${bet.toLocaleString()} bCash**.`;
+            const outcome = spin.win
+                ? `🎉 **${spin.label}!** You won **₱${payout.toLocaleString()} bCash** (${spin.multiplier}× your bet, ${spin.chance}% chance).`
+                : `💥 **No match.** You lost **₱${bet.toLocaleString()} bCash**.`;
             await InteractionHelper.safeEditReply(interaction, {
-                content: [renderSpin(spin.reels, 3, bet, outcome), '', `Wallet: **₱${latestAccount.wallet.toLocaleString()} bCash**`, `House edge: **${houseEdge}%**`].join('\n'),
+                content: renderSpin(spin.reels, 3, bet, outcome),
+                embeds: buildReelEmbeds(spin, 3),
             });
         } finally {
             activeSpins.delete(lockKey);
