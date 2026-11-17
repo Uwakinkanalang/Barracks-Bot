@@ -273,7 +273,7 @@ async function buildWelcomeCard(member, backgroundUrl, memberCount) {
       <image x="488" y="180" width="224" height="224" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:${avatarType};base64,${avatar}"/>
       <circle cx="600" cy="292" r="116" fill="none" stroke="#e3dcc0" stroke-width="5"/>
       <g font-family="Arial, Helvetica, sans-serif" fill="#fff" text-anchor="start">
-        <text x="600" y="482" text-anchor="middle" font-size="82" font-weight="900" letter-spacing="2" stroke="#18210f" stroke-width="8" paint-order="stroke">WELCOME</text>
+        <text x="600" y="482" text-anchor="middle" font-size="82" font-weight="900" letter-spacing="2" stroke="#18210f" stroke-width="8" paint-order="stroke">Welcome</text>
         <text x="600" y="548" text-anchor="middle" font-size="52" font-weight="800" stroke="#18210f" stroke-width="5" paint-order="stroke">${displayName}</text>
         <text x="600" y="598" text-anchor="middle" font-size="30" font-weight="700" fill="#e3dcc0" stroke="#18210f" stroke-width="3" paint-order="stroke">MEMBER #${memberNumber}</text>
       </g>
