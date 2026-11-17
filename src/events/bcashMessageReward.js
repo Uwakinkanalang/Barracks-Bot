@@ -3,7 +3,7 @@ import { addMoney } from '../utils/economy.js';
 import { logger } from '../utils/logger.js';
 
 const REWARD_CHANNEL_ID = '1563763070915051601';
-const REWARD_AMOUNT = 100000;
+const REWARD_AMOUNT = 50000;
 const COOLDOWN_MS = 3 * 60 * 60 * 1000;
 
 // Prevent two messages from the same member being credited concurrently.
@@ -63,7 +63,7 @@ export default {
         content: [
           '💰 **Bcash Message Reward**',
           '',
-          `🎖️ <@${userId}> earned **₱100,000 Bcash** for posting!`,
+          `🎖️ <@${userId}> earned **₱50,000 Bcash** for posting!`,
           `💳 **Wallet Balance:** ₱${Number.isFinite(newBalance) ? newBalance.toLocaleString('en-US') : 'Updated'}`,
           '⏳ **Next Reward:** Available in **3 hours**.',
           '',
