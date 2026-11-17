@@ -36,8 +36,9 @@ async function isOwner(interaction) {
 
 export default {
   data: new SlashCommandBuilder()
-    .setName('rolepanel')
-    .setDescription('Configure and publish the self-assignable role panel')
+    .setName('brole')
+    .setDescription('Manage Barracks self-assignable role panels')
+    .addSubcommand(sub => sub.setName('panel').setDescription('Post or update the self-assignable role panel'))
     .addSubcommand(sub => sub.setName('add').setDescription('Add or update a role in the panel')
       .addRoleOption(option => option.setName('role').setDescription('Role to display').setRequired(true))
       .addStringOption(option => option.setName('emoji').setDescription('Emoji shown beside the role').setRequired(true))
@@ -60,7 +61,7 @@ export default {
     const guildId = interaction.guildId;
 
     // Configuration is intentionally server-owner-only, matching B-Shop management.
-    if (subcommand) {
+    if (subcommand && subcommand !== 'panel') {
       if (!(await isOwner(interaction))) {
         return interaction.reply({ content: '❌ Only the **server owner** can configure the role panel.', flags: MessageFlags.Ephemeral });
       }
@@ -82,7 +83,7 @@ export default {
         if (existingIndex >= 0) roles[existingIndex] = entry;
         else roles.push(entry);
         await client.db.set(ROLES_KEY(guildId), roles);
-        return interaction.reply({ content: `✅ ${role} ${existingIndex >= 0 ? 'was updated' : 'was added'} to the role panel. Run /rolepanel to publish the changes.`, flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: `✅ ${role} ${existingIndex >= 0 ? 'was updated' : 'was added'} to the role panel. Run /brole panel to publish the changes.`, flags: MessageFlags.Ephemeral });
       }
 
       if (subcommand === 'remove') {
@@ -93,14 +94,14 @@ export default {
           return interaction.reply({ content: `${role} is not in the role panel.`, flags: MessageFlags.Ephemeral });
         }
         await client.db.set(ROLES_KEY(guildId), next);
-        return interaction.reply({ content: `✅ Removed ${role} from the role panel. Run /rolepanel to update the posted panel.`, flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: `✅ Removed ${role} from the role panel. Run /brole panel to update the posted panel.`, flags: MessageFlags.Ephemeral });
       }
 
       if (subcommand === 'list') {
         const roles = await client.db.get(ROLES_KEY(guildId), []);
         const content = roles.length
           ? roles.map((item, index) => `${index + 1}. ${item.emoji || ''} <@&${item.role}> — ${item.description}`).join('\n')
-          : 'No roles have been added yet. Use `/rolepanel add` to add one.';
+          : 'No roles have been added yet. Use `/brole add` to add one.';
         return interaction.reply({ content: `**Role Panel — ${roles.length}/${MAX_ROLES}**\n${content}`, flags: MessageFlags.Ephemeral });
       }
 
@@ -112,7 +113,7 @@ export default {
         }
         staffRoles.push(role.id);
         await client.db.set(STAFF_KEY(guildId), staffRoles);
-        return interaction.reply({ content: `✅ ${role} can now use /rolepanel to publish or update the panel.`, flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: `✅ ${role} can now use /brole panel to publish or update the panel.`, flags: MessageFlags.Ephemeral });
       }
 
       if (subcommand === 'staff-remove') {
@@ -142,7 +143,7 @@ export default {
 
     const roles = await client.db.get(ROLES_KEY(guildId), []);
     if (!Array.isArray(roles) || roles.length === 0) {
-      return interaction.reply({ content: 'No roles configured. Use `/rolepanel add` to add roles first.', flags: MessageFlags.Ephemeral });
+      return interaction.reply({ content: 'No roles configured. Use `/brole add` to add roles first.', flags: MessageFlags.Ephemeral });
     }
     if (roles.length > MAX_ROLES) {
       return interaction.reply({ content: `The role panel is limited to ${MAX_ROLES} roles.`, flags: MessageFlags.Ephemeral });
