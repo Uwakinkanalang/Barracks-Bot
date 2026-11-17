@@ -58,6 +58,59 @@ async function handlePrefixCommand(message, client) {
     // Clan Shop public panel command.
     if (await handleClanShopPrefixCommand(message, client)) return;
 
+    // Plain-text publisher: type "brole panel" (not a slash command).
+    if (/^brole\\s+panel$/i.test(trimmedContent)) {
+      const staffRoles = await client.db.get(`guild:${message.guild.id}:rolePanelStaffRoles`, []);
+      if (!Array.isArray(staffRoles) || !staffRoles.some(id => message.member?.roles?.cache?.has(id))) {
+        await message.reply('❌ Only members with a configured role-panel staff role can publish or update this panel.');
+        return;
+      }
+      const roles = await client.db.get(`guild:${message.guild.id}:rolePanelRoles`, []);
+      if (!Array.isArray(roles) || roles.length === 0 || roles.length > 12) {
+        await message.reply('❌ Configure between 1 and 12 roles first using /rolepanel add.');
+        return;
+      }
+      const { ContainerBuilder, SectionBuilder, TextDisplayBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = await import('discord.js');
+      const botMember = message.guild.members.me || await message.guild.members.fetchMe();
+      if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
+        await message.reply('❌ I need Manage Roles permission to publish and operate this panel.');
+        return;
+      }
+      for (const item of roles) {
+        const role = await message.guild.roles.fetch(String(item?.role || '')).catch(() => null);
+        if (!role || role.id === message.guild.id || role.managed || role.position >= botMember.roles.highest.position ||
+            role.permissions.toArray().some(permission => ['Administrator','ManageGuild','ManageRoles','BanMembers','KickMembers','ManageChannels','ManageWebhooks','MentionEveryone'].includes(permission))) {
+          await message.reply(`❌ The configured role ${item?.role ? `<@&${item.role}>` : '(missing role)'} cannot be self-assigned or is above my highest role.`);
+          return;
+        }
+      }
+      const container = new ContainerBuilder().setAccentColor(0x5865F2)
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent('## Pick your roles'))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent('Press **Get / Remove** beside a role to add it, and again to take it off.'));
+      for (const item of roles) {
+        container.addSectionComponents(new SectionBuilder()
+          .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${item.emoji || ''} <@&${item.role}>**\\n${item.description || ''}`))
+          .setButtonAccessory(new ButtonBuilder().setCustomId(`rolepanel:toggle:${message.guild.id}:${item.role}`).setLabel('Get / Remove').setStyle(ButtonStyle.Secondary)));
+      }
+      const payload = { components: [container], flags: MessageFlags.IsComponentsV2 };
+      const key = `guild:${message.guild.id}:rolePanelMessage`;
+      const saved = await client.db.get(key, null);
+      let panelMessage = null;
+      if (saved?.channelId && saved?.messageId) {
+        const channel = await message.guild.channels.fetch(saved.channelId).catch(() => null);
+        panelMessage = await channel?.messages.fetch(saved.messageId).catch(() => null);
+      }
+      if (panelMessage) {
+        await panelMessage.edit(payload);
+        await message.reply(`✅ Role panel updated: ${panelMessage.url}`);
+      } else {
+        panelMessage = await message.channel.send(payload);
+        await client.db.set(key, { channelId: panelMessage.channelId, messageId: panelMessage.id });
+        await message.reply(`✅ Role panel posted: ${panelMessage.url}`);
+      }
+      return;
+    }
+
     // B-Shop panel remains a plain-text command; management uses slash subcommands.
     if (/^bshop\s+panel$/i.test(trimmedContent)) {
       if (message.author.id !== message.guild.ownerId) {
