@@ -88,7 +88,9 @@ export default {
             throw createError('Slots requires a server', ErrorTypes.VALIDATION, 'Use bslot inside a server.');
         }
 
-        const bet = interaction.options.getInteger('bet', true);
+        const requestedBet = interaction._isPrefixCommand
+            ? interaction.options.get('bet')
+            : interaction.options.getInteger('bet', true);
         const lockKey = `${interaction.guildId}:${interaction.user.id}`;
         if (activeSpins.has(lockKey)) {
             throw createError('Spin already running', ErrorTypes.RATE_LIMIT, 'Your slot machine is still spinning. Please wait for it to finish.');
@@ -101,6 +103,12 @@ export default {
                 getEconomyData(client, interaction.guildId, interaction.user.id),
             ]);
             const wallet = Math.max(0, Number(account?.wallet) || 0);
+            const bet = interaction._isPrefixCommand && String(requestedBet).toLowerCase() === 'all'
+                ? wallet
+                : Number(requestedBet);
+            if (!Number.isSafeInteger(bet) || bet < 1) {
+                throw createError('Invalid bet', ErrorTypes.VALIDATION, 'Enter a valid bet amount, or use **bslot all** to wager your entire wallet.');
+            }
             if (bet > wallet) {
                 throw createError('Insufficient bCash', ErrorTypes.VALIDATION, `You only have **₱${wallet.toLocaleString()} bCash** in your wallet.`);
             }
