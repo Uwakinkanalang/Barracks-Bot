@@ -1,5 +1,5 @@
 import { Events } from 'discord.js';
-import { updateBalance } from '../utils/economy.js';
+import { getEconomyData, updateBalance } from '../utils/economy.js';
 import { logger } from '../utils/logger.js';
 
 const REWARD_RECORD_PREFIX = 'bcash_message_reward:message:';
@@ -16,25 +16,26 @@ export default {
       if (!record || record.guildId !== message.guildId) return;
 
       // Reverse up to the original reward from the wallet only; the bank is untouched.
-      const balance = await updateBalance(
-        client,
-        record.guildId,
-        record.userId,
-        { wallet: -Number(record.amount || 0) },
+      const before = await getEconomyData(client, record.guildId, record.userId);
+      const amountToReverse = Math.min(
+        Math.max(0, Number(record.amount) || 0),
+        Math.max(0, Number(before.wallet) || 0),
       );
+      const balance = amountToReverse > 0
+        ? await updateBalance(client, record.guildId, record.userId, { wallet: -amountToReverse })
+        : before;
 
       await client.db.delete(recordKey);
 
-      const reversed = Math.min(Number(record.amount) || 0, Number(record.amount) || 0);
       logger.info(
-        `Reversed deleted-message Bcash reward for user ${record.userId}: ${reversed}. Wallet balance: ${balance.wallet}.`,
+        `Reversed ${amountToReverse} of ${record.amount} Bcash for deleted message owner ${record.userId}. Wallet balance: ${balance.wallet}.`,
       );
 
       try {
         const channel = await client.channels.fetch(record.channelId);
         if (channel?.isTextBased()) {
           await channel.send({
-            content: `↩️ The **100,000 Bcash** message reward for <@${record.userId}> was reversed because the rewarded post was deleted.`,
+            content: `↩️ The ${amountToReverse.toLocaleString('en-US')} Bcash message reward for <@${record.userId}> was reversed because the rewarded post was deleted.`,
             allowedMentions: { users: [record.userId] },
           });
         }
