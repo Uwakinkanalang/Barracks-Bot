@@ -43,6 +43,14 @@ export default {
 
       const reward = await addMoney(client, guildId, userId, REWARD_AMOUNT, 'wallet');
       rewardCredited = true;
+      // Persist the source message so its reward can be reversed if it is deleted.
+      await client.db.set(`bcash_message_reward:message:${message.id}`, {
+        guildId,
+        userId,
+        amount: REWARD_AMOUNT,
+        channelId: message.channelId,
+        rewardedAt: now,
+      });
       const newBalance = Number(reward?.newBalance);
 
       await message.reply({
