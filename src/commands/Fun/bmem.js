@@ -35,7 +35,7 @@ function renderBoard(cards, revealed, matched, tries, bet, status) {
     '',
     status,
   ];
-  return lines.join('\\n');
+  return lines.join('\n');
 }
 
 function makeRows(gameId, disabled = false) {
