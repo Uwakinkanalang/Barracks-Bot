@@ -105,13 +105,17 @@ export default {
                 throw createError('Insufficient bCash', ErrorTypes.VALIDATION, `You only have **₱${wallet.toLocaleString()} bCash** in your wallet.`);
             }
 
-            const emojis = (Array.isArray(guildConfig.slotsEmojis) ? guildConfig.slotsEmojis : DEFAULT_EMOJIS)
-                .map(emoji => emoji === '🍋' ? '<:fatjerry:1572110023742459974>' : emoji);
+            const uwakEmoji = '<:SundalongCamonaNangaasar:1572130012713193512>';
+            const configuredEmojis = Array.isArray(guildConfig.slotsEmojis) ? guildConfig.slotsEmojis : DEFAULT_EMOJIS;
+            const emojis = [...new Set([
+                ...configuredEmojis.map(emoji => emoji === '🍋' ? '<:fatjerry:1572110023742459974>' : emoji),
+                uwakEmoji,
+            ])];
             if (emojis.length < 3 || emojis.length > 15) {
                 throw createError('Slots are not configured', ErrorTypes.CONFIGURATION, 'An admin must configure between 3 and 15 slot emojis in the config wizard.');
             }
             const resolveDiscordEmoji = value => {
-                const mention = value.match(/^<a?:[A-Za-z0-9_]{2,32}:(\\d{17,20})>$/);
+                const mention = value.match(/^<a?:[A-Za-z0-9_]{2,32}:(\d{17,20})>$/);
                 if (mention) return value;
                 const named = value.match(/^:([A-Za-z0-9_]{2,32}):$/);
                 if (named) {
