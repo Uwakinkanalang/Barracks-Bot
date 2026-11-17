@@ -22,18 +22,20 @@ const shuffle = items => {
 const WIN_SYMBOLS = {
     eggplant: { reels: ['🍆', '🍆', '🍆'], multiplier: 1, chance: 20, image: 'https://static.wikia.nocookie.net/owobot/images/5/56/SlotsEggplant.png/revision/latest?cb=20201231080844', label: 'Eggplant' },
     heart: { reels: ['❤️', '❤️', '❤️'], multiplier: 2, chance: 20, image: 'https://static.wikia.nocookie.net/owobot/images/b/bb/SlotsHeart.png/revision/latest?cb=20201231081114', label: 'Heart' },
+    star: { reels: ['⭐', '⭐', '⭐'], multiplier: 1, chance: 5, label: 'Star' },
     note: { reels: ['💵', '💵', '💵'], multiplier: 4, chance: 2.5, image: 'https://static.wikia.nocookie.net/owobot/images/0/06/Cowoncy_Note.png/revision/latest/scale-to-width-down/24?cb=20191203153323', label: 'Barracks Cash' },
     owo: { reels: ['<a:Chibi_Camouflage_HipBounce_trans:1572119864196206612>', '<a:Chibi_Camouflage_HipBounce_trans:1572119864196206612>', '<a:Chibi_Camouflage_HipBounce_trans:1572119864196206612>'], multiplier: 10, chance: 1, label: 'Soldier Jackpot' },
 };
 
 function createSpin(emojis) {
-    // Cherry is a losing symbol; remaining winning odds total 43.5%.
+    // Star wins 5%; total winning odds are 48.5%.
     const roll = randomInt(10_000);
     const outcomes = [
         { cutoff: 2000, key: 'eggplant' },
         { cutoff: 4000, key: 'heart' },
-        { cutoff: 4250, key: 'note' },
-        { cutoff: 4350, key: 'owo' },
+        { cutoff: 4500, key: 'star' },
+        { cutoff: 4750, key: 'note' },
+        { cutoff: 4850, key: 'owo' },
     ];
     const winner = outcomes.find(item => roll < item.cutoff);
     if (winner) return { ...WIN_SYMBOLS[winner.key], win: true };
