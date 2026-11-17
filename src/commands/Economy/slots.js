@@ -6,7 +6,7 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHandler.js';
 
 const activeSpins = new Set();
-const DEFAULT_EMOJIS = ['🍒', '🍋', '🍉', '⭐', '💎'];
+const DEFAULT_EMOJIS = ['🍒', '<:fatjerry:1572110023742459974>', '🍉', '⭐', '💎'];
 const SPIN_DELAY = 650;
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -105,7 +105,8 @@ export default {
                 throw createError('Insufficient bCash', ErrorTypes.VALIDATION, `You only have **₱${wallet.toLocaleString()} bCash** in your wallet.`);
             }
 
-            const emojis = Array.isArray(guildConfig.slotsEmojis) ? guildConfig.slotsEmojis : DEFAULT_EMOJIS;
+            const emojis = (Array.isArray(guildConfig.slotsEmojis) ? guildConfig.slotsEmojis : DEFAULT_EMOJIS)
+                .map(emoji => emoji === '🍋' ? '<:fatjerry:1572110023742459974>' : emoji);
             if (emojis.length < 3 || emojis.length > 15) {
                 throw createError('Slots are not configured', ErrorTypes.CONFIGURATION, 'An admin must configure between 3 and 15 slot emojis in the config wizard.');
             }
