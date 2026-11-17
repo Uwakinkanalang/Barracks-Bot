@@ -36,9 +36,8 @@ async function isOwner(interaction) {
 
 export default {
   data: new SlashCommandBuilder()
-    .setName('brole')
-    .setDescription('Manage Barracks self-assignable role panels')
-    .addSubcommand(sub => sub.setName('panel').setDescription('Post or update the self-assignable role panel'))
+    .setName('rolepanel')
+    .setDescription('Configure self-assignable role panel roles and staff')
     .addSubcommand(sub => sub.setName('add').setDescription('Add or update a role in the panel')
       .addRoleOption(option => option.setName('role').setDescription('Role to display').setRequired(true))
       .addStringOption(option => option.setName('emoji').setDescription('Emoji shown beside the role').setRequired(true))
@@ -61,7 +60,7 @@ export default {
     const guildId = interaction.guildId;
 
     // Configuration is intentionally server-owner-only, matching B-Shop management.
-    if (subcommand && subcommand !== 'panel') {
+    if (subcommand) {
       if (!(await isOwner(interaction))) {
         return interaction.reply({ content: '❌ Only the **server owner** can configure the role panel.', flags: MessageFlags.Ephemeral });
       }
@@ -101,7 +100,7 @@ export default {
         const roles = await client.db.get(ROLES_KEY(guildId), []);
         const content = roles.length
           ? roles.map((item, index) => `${index + 1}. ${item.emoji || ''} <@&${item.role}> — ${item.description}`).join('\n')
-          : 'No roles have been added yet. Use `/brole add` to add one.';
+          : 'No roles have been added yet. Use `/rolepanel add` to add one.';
         return interaction.reply({ content: `**Role Panel — ${roles.length}/${MAX_ROLES}**\n${content}`, flags: MessageFlags.Ephemeral });
       }
 
