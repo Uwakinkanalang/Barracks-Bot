@@ -106,12 +106,10 @@ export default {
             }
 
             const uwakEmoji = '<:SundalongCamonaNangaasar:1572130012713193512>';
-            const tokiEmoji = '<:Toki:1572134487796617326>';
             const configuredEmojis = Array.isArray(guildConfig.slotsEmojis) ? guildConfig.slotsEmojis : DEFAULT_EMOJIS;
             const emojis = [...new Set([
                 ...configuredEmojis.map(emoji => emoji === '🍋' ? '<:fatjerry:1572110023742459974>' : emoji),
                 uwakEmoji,
-                tokiEmoji,
             ])];
             if (emojis.length < 3 || emojis.length > 15) {
                 throw createError('Slots are not configured', ErrorTypes.CONFIGURATION, 'An admin must configure between 3 and 15 slot emojis in the config wizard.');
