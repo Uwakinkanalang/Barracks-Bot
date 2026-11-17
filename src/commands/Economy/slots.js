@@ -59,9 +59,10 @@ function renderSpin(reels, stoppedCount, bet, status) {
 }
 
 export default {
+    prefixOnly: true,
     category: 'Economy',
     data: new SlashCommandBuilder()
-        .setName('slots')
+        .setName('bslot')
         .setDescription('Spin the Barracks slot machine using bCash')
         .addIntegerOption(option =>
             option.setName('bet')
@@ -73,7 +74,7 @@ export default {
 
     execute: withErrorHandling(async (interaction, config, client) => {
         if (!interaction.inGuild()) {
-            throw createError('Slots requires a server', ErrorTypes.VALIDATION, 'Use the slot machine inside a server.');
+            throw createError('Slots requires a server', ErrorTypes.VALIDATION, 'Use bslot inside a server.');
         }
 
         const bet = interaction.options.getInteger('bet', true);
@@ -95,7 +96,7 @@ export default {
 
             const emojis = Array.isArray(guildConfig.slotsEmojis) ? guildConfig.slotsEmojis : DEFAULT_EMOJIS;
             if (emojis.length < 3 || emojis.length > 15) {
-                throw createError('Slots are not configured', ErrorTypes.CONFIGURATION, 'An admin must configure between 3 and 15 slot emojis in /configwizard.');
+                throw createError('Slots are not configured', ErrorTypes.CONFIGURATION, 'An admin must configure between 3 and 15 slot emojis in the config wizard.');
             }
             const houseEdge = Number(guildConfig.slotsHouseEdge ?? 10);
             const spin = createSpin(emojis, houseEdge);
@@ -138,5 +139,5 @@ export default {
         } finally {
             activeSpins.delete(lockKey);
         }
-    }, { command: 'slots' }),
+    }, { command: 'bslot' }),
 };
