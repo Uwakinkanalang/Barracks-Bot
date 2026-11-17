@@ -13,7 +13,10 @@ export default {
   name: Events.MessageCreate,
   async execute(message, client) {
     if (!message.guild || message.author.bot || message.webhookId) return;
-    if (message.channelId !== REWARD_CHANNEL_ID) return;
+    // Forum posts are messages inside threads, so match the thread's parent forum too.
+    const isRewardChannel = message.channelId === REWARD_CHANNEL_ID ||
+      message.channel?.parentId === REWARD_CHANNEL_ID;
+    if (!isRewardChannel) return;
 
     // Count text, attachment, and sticker posts; ignore empty messages.
     const hasContent = Boolean(message.content?.trim()) ||
