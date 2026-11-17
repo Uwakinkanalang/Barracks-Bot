@@ -5,6 +5,7 @@ const COLLECTOR_MANAGED_PREFIXES = [
   'cmdaccess_',
   'mines',
   'blackjack',
+  'bmem:',
   'tictactoe',
   'talpak',
   'rps',
