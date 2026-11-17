@@ -5,7 +5,7 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const MAX_BET = 500000;
-const WIN_CHANCE = 0.3;
+const WIN_CHANCE = 0.5;
 
 export default {
     prefixOnly: true,
@@ -92,7 +92,7 @@ export default {
             );
         }
 
-        // Every guess has a 30% chance to match and a 70% chance to miss.
+        // Every guess has a 50% chance to match and a 50% chance to miss.
         const won = Math.random() < WIN_CHANCE;
         const result = won ? guess : (guess === 'heads' ? 'tails' : 'heads');
 
@@ -110,7 +110,7 @@ export default {
                 `😢 The coin landed on **${result.toUpperCase()}**. You guessed **${guess.toUpperCase()}** and lost your **₱${betAmount.toLocaleString()}** bet.`
             );
 
-        embed.setFooter({ text: `Your guess: ${guess.toUpperCase()} • Win chance: 30% • Payout on a win: 2x your bet` });
+        embed.setFooter({ text: `Your guess: ${guess.toUpperCase()} • Win chance: 50% • Payout on a win: 2x your bet` });
 
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'coinflip' })
