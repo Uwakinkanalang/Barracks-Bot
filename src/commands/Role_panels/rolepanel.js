@@ -7,10 +7,11 @@ const ROLES_KEY = guildId => `guild:${guildId}:rolePanelRoles`;
 const PANEL_KEY = guildId => `guild:${guildId}:rolePanelMessage`;
 const MAX_ROLES = 12;
 
-function staffRoleIds(config = {}) {
+function staffRoleIds(config = {}, configured = []) {
   const values = [
     ...(Array.isArray(config.staffRoleIds) ? config.staffRoleIds : []),
     ...(Array.isArray(config.staffRoles) ? config.staffRoles : []),
+    ...(Array.isArray(configured) ? configured : []),
     config.adminRole, config.modRole,
   ];
   return [...new Set(values.map(value => typeof value === 'object' ? value?.id : value).filter(Boolean).map(String))];
@@ -48,7 +49,8 @@ export default {
     if (!interaction.guild) {
       return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
     }
-    const allowedRoles = staffRoleIds(guildConfig);
+    const configuredStaffRoles = await client.db.get(`guild:${interaction.guildId}:rolePanelStaffRoles`, []);
+    const allowedRoles = staffRoleIds(guildConfig, configuredStaffRoles);
     const member = await interaction.guild.members.fetch(interaction.user.id);
     if (!allowedRoles.length || !allowedRoles.some(id => member.roles.cache.has(id))) {
       return interaction.reply({ content: 'Only members with a configured staff role can use /rolepanel.', flags: MessageFlags.Ephemeral });
