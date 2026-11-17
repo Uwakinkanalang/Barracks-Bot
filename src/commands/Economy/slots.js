@@ -61,9 +61,9 @@ function renderSpin(reels, stoppedCount, bet, status) {
         '**🎰 BARRACKS SLOTS**',
         `Bet: **₱${bet.toLocaleString()} bCash**`,
         '',
-        '┌────────┬────────┬────────┐',
-        `│  ${visible[0]}  │  ${visible[1]}  │  ${visible[2]}  │`,
-        '└────────┴────────┴────────┘',
+        '┏━━━━━━━┳━━━━━━━┳━━━━━━━┓',
+        `┃  ${visible[0]}  ┃  ${visible[1]}  ┃  ${visible[2]}  ┃`,
+        '┗━━━━━━━┻━━━━━━━┻━━━━━━━┛',
         '',
         status,
     ].join('\n');
