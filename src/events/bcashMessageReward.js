@@ -29,6 +29,7 @@ export default {
     processingUsers.add(userId);
 
     let claimedAt = null;
+    let rewardCredited = false;
     try {
       const now = Date.now();
       const lastRewardAt = Number(await client.db.get(cooldownKey, 0)) || 0;
@@ -41,6 +42,7 @@ export default {
       await client.db.set(cooldownKey, claimedAt);
 
       const reward = await addMoney(client, guildId, userId, REWARD_AMOUNT, 'wallet');
+      rewardCredited = true;
       const newBalance = Number(reward?.newBalance);
 
       await message.reply({
@@ -49,7 +51,7 @@ export default {
       });
     } catch (error) {
       // If crediting fails, remove only the cooldown value written by this attempt.
-      if (claimedAt !== null) {
+      if (claimedAt !== null && !rewardCredited) {
         const current = Number(await client.db.get(cooldownKey, 0)) || 0;
         if (current === claimedAt) await client.db.delete(cooldownKey).catch(() => {});
       }
