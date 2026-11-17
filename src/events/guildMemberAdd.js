@@ -8,7 +8,7 @@ import { getServerCounters, updateCounter } from '../services/serverstatsService
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { processInviteReward } from '../utils/inviteRewards.js';
-import sharp from 'sharp';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 export default {
   name: Events.GuildMemberAdd,
@@ -279,7 +279,11 @@ async function buildWelcomeCard(member, backgroundUrl, memberCount) {
       <g fill="#d0c79e"><path d="M1015 510l18 38 42 6-30 29 7 41-37-20-37 20 7-41-30-29 42-6z" opacity=".9"/></g>
       <text x="600" y="610" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#e8e1c5" letter-spacing="5">HONOR • COURAGE • COMMITMENT</text>
     </svg>`;
-    return await sharp(Buffer.from(svg, 'utf8')).png().toBuffer();
+    const image = await loadImage(Buffer.from(svg, 'utf8'));
+    const canvas = createCanvas(1200, 670);
+    const context = canvas.getContext('2d');
+    context.drawImage(image, 0, 0, 1200, 670);
+    return canvas.toBuffer('image/png');
 }
 
 function escapeSvgText(value) {
