@@ -110,7 +110,20 @@ export default {
             if (emojis.length < 3 || emojis.length > 15) {
                 throw createError('Slots are not configured', ErrorTypes.CONFIGURATION, 'An admin must configure between 3 and 15 slot emojis in the config wizard.');
             }
+            const resolveDiscordEmoji = value => {
+                const mention = value.match(/^<a?:[A-Za-z0-9_]{2,32}:(\\d{17,20})>$/);
+                if (mention) return value;
+                const named = value.match(/^:([A-Za-z0-9_]{2,32}):$/);
+                if (named) {
+                    const found = interaction.guild.emojis.cache.find(
+                        emoji => emoji.name?.toLowerCase() === named[1].toLowerCase()
+                    );
+                    return found ? found.toString() : value;
+                }
+                return value;
+            };
             const spin = createSpin(emojis);
+            spin.reels = spin.reels.map(resolveDiscordEmoji);
             if (spin.customEmojiName) {
                 const soldierEmoji = interaction.guild.emojis.cache.find(
                     emoji => emoji.name?.toLowerCase() === spin.customEmojiName.toLowerCase()
