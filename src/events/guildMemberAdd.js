@@ -8,6 +8,7 @@ import { getServerCounters, updateCounter } from '../services/serverstatsService
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { processInviteReward } from '../utils/inviteRewards.js';
+import sharp from 'sharp';
 
 export default {
   name: Events.GuildMemberAdd,
@@ -57,9 +58,22 @@ export default {
                 if (cardBackground) {
                     try {
                         const card = await buildWelcomeCard(member, cardBackground, guild.memberCount);
+                        const cardAttachment = new AttachmentBuilder(card, { name: 'barracks-welcome-card.png' });
+                        const welcomeEmbed = new EmbedBuilder()
+                            .setColor('#59633B')
+                            .setAuthor({ name: 'Welcome to Barracks', iconURL: 'https://media.discordapp.net/attachments/1563246823018336416/1563262829165936822/barrack-icon-rankup.gif' })
+                            .setDescription(
+                                '• Read rules at #📜・rules\\n' +
+                                '• Take your roles at #🎓・roles\\n' +
+                                '• After that, you can chat with us here #💬・lobby\\n\\n' +
+                                'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
+                            )
+                            .setImage('attachment://barracks-welcome-card.png')
+                            .setFooter({ text: `We already have ${guild.memberCount} members` });
                         await channel.send({
                             content: user.toString(),
-                            files: [new AttachmentBuilder(card, { name: 'barracks-welcome-card.svg' })],
+                            embeds: [welcomeEmbed],
+                            files: [cardAttachment],
                             allowedMentions: { users: [user.id] },
                         });
                     } catch (cardError) {
@@ -265,7 +279,7 @@ async function buildWelcomeCard(member, backgroundUrl, memberCount) {
       <g fill="#d0c79e"><path d="M1015 510l18 38 42 6-30 29 7 41-37-20-37 20 7-41-30-29 42-6z" opacity=".9"/></g>
       <text x="600" y="610" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#e8e1c5" letter-spacing="5">HONOR • COURAGE • COMMITMENT</text>
     </svg>`;
-    return Buffer.from(svg, 'utf8');
+    return await sharp(Buffer.from(svg, 'utf8')).png().toBuffer();
 }
 
 function escapeSvgText(value) {
