@@ -23,7 +23,7 @@ const WIN_SYMBOLS = {
     eggplant: { reels: ['🍆', '🍆', '🍆'], multiplier: 1, chance: 20, image: 'https://static.wikia.nocookie.net/owobot/images/5/56/SlotsEggplant.png/revision/latest?cb=20201231080844', label: 'Eggplant' },
     heart: { reels: ['❤️', '❤️', '❤️'], multiplier: 2, chance: 20, image: 'https://static.wikia.nocookie.net/owobot/images/b/bb/SlotsHeart.png/revision/latest?cb=20201231081114', label: 'Heart' },
     cherry: { reels: ['🍒', '🍒', '🍒'], multiplier: 3, chance: 5, image: 'https://static.wikia.nocookie.net/owobot/images/8/80/SlotsCherry.png/revision/latest?cb=20201231081252', label: 'Cherry' },
-    note: { reels: ['💵', '💵', '💵'], multiplier: 4, chance: 2.5, image: 'https://static.wikia.nocookie.net/owobot/images/0/06/Cowoncy_Note.png/revision/latest/scale-to-width-down/24?cb=20191203153323', label: 'Cowoncy Note' },
+    note: { reels: ['💵', '💵', '💵'], multiplier: 4, chance: 2.5, image: 'https://static.wikia.nocookie.net/owobot/images/0/06/Cowoncy_Note.png/revision/latest/scale-to-width-down/24?cb=20191203153323', label: 'Barracks Cash' },
     owo: { reels: [':Soldier:', ':Soldier:', ':Soldier:'], multiplier: 10, chance: 1, label: 'Soldier Jackpot', customEmojiName: 'Soldier' },
 };
 
