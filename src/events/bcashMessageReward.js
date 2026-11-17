@@ -19,7 +19,10 @@ export default {
     if (!isRewardChannel) return;
 
     // Count text, attachment, and sticker posts; ignore empty messages.
+    // A forum post's title is the thread name; its starter message body can be empty.
+    const isForumPost = message.channel?.isThread?.() && message.channel?.parentId === REWARD_CHANNEL_ID;
     const hasContent = Boolean(message.content?.trim()) ||
+      (isForumPost && Boolean(message.channel?.name?.trim())) ||
       (message.attachments?.size || 0) > 0 ||
       (message.stickers?.size || 0) > 0;
     if (!hasContent) return;
