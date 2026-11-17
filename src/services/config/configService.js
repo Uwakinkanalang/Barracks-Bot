@@ -23,7 +23,9 @@ const CONFIG_VALIDATION_RULES = {
     maxTicketsPerUser: { type: 'number', required: false, min: 1, max: 50 },
     birthdayChannelId: { type: 'channel', required: false },
     logIgnore: { type: 'object', required: false },
-    logging: { type: 'object', required: false }
+    logging: { type: 'object', required: false },
+    slotsHouseEdge: { type: 'number', required: false, min: 0, max: 20 },
+    slotsEmojis: { type: 'emoji', required: false }
 };
 
 const SETTING_CONFLICTS = {
@@ -280,6 +282,21 @@ class ConfigService {
                 );
             }
 
+            return true;
+        }
+
+        if (rule.type === 'emoji') {
+            if (!Array.isArray(value) || value.length < 3 || value.length > 15) {
+                throw createError('Invalid slot emojis', ErrorTypes.VALIDATION, 'Choose between **3 and 15** Unicode emojis, one per row.', { key, count: value?.length });
+            }
+            const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
+            const valid = value.every((emoji) => {
+                if (typeof emoji !== 'string' || [...segmenter.segment(emoji)].length !== 1) return false;
+                return /[\p{Extended_Pictographic}\p{Regional_Indicator}\u20E3]/u.test(emoji);
+            });
+            if (!valid || new Set(value).size !== value.length) {
+                throw createError('Invalid slot emojis', ErrorTypes.VALIDATION, 'Each row must contain one unique Unicode emoji.', { key });
+            }
             return true;
         }
 
