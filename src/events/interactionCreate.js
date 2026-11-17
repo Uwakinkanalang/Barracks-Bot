@@ -318,7 +318,10 @@ export default {
               await interaction.reply({ content: 'This role panel belongs to another server.', flags: MessageFlags.Ephemeral });
               return;
             }
-            const configuredRoles = await client.db.get(`guild:${guildId}:rolePanelRoles`, []);
+            const rolePanelConfig = await getGuildConfig(client, guildId, interactionTraceContext);
+            const configuredRoles = Array.isArray(rolePanelConfig?.rolePanelRoles) && rolePanelConfig.rolePanelRoles.length
+              ? rolePanelConfig.rolePanelRoles
+              : await client.db.get(`guild:${guildId}:rolePanelRoles`, []);
             const configured = Array.isArray(configuredRoles) ? configuredRoles.find(item => String(item?.role) === roleId) : null;
             if (!configured) {
               await interaction.reply({ content: 'This role is no longer configured in the role panel.', flags: MessageFlags.Ephemeral });
