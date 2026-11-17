@@ -264,7 +264,7 @@ async function handlePrefixCommand(message, client) {
     const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\s+([\s\S]+))?$/i);
     const bareRouletteMatch = trimmedContent.match(/^broulette(?:\s+([\s\S]+))?$/i);
     const bareRpsMatch = trimmedContent.match(/^(?:brps|b!rps)(?:\s+([\s\S]+))?$/i);
-    const parsed = bareCountMatch
+    const parsed = bareMemoryMatch\n      ? { commandName: 'bmem', args: bareMemoryMatch[1] ? bareMemoryMatch[1].trim().split(/\\s+/) : [] }\n      : bareCountMatch
       ? { commandName: 'bcount', args: bareCountMatch[1] ? bareCountMatch[1].trim().split(/\s+/) : [] }
       : bareBgiveMatch
       ? (() => {
