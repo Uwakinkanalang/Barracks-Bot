@@ -68,7 +68,8 @@ export default {
         }
 
         const wallet = Number(userData.wallet) || 0;
-        const betAmount = betInput === 'all' ? wallet : Number(betInput);
+        // `all` means the maximum allowed BCF stake, not the user's entire wallet.
+        const betAmount = betInput === 'all' ? Math.min(wallet, MAX_BET) : Number(betInput);
 
         if (betAmount <= 0) {
             throw createError('No cash to bet', ErrorTypes.VALIDATION, 'You do not have any cash in your wallet to bet.');
