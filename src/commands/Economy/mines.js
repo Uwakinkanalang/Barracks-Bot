@@ -14,6 +14,7 @@ const BOARD_SIZE = 9;
 const COLLECTOR_TIME = 2 * 60 * 1000;
 const HOUSE_EDGE = 0.97;
 const FIXED_MINE_COUNT = 3;
+const MAX_BET = 500000;
 
 function getMultiplier(safePicks, mineCount) {
     if (safePicks <= 0) return 1;
@@ -116,6 +117,14 @@ export default {
                 'Invalid bet',
                 ErrorTypes.VALIDATION,
                 'Enter a positive whole-number bet, or use **bmine all** to wager your entire cash wallet.'
+            );
+        }
+
+        if (bet > MAX_BET) {
+            throw createError(
+                'Bet limit exceeded',
+                ErrorTypes.VALIDATION,
+                `The maximum Mines bet is **₱${MAX_BET.toLocaleString()}**.`
             );
         }
 
