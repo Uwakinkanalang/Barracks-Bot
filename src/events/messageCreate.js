@@ -59,7 +59,7 @@ async function handlePrefixCommand(message, client) {
     if (await handleClanShopPrefixCommand(message, client)) return;
 
     // Plain-text publisher: type "brole panel" (not a slash command).
-    if (/^brole\\s+panel$/i.test(trimmedContent)) {
+    if (/^brole\s+panel$/i.test(trimmedContent)) {
       const staffRoles = await client.db.get(`guild:${message.guild.id}:rolePanelStaffRoles`, []);
       if (!Array.isArray(staffRoles) || !staffRoles.some(id => message.member?.roles?.cache?.has(id))) {
         await message.reply('❌ Only members with a configured role-panel staff role can publish or update this panel.');
