@@ -49,14 +49,16 @@ export default {
     if (!interaction.guild) {
       return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
     }
-    const configuredStaffRoles = await client.db.get(`guild:${interaction.guildId}:rolePanelStaffRoles`, []);
+    const configuredStaffRoles = Array.isArray(guildConfig?.rolePanelStaffRoles) ? guildConfig.rolePanelStaffRoles : await client.db.get(`guild:${interaction.guildId}:rolePanelStaffRoles`, []);
     const allowedRoles = staffRoleIds(guildConfig, configuredStaffRoles);
     const member = await interaction.guild.members.fetch(interaction.user.id);
     if (!allowedRoles.length || !allowedRoles.some(id => member.roles.cache.has(id))) {
       return interaction.reply({ content: 'Only members with a configured staff role can use /rolepanel.', flags: MessageFlags.Ephemeral });
     }
 
-    const roles = await client.db.get(ROLES_KEY(interaction.guildId), []);
+    const roles = Array.isArray(guildConfig?.rolePanelRoles) && guildConfig.rolePanelRoles.length
+      ? guildConfig.rolePanelRoles
+      : await client.db.get(ROLES_KEY(interaction.guildId), []);
     if (!Array.isArray(roles) || roles.length === 0) {
       return interaction.reply({ content: 'No roles are configured. Add entries to the rolePanelRoles list setting first.', flags: MessageFlags.Ephemeral });
     }
