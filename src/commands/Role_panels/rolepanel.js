@@ -82,7 +82,7 @@ export default {
         if (existingIndex >= 0) roles[existingIndex] = entry;
         else roles.push(entry);
         await client.db.set(ROLES_KEY(guildId), roles);
-        return interaction.reply({ content: `✅ ${role} ${existingIndex >= 0 ? 'was updated' : 'was added'} to the role panel. Run `/rolepanel` to publish the changes.`, flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: `✅ ${role} ${existingIndex >= 0 ? 'was updated' : 'was added'} to the role panel. Run /rolepanel to publish the changes.`, flags: MessageFlags.Ephemeral });
       }
 
       if (subcommand === 'remove') {
@@ -93,7 +93,7 @@ export default {
           return interaction.reply({ content: `${role} is not in the role panel.`, flags: MessageFlags.Ephemeral });
         }
         await client.db.set(ROLES_KEY(guildId), next);
-        return interaction.reply({ content: `✅ Removed ${role} from the role panel. Run `/rolepanel` to update the posted panel.`, flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: `✅ Removed ${role} from the role panel. Run /rolepanel to update the posted panel.`, flags: MessageFlags.Ephemeral });
       }
 
       if (subcommand === 'list') {
@@ -112,7 +112,7 @@ export default {
         }
         staffRoles.push(role.id);
         await client.db.set(STAFF_KEY(guildId), staffRoles);
-        return interaction.reply({ content: `✅ ${role} can now use `/rolepanel` to publish or update the panel.`, flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: `✅ ${role} can now use /rolepanel to publish or update the panel.`, flags: MessageFlags.Ephemeral });
       }
 
       if (subcommand === 'staff-remove') {
