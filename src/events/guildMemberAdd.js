@@ -63,9 +63,9 @@ export default {
                             .setColor('#59633B')
                             .setAuthor({ name: 'Welcome to Barracks', iconURL: 'https://media.discordapp.net/attachments/1563246823018336416/1563262829165936822/barrack-icon-rankup.gif' })
                             .setDescription(
-                                '• Read rules at #📜・rules\\n' +
-                                '• Take your roles at #🎓・roles\\n' +
-                                '• After that, you can chat with us here #💬・lobby\\n\\n' +
+                                '• Read rules at #📜・rules\n' +
+                                '• Take your roles at #🎓・roles\n' +
+                                '• After that, you can chat with us here #💬・lobby\n\n' +
                                 'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
                             )
                             .setImage('attachment://barracks-welcome-card.png')
