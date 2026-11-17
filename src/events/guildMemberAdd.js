@@ -62,7 +62,7 @@ export default {
                         const welcomeEmbed = new EmbedBuilder()
                             .setColor('#59633B')
                             .setAuthor({ name: 'Welcome to Barracks' })
-                            .setThumbnail('https://media.discordapp.net/attachments/1563246823018336416/1563262829165936822/barrack-icon-rankup.gif?ex=6afd4a36&is=6afbf8b6&hm=67a4ebf7e5cb3c2c27e847422adcba816a141a142615a4e625ff657d7f122b2c')
+                            .setThumbnail('https://cdn.discordapp.com/attachments/1563246823018336416/1563262829165936822/barrack-icon-rankup.gif')
                             .setDescription(
                                 '• Read rules at <#1137696545890893904>\n' +
                                 '• Take your roles at <#1325091032697798727>\n' +
@@ -72,7 +72,7 @@ export default {
                             .setImage('attachment://barracks-welcome-card.png')
                             .setFooter({ text: `We already have ${guild.memberCount} members` });
                         await channel.send({
-                            content: user.toString(),
+                            content: `Welcome our new member, **${user.toString()}**`,
                             embeds: [welcomeEmbed],
                             files: [cardAttachment],
                             allowedMentions: { users: [user.id] },
