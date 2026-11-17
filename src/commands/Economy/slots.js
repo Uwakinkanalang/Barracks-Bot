@@ -24,7 +24,7 @@ const WIN_SYMBOLS = {
     heart: { reels: ['❤️', '❤️', '❤️'], multiplier: 2, chance: 20, image: 'https://static.wikia.nocookie.net/owobot/images/b/bb/SlotsHeart.png/revision/latest?cb=20201231081114', label: 'Heart' },
     cherry: { reels: ['🍒', '🍒', '🍒'], multiplier: 3, chance: 5, image: 'https://static.wikia.nocookie.net/owobot/images/8/80/SlotsCherry.png/revision/latest?cb=20201231081252', label: 'Cherry' },
     note: { reels: ['💵', '💵', '💵'], multiplier: 4, chance: 2.5, image: 'https://static.wikia.nocookie.net/owobot/images/0/06/Cowoncy_Note.png/revision/latest/scale-to-width-down/24?cb=20191203153323', label: 'Barracks Cash' },
-    owo: { reels: [':Soldier:', ':Soldier:', ':Soldier:'], multiplier: 10, chance: 1, label: 'Soldier Jackpot', customEmojiName: 'Soldier' },
+    owo: { reels: ['<a:Chibi_Camouflage_HipBounce_trans:1572119864196206612>', '<a:Chibi_Camouflage_HipBounce_trans:1572119864196206612>', '<a:Chibi_Camouflage_HipBounce_trans:1572119864196206612>'], multiplier: 10, chance: 1, label: 'Soldier Jackpot' },
 };
 
 function createSpin(emojis) {
@@ -123,16 +123,7 @@ export default {
             };
             const spin = createSpin(emojis);
             spin.reels = spin.reels.map(resolveDiscordEmoji);
-            if (spin.customEmojiName) {
-                const soldierEmoji = interaction.guild.emojis.cache.find(
-                    emoji => emoji.name?.toLowerCase() === spin.customEmojiName.toLowerCase()
-                );
-                if (soldierEmoji) {
-                    spin.reels = [soldierEmoji.toString(), soldierEmoji.toString(), soldierEmoji.toString()];
-                } else {
-                    spin.reels = [':Soldier:', ':Soldier:', ':Soldier:'];
-                }
-            }
+
             const payout = bet * spin.multiplier;
             if (!Number.isSafeInteger(payout) || !Number.isSafeInteger(wallet - bet + payout)) {
                 throw createError('Bet is too large', ErrorTypes.VALIDATION, 'That bet is too large to calculate safely.');
