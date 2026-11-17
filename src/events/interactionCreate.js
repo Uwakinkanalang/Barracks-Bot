@@ -312,6 +312,45 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('rolepanel:toggle:')) {
+            const [, , guildId, roleId] = interaction.customId.split(':');
+            if (!interaction.guild || interaction.guildId !== guildId) {
+              await interaction.reply({ content: 'This role panel belongs to another server.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const configuredRoles = await client.db.get(`guild:${guildId}:rolePanelRoles`, []);
+            const configured = Array.isArray(configuredRoles) ? configuredRoles.find(item => String(item?.role) === roleId) : null;
+            if (!configured) {
+              await interaction.reply({ content: 'This role is no longer configured in the role panel.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
+            const botMember = interaction.guild.members.me || await interaction.guild.members.fetchMe();
+            if (!role || role.id === guildId || role.managed || role.position >= botMember.roles.highest.position ||
+                role.permissions.has(PermissionFlagsBits.Administrator | PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageRoles | PermissionFlagsBits.BanMembers | PermissionFlagsBits.KickMembers)) {
+              await interaction.reply({ content: 'This role cannot be self-assigned. Please contact a server administrator.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
+              await interaction.reply({ content: 'I need Manage Roles permission to assign this role.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const member = await interaction.guild.members.fetch(interaction.user.id);
+            try {
+              if (member.roles.cache.has(roleId)) {
+                await member.roles.remove(role, 'Self-removed role from Barracks role panel');
+                await interaction.reply({ content: `Removed <@&${roleId}>`, flags: MessageFlags.Ephemeral });
+              } else {
+                await member.roles.add(role, 'Self-assigned role from Barracks role panel');
+                await interaction.reply({ content: `You now have <@&${roleId}>`, flags: MessageFlags.Ephemeral });
+              }
+            } catch (error) {
+              logger.error('Role panel toggle failed:', { guildId, userId: interaction.user.id, roleId, error: error.message });
+              await interaction.reply({ content: 'I could not update your role. Please check my Manage Roles permission and role hierarchy.', flags: MessageFlags.Ephemeral }).catch(() => {});
+            }
+            return;
+          }
+
           if (interaction.customId.startsWith('bcal:')) {
             const [, action, guildId, month] = interaction.customId.split(':');
             if (!interaction.guild || interaction.guildId !== guildId) {
