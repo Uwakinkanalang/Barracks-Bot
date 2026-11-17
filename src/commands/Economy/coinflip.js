@@ -40,7 +40,7 @@ export default {
         const betInput = String(interaction.options.getString('amount') ?? interaction.options.getInteger('amount') ?? '').trim().toLowerCase();
         const guess = (interaction.options.getString('guess') || 'heads').toLowerCase();
 
-        if (betInput !== 'all' && (!/^\\d+$/.test(betInput) || !Number.isSafeInteger(Number(betInput)) || Number(betInput) <= 0)) {
+        if (betInput !== 'all' && (!/^\d+$/.test(betInput) || !Number.isSafeInteger(Number(betInput)) || Number(betInput) <= 0)) {
             throw createError(
                 'Invalid coin flip bet',
                 ErrorTypes.VALIDATION,
