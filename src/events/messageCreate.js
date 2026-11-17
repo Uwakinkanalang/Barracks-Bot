@@ -89,7 +89,7 @@ async function handlePrefixCommand(message, client) {
         .addTextDisplayComponents(new TextDisplayBuilder().setContent('Press **Get / Remove** beside a role to add it, and again to take it off.'));
       for (const item of roles) {
         container.addSectionComponents(new SectionBuilder()
-          .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${item.emoji || ''} <@&${item.role}>**\\n${item.description || ''}`))
+          .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${item.emoji || ''} <@&${item.role}>**\n${item.description || ''}`))
           .setButtonAccessory(new ButtonBuilder().setCustomId(`rolepanel:toggle:${message.guild.id}:${item.role}`).setLabel('Get / Remove').setStyle(ButtonStyle.Secondary)));
       }
       const payload = { components: [container], flags: MessageFlags.IsComponentsV2 };
