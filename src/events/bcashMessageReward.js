@@ -2,7 +2,7 @@ import { Events } from 'discord.js';
 import { addMoney } from '../utils/economy.js';
 import { logger } from '../utils/logger.js';
 
-const REWARD_CHANNEL_ID = '1563763070915051601';
+const REWARD_CHANNEL_ID = '1157270819848863854';
 const REWARD_AMOUNT = 100000;
 const COOLDOWN_MS = 3 * 60 * 60 * 1000;
 
