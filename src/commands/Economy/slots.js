@@ -6,7 +6,7 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHandler.js';
 
 const activeSpins = new Set();
-const DEFAULT_EMOJIS = ['🍒', '<:fatjerry:1572110023742459974>', '🍉', '⭐', '💎', '<:SundalongCamonaNangaasar:1572130012713193512>'];
+const DEFAULT_EMOJIS = ['<:fatjerry:1572110023742459974>', '🍉', '💎', '<:SundalongCamonaNangaasar:1572130012713193512>'];
 const SPIN_DELAY = 650;
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -116,7 +116,9 @@ export default {
             const uwakEmoji = '<:SundalongCamonaNangaasar:1572130012713193512>';
             const configuredEmojis = Array.isArray(guildConfig.slotsEmojis) ? guildConfig.slotsEmojis : DEFAULT_EMOJIS;
             const emojis = [...new Set([
-                ...configuredEmojis.map(emoji => emoji === '🍋' ? '<:fatjerry:1572110023742459974>' : emoji),
+                ...configuredEmojis
+                    .filter(emoji => emoji !== '⭐' && emoji !== '🍒')
+                    .map(emoji => emoji === '🍋' ? '<:fatjerry:1572110023742459974>' : emoji),
                 uwakEmoji,
             ])];
             if (emojis.length < 3 || emojis.length > 15) {
