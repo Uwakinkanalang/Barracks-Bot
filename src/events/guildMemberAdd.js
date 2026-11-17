@@ -61,7 +61,8 @@ export default {
                         const cardAttachment = new AttachmentBuilder(card, { name: 'barracks-welcome-card.png' });
                         const welcomeEmbed = new EmbedBuilder()
                             .setColor('#59633B')
-                            .setAuthor({ name: 'Welcome to Barracks', iconURL: 'https://media.discordapp.net/attachments/1563246823018336416/1563262829165936822/barrack-icon-rankup.gif' })
+                            .setAuthor({ name: 'Welcome to Barracks' })
+                            .setThumbnail('https://media.discordapp.net/attachments/1563246823018336416/1563262829165936822/barrack-icon-rankup.gif?ex=6afd4a36&is=6afbf8b6&hm=67a4ebf7e5cb3c2c27e847422adcba816a141a142615a4e625ff657d7f122b2c')
                             .setDescription(
                                 '• Read rules at <#1137696545890893904>\n' +
                                 '• Take your roles at <#1325091032697798727>\n' +
