@@ -251,6 +251,7 @@ async function handlePrefixCommand(message, client) {
     const bareCashMatch = trimmedContent.match(/^bcash(?:\s+([\s\S]+))?$/i);
     const bareBlackjackMatch = trimmedContent.match(/^bbj(?:\s+([\s\S]+))?$/i);
     const bareSlotsMatch = trimmedContent.match(/^bslot(?:\s+([\s\S]+))?$/i);
+    const bareMemoryMatch = trimmedContent.match(/^bmem(?:\s+([\s\S]+))?$/i);
     const bareHigherLowerMatch = trimmedContent.match(/^bhl(?:\s+([\s\S]+))?$/i);
     const bareDailyMatch = trimmedContent.match(/^bdaily$/i);
     const bareWorkMatch = trimmedContent.match(/^bwork$/i);
@@ -264,7 +265,9 @@ async function handlePrefixCommand(message, client) {
     const bareCoinFlipMatch = trimmedContent.match(/^bcf(?:\s+([\s\S]+))?$/i);
     const bareRouletteMatch = trimmedContent.match(/^broulette(?:\s+([\s\S]+))?$/i);
     const bareRpsMatch = trimmedContent.match(/^(?:brps|b!rps)(?:\s+([\s\S]+))?$/i);
-    const parsed = bareMemoryMatch\n      ? { commandName: 'bmem', args: bareMemoryMatch[1] ? bareMemoryMatch[1].trim().split(/\\s+/) : [] }\n      : bareCountMatch
+    const parsed = bareMemoryMatch
+      ? { commandName: 'bmem', args: bareMemoryMatch[1] ? bareMemoryMatch[1].trim().split(/\s+/) : [] }
+      : bareCountMatch
       ? { commandName: 'bcount', args: bareCountMatch[1] ? bareCountMatch[1].trim().split(/\s+/) : [] }
       : bareBgiveMatch
       ? (() => {
