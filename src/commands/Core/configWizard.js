@@ -173,7 +173,7 @@ function buildSettingsSelect(guildId) {
                     .setEmoji('🎰'),
                 new StringSelectMenuOptionBuilder()
                     .setLabel('Slots Emojis')
-                    .setDescription('Choose 3–15 Unicode emojis, one per row')
+                    .setDescription('Choose 3–15 Unicode or Discord emojis, one per row')
                     .setValue('slotsEmojis')
                     .setEmoji('😀'),
             ),
@@ -489,7 +489,7 @@ async function showSettingModal(selectInteraction, guildId, setting) {
             .setTitle(isEmojiList ? '😀 Update Slot Emojis' : '🎰 Update Slots House Edge');
         const textInput = new TextInputBuilder()
             .setCustomId('value')
-            .setLabel(isEmojiList ? 'One Unicode emoji per row (3–15)' : 'House edge percentage (0–20)')
+            .setLabel(isEmojiList ? 'One emoji per row (3–15; custom supported)' : 'House edge percentage (0–20)')
             .setStyle(isEmojiList ? TextInputStyle.Paragraph : TextInputStyle.Short)
             .setRequired(true)
             .setMaxLength(isEmojiList ? 500 : 5)
@@ -570,8 +570,11 @@ function resolveSettingModalValue(setting, submitted) {
     if (setting === 'slotsEmojis') {
         const value = submitted.fields.getTextInputValue('value').split(/\r?\n/).map(item => item.trim()).filter(Boolean);
         const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
-        if (value.length < 3 || value.length > 15 || value.some(item => [...segmenter.segment(item)].length !== 1 || !/[\p{Extended_Pictographic}\p{Regional_Indicator}\u20E3]/u.test(item)) || new Set(value).size !== value.length) {
-            throw new Error('Enter 3–15 unique Unicode emojis, with exactly one emoji on each row.');
+        const isValidEmoji = item => /^<a?:[A-Za-z0-9_]{2,32}:\\d{17,20}>$/.test(item)
+            || /^:[A-Za-z0-9_]{2,32}:$/.test(item)
+            || ([...segmenter.segment(item)].length === 1 && /[\\p{Extended_Pictographic}\\p{Regional_Indicator}\\u20E3]/u.test(item));
+        if (value.length < 3 || value.length > 15 || value.some(item => !isValidEmoji(item)) || new Set(value).size !== value.length) {
+            throw new Error('Enter 3–15 unique emojis, one per row. Unicode emojis, Discord emoji mentions, and :emoji_name: are accepted.');
         }
         return value;
     }
