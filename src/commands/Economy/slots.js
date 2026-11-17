@@ -6,7 +6,7 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHandler.js';
 
 const activeSpins = new Set();
-const DEFAULT_EMOJIS = ['🍒', '<:fatjerry:1572110023742459974>', '🍉', '⭐', '💎'];
+const DEFAULT_EMOJIS = ['🍒', '<:fatjerry:1572110023742459974>', '🍉', '⭐', '💎', '<:SundalongCamonaNangaasar:1572130012713193512>'];
 const SPIN_DELAY = 650;
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
