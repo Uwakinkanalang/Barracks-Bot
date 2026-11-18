@@ -17,10 +17,9 @@ const PICK_OPTIONS = {
 function buildEmbed(game, phase = 'challenge', result = null) {
   const embed = new EmbedBuilder()
     .setColor(result?.winnerId ? 0x2ECC71 : result?.draw ? 0xF1C40F : 0x5865F2)
-    .setTitle('✊ ROCK • PAPER • SCISSORS')
-    .setAuthor({ name: game.challengerName, iconURL: game.challengerAvatar })
-    .setThumbnail(game.opponentAvatar)
-    .setFooter({ text: 'Barracks • Two-Player Challenge' });
+    .setTitle('✊ ROCK  VS  PAPER  VS  SCISSORS')
+    .setAuthor({ name: `${game.challengerName}  VS  ${game.opponentName}`, iconURL: game.challengerAvatar })
+    .setFooter({ text: 'Barracks • Two-Player Challenge', iconURL: game.opponentAvatar });
 
   if (phase === 'challenge') {
     embed.setDescription(
@@ -196,7 +195,7 @@ export default {
           game.finished = true;
           collector.stop('declined');
           await message.edit({
-            embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK • PAPER • SCISSORS').setDescription(`<@${game.opponentId}> declined the challenge from <@${game.challengerId}>.`).setAuthor({ name: game.challengerName, iconURL: game.challengerAvatar }).setThumbnail(game.opponentAvatar).setFooter({ text: 'Barracks • Two-Player Challenge' })],
+            embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK  VS  PAPER  VS  SCISSORS').setDescription(`<@${game.opponentId}> declined the challenge from <@${game.challengerId}>.`).setAuthor({ name: `${game.challengerName}  VS  ${game.opponentName}`, iconURL: game.challengerAvatar }).setFooter({ text: 'Barracks • Two-Player Challenge', iconURL: game.opponentAvatar })],
             components: [],
           });
           return;
@@ -211,7 +210,7 @@ export default {
           if ((a?.wallet || 0) < game.bet || (b?.wallet || 0) < game.bet) {
             game.finished = true;
             collector.stop('insufficient_funds');
-            await message.edit({ embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK • PAPER • SCISSORS').setDescription('Challenge cancelled: both players must have enough cash to cover the bet.').setAuthor({ name: game.challengerName, iconURL: game.challengerAvatar }).setThumbnail(game.opponentAvatar)], components: [] });
+            await message.edit({ embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK  VS  PAPER  VS  SCISSORS').setDescription('Challenge cancelled: both players must have enough cash to cover the bet.').setAuthor({ name: `${game.challengerName}  VS  ${game.opponentName}`, iconURL: game.challengerAvatar }).setFooter({ text: 'Barracks • Two-Player Challenge', iconURL: game.opponentAvatar })], components: [] });
             return;
           }
           await removeMoney(interaction.client, interaction.guildId, game.challengerId, game.bet, 'wallet');
@@ -294,11 +293,10 @@ export default {
       await message.edit({
         embeds: [new EmbedBuilder()
           .setColor(0x95A5A6)
-          .setTitle('✊ ROCK • PAPER • SCISSORS')
+          .setTitle('✊ ROCK  VS  PAPER  VS  SCISSORS')
           .setDescription(description)
-          .setAuthor({ name: game.challengerName, iconURL: game.challengerAvatar })
-          .setThumbnail(game.opponentAvatar)
-          .setFooter({ text: 'Barracks • Two-Player Challenge' })],
+          .setAuthor({ name: `${game.challengerName}  VS  ${game.opponentName}`, iconURL: game.challengerAvatar })
+          .setFooter({ text: 'Barracks • Two-Player Challenge', iconURL: game.opponentAvatar })],
         components: [],
       }).catch(() => {});
     });
