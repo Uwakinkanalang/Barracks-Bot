@@ -42,19 +42,18 @@ function buildPanel(guildId) {
 }
 
 export default {
+  prefixOnly: true,
   data: new SlashCommandBuilder()
     .setName('bankupgrade')
     .setDescription('Post the Barracks bank expansion purchase panel')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false),
   category: 'Economy',
-  async execute(interaction, config, client) {
-    const data = await getEconomyData(client, interaction.guildId, interaction.user.id);
-    const currentLimit = getMaxBankCapacity(data);
+  async prefixExecute(interaction, config, client) {
+    if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageGuild)) {
+      return interaction.reply({ content: '❌ You need **Manage Server** permission to post the Bank Upgrade Panel.' });
+    }
     await interaction.channel.send(buildPanel(interaction.guildId));
-    return interaction.reply({
-      content: `✅ Bank Upgrade Panel posted. Your current bank limit is **${formatMoney(currentLimit)}**.`,
-      flags: MessageFlags.Ephemeral,
-    });
+    return interaction.reply({ content: '✅ Bank Upgrade Panel posted.' });
   },
 };
