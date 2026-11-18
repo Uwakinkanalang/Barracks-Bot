@@ -31,8 +31,8 @@ function buildPanel(guildId) {
     .setAccentColor(0xD4A017)
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        '# 🏦 Barracks Bank Expansion\\n' +
-        'Need more room for your hard-earned Bcash?\\n' +
+        '# 🏦 Barracks Bank Expansion\n' +
+        'Need more room for your hard-earned Bcash?\n' +
         'Expand your storage with a **permanent bank capacity upgrade.**'
       ),
     )
@@ -43,9 +43,9 @@ function buildPanel(guildId) {
       new SectionBuilder()
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
-            '### 📈 CAPACITY INCREASE\\n' +
-            `**+${formatMoney(UPGRADE.capacity)}**\\n\\n` +
-            '### 💰 PURCHASE PRICE\\n' +
+            '### 📈 CAPACITY INCREASE\n' +
+            `**+${formatMoney(UPGRADE.capacity)}**\n\n` +
+            '### 💰 PURCHASE PRICE\n' +
             `**${formatMoney(UPGRADE.price)}**`
           ),
         )
@@ -56,8 +56,8 @@ function buildPanel(guildId) {
     )
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        '🛡️ **PERMANENT UPGRADE**\\n' +
-        'Your purchased capacity is added on top of your **rank-based bank limit.**\\n\\n' +
+        '🛡️ **PERMANENT UPGRADE**\n' +
+        'Your purchased capacity is added on top of your **rank-based bank limit.**\n\n' +
         '-# Barracks • Bank Upgrade Depot  |  Secure your funds, expand your limits.'
       ),
     );
