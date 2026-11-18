@@ -52,8 +52,8 @@ async function handlePrefixCommand(message, client) {
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
 
-    // Bank Upgrade panel prefix command: b!bankupgrade panel
-    if (/^b!bankupgrade\s+panel$/i.test(trimmedContent)) {
+    // Bank Upgrade panel prefix command: b!bankpanel upgrade
+    if (/^b!bankpanel\s+upgrade$/i.test(trimmedContent)) {
       const bankUpgradeCommand = client.commands.get('bankupgrade');
       const hasBankPanelAccess = message.member?.permissions?.has('ManageGuild') || message.member?.roles?.cache?.has('1557784202844446750');
       if (!hasBankPanelAccess) {
