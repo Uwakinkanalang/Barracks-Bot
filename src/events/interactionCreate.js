@@ -358,7 +358,7 @@ export default {
                   '',
                   '**NEW BANK CAPACITY**',
                   `# ₱${newLimit.toLocaleString()}`,
-                ].join('\\n'),
+                ].join('\n'),
                 thumbnail: { url: avatarUrl },
                 fields: [{
                   name: '📋 Transaction Details',
@@ -366,7 +366,7 @@ export default {
                     `**Capacity Added**  ·  +₱${upgrade.capacity.toLocaleString()}`,
                     `**Purchase Cost**  ·  ₱${upgrade.price.toLocaleString()}`,
                     `**Remaining Wallet**  ·  ₱${economy.wallet.toLocaleString()}`,
-                  ].join('\\n'),
+                  ].join('\n'),
                   inline: false,
                 }],
                 footer: { text: 'BARRACKS  •  BANK UPGRADE DEPOT  •  PRIVATE CONFIRMATION' },
