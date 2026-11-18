@@ -54,12 +54,8 @@ function buildPanel(guildId) {
         '### 📈 CAPACITY INCREASE\n' +
         `**+${formatMoney(UPGRADE.capacity)}**\n\n` +
         '### 💰 PURCHASE PRICE\n' +
-        `**${formatMoney(getUpgradePrice(1))}** (1st–5th purchase)\n` +
-        `**${formatMoney(getUpgradePrice(6))}** (6th–10th)\n` +
-        `**${formatMoney(getUpgradePrice(11))}** (11th–15th)\n` +
-        `**${formatMoney(getUpgradePrice(16))}** (16th–20th)\n` +
-        `**${formatMoney(getUpgradePrice(21))}** (21st–30th)\n` +
-        `**${formatMoney(getUpgradePrice(31))}** (31st–40th)\n` +
+        `**${formatMoney(getUpgradePrice(1))}** (1st–20th purchase)\n` +
+        `**${formatMoney(getUpgradePrice(21))}** (21st–40th)\n` +
         `**${formatMoney(getUpgradePrice(41))}** (41st–50th)`
       ),
     )
