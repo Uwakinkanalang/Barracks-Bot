@@ -173,7 +173,8 @@ export const botConfig = {
 
     // Bank capacity and transaction limits.
     baseBankCapacity: 2000000,
-    maxBankCapacity: 50000000,
+    // Overall bank ceiling includes rank capacity and purchased upgrades.
+    maxBankCapacity: 100000000,
     // Capacity by Barracks rank level. Members below Level 10 use the base capacity.
     rankBankCapacities: {
       10: 2000000,
@@ -187,6 +188,13 @@ export const botConfig = {
     },
     bankMinTransaction: 100,
     bankMaxTransaction: 50000000,
+    // Permanent bank capacity packages. Purchases stack on top of rank capacity.
+    bankUpgradePackages: {
+      small: { capacity: 1000000, price: 500000 },
+      medium: { capacity: 5000000, price: 2000000 },
+      large: { capacity: 10000000, price: 3500000 },
+      elite: { capacity: 25000000, price: 7500000 },
+    },
 
     // Daily reward amount.
     dailyAmount: 5000,
