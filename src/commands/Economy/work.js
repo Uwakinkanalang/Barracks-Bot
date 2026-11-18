@@ -31,6 +31,26 @@ const WORK_JOB_WEIGHTS = [
     { name: "Sinabihan ng Pogi si <@1316339704454447154>", chance: 50 },
 ];
 
+const WORK_JOB_SALARIES = {
+    "Software Developer": 3000,
+    "Barista": 1000,
+    "Janitor": 800,
+    "YouTuber": 2500,
+    "Discord Bot Developer": 3500,
+    "Cashier": 1000,
+    "Pizza Delivery Driver": 1500,
+    "Military Soldier": 2500,
+    "Private Investigator": 3500,
+    "MMDA Traffic Enforcer": 1800,
+    "Professional Cuddler": 1200,
+    "Artista sa GMA": 4000,
+    "Professional Chismosa": 1500,
+    "Taga-bukas ng pinto sa 7-Eleven": 700,
+    "Snatcher sa Quiapo": 2000,
+    "Albularyo": 2800,
+    "Sinabihan ng Pogi si <@1316339704454447154>": 10000,
+};
+
 function selectWorkJob() {
     const roll = Math.random() * 100;
     let cumulativeChance = 0;
@@ -98,7 +118,7 @@ export default {
             const memberLevel = Math.max(0, Number(levelData?.level) || 0);
             const levelBonus = memberLevel * WORK_LEVEL_BONUS;
             const job = selectWorkJob();
-            const jobBasePay = job.startsWith("Sinabihan ng Pogi si") ? 10000 : BASE_WORK_AMOUNT;
+            const jobBasePay = WORK_JOB_SALARIES[job] ?? BASE_WORK_AMOUNT;
             let earned = jobBasePay + levelBonus;
 
             const baseEarnings = earned;
