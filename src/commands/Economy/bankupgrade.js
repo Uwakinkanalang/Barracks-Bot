@@ -23,9 +23,9 @@ function buildPanel(guildId) {
   const embed = new EmbedBuilder()
     .setColor(0xD4A017)
     .setAuthor({ name: 'BARRACKS • BANKING DIVISION' })
-    .setTitle('🏦 Barracks Bank Expansion')
+    .setTitle('🏦 Barracks Bank Expansion V2')
     .setDescription(
-      'Need more room for your hard-earned Bcash?\\n' +
+      'Need more room for your hard-earned Bcash?\n' +
       'Expand your storage with a **permanent bank capacity upgrade.**'
     )
     .addFields(
