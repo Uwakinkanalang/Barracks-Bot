@@ -50,7 +50,8 @@ export default {
     .setDMPermission(false),
   category: 'Economy',
   async prefixExecute(interaction, config, client) {
-    if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageGuild)) {
+    const hasBankPanelAccess = interaction.member?.permissions?.has(PermissionFlagsBits.ManageGuild) || interaction.member?.roles?.cache?.has('1557784202844446750');
+    if (!hasBankPanelAccess) {
       return interaction.reply({ content: '❌ You need **Manage Server** permission to post the Bank Upgrade Panel.' });
     }
     await interaction.channel.send(buildPanel(interaction.guildId));
