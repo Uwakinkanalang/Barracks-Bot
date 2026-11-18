@@ -4,7 +4,7 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { botConfig } from '../../config/bot.js';
+import { botConfig, isBotOwner } from '../../config/bot.js';
 import { getUserLevelData } from '../../services/leveling/leveling.js';
 
 const WORK_COOLDOWN = botConfig.economy?.cooldowns?.work ?? 30 * 60 * 1000;
@@ -37,6 +37,7 @@ export default {
             const userId = interaction.user.id;
             const guildId = interaction.guildId;
             const now = Date.now();
+            const ownerBypass = isBotOwner(userId);
 
             const userData = await getEconomyData(client, guildId, userId);
 
@@ -56,7 +57,7 @@ export default {
             const extraWorkShifts = inventory["extra_work"] || 0;
             const hasLaptop = inventory["laptop"] || 0;
 
-            let cooldownActive = now < lastWork + WORK_COOLDOWN;
+            let cooldownActive = !ownerBypass && now < lastWork + WORK_COOLDOWN;
             let usedConsumable = false;
 
             if (cooldownActive) {
@@ -122,7 +123,7 @@ export default {
                     },
                     {
                         name: "⏳ Next Work",
-                        value: `<t:${Math.floor((now + WORK_COOLDOWN) / 1000)}:R>`,
+                        value: ownerBypass ? "**No cooldown (Bot Owner)**" : `<t:${Math.floor((now + WORK_COOLDOWN) / 1000)}:R>`,
                         inline: true,
                     }
                 )
