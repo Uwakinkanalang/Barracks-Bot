@@ -48,9 +48,10 @@ export function getMaxBankCapacity(userData) {
         : BASE_BANK_CAPACITY;
 
     const bankLevel = userData.bankLevel || 0;
+    const purchasedCapacity = Math.max(0, Number(userData.bankUpgradeCapacity) || 0);
     let capacity = Number.isFinite(rankCapacity) && rankCapacity > 0
-        ? rankCapacity + (bankLevel * BANK_CAPACITY_PER_LEVEL)
-        : BASE_BANK_CAPACITY + (bankLevel * BANK_CAPACITY_PER_LEVEL);
+        ? rankCapacity + (bankLevel * BANK_CAPACITY_PER_LEVEL) + purchasedCapacity
+        : BASE_BANK_CAPACITY + (bankLevel * BANK_CAPACITY_PER_LEVEL) + purchasedCapacity;
 
     const upgrades = userData.upgrades || {};
     const inventory = userData.inventory || {};
