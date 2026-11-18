@@ -53,7 +53,7 @@ async function handlePrefixCommand(message, client) {
     const trimmedContent = message.content.trim();
 
     // Bank Upgrade panel prefix command: b!bankupgrade panel
-    if (/^b!bankupgrade\\s+panel$/i.test(trimmedContent)) {
+    if (/^b!bankupgrade\s+panel$/i.test(trimmedContent)) {
       const bankUpgradeCommand = client.commands.get('bankupgrade');
       if (!message.member?.permissions?.has('ManageGuild')) {
         await message.reply('❌ You need **Manage Server** permission to post the Bank Upgrade Panel.');
