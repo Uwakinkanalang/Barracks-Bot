@@ -15,8 +15,18 @@ import { getEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
 
 const UPGRADE = botConfig.economy?.bankUpgradePackages?.single || {
   capacity: 1000000,
-  price: 500000,
+  priceTiers: [
+    { through: 5, price: 300000 },
+    { through: 10, price: 500000 },
+    { through: 15, price: 750000 },
+    { through: 20, price: 1000000 },
+  ],
 };
+
+function getUpgradePrice(purchaseNumber) {
+  const tiers = UPGRADE.priceTiers || [];
+  return tiers.find((tier) => purchaseNumber <= tier.through)?.price ?? null;
+}
 
 function formatMoney(value) {
   return `₱${Number(value).toLocaleString()}`;
@@ -45,7 +55,10 @@ function buildPanel(guildId) {
         '### 📈 CAPACITY INCREASE\n' +
         `**+${formatMoney(UPGRADE.capacity)}**\n\n` +
         '### 💰 PURCHASE PRICE\n' +
-        `**${formatMoney(UPGRADE.price)}**`
+        `**${formatMoney(getUpgradePrice(1))}** (1st–5th purchase)\n` +
+        `**${formatMoney(getUpgradePrice(6))}** (6th–10th)\n` +
+        `**${formatMoney(getUpgradePrice(11))}** (11th–15th)\n` +
+        `**${formatMoney(getUpgradePrice(16))}** (16th–20th)`
       ),
     )
     .addSeparatorComponents(
