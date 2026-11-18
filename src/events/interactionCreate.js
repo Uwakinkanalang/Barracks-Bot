@@ -319,7 +319,7 @@ export default {
               return;
             }
             const packages = botConfig.economy?.bankUpgradePackages || {};
-            const upgrade = packages[packageKey];
+            const upgrade = packageKey === 'single' ? packages.single : null;
             if (!upgrade || !Number.isSafeInteger(upgrade.capacity) || !Number.isSafeInteger(upgrade.price)) {
               await interaction.reply({ content: 'That bank upgrade is unavailable.', flags: MessageFlags.Ephemeral });
               return;
