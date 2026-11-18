@@ -20,6 +20,9 @@ const UPGRADE = botConfig.economy?.bankUpgradePackages?.single || {
     { through: 10, price: 500000 },
     { through: 15, price: 750000 },
     { through: 20, price: 1000000 },
+    { through: 30, price: 1500000 },
+    { through: 40, price: 2000000 },
+    { through: 50, price: 2500000 },
   ],
 };
 
@@ -58,7 +61,10 @@ function buildPanel(guildId) {
         `**${formatMoney(getUpgradePrice(1))}** (1st–5th purchase)\n` +
         `**${formatMoney(getUpgradePrice(6))}** (6th–10th)\n` +
         `**${formatMoney(getUpgradePrice(11))}** (11th–15th)\n` +
-        `**${formatMoney(getUpgradePrice(16))}** (16th–20th)`
+        `**${formatMoney(getUpgradePrice(16))}** (16th–20th)\n` +
+        `**${formatMoney(getUpgradePrice(21))}** (21st–30th)\n` +
+        `**${formatMoney(getUpgradePrice(31))}** (31st–40th)\n` +
+        `**${formatMoney(getUpgradePrice(41))}** (41st–50th)`
       ),
     )
     .addSeparatorComponents(
