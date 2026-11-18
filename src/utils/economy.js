@@ -34,9 +34,23 @@ export function getEconomyKey(guildId, userId) {
 
 export function getMaxBankCapacity(userData) {
     if (!userData) return BASE_BANK_CAPACITY;
-    
+
+    // Barracks rank capacity is based on the member's current leveling rank.
+    // The leveling system awards the matching role at these same thresholds.
+    const rankBankCapacities = ECONOMY_CONFIG.rankBankCapacities || {};
+    const memberLevel = Math.max(0, Number(userData.level) || 0);
+    const eligibleRanks = Object.keys(rankBankCapacities)
+        .map(Number)
+        .filter((level) => Number.isFinite(level) && level <= memberLevel)
+        .sort((a, b) => b - a);
+    const rankCapacity = eligibleRanks.length > 0
+        ? Number(rankBankCapacities[eligibleRanks[0]])
+        : BASE_BANK_CAPACITY;
+
     const bankLevel = userData.bankLevel || 0;
-    let capacity = BASE_BANK_CAPACITY + (bankLevel * BANK_CAPACITY_PER_LEVEL);
+    let capacity = Number.isFinite(rankCapacity) && rankCapacity > 0
+        ? rankCapacity + (bankLevel * BANK_CAPACITY_PER_LEVEL)
+        : BASE_BANK_CAPACITY + (bankLevel * BANK_CAPACITY_PER_LEVEL);
 
     const upgrades = userData.upgrades || {};
     const inventory = userData.inventory || {};
