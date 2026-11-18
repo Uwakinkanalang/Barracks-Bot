@@ -12,21 +12,21 @@ const BASE_WORK_AMOUNT = 700;
 const WORK_LEVEL_BONUS = 100;
 const LAPTOP_MULTIPLIER = 1.5;
 const WORK_JOB_WEIGHTS = [
-    { name: "Software Developer", chance: 3.571428571428571 },
-    { name: "Barista", chance: 3.571428571428571 },
-    { name: "Janitor", chance: 3.571428571428571 },
-    { name: "YouTuber", chance: 3.571428571428571 },
-    { name: "Cashier", chance: 3.571428571428571 },
-    { name: "Pizza Delivery Driver", chance: 3.571428571428571 },
-    { name: "Private Investigator", chance: 3.571428571428571 },
-    { name: "MMDA Traffic Enforcer", chance: 3.571428571428571 },
-    { name: "Professional Cuddler", chance: 3.571428571428571 },
-    { name: "Artista sa GMA", chance: 3.571428571428571 },
-    { name: "Professional Chismosa", chance: 3.571428571428571 },
-    { name: "Taga-bukas ng pinto sa 7-Eleven", chance: 3.571428571428571 },
-    { name: "Snatcher sa Quiapo", chance: 3.571428571428571 },
-    { name: "Albularyo", chance: 3.571428571428571 },
-    { name: "Sinabihan ng Pogi si <@1316339704454447154>", chance: 50 },
+    { name: "Software Developer", chance: 100 / 15 },
+    { name: "Barista", chance: 100 / 15 },
+    { name: "Janitor", chance: 100 / 15 },
+    { name: "YouTuber", chance: 100 / 15 },
+    { name: "Cashier", chance: 100 / 15 },
+    { name: "Pizza Delivery Driver", chance: 100 / 15 },
+    { name: "Private Investigator", chance: 100 / 15 },
+    { name: "MMDA Traffic Enforcer", chance: 100 / 15 },
+    { name: "Professional Cuddler", chance: 100 / 15 },
+    { name: "Artista sa GMA", chance: 100 / 15 },
+    { name: "Professional Chismosa", chance: 100 / 15 },
+    { name: "Taga-bukas ng pinto sa 7-Eleven", chance: 100 / 15 },
+    { name: "Snatcher sa Quiapo", chance: 100 / 15 },
+    { name: "Albularyo", chance: 100 / 15 },
+    { name: "Sinabihan ng Pogi si <@1316339704454447154>", chance: 100 / 15 },
 ];
 
 const WORK_JOB_SALARIES = {
