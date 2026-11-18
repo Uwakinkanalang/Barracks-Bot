@@ -16,13 +16,9 @@ import { getEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
 const UPGRADE = botConfig.economy?.bankUpgradePackages?.single || {
   capacity: 1000000,
   priceTiers: [
-    { through: 5, price: 300000 },
-    { through: 10, price: 500000 },
-    { through: 15, price: 750000 },
-    { through: 20, price: 1000000 },
-    { through: 30, price: 1500000 },
-    { through: 40, price: 2000000 },
-    { through: 50, price: 2500000 },
+    { through: 20, price: 300000 },
+    { through: 40, price: 500000 },
+    { through: 50, price: 1000000 },
   ],
 };
 
