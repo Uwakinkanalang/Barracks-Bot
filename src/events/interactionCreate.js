@@ -350,11 +350,11 @@ export default {
               embeds: [{
                 color: 0xD4A017,
                 author: {
-                  name: `${interaction.user.username} • BANK UPGRADE`,
+                  name: `BANK UPGRADE • @${interaction.user.username}`,
                 },
                 title: '🏦 Bank Capacity Increased!',
                 description: [
-                  'Your purchase was successful. Your expanded bank capacity is ready.',
+                  'Your purchase was successful.',
                   '',
                   '**NEW BANK CAPACITY**',
                   `# ₱${newLimit.toLocaleString()}`,
