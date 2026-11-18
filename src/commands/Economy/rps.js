@@ -44,6 +44,7 @@ function buildEmbed(game, phase = 'challenge', result = null) {
     embed.addFields(
       { name: 'Player 1', value: `<@${game.challengerId}>\n${challengerPicked ? '🔒 Choice locked in' : '⏳ Choosing...'}`, inline: true },
       { name: 'Player 2', value: `<@${game.opponentId}>\n${opponentPicked ? '🔒 Choice locked in' : '⏳ Choosing...'}`, inline: true },
+      { name: '🏅 Score (First to 3)', value: `**${game.score[game.challengerId]} - ${game.score[game.opponentId]}**`, inline: false },
     );
     return embed;
   }
@@ -65,10 +66,18 @@ function buildEmbed(game, phase = 'challenge', result = null) {
     },
   );
 
+  embed.addFields({
+    name: '🏅 Score (First to 3)',
+    value: `**${game.score[game.challengerId]} - ${game.score[game.opponentId]}**`,
+    inline: false,
+  });
+
   if (result.draw) {
-    embed.addFields({ name: '🤝 Result', value: game.bet > 0 ? `Draw! Both players get ₱${game.bet.toLocaleString()} back.` : '**It is a draw!** Nobody scores a point.' });
+    embed.addFields({ name: '🤝 Round Result', value: '**Draw!** No points awarded. The match continues.' });
+  } else if (game.score[result.winnerId] >= 3) {
+    embed.addFields({ name: '🏆 Match Winner', value: `<@${result.winnerId}> wins the match with **3 points**!${game.bet > 0 ? `\nPrize: **₱${(game.bet * 2).toLocaleString()}**` : ''}` });
   } else {
-    embed.addFields({ name: '🏆 Winner', value: game.bet > 0 ? `<@${result.winnerId}> wins the pot of **₱${(game.bet * 2).toLocaleString()}**!` : `<@${result.winnerId}> wins this round and scores **1 point**!` });
+    embed.addFields({ name: '⚔️ Round Winner', value: `<@${result.winnerId}> wins this round and earns **1 point**. First to **3 points** wins!` });
   }
 
   return embed;
@@ -160,6 +169,7 @@ export default {
       opponentAvatar: opponent.displayAvatarURL({ size: 256 }),
       bet,
       escrowed: false,
+      score: { [interaction.user.id]: 0, [opponent.id]: 0 },
       choices: {},
       accepted: false,
       finished: false,
@@ -259,21 +269,30 @@ export default {
         return;
       }
 
-      game.finished = true;
       const result = getWinner(game);
-      if (game.escrowed && game.bet > 0) {
-        if (result.draw) {
-          await addMoney(interaction.client, interaction.guildId, game.challengerId, game.bet, 'wallet');
-          await addMoney(interaction.client, interaction.guildId, game.opponentId, game.bet, 'wallet');
-        } else {
+      if (!result.draw) game.score[result.winnerId] += 1;
+
+      const matchFinished = !result.draw && game.score[result.winnerId] >= 3;
+      const resultEmbed = buildEmbed(game, 'result', result);
+
+      if (matchFinished) {
+        game.finished = true;
+        if (game.escrowed && game.bet > 0) {
           await addMoney(interaction.client, interaction.guildId, result.winnerId, game.bet * 2, 'wallet');
+          game.escrowed = false;
         }
-        game.escrowed = false;
+        collector.stop('finished');
+        await message.edit({
+          embeds: [resultEmbed],
+          components: [buildPickButtons(gameId, true)],
+        });
+        return;
       }
-      collector.stop('finished');
+
+      game.choices = {};
       await message.edit({
-        embeds: [buildEmbed(game, 'result', result)],
-        components: [buildPickButtons(gameId, true)],
+        embeds: [resultEmbed],
+        components: [buildPickButtons(gameId)],
       });
     });
 
