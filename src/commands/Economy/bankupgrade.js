@@ -1,8 +1,10 @@
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,
-  EmbedBuilder,
-  ActionRowBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SectionBuilder,
   ButtonBuilder,
   ButtonStyle,
   MessageFlags,
@@ -20,40 +22,50 @@ function formatMoney(value) {
 }
 
 function buildPanel(guildId) {
-  const embed = new EmbedBuilder()
-    .setColor(0xD4A017)
-    .setAuthor({ name: 'BARRACKS • BANKING DIVISION' })
-    .setTitle('🏦 Barracks Bank Expansion V2')
-    .setDescription(
-      'Need more room for your hard-earned Bcash?\n' +
-      'Expand your storage with a **permanent bank capacity upgrade.**'
-    )
-    .addFields(
-      {
-        name: '📈 CAPACITY INCREASE',
-        value: `**+${formatMoney(UPGRADE.capacity)}**`,
-        inline: true,
-      },
-      {
-        name: '💰 PURCHASE PRICE',
-        value: `**${formatMoney(UPGRADE.price)}**`,
-        inline: true,
-      },
-      {
-        name: '🛡️ PERMANENT UPGRADE',
-        value: 'Your purchased capacity is added on top of your **rank-based bank limit**.',
-        inline: false,
-      },
-    )
-    .setFooter({ text: 'Barracks • Bank Upgrade Depot  |  Secure your funds, expand your limits.' });
+  const purchaseButton = new ButtonBuilder()
+    .setCustomId(`bankUpgrade:buy:${guildId}:single`)
+    .setLabel('Click here to Purchase')
+    .setStyle(ButtonStyle.Success);
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`bankUpgrade:buy:${guildId}:single`)
-      .setLabel('Click here to Purchase')
-      .setStyle(ButtonStyle.Success)
-  );
-  return { embeds: [embed], components: [row] };
+  const panel = new ContainerBuilder()
+    .setAccentColor(0xD4A017)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        '# 🏦 Barracks Bank Expansion\\n' +
+        'Need more room for your hard-earned Bcash?\\n' +
+        'Expand your storage with a **permanent bank capacity upgrade.**'
+      ),
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true),
+    )
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            '### 📈 CAPACITY INCREASE\\n' +
+            `**+${formatMoney(UPGRADE.capacity)}**\\n\\n` +
+            '### 💰 PURCHASE PRICE\\n' +
+            `**${formatMoney(UPGRADE.price)}**`
+          ),
+        )
+        .setButtonAccessory(purchaseButton),
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true),
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        '🛡️ **PERMANENT UPGRADE**\\n' +
+        'Your purchased capacity is added on top of your **rank-based bank limit.**\\n\\n' +
+        '-# Barracks • Bank Upgrade Depot  |  Secure your funds, expand your limits.'
+      ),
+    );
+
+  return {
+    flags: MessageFlags.IsComponentsV2,
+    components: [panel],
+  };
 }
 
 export default {
