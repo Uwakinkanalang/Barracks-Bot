@@ -172,10 +172,21 @@ export const botConfig = {
     startingBalance: 0,
 
     // Bank capacity and transaction limits.
-    baseBankCapacity: 5000000,
-    maxBankCapacity: 5000000,
+    baseBankCapacity: 2000000,
+    maxBankCapacity: 50000000,
+    // Capacity by Barracks rank level. Members below Level 10 use the base capacity.
+    rankBankCapacities: {
+      10: 2000000,
+      20: 5000000,
+      30: 10000000,
+      40: 15000000,
+      50: 25000000,
+      60: 30000000,
+      80: 40000000,
+      100: 50000000,
+    },
     bankMinTransaction: 100,
-    bankMaxTransaction: 5000000,
+    bankMaxTransaction: 50000000,
 
     // Daily reward amount.
     dailyAmount: 5000,
