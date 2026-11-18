@@ -7,16 +7,12 @@ import {
   ButtonStyle,
   MessageFlags,
 } from 'discord.js';
-import { BotConfig } from '../../config/bot.js';
+import botConfig from '../../config/bot.js';
 import { getEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
 
-const PACKAGES = BotConfig.economy?.bankUpgradePackages || {};
-const PACKAGE_ORDER = ['small', 'medium', 'large', 'elite'];
-const LABELS = {
-  small: 'Starter',
-  medium: 'Standard',
-  large: 'Premium',
-  elite: 'Elite',
+const UPGRADE = botConfig.economy?.bankUpgradePackages?.single || {
+  capacity: 1000000,
+  price: 500000,
 };
 
 function formatMoney(value) {
@@ -28,27 +24,19 @@ function buildPanel(guildId) {
     .setColor(0xD4A017)
     .setTitle('🏦 Barracks Bank Expansion')
     .setDescription(
-      'Need more room for your hard-earned Bcash? Expand your bank with a permanent capacity upgrade.\n\n' +
-      '**How it works**\n' +
-      '• Purchases permanently add capacity on top of your rank limit.\n' +
-      '• You can buy multiple packages.\n' +
-      '• Your total bank limit cannot exceed **₱100,000,000**.\n' +
-      '• Payment is deducted from your **wallet**.'
+      'Need more room for your hard-earned Bcash? Purchase a permanent bank capacity upgrade.\n\n' +
+      '**Bank Upgrade**\n' +
+      `Increase your bank limit by **+${formatMoney(UPGRADE.capacity)}**\n` +
+      `Price: **${formatMoney(UPGRADE.price)}**\n\n` +
+      'Your upgrade stacks on top of your rank-based bank limit.'
     )
-    .addFields(PACKAGE_ORDER.filter(key => PACKAGES[key]).map(key => ({
-      name: `${LABELS[key]} — +${formatMoney(PACKAGES[key].capacity)}`,
-      value: `Price: **${formatMoney(PACKAGES[key].price)}**`,
-      inline: true,
-    })))
     .setFooter({ text: 'Barracks • Bank Upgrade Depot' });
 
   const row = new ActionRowBuilder().addComponents(
-    ...PACKAGE_ORDER.filter(key => PACKAGES[key]).map(key =>
-      new ButtonBuilder()
-        .setCustomId(`bankUpgrade:buy:${guildId}:${key}`)
-        .setLabel(`Buy ${LABELS[key]}`)
-        .setStyle(ButtonStyle.Success)
-    )
+    new ButtonBuilder()
+      .setCustomId(`bankUpgrade:buy:${guildId}:single`)
+      .setLabel(`+₱1,000,000 for ₱500,000`)
+      .setStyle(ButtonStyle.Success)
   );
   return { embeds: [embed], components: [row] };
 }
@@ -63,8 +51,7 @@ export default {
   async execute(interaction, config, client) {
     const data = await getEconomyData(client, interaction.guildId, interaction.user.id);
     const currentLimit = getMaxBankCapacity(data);
-    const panel = buildPanel(interaction.guildId);
-    await interaction.channel.send(panel);
+    await interaction.channel.send(buildPanel(interaction.guildId));
     return interaction.reply({
       content: `✅ Bank Upgrade Panel posted. Your current bank limit is **${formatMoney(currentLimit)}**.`,
       flags: MessageFlags.Ephemeral,
