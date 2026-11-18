@@ -333,11 +333,19 @@ export default {
               return;
             }
             const wallet = Number(economy.wallet) || 0;
-            if (wallet < upgrade.price) {
-              await interaction.editReply(`Not enough Bcash in your wallet.\nPrice: **₱${upgrade.price.toLocaleString()}**\nYour wallet: **₱${wallet.toLocaleString()}**`);
+            const priorPurchases = Math.floor(Math.max(0, Number(economy.bankUpgradeCapacity) || 0) / upgrade.capacity);
+            const purchaseNumber = priorPurchases + 1;
+            const priceTier = (upgrade.priceTiers || []).find((tier) => purchaseNumber <= tier.through);
+            if (!priceTier) {
+              await interaction.editReply('The bank upgrade purchase limit has been reached. Please contact an administrator.');
               return;
             }
-            economy.wallet = wallet - upgrade.price;
+            const purchasePrice = priceTier.price;
+            if (wallet < purchasePrice) {
+              await interaction.editReply(`Not enough Bcash in your wallet.\\nPurchase #${purchaseNumber} price: **₱${purchasePrice.toLocaleString()}**\\nYour wallet: **₱${wallet.toLocaleString()}**`);
+              return;
+            }
+            economy.wallet = wallet - purchasePrice;
             economy.bankUpgradeCapacity = Math.max(0, Number(economy.bankUpgradeCapacity) || 0) + upgrade.capacity;
             const saved = await setEconomyData(client, guildId, interaction.user.id, economy);
             if (!saved) {
@@ -364,7 +372,7 @@ export default {
                   name: '📋 Transaction Details',
                   value: [
                     `**Capacity Added**  ·  +₱${upgrade.capacity.toLocaleString()}`,
-                    `**Purchase Cost**  ·  ₱${upgrade.price.toLocaleString()}`,
+                    `**Purchase Cost**  ·  ₱${purchasePrice.toLocaleString()}`,
                     `**Remaining Wallet**  ·  ₱${economy.wallet.toLocaleString()}`,
                   ].join('\n'),
                   inline: false,
