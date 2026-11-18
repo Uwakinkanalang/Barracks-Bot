@@ -350,30 +350,30 @@ export default {
               embeds: [{
                 color: 0xD4A017,
                 author: {
-                  name: 'BARRACKS • BANKING',
-                  icon_url: avatarUrl,
+                  name: `${interaction.user.username} • BANK UPGRADE`,
                 },
-                title: '✅ Purchase Successful!',
+                title: '🏦 Bank Capacity Increased!',
                 description: [
-                  'Your bank expansion has been processed successfully.',
+                  'Your purchase was successful. Your expanded bank capacity is ready.',
                   '',
-                  '### 🏦 New Bank Capacity',
-                  `**₱${newLimit.toLocaleString()}**`,
-                ].join('\n'),
+                  '**NEW BANK CAPACITY**',
+                  `# ₱${newLimit.toLocaleString()}`,
+                ].join('\\n'),
                 thumbnail: { url: avatarUrl },
                 fields: [{
-                  name: '📋 Transaction Summary',
+                  name: '📋 Transaction Details',
                   value: [
-                    `**Capacity Added:** +₱${upgrade.capacity.toLocaleString()}`,
-                    `**Purchase Cost:** ₱${upgrade.price.toLocaleString()}`,
-                    `**Remaining Wallet:** ₱${economy.wallet.toLocaleString()}`,
-                  ].join('\n'),
+                    `**Capacity Added**  ·  +₱${upgrade.capacity.toLocaleString()}`,
+                    `**Purchase Cost**  ·  ₱${upgrade.price.toLocaleString()}`,
+                    `**Remaining Wallet**  ·  ₱${economy.wallet.toLocaleString()}`,
+                  ].join('\\n'),
                   inline: false,
                 }],
-                footer: { text: 'Barracks • Bank Upgrade Depot • Visible only to you' },
+                footer: { text: 'BARRACKS  •  BANK UPGRADE DEPOT  •  PRIVATE CONFIRMATION' },
                 timestamp: new Date().toISOString(),
               }],
-            });            return;
+            });
+            return;
           }
           if (interaction.customId.startsWith('rolepanel:toggle:')) {
             const [, , guildId, roleId] = interaction.customId.split(':');
