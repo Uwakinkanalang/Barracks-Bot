@@ -21,7 +21,7 @@ import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
 import { getNicknamePrefix } from '../commands/Economy/nickname.js';
 import { getItems as getBShopItems, getColorItems as getBShopColorItems, getBoosterColorItems as getBShopBoosterColorItems, buildColorShopPage, buildBoosterColorShopPage } from '../commands/Economy/roleshop.js';
-import { getEconomyData, removeMoney, addMoney } from '../utils/economy.js';
+import { getEconomyData, getMaxBankCapacity, setEconomyData, removeMoney, addMoney } from '../utils/economy.js';
 import { getClanShopItems, buildClanShopPage } from '../commands/Economy/clanshop.js';
 import { getCalendarEvents, buildCalendarPayload, parseCalendarMonth, formatCalendarEvent } from '../services/calendarService.js';
 
@@ -312,6 +312,42 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('bankUpgrade:buy:')) {
+            const [, , guildId, packageKey] = interaction.customId.split(':');
+            if (!interaction.guild || interaction.guildId !== guildId) {
+              await interaction.reply({ content: 'This bank upgrade panel belongs to another server.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const packages = botConfig.economy?.bankUpgradePackages || {};
+            const upgrade = packages[packageKey];
+            if (!upgrade || !Number.isSafeInteger(upgrade.capacity) || !Number.isSafeInteger(upgrade.price)) {
+              await interaction.reply({ content: 'That bank upgrade is unavailable.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const economy = await getEconomyData(client, guildId, interaction.user.id);
+            const currentLimit = getMaxBankCapacity(economy);
+            const maxLimit = Number(botConfig.economy?.maxBankCapacity) || 100000000;
+            if (currentLimit + upgrade.capacity > maxLimit) {
+              await interaction.editReply(`This upgrade would exceed the overall bank limit. Your current limit is **₱${currentLimit.toLocaleString()}** and the maximum is **₱${maxLimit.toLocaleString()}**. Choose a smaller package.`);
+              return;
+            }
+            const wallet = Number(economy.wallet) || 0;
+            if (wallet < upgrade.price) {
+              await interaction.editReply(`Not enough Bcash in your wallet.\nPrice: **₱${upgrade.price.toLocaleString()}**\nYour wallet: **₱${wallet.toLocaleString()}**`);
+              return;
+            }
+            economy.wallet = wallet - upgrade.price;
+            economy.bankUpgradeCapacity = Math.max(0, Number(economy.bankUpgradeCapacity) || 0) + upgrade.capacity;
+            const saved = await setEconomyData(client, guildId, interaction.user.id, economy);
+            if (!saved) {
+              await interaction.editReply('The purchase could not be saved. No bank upgrade was applied.');
+              return;
+            }
+            const newLimit = getMaxBankCapacity(economy);
+            await interaction.editReply(`✅ **Bank upgrade purchased!**\nAdded capacity: **+₱${upgrade.capacity.toLocaleString()}**\nNew bank limit: **₱${newLimit.toLocaleString()}**\nPaid: **₱${upgrade.price.toLocaleString()}**\nRemaining wallet: **₱${economy.wallet.toLocaleString()}**`);
+            return;
+          }
           if (interaction.customId.startsWith('rolepanel:toggle:')) {
             const [, , guildId, roleId] = interaction.customId.split(':');
             if (!interaction.guild || interaction.guildId !== guildId) {
