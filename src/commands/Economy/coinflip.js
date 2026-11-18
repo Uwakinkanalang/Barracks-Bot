@@ -112,6 +112,11 @@ export default {
 
         embed.setFooter({ text: `Your guess: ${guess.toUpperCase()} • Win chance: 50% • Payout on a win: 2x your bet` });
 
+        // Show the command user's avatar on BCF prefix-command result embeds.
+        if (interaction._isPrefixCommand && interaction.user?.displayAvatarURL) {
+            embed.setThumbnail(interaction.user.displayAvatarURL({ size: 256 }));
+        }
+
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'coinflip' })
 };
