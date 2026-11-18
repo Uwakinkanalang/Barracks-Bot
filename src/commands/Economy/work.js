@@ -11,18 +11,37 @@ const WORK_COOLDOWN = botConfig.economy?.cooldowns?.work ?? 30 * 60 * 1000;
 const BASE_WORK_AMOUNT = 700;
 const WORK_LEVEL_BONUS = 100;
 const LAPTOP_MULTIPLIER = 1.5;
-const WORK_JOBS = [
-    "Software Developer",
-    "Barista",
-    "Janitor",
-    "YouTuber",
-    "Discord Bot Developer",
-    "Cashier",
-    "Pizza Delivery Driver",
-    "Librarian",
-    "Gardener",
-    "Data Analyst",
+const WORK_JOB_WEIGHTS = [
+    { name: "Software Developer", chance: 3.125 },
+    { name: "Barista", chance: 3.125 },
+    { name: "Janitor", chance: 3.125 },
+    { name: "YouTuber", chance: 3.125 },
+    { name: "Discord Bot Developer", chance: 3.125 },
+    { name: "Cashier", chance: 3.125 },
+    { name: "Pizza Delivery Driver", chance: 3.125 },
+    { name: "Military Soldier", chance: 3.125 },
+    { name: "Private Investigator", chance: 3.125 },
+    { name: "MMDA Traffic Enforcer", chance: 3.125 },
+    { name: "Professional Cuddler", chance: 3.125 },
+    { name: "Artista sa GMA", chance: 3.125 },
+    { name: "Professional Chismosa", chance: 3.125 },
+    { name: "Taga-bukas ng pinto sa 7-Eleven", chance: 3.125 },
+    { name: "Snatcher sa Quiapo", chance: 3.125 },
+    { name: "Albularyo", chance: 3.125 },
+    { name: "Sinabihan ng Pogi si <@1316339704454447154>", chance: 50 },
 ];
+
+function selectWorkJob() {
+    const roll = Math.random() * 100;
+    let cumulativeChance = 0;
+
+    for (const job of WORK_JOB_WEIGHTS) {
+        cumulativeChance += job.chance;
+        if (roll < cumulativeChance) return job.name;
+    }
+
+    return WORK_JOB_WEIGHTS[WORK_JOB_WEIGHTS.length - 1].name;
+}
 
 export default {
     prefixOnly: true,
@@ -79,7 +98,7 @@ export default {
             const memberLevel = Math.max(0, Number(levelData?.level) || 0);
             const levelBonus = memberLevel * WORK_LEVEL_BONUS;
             let earned = BASE_WORK_AMOUNT + levelBonus;
-            const job = WORK_JOBS[Math.floor(Math.random() * WORK_JOBS.length)];
+            const job = selectWorkJob();
 
             const baseEarnings = earned;
             const laptopBonus = hasLaptop > 0
