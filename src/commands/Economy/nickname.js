@@ -73,7 +73,8 @@ export default {
             .setColor(0x5865F2)
             .setTitle('✏️ BARRACKS • NICKNAME CHANGE')
             .setDescription(
-                'Want a new identity in the Barracks? Change your server nickname using bCash.\n\n' +
+                'Want a new identity in the Barracks?\n' +
+                'Change your server nickname using bCash.\n\n' +
                 '**Service Price**\n' +
                 '💰 **₱300,000 bCash**\n\n' +
                 'Click the button below to enter your new nickname. Your bCash will only be charged if the nickname is changed successfully.'
