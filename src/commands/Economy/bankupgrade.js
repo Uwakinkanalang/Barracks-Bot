@@ -5,6 +5,7 @@ import {
   TextDisplayBuilder,
   SeparatorBuilder,
   SectionBuilder,
+  ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
   MessageFlags,
@@ -24,7 +25,7 @@ function formatMoney(value) {
 function buildPanel(guildId) {
   const purchaseButton = new ButtonBuilder()
     .setCustomId(`bankUpgrade:buy:${guildId}:single`)
-    .setLabel('Click here to Purchase')
+    .setLabel('Purchase')
     .setStyle(ButtonStyle.Success);
 
   const panel = new ContainerBuilder()
@@ -39,17 +40,13 @@ function buildPanel(guildId) {
     .addSeparatorComponents(
       new SeparatorBuilder().setDivider(true),
     )
-    .addSectionComponents(
-      new SectionBuilder()
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            '### 📈 CAPACITY INCREASE\n' +
-            `**+${formatMoney(UPGRADE.capacity)}**\n\n` +
-            '### 💰 PURCHASE PRICE\n' +
-            `**${formatMoney(UPGRADE.price)}**`
-          ),
-        )
-        .setButtonAccessory(purchaseButton),
+.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        '### 📈 CAPACITY INCREASE\n' +
+        `**+${formatMoney(UPGRADE.capacity)}**\n\n` +
+        '### 💰 PURCHASE PRICE\n' +
+        `**${formatMoney(UPGRADE.price)}**`
+      ),
     )
     .addSeparatorComponents(
       new SeparatorBuilder().setDivider(true),
@@ -58,6 +55,9 @@ function buildPanel(guildId) {
       new TextDisplayBuilder().setContent(
         '-# Barracks • Bank Upgrade Depot  |  Secure your funds, expand your limits.'
       ),
+    )
+    .addActionRowComponents(
+      new ActionRowBuilder().addComponents(purchaseButton),
     );
 
   return {
