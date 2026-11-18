@@ -320,7 +320,7 @@ export default {
             }
             const packages = botConfig.economy?.bankUpgradePackages || {};
             const upgrade = packageKey === 'single' ? packages.single : null;
-            if (!upgrade || !Number.isSafeInteger(upgrade.capacity) || !Number.isSafeInteger(upgrade.price)) {
+            if (!upgrade || !Number.isSafeInteger(upgrade.capacity) || !Array.isArray(upgrade.priceTiers) || upgrade.priceTiers.length === 0 || upgrade.priceTiers.some((tier) => !Number.isSafeInteger(tier.through) || !Number.isSafeInteger(tier.price) || tier.price < 0)) {
               await interaction.reply({ content: 'That bank upgrade is unavailable.', flags: MessageFlags.Ephemeral });
               return;
             }
