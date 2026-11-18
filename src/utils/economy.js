@@ -47,6 +47,11 @@ export function getMaxBankCapacity(userData) {
 
     const bankNotes = inventory['bank_note'] || 0;
     capacity += (bankNotes * 10000);
+
+    const configuredMax = Number(ECONOMY_CONFIG.maxBankCapacity);
+    if (Number.isFinite(configuredMax) && configuredMax > 0) {
+        capacity = Math.min(capacity, configuredMax);
+    }
     
     return capacity;
 }
