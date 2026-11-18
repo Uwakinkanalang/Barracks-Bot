@@ -35,7 +35,7 @@ function buildPanel(guildId) {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`bankUpgrade:buy:${guildId}:single`)
-      .setLabel(`+₱1,000,000 for ₱500,000`)
+      .setLabel('Click here to Purchase')
       .setStyle(ButtonStyle.Success)
   );
   return { embeds: [embed], components: [row] };
