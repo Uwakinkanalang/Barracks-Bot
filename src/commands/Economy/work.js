@@ -47,6 +47,8 @@ const WORK_JOB_SALARIES = {
     "Snatcher sa Quiapo": 2000,
     "Albularyo": 2800,
     "Sinabihan ng Pogi si <@1316339704454447154>": 10000,
+    "Video editor ni <@748548558868709507>": 5000,
+    "Vivamax Artist": 5000,
 };
 
 function selectWorkJob() {
