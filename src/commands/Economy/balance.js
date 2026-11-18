@@ -62,34 +62,35 @@ export default {
         const wallet = typeof userData.wallet === 'number' ? userData.wallet : 0;
         const bank = typeof userData.bank === 'number' ? userData.bank : 0;
 
-            const embed = createEmbed({
-                title: `${displayName}'s Balance`,
-                description: `Here is the current financial status for ${displayName}.`,
-            })
-                .addFields(
-                    {
-                        name: "💵 Cash",
-                        value: `₱${wallet.toLocaleString()}`,
-                        inline: true,
-                    },
-                    {
-                        name: "🏦 Bank",
-                        value: `₱${bank.toLocaleString()}`,
-                        inline: true,
-                    },
-                    {
-                        name: "💰 Total",
-                        value: `₱${(wallet + bank).toLocaleString()}`,
-                        inline: true,
-                    }
-                )
-                .setFooter({
-                    text: `Requested by ${interaction.user.tag}`,
-                    iconURL: interaction.user.displayAvatarURL(),
-                });
+        const embed = createEmbed({
+            title: `${displayName}'s Balance`,
+            description: `Here is the current financial status for ${displayName}.`,
+        })
+            .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
+            .addFields(
+                {
+                    name: "💵 Cash",
+                    value: `₱${wallet.toLocaleString()}`,
+                    inline: true,
+                },
+                {
+                    name: "🏦 Bank",
+                    value: `₱${bank.toLocaleString()}`,
+                    inline: true,
+                },
+                {
+                    name: "💰 Total",
+                    value: `₱${(wallet + bank).toLocaleString()}`,
+                    inline: true,
+                }
+            )
+            .setFooter({
+                text: `Requested by ${interaction.user.tag}`,
+                iconURL: interaction.user.displayAvatarURL(),
+            });
 
-            logger.info(`[ECONOMY] Balance retrieved`, { userId: targetUser.id, wallet, bank });
+        logger.info(`[ECONOMY] Balance retrieved`, { userId: targetUser.id, wallet, bank });
 
-            await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'balance' })
 };
