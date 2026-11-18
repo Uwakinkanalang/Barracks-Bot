@@ -49,6 +49,10 @@ export default {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false),
   category: 'Economy',
+  // Required by the command loader; this command is prefix-only and is not registered as a slash command.
+  async execute(interaction) {
+    return interaction.reply({ content: 'Use `b!bankupgrade panel` to post the Bank Upgrade Panel.', flags: MessageFlags.Ephemeral });
+  },
   async prefixExecute(interaction, config, client) {
     const hasBankPanelAccess = interaction.member?.permissions?.has(PermissionFlagsBits.ManageGuild) || interaction.member?.roles?.cache?.has('1557784202844446750');
     if (!hasBankPanelAccess) {
