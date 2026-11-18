@@ -240,11 +240,15 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
-    // Server-owner-only entry point for the paid nickname panel.
+    // Authorized staff entry point for the paid nickname panel.
     // Keep this ahead of category/command-access gates.
     if (/^b!nickname\s+panel$/i.test(trimmedContent)) {
-      if (message.author.id !== message.guild.ownerId) {
-        await message.reply('❌ Only the **server owner** can post the nickname change panel.');
+      const hasNicknamePanelAccess =
+        message.author.id === message.guild.ownerId ||
+        message.member?.permissions?.has('ManageGuild') ||
+        message.member?.roles?.cache?.has('1557784202844446750');
+      if (!hasNicknamePanelAccess) {
+        await message.reply('❌ You need **Manage Server** permission or the authorized Nickname Panel role to post this panel.');
         return;
       }
       const nicknameCommand = client.commands.get('nickname');
