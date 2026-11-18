@@ -78,6 +78,7 @@ export default {
                 '💰 **₱300,000 bCash**\n\n' +
                 'Click the button below to enter your new nickname. Your bCash will only be charged if the nickname is changed successfully.'
             )
+            .setImage('https://cdn.discordapp.com/attachments/1137703586730618961/1572694900573474886/Nick_pic.png?ex=6aff4dc3&is=6afdfc43&hm=bcf7775c1dd33331ee21bded44ef9ff1afa24643f807e3a6138bc07096ecae80')
             .setFooter({ text: 'Barracks • Nickname Services' });
 
         const row = new ActionRowBuilder().addComponents(
