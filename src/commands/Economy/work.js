@@ -29,7 +29,7 @@ const WORK_JOB_WEIGHTS = [
     { name: "Sinabihan ng Pogi si <@1316339704454447154>", chance: 50 / 17 },
     { name: "Video editor ni <@748548558868709507>", chance: 50 / 17 },
     { name: "Vivamax Artist", chance: 50 / 17 },
-    { name: "[PAPS WORKS](https://www.facebook.com/profile.php?id=61573478493835) Motorshop - <@750989582887157781>", chance: 50 },
+    { name: "[**PAPS WORKS**](https://www.facebook.com/profile.php?id=61573478493835) Motorshop ni <@750989582887157781>", chance: 50 },
 ];
 
 const WORK_JOB_SALARIES = {
@@ -50,7 +50,7 @@ const WORK_JOB_SALARIES = {
     "Sinabihan ng Pogi si <@1316339704454447154>": 10000,
     "Video editor ni <@748548558868709507>": 5000,
     "Vivamax Artist": 5000,
-    "[PAPS WORKS](https://www.facebook.com/profile.php?id=61573478493835) Motorshop - <@750989582887157781>": BASE_WORK_AMOUNT,
+    "[**PAPS WORKS**](https://www.facebook.com/profile.php?id=61573478493835) Motorshop ni <@750989582887157781>": BASE_WORK_AMOUNT,
 };
 
 function selectWorkJob() {
