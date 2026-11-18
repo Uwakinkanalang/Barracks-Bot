@@ -345,7 +345,19 @@ export default {
               return;
             }
             const newLimit = getMaxBankCapacity(economy);
-            await interaction.editReply(`✅ **Bank upgrade purchased!**\nAdded capacity: **+₱${upgrade.capacity.toLocaleString()}**\nNew bank limit: **₱${newLimit.toLocaleString()}**\nPaid: **₱${upgrade.price.toLocaleString()}**\nRemaining wallet: **₱${economy.wallet.toLocaleString()}**`);
+            await interaction.editReply({
+              embeds: [{
+                color: 0xD4A017,
+                title: '🏦 Bank Capacity Increased!',
+                description: `Your bank capacity has been successfully increased.\n\n**Your new bank capacity is ₱${newLimit.toLocaleString()}**`,
+                fields: [
+                  { name: 'Capacity Added', value: `+₱${upgrade.capacity.toLocaleString()}`, inline: true },
+                  { name: 'Purchase Cost', value: `₱${upgrade.price.toLocaleString()}`, inline: true },
+                  { name: 'Remaining Wallet', value: `₱${economy.wallet.toLocaleString()}`, inline: true },
+                ],
+                footer: { text: 'Barracks • This message is only visible to you' },
+              }],
+            });
             return;
           }
           if (interaction.customId.startsWith('rolepanel:toggle:')) {
