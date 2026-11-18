@@ -18,6 +18,8 @@ function buildEmbed(game, phase = 'challenge', result = null) {
   const embed = new EmbedBuilder()
     .setColor(result?.winnerId ? 0x2ECC71 : result?.draw ? 0xF1C40F : 0x5865F2)
     .setTitle('✊ ROCK • PAPER • SCISSORS')
+    .setAuthor({ name: game.challengerName, iconURL: game.challengerAvatar })
+    .setThumbnail(game.opponentAvatar)
     .setFooter({ text: 'Barracks • Two-Player Challenge' });
 
   if (phase === 'challenge') {
@@ -155,6 +157,8 @@ export default {
       opponentId: opponent.id,
       challengerName: interaction.member?.displayName || interaction.user.username,
       opponentName: opponentMember.displayName || opponent.username,
+      challengerAvatar: interaction.user.displayAvatarURL({ size: 256 }),
+      opponentAvatar: opponent.displayAvatarURL({ size: 256 }),
       bet,
       escrowed: false,
       choices: {},
@@ -192,7 +196,7 @@ export default {
           game.finished = true;
           collector.stop('declined');
           await message.edit({
-            embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK • PAPER • SCISSORS').setDescription(`<@${game.opponentId}> declined the challenge from <@${game.challengerId}>.`).setFooter({ text: 'Barracks • Two-Player Challenge' })],
+            embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK • PAPER • SCISSORS').setDescription(`<@${game.opponentId}> declined the challenge from <@${game.challengerId}>.`).setAuthor({ name: game.challengerName, iconURL: game.challengerAvatar }).setThumbnail(game.opponentAvatar).setFooter({ text: 'Barracks • Two-Player Challenge' })],
             components: [],
           });
           return;
@@ -207,7 +211,7 @@ export default {
           if ((a?.wallet || 0) < game.bet || (b?.wallet || 0) < game.bet) {
             game.finished = true;
             collector.stop('insufficient_funds');
-            await message.edit({ embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK • PAPER • SCISSORS').setDescription('Challenge cancelled: both players must have enough cash to cover the bet.')], components: [] });
+            await message.edit({ embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK • PAPER • SCISSORS').setDescription('Challenge cancelled: both players must have enough cash to cover the bet.').setAuthor({ name: game.challengerName, iconURL: game.challengerAvatar }).setThumbnail(game.opponentAvatar)], components: [] });
             return;
           }
           await removeMoney(interaction.client, interaction.guildId, game.challengerId, game.bet, 'wallet');
@@ -292,6 +296,8 @@ export default {
           .setColor(0x95A5A6)
           .setTitle('✊ ROCK • PAPER • SCISSORS')
           .setDescription(description)
+          .setAuthor({ name: game.challengerName, iconURL: game.challengerAvatar })
+          .setThumbnail(game.opponentAvatar)
           .setFooter({ text: 'Barracks • Two-Player Challenge' })],
         components: [],
       }).catch(() => {});
