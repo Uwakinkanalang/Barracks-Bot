@@ -22,15 +22,30 @@ function formatMoney(value) {
 function buildPanel(guildId) {
   const embed = new EmbedBuilder()
     .setColor(0xD4A017)
+    .setAuthor({ name: 'BARRACKS • BANKING DIVISION' })
     .setTitle('🏦 Barracks Bank Expansion')
     .setDescription(
-      'Need more room for your hard-earned Bcash? Purchase a permanent bank capacity upgrade.\n\n' +
-      '**Bank Upgrade**\n' +
-      `Increase your bank limit by **+${formatMoney(UPGRADE.capacity)}**\n` +
-      `Price: **${formatMoney(UPGRADE.price)}**\n\n` +
-      'Your upgrade stacks on top of your rank-based bank limit.'
+      'Need more room for your hard-earned Bcash?\\n' +
+      'Expand your storage with a **permanent bank capacity upgrade.**'
     )
-    .setFooter({ text: 'Barracks • Bank Upgrade Depot' });
+    .addFields(
+      {
+        name: '📈 CAPACITY INCREASE',
+        value: `**+${formatMoney(UPGRADE.capacity)}**`,
+        inline: true,
+      },
+      {
+        name: '💰 PURCHASE PRICE',
+        value: `**${formatMoney(UPGRADE.price)}**`,
+        inline: true,
+      },
+      {
+        name: '🛡️ PERMANENT UPGRADE',
+        value: 'Your purchased capacity is added on top of your **rank-based bank limit**.',
+        inline: false,
+      },
+    )
+    .setFooter({ text: 'Barracks • Bank Upgrade Depot  |  Secure your funds, expand your limits.' });
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
