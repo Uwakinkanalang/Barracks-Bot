@@ -103,6 +103,8 @@ export default {
                     },
                 );
 
+            embed.setThumbnail(interaction.user.displayAvatarURL({ extension: 'png', size: 256 }));
+
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'withdraw' })
 };
