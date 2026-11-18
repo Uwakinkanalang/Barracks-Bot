@@ -97,8 +97,9 @@ export default {
             const levelData = await getUserLevelData(client, guildId, userId);
             const memberLevel = Math.max(0, Number(levelData?.level) || 0);
             const levelBonus = memberLevel * WORK_LEVEL_BONUS;
-            let earned = BASE_WORK_AMOUNT + levelBonus;
             const job = selectWorkJob();
+            const jobBasePay = job.startsWith("Sinabihan ng Pogi si") ? 10000 : BASE_WORK_AMOUNT;
+            let earned = jobBasePay + levelBonus;
 
             const baseEarnings = earned;
             const laptopBonus = hasLaptop > 0
@@ -125,7 +126,7 @@ export default {
             });
 
             const earningsBreakdown = [
-                `• Base pay: **₱${BASE_WORK_AMOUNT.toLocaleString()}**`,
+                `• Base pay: **₱${jobBasePay.toLocaleString()}**`,
                 `• Level bonus (Level ${memberLevel}): **+₱${levelBonus.toLocaleString()}**`,
                 ...(hasLaptop > 0 ? [`• Laptop bonus (+50%): **+₱${laptopBonus.toLocaleString()}**`] : []),
             ].join("\n");
