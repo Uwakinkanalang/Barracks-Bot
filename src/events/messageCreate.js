@@ -391,11 +391,21 @@ async function handlePrefixCommand(message, client) {
               : bareCoinFlipMatch
               ? (() => {
                   const parts = bareCoinFlipMatch[1] ? bareCoinFlipMatch[1].trim().split(/\s+/) : [];
-                  if (parts[0]?.toLowerCase() === 't' || parts[0]?.toLowerCase() === 'tails') {
+                  const first = parts[0]?.toLowerCase();
+                  const last = parts[1]?.toLowerCase();
+
+                  // Accept both bcf t 1000 and bcf 1000 t (same for heads).
+                  if (first === 't' || first === 'tails') {
                     return { commandName: 'coinflip', args: [parts[1] || '', 'tails'] };
                   }
-                  if (parts[0]?.toLowerCase() === 'h' || parts[0]?.toLowerCase() === 'heads') {
+                  if (first === 'h' || first === 'heads') {
                     return { commandName: 'coinflip', args: [parts[1] || '', 'heads'] };
+                  }
+                  if (last === 't' || last === 'tails') {
+                    return { commandName: 'coinflip', args: [parts[0] || '', 'tails'] };
+                  }
+                  if (last === 'h' || last === 'heads') {
+                    return { commandName: 'coinflip', args: [parts[0] || '', 'heads'] };
                   }
                   return { commandName: 'coinflip', args: [parts[0] || '', 'heads'] };
                 })()
