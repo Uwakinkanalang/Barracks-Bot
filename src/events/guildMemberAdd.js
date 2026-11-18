@@ -8,7 +8,6 @@ import { getServerCounters, updateCounter } from '../services/serverstatsService
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { processInviteReward } from '../utils/inviteRewards.js';
-import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 export default {
   name: Events.GuildMemberAdd,
@@ -58,7 +57,7 @@ export default {
                 if (cardBackground) {
                     try {
                         const card = await buildWelcomeCard(member, cardBackground, guild.memberCount);
-                        const cardAttachment = new AttachmentBuilder(card, { name: 'barracks-welcome-card.png' });
+                        const cardAttachment = new AttachmentBuilder(card, { name: 'barracks-welcome-card.svg' });
                         const welcomeEmbed = new EmbedBuilder()
                             .setColor('#59633B')
                             .setAuthor({ name: 'Welcome to Barracks' })
@@ -69,7 +68,7 @@ export default {
                                 '• After that, you can chat with us here <#1137695061501558905>\n\n' +
                                 'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
                             )
-                            .setImage('attachment://barracks-welcome-card.png')
+                            .setImage('attachment://barracks-welcome-card.svg')
                             .setFooter({ text: `We already have ${guild.memberCount} members` });
                         await channel.send({
                             content: `Welcome our new member, **${user.toString()}**`,
@@ -251,56 +250,35 @@ async function buildWelcomeCard(member, backgroundUrl, memberCount) {
 
     const background = Buffer.from(await backgroundResponse.arrayBuffer()).toString('base64');
     const avatar = Buffer.from(await avatarResponse.arrayBuffer()).toString('base64');
-    const rawDisplayName = member.displayName || member.user.username;
-    const nameFontSize = Math.max(30, Math.min(52, Math.floor(1000 / Math.max(rawDisplayName.length, 1))));
+    const displayName = escapeSvgText(member.displayName || member.user.username);
+    const memberNumber = Number(memberCount).toLocaleString('en-US');
+    const nameFontSize = Math.max(34, Math.min(64, Math.floor(760 / Math.max(displayName.length, 1))));
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="670" viewBox="0 0 1200 670">
       <defs>
-        <clipPath id="avatarClip"><circle cx="600" cy="292" r="112"/></clipPath>
-        <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10150c" stop-opacity=".38"/><stop offset="1" stop-color="#10150c" stop-opacity=".76"/></linearGradient>
+        <clipPath id="avatarClip"><circle cx="190" cy="335" r="112"/></clipPath>
+        <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10150c" stop-opacity=".28"/><stop offset="1" stop-color="#10150c" stop-opacity=".68"/></linearGradient>
         <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>
       </defs>
       <image x="0" y="0" width="1200" height="670" preserveAspectRatio="xMidYMid slice" xlink:href="data:${backgroundType};base64,${background}"/>
-      <rect width="1200" height="670" fill="#17200f" opacity=".18"/>
+      <rect width="1200" height="670" fill="#17200f" opacity=".14"/>
       <path d="M0 0H1200V670H0Z" fill="url(#shade)"/>
       <rect x="34" y="34" width="1132" height="602" rx="26" fill="none" stroke="#d0c79e" stroke-width="5" opacity=".86"/>
       <path d="M75 88H1125M75 582H1125" stroke="#d0c79e" stroke-width="4" opacity=".75"/>
-      <g fill="#d8d0ad" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700">
-        <text x="600" y="126" font-size="25" letter-spacing="12">BARRACKS • NEW RECRUIT</text>
+      <text x="600" y="126" text-anchor="middle" fill="#f4edcf" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="9" stroke="#17200f" stroke-width="2" paint-order="stroke">BARRACKS • NEW RECRUIT</text>
+      <circle cx="190" cy="335" r="128" fill="#1c2815" opacity=".75" filter="url(#shadow)"/>
+      <circle cx="190" cy="335" r="120" fill="#d0c79e" stroke="#26351d" stroke-width="9"/>
+      <image x="78" y="223" width="224" height="224" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:${avatarType};base64,${avatar}"/>
+      <circle cx="190" cy="335" r="116" fill="none" stroke="#e3dcc0" stroke-width="5"/>
+      <g font-family="Arial, Helvetica, sans-serif" text-anchor="start">
+        <text x="365" y="270" fill="#fff7dc" font-size="86" font-weight="900" letter-spacing="2" stroke="#17200f" stroke-width="9" paint-order="stroke">WELCOME</text>
+        <text x="370" y="370" fill="#ffffff" font-size="${nameFontSize}" font-weight="900" stroke="#17200f" stroke-width="7" paint-order="stroke">${displayName}</text>
+        <text x="374" y="445" fill="#f4edcf" font-size="38" font-weight="800" letter-spacing="2" stroke="#17200f" stroke-width="5" paint-order="stroke">MEMBER #${memberNumber}</text>
       </g>
-      <circle cx="600" cy="292" r="128" fill="#1c2815" opacity=".75" filter="url(#shadow)"/>
-      <circle cx="600" cy="292" r="120" fill="#d0c79e" stroke="#26351d" stroke-width="9"/>
-      <image x="488" y="180" width="224" height="224" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:${avatarType};base64,${avatar}"/>
-      <circle cx="600" cy="292" r="116" fill="none" stroke="#e3dcc0" stroke-width="5"/>
       <g fill="#d0c79e"><path d="M1015 510l18 38 42 6-30 29 7 41-37-20-37 20 7-41-30-29 42-6z" opacity=".9"/></g>
+      <text x="600" y="610" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#e8e1c5" letter-spacing="5" stroke="#17200f" stroke-width="2" paint-order="stroke">HONOR • COURAGE • COMMITMENT</text>
     </svg>`;
-    const image = await loadImage(Buffer.from(svg, 'utf8'));
-    const canvas = createCanvas(1200, 670);
-    const context = canvas.getContext('2d');
-    context.drawImage(image, 0, 0, 1200, 670);
-
-    // Draw the two welcome lines directly on the canvas so they render reliably.
-    context.save();
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.lineJoin = 'round';
-
-    context.font = '900 78px Arial, Helvetica, sans-serif';
-    context.lineWidth = 10;
-    context.strokeStyle = '#18210f';
-    context.strokeText('Welcome', 600, 462);
-    context.fillStyle = '#fff7dc';
-    context.fillText('Welcome', 600, 462);
-
-    context.font = `900 ${nameFontSize}px Arial, Helvetica, sans-serif`;
-    context.lineWidth = 8;
-    context.strokeStyle = '#18210f';
-    context.strokeText(rawDisplayName, 600, 535);
-    context.fillStyle = '#ffffff';
-    context.fillText(rawDisplayName, 600, 535);
-    context.restore();
-
-    return canvas.toBuffer('image/png');
+    return Buffer.from(svg, 'utf8');
 }
 
 function escapeSvgText(value) {
