@@ -342,7 +342,7 @@ export default {
             }
             const purchasePrice = priceTier.price;
             if (wallet < purchasePrice) {
-              await interaction.editReply(`Not enough Bcash in your wallet.\\nPurchase #${purchaseNumber} price: **₱${purchasePrice.toLocaleString()}**\\nYour wallet: **₱${wallet.toLocaleString()}**`);
+              await interaction.editReply(`Not enough Bcash in your wallet.\nPurchase #${purchaseNumber} price: **₱${purchasePrice.toLocaleString()}**\nYour wallet: **₱${wallet.toLocaleString()}**`);
               return;
             }
             economy.wallet = wallet - purchasePrice;
