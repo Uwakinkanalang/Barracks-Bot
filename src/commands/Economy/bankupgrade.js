@@ -56,8 +56,6 @@ function buildPanel(guildId) {
     )
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        '🛡️ **PERMANENT UPGRADE**\n' +
-        'Your purchased capacity is added on top of your **rank-based bank limit.**\n\n' +
         '-# Barracks • Bank Upgrade Depot  |  Secure your funds, expand your limits.'
       ),
     );
