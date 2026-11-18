@@ -345,20 +345,35 @@ export default {
               return;
             }
             const newLimit = getMaxBankCapacity(economy);
+            const avatarUrl = interaction.user.displayAvatarURL({ extension: 'png', size: 256 });
             await interaction.editReply({
               embeds: [{
                 color: 0xD4A017,
-                title: '🏦 Bank Capacity Increased!',
-                description: `Your bank capacity has been successfully increased.\n\n**Your new bank capacity is ₱${newLimit.toLocaleString()}**`,
-                fields: [
-                  { name: 'Capacity Added', value: `+₱${upgrade.capacity.toLocaleString()}`, inline: true },
-                  { name: 'Purchase Cost', value: `₱${upgrade.price.toLocaleString()}`, inline: true },
-                  { name: 'Remaining Wallet', value: `₱${economy.wallet.toLocaleString()}`, inline: true },
-                ],
-                footer: { text: 'Barracks • This message is only visible to you' },
+                author: {
+                  name: 'BARRACKS • BANKING',
+                  icon_url: avatarUrl,
+                },
+                title: '✅ Purchase Successful!',
+                description: [
+                  'Your bank expansion has been processed successfully.',
+                  '',
+                  '### 🏦 New Bank Capacity',
+                  `**₱${newLimit.toLocaleString()}**`,
+                ].join('\n'),
+                thumbnail: { url: avatarUrl },
+                fields: [{
+                  name: '📋 Transaction Summary',
+                  value: [
+                    `**Capacity Added:** +₱${upgrade.capacity.toLocaleString()}`,
+                    `**Purchase Cost:** ₱${upgrade.price.toLocaleString()}`,
+                    `**Remaining Wallet:** ₱${economy.wallet.toLocaleString()}`,
+                  ].join('\n'),
+                  inline: false,
+                }],
+                footer: { text: 'Barracks • Bank Upgrade Depot • Visible only to you' },
+                timestamp: new Date().toISOString(),
               }],
-            });
-            return;
+            });            return;
           }
           if (interaction.customId.startsWith('rolepanel:toggle:')) {
             const [, , guildId, roleId] = interaction.customId.split(':');
