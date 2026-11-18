@@ -52,6 +52,29 @@ async function handlePrefixCommand(message, client) {
     const prefix = guildConfig?.prefix || getCommandPrefix();
     const trimmedContent = message.content.trim();
 
+    // Bank Upgrade panel prefix command: b!bankupgrade panel
+    if (/^b!bankupgrade\\s+panel$/i.test(trimmedContent)) {
+      const bankUpgradeCommand = client.commands.get('bankupgrade');
+      if (!message.member?.permissions?.has('ManageGuild')) {
+        await message.reply('❌ You need **Manage Server** permission to post the Bank Upgrade Panel.');
+        return;
+      }
+      if (!bankUpgradeCommand?.prefixExecute) {
+        logger.error('Bank Upgrade panel command is not loaded.');
+        await message.reply('❌ The Bank Upgrade Panel command is unavailable. Please contact an administrator.');
+        return;
+      }
+      await bankUpgradeCommand.prefixExecute({
+        guildId: message.guild.id,
+        guild: message.guild,
+        channel: message.channel,
+        member: message.member,
+        user: message.author,
+        reply: payload => message.reply(payload),
+      }, guildConfig, client);
+      return;
+    }
+
     // Standalone Clan Shop panel and owner-only text management commands.
     if (await handleClanShopPrefixCommand(message, client)) return;
 
