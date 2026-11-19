@@ -88,8 +88,8 @@ export default {
 
         const embed = new EmbedBuilder()
             .setColor(0xD4AF37)
-            .setTitle('🧮 BARRACKS MATH CHALLENGE')
-            .setDescription(`Solve this question to earn **₱${REWARD.toLocaleString()} bCash**!\n\n## ${question}\n\nYou have **30 seconds**. The first correct answer wins!`)
+            .setTitle(isHard ? '🔥 BARRACKS HARD MATH CHALLENGE' : '🧮 BARRACKS MATH CHALLENGE')
+            .setDescription(`Solve this ${isHard ? '**HARD** ' : ''}question to earn **₱${REWARD.toLocaleString()} bCash**!\n\n## ${question}\n\nYou have **${isHard ? '60' : '30'} seconds**. The first correct answer wins!`)
             .setFooter({ text: 'Type your answer in this channel.' });
 
 
