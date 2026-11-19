@@ -136,7 +136,7 @@ export default {
                     const timeoutEmbed = new EmbedBuilder()
                         .setColor(0xE74C3C)
                         .setTitle('⏰ TIME’S UP!')
-                        .setDescription(`No one got it in time. The correct answer was **${answer}**. Better luck next round!`);
+                        .setDescription(`No one managed to solve it in time!\n\nThe correct answer was **${answer}**.\n\nBetter luck next round, soldiers! 🫡`);
                     await interaction.channel.send({ embeds: [timeoutEmbed] }).catch(() => {});
                 }
             });
