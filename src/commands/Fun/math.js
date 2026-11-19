@@ -121,7 +121,11 @@ export default {
                     const winEmbed = new EmbedBuilder()
                         .setColor(0x2ECC71)
                         .setTitle('✅ CORRECT ANSWER!')
-                        .setDescription(`<@${message.author.id}> solved **${question}** correctly and earned **₱${REWARD.toLocaleString()} bCash**!`)
+                        .setDescription(`<@${message.author.id}> solved **${question}** correctly!
+
+The correct answer was **${answer}**.
+
+You earned **₱${REWARD.toLocaleString()} bCash**!`)
                         .setFooter({ text: `New wallet balance: ₱${Number(userData.wallet).toLocaleString()}` });
                     await message.reply({ embeds: [winEmbed] });
                 } catch (error) {
