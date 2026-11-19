@@ -57,7 +57,7 @@ async function handlePrefixCommand(message, client) {
     const trimmedContent = message.content.trim();
 
     // Barracks Lotto public entry panel.
-    if (/^b!lotto\\s+panel$/i.test(trimmedContent)) {
+    if (/^b!lotto\s+panel$/i.test(trimmedContent)) {
       if (!message.member?.permissions?.has(PermissionFlagsBits.ManageGuild)) {
         await message.reply('❌ You need **Manage Server** permission to create the Barracks Lotto panel.');
         return;
