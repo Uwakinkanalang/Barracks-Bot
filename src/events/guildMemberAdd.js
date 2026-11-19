@@ -257,38 +257,49 @@ export async function buildWelcomeCard(member, backgroundUrl, memberCount) {
     const backgroundType = backgroundResponse.headers.get('content-type') || 'image/jpeg';
     const avatarType = avatarResponse.headers.get('content-type') || 'image/png';
     if (!backgroundType.startsWith('image/') || !avatarType.startsWith('image/')) {
-        throw new Error('Welcome background and avatar must be image files.');
+        throw new Error('Welcome background and member avatar must be image files.');
     }
 
     const background = Buffer.from(await backgroundResponse.arrayBuffer()).toString('base64');
     const avatar = Buffer.from(await avatarResponse.arrayBuffer()).toString('base64');
     const displayName = escapeSvgText(member.displayName || member.user.username);
     const memberNumber = Number(memberCount).toLocaleString('en-US');
-    const nameFontSize = Math.max(34, Math.min(64, Math.floor(760 / Math.max(displayName.length, 1))));
+    const nameFontSize = Math.max(30, Math.min(52, Math.floor(850 / Math.max(displayName.length, 1))));
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="670" viewBox="0 0 1200 670">
+    // Wide, centered neon welcome banner inspired by the supplied reference.
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="580" viewBox="0 0 1200 580">
       <defs>
-        <clipPath id="avatarClip"><circle cx="190" cy="335" r="112"/></clipPath>
-        <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10150c" stop-opacity=".28"/><stop offset="1" stop-color="#10150c" stop-opacity=".68"/></linearGradient>
-        <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>
+        <clipPath id="avatarClip"><circle cx="600" cy="184" r="108"/></clipPath>
+        <linearGradient id="overlay" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#08051d" stop-opacity=".28"/>
+          <stop offset=".58" stop-color="#10051f" stop-opacity=".20"/>
+          <stop offset="1" stop-color="#080515" stop-opacity=".86"/>
+        </linearGradient>
+        <radialGradient id="pinkGlow">
+          <stop offset=".58" stop-color="#ff31c8" stop-opacity=".04"/>
+          <stop offset=".78" stop-color="#ff31c8" stop-opacity=".48"/>
+          <stop offset="1" stop-color="#ff31c8" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="neon" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="15"/>
+        </filter>
+        <filter id="textShadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur"/>
+          <feOffset dy="3" result="offset"/>
+          <feComponentTransfer><feFuncA type="linear" slope=".8"/></feComponentTransfer>
+          <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
       </defs>
-      <image x="0" y="0" width="1200" height="670" preserveAspectRatio="xMidYMid slice" xlink:href="data:${backgroundType};base64,${background}"/>
-      <rect width="1200" height="670" fill="#17200f" opacity=".14"/>
-      <path d="M0 0H1200V670H0Z" fill="url(#shade)"/>
-      <rect x="34" y="34" width="1132" height="602" rx="26" fill="none" stroke="#d0c79e" stroke-width="5" opacity=".86"/>
-      <path d="M75 88H1125M75 582H1125" stroke="#d0c79e" stroke-width="4" opacity=".75"/>
-      <text x="600" y="126" text-anchor="middle" fill="#f4edcf" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="9" stroke="#17200f" stroke-width="2" paint-order="stroke">BARRACKS • NEW RECRUIT</text>
-      <circle cx="190" cy="335" r="128" fill="#1c2815" opacity=".75" filter="url(#shadow)"/>
-      <circle cx="190" cy="335" r="120" fill="#d0c79e" stroke="#26351d" stroke-width="9"/>
-      <image x="78" y="223" width="224" height="224" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:${avatarType};base64,${avatar}"/>
-      <circle cx="190" cy="335" r="116" fill="none" stroke="#e3dcc0" stroke-width="5"/>
-      <g font-family="Arial, Helvetica, sans-serif" text-anchor="start">
-        <text x="365" y="270" fill="#fff7dc" font-size="86" font-weight="900" letter-spacing="2" stroke="#17200f" stroke-width="9" paint-order="stroke">WELCOME</text>
-        <text x="370" y="370" fill="#ffffff" font-size="${nameFontSize}" font-weight="900" stroke="#17200f" stroke-width="7" paint-order="stroke">${displayName}</text>
-        <text x="374" y="445" fill="#f4edcf" font-size="38" font-weight="800" letter-spacing="2" stroke="#17200f" stroke-width="5" paint-order="stroke">MEMBER #${memberNumber}</text>
-      </g>
-      <g fill="#d0c79e"><path d="M1015 510l18 38 42 6-30 29 7 41-37-20-37 20 7-41-30-29 42-6z" opacity=".9"/></g>
-      <text x="600" y="610" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#e8e1c5" letter-spacing="5" stroke="#17200f" stroke-width="2" paint-order="stroke">HONOR • COURAGE • COMMITMENT</text>
+      <image x="0" y="0" width="1200" height="580" preserveAspectRatio="xMidYMid slice" xlink:href="data:${backgroundType};base64,${background}"/>
+      <rect width="1200" height="580" fill="url(#overlay)"/>
+      <ellipse cx="600" cy="184" rx="190" ry="190" fill="url(#pinkGlow)"/>
+      <circle cx="600" cy="184" r="125" fill="none" stroke="#ff36d2" stroke-width="18" opacity=".85" filter="url(#neon)"/>
+      <circle cx="600" cy="184" r="116" fill="#130a24" stroke="#ff8ae9" stroke-width="8"/>
+      <image x="492" y="76" width="216" height="216" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" xlink:href="data:${avatarType};base64,${avatar}"/>
+      <circle cx="600" cy="184" r="110" fill="none" stroke="#fff0ff" stroke-width="5"/>
+      <text x="600" y="405" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="116" font-weight="900" letter-spacing="1" fill="#ffffff" stroke="#180c2a" stroke-width="8" paint-order="stroke" filter="url(#textShadow)">WELCOME</text>
+      <text x="600" y="463" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${nameFontSize}" font-weight="900" letter-spacing="2" fill="#fff4ff" stroke="#180c2a" stroke-width="6" paint-order="stroke" filter="url(#textShadow)">${displayName}</text>
+      <text x="600" y="510" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="800" letter-spacing="4" fill="#ffd8fa" stroke="#180c2a" stroke-width="4" paint-order="stroke">MEMBER #${memberNumber}</text>
     </svg>`;
     return Buffer.from(svg, 'utf8');
 }
