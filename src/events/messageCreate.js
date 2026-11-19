@@ -4,6 +4,9 @@ import { getLevelingConfig, getUserLevelData } from '../services/leveling/leveli
 import { addXp } from '../services/leveling/xpSystem.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
 import { parsePrefixCommand } from '../utils/prefixParser.js';
+import { getWelcomeConfig } from '../utils/database.js';
+import { buildWelcomeCard } from './guildMemberAdd.js';
+import { AttachmentBuilder, PermissionFlagsBits } from 'discord.js';
 import { supportsPrefixExecution, executePrefixCommand, resolvePrefixAccessKey } from '../utils/messageAdapter.js';
 import { resolveCommandAlias, resolveSubcommandAlias } from '../config/commands/commandAliases.js';
 import { getPrefixRestriction } from '../config/commands/prefixRestrictions.js';
@@ -50,7 +53,42 @@ async function handlePrefixCommand(message, client) {
   try {
     const guildConfig = await getGuildConfig(client, message.guild.id);
     const prefix = guildConfig?.prefix || getCommandPrefix();
+
     const trimmedContent = message.content.trim();
+
+    // Manual welcome banner preview: b!welcomebanner test
+    if (/^b!welcomebanner\\s+test$/i.test(trimmedContent)) {
+      if (!message.member?.permissions?.has(PermissionFlagsBits.ManageGuild)) {
+        await message.reply('❌ You need **Manage Server** permission to test the welcome banner.');
+        return;
+      }
+
+      const welcomeConfig = await getWelcomeConfig(client, message.guild.id);
+      const backgroundUrl = welcomeConfig?.welcomeImage || welcomeConfig?.welcomeEmbed?.image?.url;
+      if (!welcomeConfig?.enabled || !welcomeConfig?.channelId) {
+        await message.reply('❌ Welcome is not enabled yet. Configure it first in **/greet dashboard**.');
+        return;
+      }
+      if (!backgroundUrl) {
+        await message.reply('❌ No Welcome Image is configured. Upload your camouflage background in **/greet dashboard → Welcome Image**, save it, then try again.');
+        return;
+      }
+
+      try {
+        const testMember = message.member || await message.guild.members.fetch(message.author.id);
+        const card = await buildWelcomeCard(testMember, backgroundUrl, message.guild.memberCount);
+        const attachment = new AttachmentBuilder(card, { name: 'barracks-welcome-card.svg' });
+        await message.channel.send({
+          content: `🪖 Welcome banner test for ${message.author} — this is a preview only; it does not change the member count or trigger a real join.`,
+          files: [attachment],
+          allowedMentions: { users: [message.author.id] },
+        });
+      } catch (error) {
+        logger.error('Welcome banner test failed:', error);
+        await message.reply(`❌ Welcome banner test failed: ${error.message || 'Could not render the card.'}`);
+      }
+      return;
+    }
 
     // Bank Upgrade panel prefix command: b!bankpanel upgrade
     if (/^b!bankpanel\s+upgrade$/i.test(trimmedContent)) {
