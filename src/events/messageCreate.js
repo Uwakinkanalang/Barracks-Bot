@@ -93,6 +93,27 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
+    // Math challenge prefix command: b!math [random|add|subtract|multiply|divide]
+    // Route it explicitly so the game works even if generic prefix parsing changes.
+    const mathMatch = trimmedContent.match(/^b!math(?:\\s+(random|add|subtract|multiply|divide))?$/i);
+    if (mathMatch) {
+      const mathCommand = client.commands.get('math');
+      if (!mathCommand) {
+        logger.error('Math command is not loaded.');
+        await message.reply('❌ The Math Challenge is temporarily unavailable. Please contact an administrator.');
+        return;
+      }
+      await executePrefixCommand(
+        mathCommand,
+        message,
+        mathMatch[1] ? [mathMatch[1].toLowerCase()] : [],
+        client,
+        prefix,
+        guildConfig,
+      );
+      return;
+    }
+
     // Bank Upgrade panel prefix command: b!bankpanel upgrade
     if (/^b!bankpanel\s+upgrade$/i.test(trimmedContent)) {
       const bankUpgradeCommand = client.commands.get('bankupgrade');
