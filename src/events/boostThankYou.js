@@ -17,7 +17,7 @@ export default {
 
       const embed = new EmbedBuilder()
         .setColor(0xD6A632)
-        .setTitle(`Thank you **${newMember}** for boosting **Barracks**!`)
+        .setTitle(`Thank you ${newMember} for boosting Barracks!`)
         .setDescription('Your support helps our Barracks grow stronger.\nWe appreciate your contribution, soldier!')
         .setThumbnail(newMember.displayAvatarURL({ size: 256 }))
         .setImage(BOOST_BANNER_URL)
