@@ -22,7 +22,7 @@ export function buildLottoPanel(state) {
     .setDescription(
       '**TRY YOUR LUCK, SOLDIER!**\n' +
       'Join the draw, collect your tickets, and stand a chance to claim the prize.\n\n' +
-      '🎟️ **One button click = one ticket**\n' +
+      '🎟️ **One click = one ticket**\n' +
       '🪖 **Multiple entries are allowed**\n' +
       '🏆 **Winner is selected randomly**'    )
     .addFields(
