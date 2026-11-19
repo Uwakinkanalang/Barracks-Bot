@@ -24,9 +24,9 @@ export default {
         
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
         
-        const welcomeChannelId = welcomeConfig?.channelId;
+        const welcomeChannelId = '1137703586730618961';
 
-        if (welcomeConfig?.enabled && welcomeChannelId) {
+        if (welcomeChannelId) {
             const channel = guild.channels.cache.get(welcomeChannelId);
             const me = guild.members.me;
             const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
@@ -50,20 +50,21 @@ export default {
                     : `Welcome to ${guild.name}!`;
 
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
-                const cardBackground = welcomeConfig.welcomeImage || welcomeConfig.welcomeEmbed?.image?.url;
+                const cardBackground = 'https://cdn.discordapp.com/attachments/1572883657440366673/1573042152076738662/Maligayang_Pagdating_sa_Barracks_1.png?ex=6b00912a&is=6aff3faa&hm=7fdbb924ed0b39874cf6be29acbe49bb8b23b912a48fa8cc5ee9ac57b43e9afc';
+                const barracksLogo = 'https://cdn.discordapp.com/attachments/1572883657440366673/1573042580336410696/barrack.png?ex=6b009190&is=6aff4010&hm=eabc376f2deb6c47589467e5b72d50f55af28476a45cb6f38ae2c66f5fdc8c50';
 
                 // Use a Discord-supported image URL directly in the embed.
                 // SVG attachments are not reliably rendered by Discord embed previews.
                 if (cardBackground && canEmbed) {
                     const welcomeEmbed = new EmbedBuilder()
-                        .setColor('#59633B')
+                        .setColor('#556B2F')
                         .setAuthor({ name: 'BARRACKS | RECRUITMENT' })
                         .setTitle('WELCOME TO BARRACKS!')
                         .setDescription(
-                            `Welcome ${user.toString()} to the server!\n\n` +
+                            `Welcome our new member, ${user.toString()}\n\n` +
                             '• Read rules at <#1137696545890893904>\n' +
                             '• Take your roles at <#1325091032697798727>\n' +
-                            '• Join the conversation at <#1137695061501558905>\n\n' +
+                            '• After that, you can chat with us here <#1137695061501558905>\n\n' +
                             'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
                         )
                         .setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }))
@@ -72,7 +73,7 @@ export default {
                             { name: 'MEMBER NUMBER', value: `#${guild.memberCount.toLocaleString('en-US')}`, inline: true }
                         )
                         .setImage(cardBackground)
-                        .setFooter({ text: `We already have ${guild.memberCount.toLocaleString('en-US')} members` })
+                        .setFooter({ text: `We already have ${guild.memberCount.toLocaleString('en-US')} members`, iconURL: barracksLogo })
                         .setTimestamp();
                     await channel.send({
                         content: `Welcome our new member, **${user.toString()}**`,
