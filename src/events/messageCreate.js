@@ -95,7 +95,7 @@ async function handlePrefixCommand(message, client) {
 
     // Math challenge prefix command: b!math [hard|random|add|subtract|multiply|divide]
     // Route it explicitly so the game works even if generic prefix parsing changes.
-    const mathMatch = trimmedContent.match(/^b!math(?:\\s+(hard|random|add|subtract|multiply|divide))?$/i);
+    const mathMatch = trimmedContent.match(/^b!math(?:\s+(hard|random|add|subtract|multiply|divide))?$/i);
     if (mathMatch) {
       const mathCommand = client.commands.get('math');
       if (!mathCommand) {
