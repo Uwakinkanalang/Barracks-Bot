@@ -24,7 +24,7 @@ export default {
         .setTimestamp();
 
       await channel.send({
-        content: `**🎖️ ${newMember} JUST BOOSTED BARRACKS!**`,
+        content: `# 🎖️ ${newMember} boosted the server!`,
         embeds: [embed],
         allowedMentions: { users: [newMember.id] },
       });
