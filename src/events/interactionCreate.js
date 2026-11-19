@@ -312,6 +312,11 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('barracksLotto:')) {
+            const { handleLottoButton } = await import('../services/barracksLottoService.js');
+            await handleLottoButton(interaction, client);
+            return;
+          }
           if (interaction.customId.startsWith('bankUpgrade:buy:')) {
             const [, , guildId, packageKey] = interaction.customId.split(':');
             if (!interaction.guild || interaction.guildId !== guildId) {
