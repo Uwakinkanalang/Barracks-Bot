@@ -22,7 +22,7 @@ const shuffle = items => {
 const WIN_SYMBOLS = {
     eggplant: { reels: ['🍆', '🍆', '🍆'], multiplier: 1, chance: 20, image: 'https://static.wikia.nocookie.net/owobot/images/5/56/SlotsEggplant.png/revision/latest?cb=20201231080844', label: 'Eggplant' },
     heart: { reels: ['❤️', '❤️', '❤️'], multiplier: 2, chance: 20, image: 'https://static.wikia.nocookie.net/owobot/images/b/bb/SlotsHeart.png/revision/latest?cb=20201231081114', label: 'Heart' },
-    star: { reels: ['⭐', '⭐', '⭐'], multiplier: 1, chance: 5, label: 'Star' },
+    star: { reels: ['⭐', '⭐', '⭐'], multiplier: 5, chance: 5, label: 'Star' },
     note: { reels: ['💵', '💵', '💵'], multiplier: 4, chance: 2.5, image: 'https://static.wikia.nocookie.net/owobot/images/0/06/Cowoncy_Note.png/revision/latest/scale-to-width-down/24?cb=20191203153323', label: 'Barracks Cash' },
     owo: { reels: ['<a:Chibi_Camouflage_HipBounce_trans:1572119864196206612>', '<a:Chibi_Camouflage_HipBounce_trans:1572119864196206612>', '<a:Chibi_Camouflage_HipBounce_trans:1572119864196206612>'], multiplier: 10, chance: 1, label: 'Soldier Jackpot' },
 };
