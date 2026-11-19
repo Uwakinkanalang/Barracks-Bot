@@ -1,4 +1,4 @@
-import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { EmbedBuilder, SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 
 const REWARD = 50000;
@@ -50,7 +50,8 @@ export default {
     category: 'fun',
     data: new SlashCommandBuilder()
         .setName('math')
-        .setDescription('Solve a random math question to earn bCash')
+        .setDescription('Start a math challenge for the server')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .addStringOption(option =>
             option.setName('operation')
                 .setDescription('Choose a math operation or random')
@@ -91,9 +92,6 @@ export default {
             .setDescription(`Solve this question to earn **₱${REWARD.toLocaleString()} bCash**!\n\n## ${question}\n\nYou have **30 seconds**. The first correct answer wins!`)
             .setFooter({ text: 'Type your answer in this channel.' });
 
-        if (interaction.user?.displayAvatarURL) {
-            embed.setThumbnail(interaction.user.displayAvatarURL({ size: 256 }));
-        }
 
         try {
             if (interaction._isPrefixCommand) {
@@ -124,7 +122,6 @@ export default {
                         .setColor(0x2ECC71)
                         .setTitle('✅ CORRECT ANSWER!')
                         .setDescription(`<@${message.author.id}> solved **${question}** correctly and earned **₱${REWARD.toLocaleString()} bCash**!`)
-                        .setThumbnail(message.author.displayAvatarURL({ size: 256 }))
                         .setFooter({ text: `New wallet balance: ₱${Number(userData.wallet).toLocaleString()}` });
                     await message.reply({ embeds: [winEmbed] });
                 } catch (error) {
