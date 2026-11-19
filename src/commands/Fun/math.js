@@ -3,6 +3,7 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 
 const REWARD = 50000;
 const TIME_LIMIT = 30_000;
+const HARD_TIME_LIMIT = 60_000;
 const activeGames = new Set();
 
 const operations = {
@@ -11,6 +12,38 @@ const operations = {
     multiply: { symbol: '×', calculate: (a, b) => a * b },
     divide: { symbol: '÷', calculate: (a, b) => a / b },
 };
+
+function createHardQuestion() {
+    const type = Math.floor(Math.random() * 4);
+    let a, b, c, question, answer;
+    if (type === 0) {
+        a = Math.floor(Math.random() * 41) + 10;
+        b = Math.floor(Math.random() * 31) + 10;
+        c = Math.floor(Math.random() * 90) + 10;
+        question = `${a} × ${b} + ${c}`;
+        answer = a * b + c;
+    } else if (type === 1) {
+        a = Math.floor(Math.random() * 41) + 20;
+        b = Math.floor(Math.random() * 31) + 10;
+        c = Math.floor(Math.random() * 90) + 10;
+        question = `${a} × ${b} − ${c}`;
+        answer = a * b - c;
+    } else if (type === 2) {
+        a = Math.floor(Math.random() * 41) + 10;
+        b = Math.floor(Math.random() * 41) + 10;
+        c = Math.floor(Math.random() * 15) + 2;
+        question = `(${a} + ${b}) × ${c}`;
+        answer = (a + b) * c;
+    } else {
+        c = Math.floor(Math.random() * 15) + 2;
+        const quotient = Math.floor(Math.random() * 31) + 10;
+        a = c * quotient;
+        b = Math.floor(Math.random() * 21) + 5;
+        question = `${a} × ${b} ÷ ${c}`;
+        answer = (a * b) / c;
+    }
+    return { question, answer };
+}
 
 function createQuestion(operationKey) {
     const keys = Object.keys(operations);
@@ -82,8 +115,10 @@ export default {
             return interaction._isPrefixCommand ? interaction.reply(payload) : interaction.reply({ ...payload, ephemeral: true });
         }
 
+        const isHard = interaction._isPrefixCommand && interaction._prefixArgs?.[0]?.toLowerCase() === 'hard';
         const operation = interaction.options?.getString('operation') ?? null;
-        const { question, answer } = createQuestion(operation);
+        const { question, answer } = isHard ? createHardQuestion() : createQuestion(operation);
+        const timeLimit = isHard ? HARD_TIME_LIMIT : TIME_LIMIT;
         activeGames.add(gameKey);
 
         const embed = new EmbedBuilder()
@@ -102,7 +137,7 @@ export default {
 
             const collector = interaction.channel.createMessageCollector({
                 filter: message => !message.author.bot && /^-?\d+$/.test(message.content.trim()),
-                time: TIME_LIMIT,
+                time: timeLimit,
             });
 
             collector.on('collect', async message => {
