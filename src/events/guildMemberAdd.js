@@ -63,10 +63,10 @@ export default {
                             .setAuthor({ name: 'BARRACKS | RECRUITMENT' })
                             .setTitle('WELCOME TO BARRACKS!')
                             .setDescription(
-                                `Welcome ${user.toString()} to the server!\\n\\n` +
-                                '• Read rules at <#1137696545890893904>\\n' +
-                                '• Take your roles at <#1325091032697798727>\\n' +
-                                '• Join the conversation at <#1137695061501558905>\\n\\n' +
+                                `Welcome ${user.toString()} to the server!\n\n` +
+                                '• Read rules at <#1137696545890893904>\n' +
+                                '• Take your roles at <#1325091032697798727>\n' +
+                                '• Join the conversation at <#1137695061501558905>\n\n' +
                                 'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
                             )
                             .setImage('attachment://barracks-welcome-card.png')
