@@ -54,7 +54,7 @@ async function settleDraw(client, guildId, state) {
     state.winners.unshift({ winnerId: null, prize: 0, drawnAt: Date.now(), entries: 0 });
   } else {
     const ticket = state.tickets[randomInt(state.tickets.length)];
-    const prize = Math.floor(state.jackpot * 0.9);
+    const prize = Math.floor(state.jackpot);
     const account = await getEconomyData(client, guildId, ticket.userId);
     account.wallet = (Number(account.wallet) || 0) + prize;
     const saved = await setEconomyData(client, guildId, ticket.userId, account);
