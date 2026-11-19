@@ -41,7 +41,7 @@ export default {
             .setColor(0xD6A632)
             .setTitle('🫡 THANK YOU FOR BOOSTING!')
             .setDescription(
-                `Thank you ${interaction.user} for boosting **${guild.name}**!\\n\\n` +
+                `Thank you ${interaction.user} for boosting **${guild.name}**!\n\n` +
                 'Your support helps our Barracks grow stronger. We appreciate your contribution, soldier!'
             )
             .setThumbnail(avatarURL)
