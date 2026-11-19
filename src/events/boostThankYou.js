@@ -17,7 +17,7 @@ export default {
 
       const embed = new EmbedBuilder()
         .setColor(0xD6A632)
-        .setDescription(`**Thank you ${newMember} for boosting Barracks!**
+        .setDescription(`Thank you **${newMember}** for boosting **Barracks**!
 Your support helps our Barracks grow stronger.
 We appreciate your contribution, soldier!`)
         .setThumbnail(newMember.displayAvatarURL({ size: 256 }))
