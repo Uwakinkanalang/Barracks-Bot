@@ -103,7 +103,7 @@ async function handlePrefixCommand(message, client) {
       if (!boostChannel?.isTextBased() || !boostChannel.send) { await message.reply('❌ I could not find the configured boost announcement channel.'); return; }
       const testEmbed = new EmbedBuilder().setColor(0xD6A632)
          .setTitle(`${message.member?.displayName || message.author.globalName || message.author.username} boosted the server!`)
-        .setDescription(`Your support helps our Barracks grow stronger.\nWe appreciate your contribution, soldier!`)
+        .setDescription(`Thank you **${message.member?.displayName || message.author.globalName || message.author.username}** for boosting Barracks!\n\nYour support helps our Barracks grow stronger.\nWe appreciate your contribution, soldier!`)
         .setThumbnail(message.member.displayAvatarURL({ size: 256 }))
         .setImage(bannerUrl).setFooter({ text: 'BARRACKS • THANK YOU FOR YOUR SUPPORT!' }).setTimestamp();
       await boostChannel.send({ embeds: [testEmbed], allowedMentions: { users: [message.author.id] } });
