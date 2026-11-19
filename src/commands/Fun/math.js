@@ -163,6 +163,7 @@ export default {
 The correct answer was **${answer}**.
 
 You earned **₱${reward.toLocaleString()} bCash**!`)
+                        .setThumbnail(message.member?.displayAvatarURL({ extension: 'png', size: 256 }) || message.author.displayAvatarURL({ extension: 'png', size: 256 }))
                         .setFooter({ text: `New wallet balance: ₱${Number(userData.wallet).toLocaleString()}` });
                     await message.reply({ embeds: [winEmbed] });
                 } catch (error) {
