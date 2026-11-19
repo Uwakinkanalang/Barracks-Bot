@@ -7,43 +7,7 @@ export default {
     prefixOnly: true,
     data: new SlashCommandBuilder()
         .setName('booster')
-        .setDescription('Barracks server boost announcement tools')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('test')
-                .setDescription('Send a test of the Barracks boost thank-you announcement')
-        ),
-
-    async execute(interaction) {
-        if (interaction.options.getSubcommand() !== 'test') return;
-
-        const guild = interaction.guild;
-        if (!guild) {
-            await interaction.reply({ content: 'This command can only be used inside a server.' });
-            return;
-        }
-
-        const channel = await guild.channels.fetch(BOOST_CHANNEL_ID).catch(() => null);
-        if (!channel?.isTextBased() || !channel.send) {
-            await interaction.reply({
-                content: `I couldn't find the boost announcement channel (<#${BOOST_CHANNEL_ID}>). Please check the channel ID.`,
-            });
-            return;
-        }
-
-        const member = interaction.member;
-        const avatarURL = member?.displayAvatarURL
-            ? member.displayAvatarURL({ size: 256 })
-            : interaction.user.displayAvatarURL({ size: 256 });
-
-        const embed = new EmbedBuilder()
-            .setColor(0xD6A632)
-            .setTitle('🫡 THANK YOU FOR BOOSTING!')
-            .setDescription(
-                `Thank you ${interaction.user} for boosting **${guild.name}**!\n\n` +
-                'Your support helps our Barracks grow stronger. We appreciate your contribution, soldier!'
-            )
+        .setDescription(`Thank you **${interaction.user}** for boosting **Barracks**!`)
             .setThumbnail(avatarURL)
             .setImage(BOOST_BANNER_URL)
             .setFooter({ text: 'BARRACKS • THANK YOU FOR YOUR SUPPORT!' })
