@@ -105,7 +105,7 @@ async function handlePrefixCommand(message, client) {
         .setDescription(`Thank you <@${message.author.id}> for boosting Barracks!\n\nYour support helps our Barracks grow stronger.\nWe appreciate your contribution, soldier!`)
         .setThumbnail(message.member.displayAvatarURL({ size: 256 }))
         .setImage(bannerUrl).setFooter({ text: 'BARRACKS • THANK YOU FOR YOUR SUPPORT!' }).setTimestamp();
-      await boostChannel.send({ content: `**🎖️ <@${message.author.id}> JUST BOOSTED BARRACKS!**`, embeds: [testEmbed], allowedMentions: { users: [message.author.id] } });
+      await boostChannel.send({ content: `# 🎖️ <@${message.author.id}> boosted the server!`, embeds: [testEmbed], allowedMentions: { users: [message.author.id] } });
       await message.reply('✅ Test boost announcement sent to <#' + boostChannelId + '>.');
       return;
     }
