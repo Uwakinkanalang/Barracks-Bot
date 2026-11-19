@@ -17,7 +17,7 @@ export default {
 
       const embed = new EmbedBuilder()
         .setColor(0xD6A632)
-        .setTitle(`${newMember} boosted the server!`)
+        .setTitle(`${newMember.displayName} boosted the server!`)
         .setDescription(`Your support helps our Barracks grow stronger.\nWe appreciate your contribution, soldier!`)
         .setThumbnail(newMember.displayAvatarURL({ size: 256 }))
         .setImage(BOOST_BANNER_URL)
