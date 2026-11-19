@@ -1,7 +1,8 @@
 import { EmbedBuilder, SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 
-const REWARD = 100000;
+const EASY_REWARD = 50000;
+const HARD_REWARD = 100000;
 const TIME_LIMIT = 30_000;
 const HARD_TIME_LIMIT = 60_000;
 const activeGames = new Set();
@@ -119,12 +120,13 @@ export default {
         const operation = interaction.options?.getString('operation') ?? null;
         const { question, answer } = isHard ? createHardQuestion() : createQuestion(operation);
         const timeLimit = isHard ? HARD_TIME_LIMIT : TIME_LIMIT;
+        const reward = isHard ? HARD_REWARD : EASY_REWARD;
         activeGames.add(gameKey);
 
         const embed = new EmbedBuilder()
             .setColor(0xD4AF37)
             .setTitle(isHard ? '🔥 BARRACKS HARD MATH CHALLENGE' : '🧮 BARRACKS MATH CHALLENGE')
-            .setDescription(`Solve this ${isHard ? '**HARD** ' : ''}question to earn **₱${REWARD.toLocaleString()} bCash**!\n\n## ${question}\n\nYou have **${isHard ? '60' : '30'} seconds**. The first correct answer wins!`)
+            .setDescription(`Solve this ${isHard ? '**HARD** ' : ''}question to earn **₱${reward.toLocaleString()} bCash**!\n\n## ${question}\n\nYou have **${isHard ? '60' : '30'} seconds**. The first correct answer wins!`)
             .setFooter({ text: 'Type your answer in this channel.' });
 
 
@@ -150,7 +152,7 @@ export default {
                 try {
                     const userData = await getEconomyData(client, interaction.guildId, message.author.id);
                     if (!userData) throw new Error('Could not load player economy data.');
-                    userData.wallet = (Number(userData.wallet) || 0) + REWARD;
+                    userData.wallet = (Number(userData.wallet) || 0) + reward;
                     await setEconomyData(client, interaction.guildId, message.author.id, userData);
 
                     const winEmbed = new EmbedBuilder()
@@ -160,7 +162,7 @@ export default {
 
 The correct answer was **${answer}**.
 
-You earned **₱${REWARD.toLocaleString()} bCash**!`)
+You earned **₱${reward.toLocaleString()} bCash**!`)
                         .setFooter({ text: `New wallet balance: ₱${Number(userData.wallet).toLocaleString()}` });
                     await message.reply({ embeds: [winEmbed] });
                 } catch (error) {
