@@ -17,6 +17,7 @@ export default {
 
       const embed = new EmbedBuilder()
         .setColor(0xD6A632)
+        .setTitle(`🎖️ ${newMember} boosted the server!`)
         .setDescription(`Your support helps our Barracks grow stronger.\nWe appreciate your contribution, soldier!`)
         .setThumbnail(newMember.displayAvatarURL({ size: 256 }))
         .setImage(BOOST_BANNER_URL)
@@ -24,7 +25,6 @@ export default {
         .setTimestamp();
 
       await channel.send({
-        content: `# 🎖️ ${newMember} boosted the server!`,
         embeds: [embed],
         allowedMentions: { users: [newMember.id] },
       });
