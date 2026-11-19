@@ -233,7 +233,7 @@ async function assignRoleSafely(member, role) {
     }
 }
 
-async function buildWelcomeCard(member, backgroundUrl, memberCount) {
+export async function buildWelcomeCard(member, backgroundUrl, memberCount) {
     if (typeof backgroundUrl !== 'string' || !/^https?:\\/\\//i.test(backgroundUrl)) {
         throw new Error('Welcome Image must be a publicly accessible HTTP or HTTPS image URL. Re-upload the image in the welcome dashboard.');
     }
