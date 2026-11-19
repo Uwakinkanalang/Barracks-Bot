@@ -115,8 +115,8 @@ export async function handleLottoButton(interaction, client) {
         return true;
       }
       state.tickets.push({ userId: interaction.user.id, enteredAt: Date.now() });
-      state.jackpot += Math.floor(LOTTO_PRICE * 0.9);
-      state.houseTotal = (state.houseTotal || 0) + Math.ceil(LOTTO_PRICE * 0.1);
+      state.jackpot += Math.floor(LOTTO_PRICE * 0.95);
+      state.houseTotal = (state.houseTotal || 0) + Math.ceil(LOTTO_PRICE * 0.05);
       await save(client, guildId, state);
       await interaction.reply({ content: `🎟️ **Entry confirmed!** You purchased 1 Barracks Lotto ticket for **₱${LOTTO_PRICE.toLocaleString()}**.\nYour remaining wallet: **₱${account.wallet.toLocaleString()}**. Good luck, soldier!`, ephemeral: true });
       await refreshPanel(client, guildId, state);
@@ -127,7 +127,7 @@ export async function handleLottoButton(interaction, client) {
       const lines = (state.winners || []).map((winner, index) => winner.winnerId ? `**${index + 1}.** <@!${winner.winnerId}> — ₱${Number(winner.prize).toLocaleString()} (${winner.entries} entries)` : `**${index + 1}.** No winner — no entries were submitted.`);
       await interaction.reply({ content: lines.length ? `🏆 **Previous Barracks Lotto Winners**\n${lines.join('\n')}` : 'No previous winners yet, soldier.', ephemeral: true });
     } else if (action === 'info') {
-      await interaction.reply({ content: `🎟️ **Barracks Lotto Rules**\n• Each ticket costs **₱${LOTTO_PRICE.toLocaleString()} bCash**.\n• Click Enter Lotto to buy one ticket.\n• You may enter multiple times.\n• Draw happens every 24 hours.\n• 90% of ticket sales goes into the jackpot; 10% is retained by the house.\n• The winner is selected randomly and paid automatically to their wallet.\n• Entries are final and non-refundable.`, ephemeral: true });
+      await interaction.reply({ content: `🎟️ **Barracks Lotto Rules**\n• Each ticket costs **₱${LOTTO_PRICE.toLocaleString()} bCash**.\n• Click Enter Lotto to buy one ticket.\n• You may enter multiple times.\n• Draw happens every 24 hours.\n• 95% of ticket sales goes into the jackpot; 5% is retained by the house.\n• The winner is selected randomly and paid automatically to their wallet.\n• Entries are final and non-refundable.`, ephemeral: true });
     }
     return true;
   } catch (error) {
