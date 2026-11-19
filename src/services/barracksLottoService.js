@@ -15,24 +15,32 @@ export function buildLottoPanel(state) {
   const remaining = Math.max(0, state.nextDrawAt - Date.now());
   const hours = Math.floor(remaining / 3600000);
   const minutes = Math.floor((remaining % 3600000) / 60000);
-  const embed = new EmbedBuilder().setColor(0xD4A017)
-    .setTitle('🎟️ BARRACKS LOTTO')
-    .setDescription('Try your luck, soldier! Enter the draw and you could take home the jackpot.')
-    .addFields(
-      { name: '💰 Current Jackpot', value: `₱${Number(state.jackpot || 0).toLocaleString()}`, inline: true },
-      { name: '🎫 Ticket Price', value: `₱${LOTTO_PRICE.toLocaleString()} bCash`, inline: true },
-      { name: '⏰ Next Draw', value: `${hours}h ${minutes}m`, inline: true },
-      { name: '🎟️ Total Entries', value: String(state.tickets?.length || 0), inline: true },
-      { name: '🏆 Prize Pool', value: '90% of ticket sales', inline: true },
-      { name: '📅 Draw Schedule', value: 'Every 24 hours', inline: true },
+  const bannerUrl = process.env.BARRACKS_LOTTO_BANNER_URL;
+  const embed = new EmbedBuilder()
+    .setColor(0xD4A017)
+    .setAuthor({ name: 'BARRACKS • GAMING DIVISION' })
+    .setTitle('🎖️ BARRACKS LOTTO • PANEL V2')
+    .setDescription(
+      '**TRY YOUR LUCK, SOLDIER!**\n' +
+      'Join the draw, collect your tickets, and stand a chance to claim the prize.\n\n' +
+      '🎟️ **One button click = one ticket**\n' +
+      '🪖 **Multiple entries are allowed**\n' +
+      '🏆 **Winner is selected randomly**'
     )
-    .setFooter({ text: 'BARRACKS • One click = one ticket • Good luck, soldier!' })
+    .addFields(
+      { name: '💰 Current Jackpot', value: `₱${Number(state.jackpot || 0).toLocaleString()} bCash`, inline: true },
+      { name: '🎫 Ticket Cost', value: `₱${LOTTO_PRICE.toLocaleString()} bCash`, inline: true },
+      { name: '🎟️ Total Entries', value: String(state.tickets?.length || 0), inline: true },
+      { name: '⏰ Next Draw', value: `${hours}h ${minutes}m`, inline: true },
+    )
+    .setFooter({ text: 'BARRACKS • LOTTO PANEL V2 • Good luck, soldier!' })
     .setTimestamp();
+  if (bannerUrl) embed.setImage(bannerUrl);
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('barracksLotto:enter').setLabel('ENTER LOTTO • ₱20,000').setEmoji('🎟️').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId('barracksLotto:mine').setLabel('My Tickets').setEmoji('👤').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('barracksLotto:winners').setLabel('Previous Winners').setEmoji('🏆').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('barracksLotto:info').setLabel('Lotto Info').setEmoji('📊').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('barracksLotto:enter').setLabel('ENTER LOTTO').setEmoji('🎟️').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId('barracksLotto:mine').setLabel('MY TICKETS').setEmoji('👤').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('barracksLotto:winners').setLabel('WINNERS').setEmoji('🏆').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('barracksLotto:info').setLabel('HOW TO PLAY').setEmoji('📋').setStyle(ButtonStyle.Secondary),
   );
   return { embeds: [embed], components: [row] };
 }
