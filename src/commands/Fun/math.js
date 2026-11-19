@@ -126,6 +126,7 @@ export default {
         const embed = new EmbedBuilder()
             .setColor(0xD4AF37)
             .setTitle(isHard ? '🔥 BARRACKS HARD MATH CHALLENGE' : '🧮 BARRACKS MATH CHALLENGE')
+            .setThumbnail('https://cdn.discordapp.com/attachments/1572883657440366673/1572883699018633256/Logo_ng_Math_Barracks_na_Militar.png?ex=6afffd98&is=6afeac18&hm=279952d6d94923ab5f4794f7d8be1f7ba5bef98d639c11726a215c6a7eb37e33&')
             .setDescription(`Solve this ${isHard ? '**HARD** ' : ''}question to earn **₱${reward.toLocaleString()} bCash**!\n\n## ${question}\n\nYou have **${isHard ? '60' : '30'} seconds**. The first correct answer wins!`)
             .setFooter({ text: 'Type your answer in this channel.' });
 
