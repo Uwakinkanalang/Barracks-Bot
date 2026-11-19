@@ -56,6 +56,18 @@ async function handlePrefixCommand(message, client) {
 
     const trimmedContent = message.content.trim();
 
+    // Barracks Lotto public entry panel.
+    if (/^b!lotto\\s+panel$/i.test(trimmedContent)) {
+      if (!message.member?.permissions?.has(PermissionFlagsBits.ManageGuild)) {
+        await message.reply('❌ You need **Manage Server** permission to create the Barracks Lotto panel.');
+        return;
+      }
+      const { createLottoPanel } = await import('../services/barracksLottoService.js');
+      const panel = await createLottoPanel(message, client);
+      await message.reply(`✅ Barracks Lotto panel created: ${panel.url}`);
+      return;
+    }
+
     // Manual welcome banner preview: b!welcomebanner test
     if (/^b!welcomebanner\s+test$/i.test(trimmedContent)) {
       const canTestWelcomeBanner =
