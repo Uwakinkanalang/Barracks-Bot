@@ -234,12 +234,24 @@ async function assignRoleSafely(member, role) {
 }
 
 async function buildWelcomeCard(member, backgroundUrl, memberCount) {
+    if (typeof backgroundUrl !== 'string' || !/^https?:\\/\\//i.test(backgroundUrl)) {
+        throw new Error('Welcome Image must be a publicly accessible HTTP or HTTPS image URL. Re-upload the image in the welcome dashboard.');
+    }
+
+    const imageHeaders = {
+        'User-Agent': 'Barracks-Bot/2.1',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+    };
+    const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256 });
     const [backgroundResponse, avatarResponse] = await Promise.all([
-        fetch(backgroundUrl),
-        fetch(member.user.displayAvatarURL({ extension: 'png', size: 256 })),
+        fetch(backgroundUrl, { headers: imageHeaders, redirect: 'follow' }),
+        fetch(avatarUrl, { headers: imageHeaders, redirect: 'follow' }),
     ]);
-    if (!backgroundResponse.ok || !avatarResponse.ok) {
-        throw new Error('Could not download the welcome background or member avatar.');
+    if (!backgroundResponse.ok) {
+        throw new Error(`Welcome background download failed (HTTP ${backgroundResponse.status}). Re-upload the camouflage image in /greet dashboard.`);
+    }
+    if (!avatarResponse.ok) {
+        throw new Error(`Member avatar download failed (HTTP ${avatarResponse.status}).`);
     }
 
     const backgroundType = backgroundResponse.headers.get('content-type') || 'image/jpeg';
