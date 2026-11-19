@@ -1,4 +1,5 @@
-import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { Events, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder } from 'discord.js';
+import sharp from 'sharp';
 import { getColor, botConfig } from '../config/bot.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { getWelcomeConfig } from '../utils/database.js';
@@ -52,33 +53,38 @@ export default {
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
                 const cardBackground = welcomeConfig.welcomeImage || welcomeConfig.welcomeEmbed?.image?.url;
 
-                // Use a Discord-supported image URL directly in the embed.
-                // SVG attachments are not reliably rendered by Discord embed previews.
+                // Render the personalized banner as PNG and display it inside the Discord embed.
                 if (cardBackground && canEmbed) {
-                    const welcomeEmbed = new EmbedBuilder()
-                        .setColor('#59633B')
-                        .setAuthor({ name: 'BARRACKS | RECRUITMENT' })
-                        .setTitle('WELCOME TO BARRACKS!')
-                        .setDescription(
-                            `Welcome ${user.toString()} to the server!\n\n` +
-                            '• Read rules at <#1137696545890893904>\n' +
-                            '• Take your roles at <#1325091032697798727>\n' +
-                            '• Join the conversation at <#1137695061501558905>\n\n' +
-                            'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
-                        )
-                        .setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }))
-                        .addFields(
-                            { name: 'NEW RECRUIT', value: user.displayName || user.username, inline: true },
-                            { name: 'MEMBER NUMBER', value: `#${guild.memberCount.toLocaleString('en-US')}`, inline: true }
-                        )
-                        .setImage(cardBackground)
-                        .setFooter({ text: `We already have ${guild.memberCount.toLocaleString('en-US')} members` })
-                        .setTimestamp();
-                    await channel.send({
-                        content: `Welcome our new member, **${user.toString()}**`,
-                        embeds: [welcomeEmbed],
-                        allowedMentions: { users: [user.id] },
-                    });
+                    try {
+                        const cardBuffer = await buildWelcomeCard(member, cardBackground, guild.memberCount);
+                        const cardAttachment = new AttachmentBuilder(cardBuffer, { name: 'barracks-welcome-card.png' });
+                        const welcomeEmbed = new EmbedBuilder()
+                            .setColor('#59633B')
+                            .setAuthor({ name: 'BARRACKS | RECRUITMENT' })
+                            .setTitle('WELCOME TO BARRACKS!')
+                            .setDescription(
+                                `Welcome ${user.toString()} to the server!\\n\\n` +
+                                '• Read rules at <#1137696545890893904>\\n' +
+                                '• Take your roles at <#1325091032697798727>\\n' +
+                                '• Join the conversation at <#1137695061501558905>\\n\\n' +
+                                'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
+                            )
+                            .setImage('attachment://barracks-welcome-card.png')
+                            .setFooter({ text: `We already have ${guild.memberCount.toLocaleString('en-US')} members` })
+                            .setTimestamp();
+                        await channel.send({
+                            content: `Welcome our new member, **${user.toString()}**`,
+                            embeds: [welcomeEmbed],
+                            files: [cardAttachment],
+                            allowedMentions: { users: [user.id] },
+                        });
+                    } catch (cardError) {
+                        logger.error('Failed to render personalized welcome PNG; using standard embed:', cardError);
+                        await sendStandardWelcome(channel, {
+                            messageContent, welcomeMessage, canEmbed, embedTitle, embedFooter,
+                            welcomeConfig, user, guild
+                        });
+                    }
                 } else if (!canEmbed) {
                     await channel.send({
                         content: messageContent || welcomeMessage
@@ -297,7 +303,7 @@ export async function buildWelcomeCard(member, backgroundUrl, memberCount) {
       <text x="600" y="463" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${nameFontSize}" font-weight="900" letter-spacing="2" fill="#fff4ff" stroke="#180c2a" stroke-width="6" paint-order="stroke" filter="url(#textShadow)">${displayName}</text>
       <text x="600" y="510" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="800" letter-spacing="4" fill="#ffd8fa" stroke="#180c2a" stroke-width="4" paint-order="stroke">MEMBER #${memberNumber}</text>
     </svg>`;
-    return Buffer.from(svg, 'utf8');
+    return await sharp(Buffer.from(svg, 'utf8')).png().toBuffer();
 }
 
 function escapeSvgText(value) {
