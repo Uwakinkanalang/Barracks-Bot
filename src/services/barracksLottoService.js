@@ -24,7 +24,12 @@ export function buildLottoPanel(state) {
       'Join the draw, collect your tickets, and stand a chance to claim the prize.\n\n' +
       '🎟️ **One button click = one ticket**\n' +
       '🪖 **Multiple entries are allowed**\n' +
-      '🏆 **Winner is selected randomly**'
+      '🏆 **Winner is selected randomly**\n\n' +
+      '**━━━━━━━━ LOTTO MENU ━━━━━━━━**\n' +
+      '🎟️ **Enter Lotto** — Purchase a ticket\n' +
+      '👤 **My Tickets** — Check your entries\n' +
+      '🏆 **Winners** — View previous winners\n' +
+      '📋 **How to Play** — Read the lotto rules'
     )
     .addFields(
       { name: '💰 Current Jackpot', value: `₱${Number(state.jackpot || 0).toLocaleString()} bCash`, inline: true },
