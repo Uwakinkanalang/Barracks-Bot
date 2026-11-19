@@ -93,18 +93,22 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
-    // Barracks boost announcement test: route directly so generic category/access gates cannot swallow it.
-    if (/^b!booster\s+test$/i.test(trimmedContent)) {
-      const boosterCommand = client.commands.get('booster');
-      if (!boosterCommand) {
-        logger.error('Booster test command is not loaded.');
-        await message.reply('❌ The Booster Test command is not loaded. Please contact an administrator.');
-        return;
-      }
-      await executePrefixCommand(boosterCommand, message, ['test'], client, prefix, guildConfig);
+    // Barracks boost announcement test (direct handler; independent of command registry).
+    if (/^b!booster\\s+test$/i.test(trimmedContent)) {
+      const hasAccess = message.member?.permissions?.has(PermissionFlagsBits.ManageGuild) || message.member?.roles?.cache?.has('1557784202844446750');
+      if (!hasAccess) { await message.reply('❌ You need **Manage Server** permission to use this command.'); return; }
+      const boostChannelId = '1572841358270402673';
+      const bannerUrl = 'https://cdn.discordapp.com/attachments/1572883657440366673/1572920805241790545/Salamat_Sundalo_Barracks_Boost_Banner.png?ex=6b002027&is=6afecea7&hm=398065df88e897f01aa44b531da036e5d9816656112d2baa5350fa5c07c05f75';
+      const boostChannel = await message.guild.channels.fetch(boostChannelId).catch(() => null);
+      if (!boostChannel?.isTextBased() || !boostChannel.send) { await message.reply('❌ I could not find the configured boost announcement channel.'); return; }
+      const testEmbed = new EmbedBuilder().setColor(0xD6A632)
+        .setDescription('Thank you **<@' + message.author.id + '>** for boosting **Barracks**!')
+        .setThumbnail(message.member.displayAvatarURL({ size: 256 }))
+        .setImage(bannerUrl).setFooter({ text: 'BARRACKS • THANK YOU FOR YOUR SUPPORT!' }).setTimestamp();
+      await boostChannel.send({ embeds: [testEmbed], allowedMentions: { users: [message.author.id] } });
+      await message.reply('✅ Test boost announcement sent to <#' + boostChannelId + '>.');
       return;
     }
-
     // Math challenge prefix command: b!math [easy|hard|random|add|subtract|multiply|divide]
     // Route it explicitly so the game works even if generic prefix parsing changes.
     const mathMatch = trimmedContent.match(/^b!math(?:\s+(easy|hard|random|add|subtract|multiply|divide))?$/i);
