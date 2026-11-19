@@ -94,7 +94,7 @@ async function handlePrefixCommand(message, client) {
     }
 
     // Barracks boost announcement test: route directly so generic category/access gates cannot swallow it.
-    if (/^b!booster\\s+test$/i.test(trimmedContent)) {
+    if (/^b!booster\s+test$/i.test(trimmedContent)) {
       const boosterCommand = client.commands.get('booster');
       if (!boosterCommand) {
         logger.error('Booster test command is not loaded.');
