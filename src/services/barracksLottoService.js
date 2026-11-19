@@ -19,7 +19,7 @@ export function buildLottoPanel(state) {
   const embed = new EmbedBuilder()
     .setColor(0xD4A017)
     .setAuthor({ name: 'BARRACKS • GAMING DIVISION' })
-    .setTitle('🎖️ BARRACKS LOTTO • PANEL V2')
+    .setTitle('🎖️ BARRACKS LOTTO')
     .setDescription(
       '**TRY YOUR LUCK, SOLDIER!**\n' +
       'Join the draw, collect your tickets, and stand a chance to claim the prize.\n\n' +
