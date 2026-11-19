@@ -93,6 +93,18 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
+    // Barracks boost announcement test: route directly so generic category/access gates cannot swallow it.
+    if (/^b!booster\\s+test$/i.test(trimmedContent)) {
+      const boosterCommand = client.commands.get('booster');
+      if (!boosterCommand) {
+        logger.error('Booster test command is not loaded.');
+        await message.reply('❌ The Booster Test command is not loaded. Please contact an administrator.');
+        return;
+      }
+      await executePrefixCommand(boosterCommand, message, ['test'], client, prefix, guildConfig);
+      return;
+    }
+
     // Math challenge prefix command: b!math [easy|hard|random|add|subtract|multiply|divide]
     // Route it explicitly so the game works even if generic prefix parsing changes.
     const mathMatch = trimmedContent.match(/^b!math(?:\s+(easy|hard|random|add|subtract|multiply|divide))?$/i);
