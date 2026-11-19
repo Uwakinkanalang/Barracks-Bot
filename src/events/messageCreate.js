@@ -94,7 +94,7 @@ async function handlePrefixCommand(message, client) {
     }
 
     // Barracks boost announcement test (direct handler; independent of command registry).
-    if (/^b!booster\\s+test$/i.test(trimmedContent)) {
+    if (/^b!booster\s+test$/i.test(trimmedContent)) {
       const hasAccess = message.member?.permissions?.has(PermissionFlagsBits.ManageGuild) || message.member?.roles?.cache?.has('1557784202844446750');
       if (!hasAccess) { await message.reply('❌ You need **Manage Server** permission to use this command.'); return; }
       const boostChannelId = '1572841358270402673';
