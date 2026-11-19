@@ -58,8 +58,11 @@ async function handlePrefixCommand(message, client) {
 
     // Barracks Lotto public entry panel.
     if (/^b!lotto\s+panel$/i.test(trimmedContent)) {
-      if (!message.member?.permissions?.has(PermissionFlagsBits.ManageGuild)) {
-        await message.reply('❌ You need **Manage Server** permission to create the Barracks Lotto panel.');
+      const isServerManager = message.member?.roles?.cache?.some(role =>
+        role.name.trim().toLowerCase() === 'server manager'
+      );
+      if (!isServerManager) {
+        await message.reply('❌ Only members with the **Server Manager** role can create the Barracks Lotto panel.');
         return;
       }
       const { createLottoPanel } = await import('../services/barracksLottoService.js');
