@@ -1,4 +1,4 @@
-import { Events, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder } from 'discord.js';
+import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getColor, botConfig } from '../config/bot.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { getWelcomeConfig } from '../utils/database.js';
@@ -52,37 +52,33 @@ export default {
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
                 const cardBackground = welcomeConfig.welcomeImage || welcomeConfig.welcomeEmbed?.image?.url;
 
-                // When a welcome background is configured, send a personalized military-style
-                // welcome card as a file. The background is uploaded through /greet dashboard.
-                if (cardBackground) {
-                    try {
-                        const card = await buildWelcomeCard(member, cardBackground, guild.memberCount);
-                        const cardAttachment = new AttachmentBuilder(card, { name: 'barracks-welcome-card.svg' });
-                        const welcomeEmbed = new EmbedBuilder()
-                            .setColor('#59633B')
-                            .setAuthor({ name: 'Welcome to Barracks' })
-                            .setThumbnail('https://cdn.discordapp.com/attachments/1563246823018336416/1563262829165936822/barrack-icon-rankup.gif')
-                            .setDescription(
-                                '• Read rules at <#1137696545890893904>\n' +
-                                '• Take your roles at <#1325091032697798727>\n' +
-                                '• After that, you can chat with us here <#1137695061501558905>\n\n' +
-                                'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
-                            )
-                            .setImage('attachment://barracks-welcome-card.svg')
-                            .setFooter({ text: `We already have ${guild.memberCount} members` });
-                        await channel.send({
-                            content: `Welcome our new member, **${user.toString()}**`,
-                            embeds: [welcomeEmbed],
-                            files: [cardAttachment],
-                            allowedMentions: { users: [user.id] },
-                        });
-                    } catch (cardError) {
-                        logger.warn('Welcome card rendering failed; using the standard welcome embed:', cardError);
-                        await sendStandardWelcome(channel, {
-                            messageContent, welcomeMessage, canEmbed, embedTitle, embedFooter,
-                            welcomeConfig, user, guild
-                        });
-                    }
+                // Use a Discord-supported image URL directly in the embed.
+                // SVG attachments are not reliably rendered by Discord embed previews.
+                if (cardBackground && canEmbed) {
+                    const welcomeEmbed = new EmbedBuilder()
+                        .setColor('#59633B')
+                        .setAuthor({ name: 'BARRACKS | RECRUITMENT' })
+                        .setTitle('WELCOME TO BARRACKS!')
+                        .setDescription(
+                            `Welcome ${user.toString()} to the server!\\n\\n` +
+                            '• Read rules at <#1137696545890893904>\\n' +
+                            '• Take your roles at <#1325091032697798727>\\n' +
+                            '• Join the conversation at <#1137695061501558905>\\n\\n' +
+                            'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
+                        )
+                        .setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }))
+                        .addFields(
+                            { name: 'NEW RECRUIT', value: user.displayName || user.username, inline: true },
+                            { name: 'MEMBER NUMBER', value: `#${guild.memberCount.toLocaleString('en-US')}`, inline: true }
+                        )
+                        .setImage(cardBackground)
+                        .setFooter({ text: `We already have ${guild.memberCount.toLocaleString('en-US')} members` })
+                        .setTimestamp();
+                    await channel.send({
+                        content: `Welcome our new member, **${user.toString()}**`,
+                        embeds: [welcomeEmbed],
+                        allowedMentions: { users: [user.id] },
+                    });
                 } else if (!canEmbed) {
                     await channel.send({
                         content: messageContent || welcomeMessage
