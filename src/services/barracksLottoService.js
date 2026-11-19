@@ -3,12 +3,13 @@ import { randomInt } from 'node:crypto';
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
 
 export const LOTTO_PRICE = 20000;
+export const LOTTO_STARTING_JACKPOT = 1000000;
 const DRAW_INTERVAL = 24 * 60 * 60 * 1000;
 const keyFor = guildId => `guild:${guildId}:barracksLotto`;
 const locks = new Set();
 
 function freshState() {
-  return { tickets: [], jackpot: 0, nextDrawAt: Date.now() + DRAW_INTERVAL, totalDraws: 0, winners: [], panel: null, houseTotal: 0 };
+  return { tickets: [], jackpot: LOTTO_STARTING_JACKPOT, jackpotBaseInitialized: true, nextDrawAt: Date.now() + DRAW_INTERVAL, totalDraws: 0, winners: [], panel: null, houseTotal: 0 };
 }
 
 export function buildLottoPanel(state) {
@@ -44,7 +45,14 @@ export function buildLottoPanel(state) {
 }
 
 export async function getLottoState(client, guildId) {
-  return (await client.db.get(keyFor(guildId), null)) || freshState();
+  const stored = await client.db.get(keyFor(guildId), null);
+  if (!stored) return freshState();
+  if (!stored.jackpotBaseInitialized) {
+    stored.jackpot = (Number(stored.jackpot) || 0) + LOTTO_STARTING_JACKPOT;
+    stored.jackpotBaseInitialized = true;
+    await client.db.set(keyFor(guildId), stored);
+  }
+  return stored;
 }
 async function save(client, guildId, state) {
   await client.db.set(keyFor(guildId), state);
@@ -72,7 +80,8 @@ async function settleDraw(client, guildId, state) {
   state.winners = state.winners.slice(0, 10);
   state.totalDraws = (state.totalDraws || 0) + 1;
   state.tickets = [];
-  state.jackpot = 0;
+  state.jackpot = LOTTO_STARTING_JACKPOT;
+  state.jackpotBaseInitialized = true;
   state.nextDrawAt = Date.now() + DRAW_INTERVAL;
   await save(client, guildId, state);
   await refreshPanel(client, guildId, state);
@@ -115,8 +124,8 @@ export async function handleLottoButton(interaction, client) {
         return true;
       }
       state.tickets.push({ userId: interaction.user.id, enteredAt: Date.now() });
-      state.jackpot += Math.floor(LOTTO_PRICE * 0.95);
-      state.houseTotal = (state.houseTotal || 0) + Math.ceil(LOTTO_PRICE * 0.05);
+      state.jackpot += Math.floor(LOTTO_PRICE * 0.90);
+      state.houseTotal = (state.houseTotal || 0) + Math.floor(LOTTO_PRICE * 0.10);
       await save(client, guildId, state);
       await interaction.reply({ content: `🎟️ **Entry confirmed!** You purchased 1 Barracks Lotto ticket for **₱${LOTTO_PRICE.toLocaleString()}**.\nYour remaining wallet: **₱${account.wallet.toLocaleString()}**. Good luck, soldier!`, ephemeral: true });
       await refreshPanel(client, guildId, state);
@@ -127,7 +136,7 @@ export async function handleLottoButton(interaction, client) {
       const lines = (state.winners || []).map((winner, index) => winner.winnerId ? `**${index + 1}.** <@!${winner.winnerId}> — ₱${Number(winner.prize).toLocaleString()} (${winner.entries} entries)` : `**${index + 1}.** No winner — no entries were submitted.`);
       await interaction.reply({ content: lines.length ? `🏆 **Previous Barracks Lotto Winners**\n${lines.join('\n')}` : 'No previous winners yet, soldier.', ephemeral: true });
     } else if (action === 'info') {
-      await interaction.reply({ content: `🎟️ **Barracks Lotto Rules**\n• Each ticket costs **₱${LOTTO_PRICE.toLocaleString()} bCash**.\n• Click Enter Lotto to buy one ticket.\n• You may enter multiple times.\n• Draw happens every 24 hours.\n• 95% of ticket sales goes into the jackpot; 5% is retained by the house.\n• The winner is selected randomly and paid automatically to their wallet.\n• Entries are final and non-refundable.`, ephemeral: true });
+      await interaction.reply({ content: `🎟️ **Barracks Lotto Rules**\n• Each ticket costs **₱${LOTTO_PRICE.toLocaleString()} bCash**.\n• Click Enter Lotto to buy one ticket.\n• You may enter multiple times.\n• Draw happens every 24 hours.\n• 90% of ticket sales goes into the jackpot; 10% is retained by the house.\n• The winner is selected randomly and paid automatically to their wallet.\n• Entries are final and non-refundable.`, ephemeral: true });
     }
     return true;
   } catch (error) {
