@@ -17,11 +17,7 @@ export default {
 
       const embed = new EmbedBuilder()
         .setColor(0xD6A632)
-        .setTitle('🫡 THANK YOU FOR BOOSTING!')
-        .setDescription(
-          `Thank you ${newMember} for boosting **${newMember.guild.name}**!\n\n` +
-          'Your support helps our Barracks grow stronger. We appreciate your contribution, soldier!'
-        )
+        .setDescription(`Thank you **${newMember}** for boosting **Barracks**!`)
         .setThumbnail(newMember.displayAvatarURL({ size: 256 }))
         .setImage(BOOST_BANNER_URL)
         .setFooter({ text: 'BARRACKS • THANK YOU FOR YOUR SUPPORT!' })
