@@ -15,7 +15,7 @@ export function buildLottoPanel(state) {
   const remaining = Math.max(0, state.nextDrawAt - Date.now());
   const hours = Math.floor(remaining / 3600000);
   const minutes = Math.floor((remaining % 3600000) / 60000);
-  const bannerUrl = process.env.BARRACKS_LOTTO_BANNER_URL;
+  const bannerUrl = process.env.BARRACKS_LOTTO_BANNER_URL || 'https://cdn.discordapp.com/attachments/1572883657440366673/1573007614541963364/Makukulay_na_Barracks_Lotto_Game_Banner.png?ex=6b007100&is=6aff1f80&hm=1d3e2d7fe9e8b741aa5cddb82454daef75fd4af328e63f97d86876fa5583f64a&';
   const embed = new EmbedBuilder()
     .setColor(0xD4A017)
     .setAuthor({ name: 'BARRACKS • GAMING DIVISION' })
