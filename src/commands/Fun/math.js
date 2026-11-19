@@ -1,7 +1,7 @@
 import { EmbedBuilder, SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 
-const REWARD = 50000;
+const REWARD = 100000;
 const TIME_LIMIT = 30_000;
 const HARD_TIME_LIMIT = 60_000;
 const activeGames = new Set();
