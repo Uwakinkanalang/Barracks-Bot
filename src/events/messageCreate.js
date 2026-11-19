@@ -57,9 +57,12 @@ async function handlePrefixCommand(message, client) {
     const trimmedContent = message.content.trim();
 
     // Manual welcome banner preview: b!welcomebanner test
-    if (/^b!welcomebanner\\s+test$/i.test(trimmedContent)) {
-      if (!message.member?.permissions?.has(PermissionFlagsBits.ManageGuild)) {
-        await message.reply('❌ You need **Manage Server** permission to test the welcome banner.');
+    if (/^b!welcomebanner\s+test$/i.test(trimmedContent)) {
+      const canTestWelcomeBanner =
+        message.member?.permissions?.has(PermissionFlagsBits.ManageGuild) ||
+        message.member?.roles?.cache?.has('1557784202844446750');
+      if (!canTestWelcomeBanner) {
+        await message.reply('❌ You need **Manage Server** permission or the authorized staff role to test the welcome banner.');
         return;
       }
 
