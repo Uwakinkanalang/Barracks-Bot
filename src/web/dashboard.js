@@ -722,9 +722,9 @@ export function registerDashboardRoutes(app, bot) {
       role = await guild.roles.create({ name: '[' + tag + '] ' + name, color: '#c3f36b', hoist: true, mentionable: false, reason: 'Clan created from Barracks dashboard' });
       const overwrites = [
         { id: guild.id, deny: ['ViewChannel'] },
-        { id: role.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles', 'EmbedLinks', 'Connect', 'Speak', 'UseVAD', 'ManageChannels'] },
-        { id: leader.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'Connect', 'Speak', 'ManageChannels'] },
-        { id: me.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageChannels', 'Connect', 'Speak'] }
+        { id: role.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles', 'EmbedLinks', 'Connect', 'Speak', 'UseVAD'] },
+        { id: leader.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'Connect', 'Speak'] },
+        { id: me.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'Connect', 'Speak'] }
       ];
       category = await guild.channels.create({ name: '⚔️ ' + tag + ' | ' + name, type: 4, permissionOverwrites: overwrites, reason: 'Private clan category created from Barracks dashboard' });
       textChannel = await guild.channels.create({ name: slug + '-chat', type: 0, parent: category.id, permissionOverwrites: overwrites, reason: 'Private clan text channel created from Barracks dashboard' });
@@ -734,6 +734,7 @@ export function registerDashboardRoutes(app, bot) {
       await setInDb(clanStorageKey(guild.id), [...clans, record]);
       return res.json({ ok: true, clan: record });
     } catch (error) {
+      if (role && leader.roles.cache.has(role.id)) await leader.roles.remove(role, 'Rollback failed clan creation').catch(() => {});
       await Promise.allSettled([voiceChannel, textChannel, category, role].filter(Boolean).map(resource => resource.delete('Rollback failed clan creation')));
       return res.status(500).json({ error: error?.message || 'Clan creation failed. Partially created Discord resources were cleaned up.' });
     }
