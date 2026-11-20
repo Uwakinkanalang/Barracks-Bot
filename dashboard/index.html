@@ -353,11 +353,12 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
 <label>Action<select id="modAction"><option value="warn">Warn (DM)</option><option value="timeout">Timeout</option><option value="untimeout">Remove timeout</option><option value="kick">Kick</option><option value="ban">Ban</option><option value="unban">Unban</option><option value="clear">Clear messages</option></select></label>
 <label>Discord User ID<input id="modUserId" placeholder="User ID (not needed for clear)"></label><label>Timeout duration (minutes)<input id="modDuration" type="number" min="1" max="40320" value="10"></label><label>Channel ID (clear only)<input id="modChannelId" placeholder="Text channel ID"></label><label>Messages to clear<input id="modAmount" type="number" min="1" max="100" value="10"></label></div>
 <label style="display:block;margin-top:12px">Reason<textarea id="modReason" rows="3" maxlength="400" placeholder="Reason for this action…"></textarea></label><div style="display:flex;gap:10px;align-items:center;margin-top:14px"><button id="modExecute" type="button">Review & execute</button><span id="modStatus" role="status"></span></div></div>
+</div>
 <div id="moderationLogsPanel" style="display:none;max-width:1100px">
  <div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 style="font-size:16px;margin:0 0 5px">Moderation history</h2><p class="sub">Recent actions performed through the Barracks dashboard.</p></div><button id="modLogsRefresh" type="button" class="logout">↻ Refresh logs</button></div><div id="modLogsStatus" role="status" style="margin-top:12px;color:#c0c2ca;font-size:13px"></div></div>
  <div class="card" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:680px;font-size:12px"><thead><tr style="text-align:left;color:#aeb0b8"><th style="padding:10px">Action</th><th style="padding:10px">Member / Target</th><th style="padding:10px">Moderator</th><th style="padding:10px">Reason</th><th style="padding:10px">Details</th><th style="padding:10px">Source</th><th style="padding:10px">Date & Time</th></tr></thead><tbody id="modLogsRows"><tr><td colspan="7" style="padding:16px;color:#aeb0b8">Loading logs…</td></tr></tbody></table></div>
  <p style="color:#9ba3ad;font-size:11px;margin:12px 2px">Up to 500 recent dashboard moderation actions are retained. Discord actions appear when the bot can read the server audit log.</p>
-</div></div></section>
+</div></section>
 <script>
 (()=>{
  const base='/Barracks-Bot/dashboard/';
