@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { getWelcomeConfig, saveWelcomeConfig } from '../utils/database.js';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
@@ -67,6 +68,71 @@ export function registerDashboardRoutes(app, bot) {
       token: createAccessToken(secret),
       expiresIn: SESSION_TTL_SECONDS
     });
+  });
+
+  app.get('/api/dashboard/welcome', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const config = await getWelcomeConfig(bot, guild.id);
+    const channels = guild.channels.cache
+      .filter(channel => channel.isTextBased?.() && !channel.isThread?.())
+      .map(channel => ({ id: channel.id, name: channel.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return res.json({ config, channels });
+  });
+
+  app.put('/api/dashboard/welcome', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const body = req.body || {};
+    const updates = {};
+    for (const field of ['welcomeMessage', 'leaveMessage']) {
+      if (body[field] !== undefined) {
+        if (typeof body[field] !== 'string' || !body[field].trim() || body[field].length > 2000)
+          return res.status(400).json({ error: field + ' must be between 1 and 2000 characters.' });
+        updates[field] = body[field].trim();
+      }
+    }
+    for (const field of ['enabled', 'welcomePing', 'goodbyeEnabled', 'goodbyePing']) {
+      if (body[field] !== undefined) {
+        if (typeof body[field] !== 'boolean') return res.status(400).json({ error: field + ' must be true or false.' });
+        updates[field] = body[field];
+      }
+    }
+    for (const field of ['channelId', 'goodbyeChannelId']) {
+      if (body[field] !== undefined) {
+        const id = body[field] === '' || body[field] === null ? null : String(body[field]);
+        if (id && !/^\d{17,20}$/.test(id)) return res.status(400).json({ error: 'Invalid channel selection.' });
+        const channel = id ? guild.channels.cache.get(id) : null;
+        if (id && (!channel || !channel.isTextBased?.() || channel.isThread?.()))
+          return res.status(400).json({ error: 'Select a text channel from Barracks.' });
+        updates[field] = id;
+      }
+    }
+    for (const field of ['welcomeImage', 'goodbyeImage']) {
+      if (body[field] !== undefined) {
+        const url = body[field] === '' || body[field] === null ? null : String(body[field]).trim();
+        if (url) {
+          try { const parsed = new URL(url); if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error(); }
+          catch { return res.status(400).json({ error: field + ' must be a valid HTTP or HTTPS URL.' }); }
+        }
+        if (field === 'welcomeImage') updates.welcomeImage = url;
+        else {
+          const current = await getWelcomeConfig(bot, guild.id);
+          updates.leaveEmbed = { ...(current.leaveEmbed || {}) };
+          if (url) updates.leaveEmbed.image = url;
+          else delete updates.leaveEmbed.image;
+        }
+      }
+    }
+    const current = await getWelcomeConfig(bot, guild.id);
+    const saved = await saveWelcomeConfig(bot, guild.id, { ...current, ...updates });
+    if (!saved) return res.status(500).json({ error: 'Could not save welcome settings.' });
+    return res.json({ ok: true, config: await getWelcomeConfig(bot, guild.id) });
   });
 
   app.get('/api/dashboard/overview', (req, res) => {

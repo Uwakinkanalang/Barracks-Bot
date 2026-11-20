@@ -19,7 +19,7 @@
 <button><span class="ico">⚙</span><span class="nav-text">Bot Settings</span></button>
 </nav>
 <div class="nav-label" style="margin-top:25px">SERVER MANAGEMENT</div><nav class="nav">
-<button><span class="ico">👋</span><span class="nav-text">Welcome & Goodbye</span></button>
+<button id="welcomeNavButton" type="button"><span class="ico">👋</span><span class="nav-text">Welcome & Goodbye</span></button>
 <button><span class="ico">🛡</span><span class="nav-text">Moderation</span></button>
 <button><span class="ico">💰</span><span class="nav-text">Economy / bCash</span></button>
 <button><span class="ico">🎮</span><span class="nav-text">Games & Activities</span></button>
@@ -41,7 +41,7 @@
 </div>
 <div class="section-head"><h2>Management modules</h2><span>Choose a section to manage your bot</span></div>
 <div class="modules">
-<button class="module"><span class="module-icon">👋</span><span><b>Welcome & Goodbye</b><small>Welcome banners, messages and member departures.</small></span><span class="tag">PLANNED</span></button>
+<button class="module" id="welcomeModuleButton" type="button"><span class="module-icon">👋</span><span><b>Welcome & Goodbye</b><small>Welcome banners, messages and member departures.</small></span><span class="tag">PLANNED</span></button>
 <button class="module"><span class="module-icon">🛡</span><span><b>Moderation</b><small>Moderation tools, logs and server protection.</small></span><span class="tag">PLANNED</span></button>
 <button class="module"><span class="module-icon">💰</span><span><b>Economy & bCash</b><small>Bank limits, salaries, rewards and economy settings.</small></span><span class="tag">PLANNED</span></button>
 <button class="module"><span class="module-icon">🎰</span><span><b>Games & Lotto</b><small>Slots, lotto, giveaways and game configuration.</small></span><span class="tag">PLANNED</span></button>
@@ -68,7 +68,7 @@ async function loadOverview(){try{const response=await fetch('/api/dashboard/ove
   </form>
 </div>
 <script>
-const API_BASE = 'https://barracks-bot-production.up.railway.app';
+const API_BASE = 'https://barracks-bot.up.railway.app';
 const TOKEN_KEY = 'barracks_dashboard_access';
 const loginScreen = document.getElementById('loginScreen');
 function showLogin(){loginScreen.style.display='grid';}
@@ -117,4 +117,85 @@ async function loadOverview(){
 if(getToken()) loadOverview(); else showLogin();
 setInterval(()=>{if(getToken())loadOverview();},60000);
 </script>
+
+<div id="welcomePanel" style="display:none;position:fixed;inset:0;z-index:20;background:#080e0bd9;overflow:auto;padding:24px">
+ <div style="max-width:850px;margin:30px auto;background:#111a16;border:1px solid #27372d;border-radius:18px;padding:24px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Server management</div><h1>Welcome & Goodbye</h1><p class="sub">Configure member join and departure messages.</p></div><button id="welcomeClose" class="logout" type="button">Close ✕</button></div>
+  <div id="welcomeStatus" class="notice" style="margin:18px 0">Loading settings…</div>
+  <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:18px">
+   <div class="card">
+    <h2 style="font-size:15px;margin-top:0">👋 Welcome settings</h2>
+    <label class="metric-note">Welcome channel</label><select id="welcomeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
+    <label class="metric-note">Welcome message</label><textarea id="welcomeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
+    <label class="metric-note">Welcome image URL</label><input id="welcomeImage" type="url" placeholder="https://..." style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px">
+    <label style="display:block;margin:8px 0"><input id="welcomeEnabled" type="checkbox"> Enable welcome messages</label>
+    <label style="display:block;margin:8px 0"><input id="welcomePing" type="checkbox"> Ping joining member</label>
+   </div>
+   <div class="card">
+    <h2 style="font-size:15px;margin-top:0">👋 Goodbye settings</h2>
+    <label class="metric-note">Goodbye channel</label><select id="goodbyeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
+    <label class="metric-note">Goodbye message</label><textarea id="goodbyeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
+    <label class="metric-note">Goodbye image URL</label><input id="goodbyeImage" type="url" placeholder="https://..." style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px">
+    <label style="display:block;margin:8px 0"><input id="goodbyeEnabled" type="checkbox"> Enable goodbye messages</label>
+    <label style="display:block;margin:8px 0"><input id="goodbyePing" type="checkbox"> Ping departing member</label>
+   </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px"><button id="welcomeSave" type="button" style="border:0;border-radius:9px;padding:12px 18px;background:#c3f36b;color:#18210f;font-weight:800">Save settings</button></div>
+ </div>
+</div>
+<script>
+const welcomePanel=document.getElementById('welcomePanel');
+const welcomeStatus=document.getElementById('welcomeStatus');
+function setWelcomeStatus(message,isError=false){welcomeStatus.textContent=message;welcomeStatus.style.color=isError?'#ff9a91':'#b8c9b7';}
+function showWelcomePanel(){welcomePanel.style.display='block';loadWelcomeSettings();}
+document.getElementById('welcomeNavButton').addEventListener('click',showWelcomePanel);
+document.getElementById('welcomeModuleButton').addEventListener('click',showWelcomePanel);
+document.getElementById('welcomeClose').addEventListener('click',()=>welcomePanel.style.display='none');
+async function loadWelcomeSettings(){
+ const token=getToken();if(!token){showLogin();return;}
+ setWelcomeStatus('Loading settings…');
+ try{
+  const response=await fetch(API_BASE+'/api/dashboard/welcome',{headers:{Authorization:'Bearer '+token}});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not load settings.');
+  const cfg=data.config||{};
+  for(const id of ['welcomeChannel','goodbyeChannel']){
+   const select=document.getElementById(id);select.innerHTML='<option value="">Not set</option>';
+   (data.channels||[]).forEach(ch=>{const option=document.createElement('option');option.value=ch.id;option.textContent='# '+ch.name;select.appendChild(option);});
+  }
+  document.getElementById('welcomeChannel').value=cfg.channelId||'';
+  document.getElementById('goodbyeChannel').value=cfg.goodbyeChannelId||'';
+  document.getElementById('welcomeMessage').value=cfg.welcomeMessage||'Welcome {user} to {server}!';
+  document.getElementById('goodbyeMessage').value=cfg.leaveMessage||'{user.tag} has left the server.';
+  document.getElementById('welcomeImage').value=cfg.welcomeImage||'';
+  document.getElementById('goodbyeImage').value=typeof cfg.leaveEmbed?.image==='string'?cfg.leaveEmbed.image:(cfg.leaveEmbed?.image?.url||'');
+  document.getElementById('welcomeEnabled').checked=!!cfg.enabled;
+  document.getElementById('welcomePing').checked=!!cfg.welcomePing;
+  document.getElementById('goodbyeEnabled').checked=!!cfg.goodbyeEnabled;
+  document.getElementById('goodbyePing').checked=!!cfg.goodbyePing;
+  setWelcomeStatus('Settings loaded. Save changes when ready.');
+ }catch(error){setWelcomeStatus(error.message,true);}
+}
+document.getElementById('welcomeSave').addEventListener('click',async()=>{
+ const button=document.getElementById('welcomeSave');button.disabled=true;button.textContent='Saving…';
+ try{
+  const payload={
+   channelId:document.getElementById('welcomeChannel').value,
+   goodbyeChannelId:document.getElementById('goodbyeChannel').value,
+   welcomeMessage:document.getElementById('welcomeMessage').value,
+   leaveMessage:document.getElementById('goodbyeMessage').value,
+   welcomeImage:document.getElementById('welcomeImage').value,
+   goodbyeImage:document.getElementById('goodbyeImage').value,
+   enabled:document.getElementById('welcomeEnabled').checked,
+   welcomePing:document.getElementById('welcomePing').checked,
+   goodbyeEnabled:document.getElementById('goodbyeEnabled').checked,
+   goodbyePing:document.getElementById('goodbyePing').checked
+  };
+  const response=await fetch(API_BASE+'/api/dashboard/welcome',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify(payload)});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not save settings.');
+  setWelcomeStatus('Saved successfully. Barracks-Bot will use the updated settings.');
+ }catch(error){setWelcomeStatus(error.message,true);}
+ finally{button.disabled=false;button.textContent='Save settings';}
+});
+</script>
+
 </body></html>
