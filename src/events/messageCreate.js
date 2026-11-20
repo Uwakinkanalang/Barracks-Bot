@@ -83,9 +83,9 @@ async function handlePrefixCommand(message, client) {
         return;
       }
       const testAnnouncement =
-        `🧪 **TEST — BARRACKS LOTTO WINNER!**\\n\\n` +
-        `🎖️ Congratulations, ${message.author}!\\n\\n` +
-        `You're today's lucky soldier! You've won **₱1,000,000 bCash**!\\n\\n` +
+        `🧪 **TEST — BARRACKS LOTTO WINNER!**\n\n` +
+        `🎖️ Congratulations, ${message.author}!\n\n` +
+        `You're today's lucky soldier! You've won **₱1,000,000 bCash**!\n\n` +
         `This is only a test announcement. No bCash was awarded.`;
       await announcementChannel.send({
         content: testAnnouncement,
