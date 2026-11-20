@@ -226,21 +226,30 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
       ? rewardRoles.map((role) => `<@&${role.id}>`).join(', ')
       : 'Unranked';
 
+    const defaultAnnouncement = [
+      '⚔️ **LEVEL UP ALERT!**',
+      '',
+      'Well, well, well! Akala namin ordinary recruit ka lang sa Barracks, pero mukhang nag-grind ka nang todo!',
+      '',
+      '⚔️ **SOLDIER PROFILE:**',
+      '',
+      '• **Rank:** {rank}',
+      '• **Rank Level:** {level}',
+      '• **Total Battle Experience:** {totalXp} XP',
+      '',
+      '🎖️ Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
+    ].join('\\n');
+    const announcementTemplate = config.levelUpMessage || defaultAnnouncement;
+    const announcementDescription = announcementTemplate
+      .replaceAll('{user}', member.toString())
+      .replaceAll('{username}', member.displayName || member.user.username)
+      .replaceAll('{rank}', rankDisplay)
+      .replaceAll('{level}', String(levelData.level))
+      .replaceAll('{totalXp}', levelData.totalXp.toLocaleString('en-US'));
+
     const levelUpEmbed = new EmbedBuilder()
       .setColor(0x36393F)
-      .setDescription([
-        '⚔️ **LEVEL UP ALERT!**',
-        '',
-        'Well, well, well! Akala namin ordinary recruit ka lang sa Barracks, pero mukhang nag-grind ka nang todo!',
-        '',
-        '⚔️ **SOLDIER PROFILE:**',
-        '',
-        `• **Rank:** ${rankDisplay}`,
-        `• **Rank Level:** ${levelData.level}`,
-        `• **Total Battle Experience:** ${levelData.totalXp.toLocaleString('en-US')} XP`,
-        '',
-        '🎖️ Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
-      ].join('\n'))
+      .setDescription(announcementDescription.slice(0, 4096))
       .setThumbnail(member.displayAvatarURL({ extension: 'png', size: 256 }))
       .setImage('https://media.discordapp.net/attachments/1563246823018336416/1563262831334391959/barracks-red-lightning-banner.gif?ex=6af6b2b7&is=6af56137&hm=6c175623588c4efc954b84cb34d624cb7ad5808e00447f79d999e505abe5df22&=');
 
