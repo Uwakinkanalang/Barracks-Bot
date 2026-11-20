@@ -129,21 +129,25 @@ export function registerDashboardRoutes(app, bot) {
         aliasesByCommand.get(target).push(alias);
       }
       const categories = snapshot.categories.map(category => {
-        const commands = category.commands.filter(entry => {
+        const eligible = category.commands.filter(entry => {
           const command = bot.commands.get(entry.name.split(' ')[0]);
           if (!command || !supportsPrefixExecution(command)) return false;
           const args = entry.name.split(' ').slice(1);
           return !getPrefixRestriction(command, args, resolveSubcommandAlias).blocked;
-        }).map(entry => {
-          const baseName = entry.name.split(' ')[0];
-          const aliases = entry.name === baseName ? (aliasesByCommand.get(baseName) || []) : [];
-          return { ...entry, aliases: [...new Set(aliases)].filter(alias => alias !== entry.name && (!bot.commands.has(alias) || alias === baseName)).sort() };
+        });
+        const commands = eligible.filter(entry => !entry.name.includes(' ')).map(entry => {
+          const baseName = entry.name;
+          const aliases = [...new Set(aliasesByCommand.get(baseName) || [])]
+            .filter(alias => alias !== baseName && !bot.commands.has(alias)).sort();
+          const subcommands = eligible.filter(candidate => candidate.name.startsWith(baseName + ' '))
+            .map(candidate => candidate.name);
+          return { ...entry, aliases, subcommands };
         });
         return { key: category.key, name: category.displayName, icon: category.icon,
           enabledCount: commands.filter(command => isCommandEnabledInConfig(config, command.name, category.folder, 'prefix')).length,
           totalCount: commands.length,
           commands: commands.map(command => ({ name: command.name, description: command.description,
-            aliases: command.aliases,
+            aliases: command.aliases, subcommands: command.subcommands,
             enabled: isCommandEnabledInConfig(config, command.name, category.folder, 'prefix'), protected: command.protected })) };
       }).filter(category => category.commands.length);
       return res.json({ categories, totalCommands: categories.reduce((sum, category) => sum + category.totalCount, 0),
