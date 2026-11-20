@@ -744,21 +744,25 @@ export function registerDashboardRoutes(app, bot) {
     const clanId = String(req.params.clanId || '');
     const name = String(req.body?.name || '').trim();
     const tag = String(req.body?.tag || '').trim().toUpperCase();
+    const roleHexInput = String(req.body?.roleHex || '').trim();
+    const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
+    const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
     const leaderId = String(req.body?.leaderId || '').trim();
+    const viceLeaderId = String(req.body?.viceLeaderId || '').trim();
     const description = String(req.body?.description || '').trim();
+    const rules = String(req.body?.rules || '').trim();
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
-    if (!/^\d{17,20}$/.test(leaderId)) return res.status(400).json({ error: 'Enter a valid Discord user ID for the clan leader.' });
-    if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
     if (!roleHex) return res.status(400).json({ error: 'Role Hex Code must be a valid six-digit color, such as #5865F2.' });
+    if (!/^\\d{17,20}$/.test(leaderId) || !/^\\d{17,20}$/.test(viceLeaderId) || leaderId === viceLeaderId) return res.status(400).json({ error: 'Enter valid, different Discord IDs for the clan leader and vice clan leader.' });
+    if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
+    if (!rules || rules.length > 1000) return res.status(400).json({ error: 'Clan Rules are required and must be 1,000 characters or fewer.' });
 
     const me = guild.members.me;
     if (!me || !me.permissions.has(['ManageRoles', 'ManageChannels'])) return res.status(403).json({ error: 'Barracks-Bot needs Manage Roles and Manage Channels permissions.' });
     let clans;
-    try {
-      clans = await loadDashboardClans(guild.id);
-    } catch { return res.status(500).json({ error: 'Could not read saved clan records.' }); }
-
+    try { clans = await loadDashboardClans(guild.id); }
+    catch { return res.status(500).json({ error: 'Could not read saved clan records.' }); }
     const index = clans.findIndex(c => String(c.roleId || c.id) === clanId);
     if (index < 0) return res.status(404).json({ error: 'Clan not found.' });
     const current = clans[index];
@@ -773,42 +777,52 @@ export function registerDashboardRoutes(app, bot) {
     if (!role.editable || !category.manageable || !textChannel.manageable || !voiceChannel.manageable) return res.status(403).json({ error: 'Barracks-Bot cannot edit this clan role or channels. Check its role hierarchy and Manage Roles/Channels permissions.' });
 
     const leaderUnchanged = String(current.leaderId || '') === leaderId;
-    const leader = leaderUnchanged
-      ? (guild.members.cache.get(leaderId) || null)
-      : await guild.members.fetch(leaderId).catch(() => null);
-    if (!leaderUnchanged && (!leader || leader.user.bot)) return res.status(404).json({ error: 'Clan leader must be a real member of Barracks.' });
-    if (!leaderUnchanged && !leader.manageable) return res.status(403).json({ error: 'Barracks-Bot cannot assign roles to this member. Move the bot role above the leader’s highest role.' });
+    const viceUnchanged = String(current.viceLeaderId || '') === viceLeaderId;
+    const leader = await guild.members.fetch(leaderId).catch(() => null);
+    const viceLeader = await guild.members.fetch(viceLeaderId).catch(() => null);
+    if (!leader || leader.user.bot) return res.status(404).json({ error: 'Clan leader must be a real member of Barracks.' });
+    if (!viceLeader || viceLeader.user.bot) return res.status(404).json({ error: 'Vice clan leader must be a real member of Barracks.' });
+    if ((!leaderUnchanged && !leader.manageable) || (!viceUnchanged && !viceLeader.manageable)) return res.status(403).json({ error: 'Barracks-Bot cannot assign roles to one of these members. Move the bot role above their highest role.' });
 
-    const oldLeader = leaderUnchanged ? leader : await guild.members.fetch(String(current.leaderId)).catch(() => null);
+    const oldLeader = leaderUnchanged ? null : await guild.members.fetch(String(current.leaderId)).catch(() => null);
+    const oldVice = viceUnchanged ? null : await guild.members.fetch(String(current.viceLeaderId)).catch(() => null);
     const slug = (tag + '-' + name).toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 85) || 'clan';
     const voiceName = (tag + '-' + name + '-vc').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 100) || 'clan-vc';
     try {
-      await role.edit({ name: tag + ' ' + name, reason: 'Clan details updated from Barracks dashboard' });
+      await role.edit({ name: tag + ' ' + name, color: roleHex, reason: 'Clan details updated from Barracks dashboard' });
       const levelsRole = await guild.roles.fetch('1564159581825933353').catch(() => null);
-      if (levelsRole && role.editable) {
-        await role.setPosition(levelsRole.position + 1, {
-          reason: 'Keep Barracks clan roles above the Levels separator',
-        });
-      }
+      if (levelsRole && role.editable) await role.setPosition(levelsRole.position + 1, { reason: 'Keep Barracks clan roles above the Levels separator' });
       await category.edit({ name: tag + ' | ' + name, reason: 'Clan details updated from Barracks dashboard' });
       await textChannel.edit({ name: slug + '-chat', reason: 'Clan details updated from Barracks dashboard' });
       await voiceChannel.edit({ name: voiceName, reason: 'Clan details updated from Barracks dashboard' });
 
-      if (!leaderUnchanged) {
-        if (oldLeader) {
-          await category.permissionOverwrites.delete(oldLeader.id).catch(() => {});
-          await textChannel.permissionOverwrites.delete(oldLeader.id).catch(() => {});
-          await voiceChannel.permissionOverwrites.delete(oldLeader.id).catch(() => {});
-          await oldLeader.roles.remove(role, 'Clan leader changed in Barracks dashboard').catch(() => {});
-        }
+      if (!leaderUnchanged && oldLeader) {
         await Promise.all([
-          category.permissionOverwrites.edit(leader.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, Connect: true, Speak: true }),
-          textChannel.permissionOverwrites.edit(leader.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true, EmbedLinks: true }),
-          voiceChannel.permissionOverwrites.edit(leader.id, { ViewChannel: true, Connect: true, Speak: true })
+          category.permissionOverwrites.delete(oldLeader.id).catch(() => {}),
+          textChannel.permissionOverwrites.delete(oldLeader.id).catch(() => {}),
+          voiceChannel.permissionOverwrites.delete(oldLeader.id).catch(() => {}),
+          oldLeader.roles.remove(role, 'Clan leader changed in Barracks dashboard').catch(() => {})
         ]);
-        await leader.roles.add(role, 'Assigned as clan leader by Barracks dashboard');
       }
-      const updated = { ...current, name, tag, description, leaderId, leaderName: leader?.displayName || current.leaderName || leaderId, updatedAt: new Date().toISOString() };
+      if (!viceUnchanged && oldVice) {
+        await Promise.all([
+          category.permissionOverwrites.delete(oldVice.id).catch(() => {}),
+          textChannel.permissionOverwrites.delete(oldVice.id).catch(() => {}),
+          voiceChannel.permissionOverwrites.delete(oldVice.id).catch(() => {}),
+          oldVice.roles.remove(role, 'Vice clan leader changed in Barracks dashboard').catch(() => {})
+        ]);
+      }
+      for (const member of [leader, viceLeader]) {
+        await Promise.all([
+          category.permissionOverwrites.edit(member.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, Connect: true, Speak: true }),
+          textChannel.permissionOverwrites.edit(member.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true, EmbedLinks: true }),
+          voiceChannel.permissionOverwrites.edit(member.id, { ViewChannel: true, Connect: true, Speak: true })
+        ]);
+        if ((!leaderUnchanged && member.id === leader.id) || (!viceUnchanged && member.id === viceLeader.id)) {
+          await member.roles.add(role, 'Assigned as clan leadership by Barracks dashboard');
+        }
+      }
+      const updated = { ...current, name, tag, roleHex, rules, description, leaderId, leaderName: leader.displayName || leaderId, viceLeaderId, viceLeaderName: viceLeader.displayName || viceLeaderId, updatedAt: new Date().toISOString() };
       clans[index] = updated;
       await setInDb(clanStorageKey(guild.id), clans);
       return res.json({ ok: true, clan: updated });
