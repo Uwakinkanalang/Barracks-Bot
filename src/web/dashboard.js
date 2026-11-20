@@ -682,15 +682,40 @@ export function registerDashboardRoutes(app, bot) {
   app.put('/api/dashboard/tickets',async(req,res)=>{const secret=process.env.DASHBOARD_SESSION_SECRET;if(!secret||!validAccessToken(req,secret))return res.status(401).json({error:'Unauthorized'});const guild=bot.guilds.cache.get(DASHBOARD_GUILD_ID);if(!guild)return res.status(503).json({error:'Barracks server is not available.'});const b=req.body||{};const prefix=String(b.prefix||'ticket').trim().toLowerCase().replace(/[^a-z0-9-]/g,'-').slice(0,20);if(!prefix||!String(b.title||'').trim()||String(b.title).length>200||String(b.message||'').length>1800)return res.status(400).json({error:'Check ticket prefix, title, and message.'});if(b.categoryId&&guild.channels.cache.get(String(b.categoryId))?.type!==4)return res.status(400).json({error:'Choose a valid category.'});if(b.logChannelId&&!guild.channels.cache.get(String(b.logChannelId))?.isTextBased?.())return res.status(400).json({error:'Choose a valid text log channel.'});if((b.supportRoleIds||[]).some(id=>!guild.roles.cache.has(String(id))))return res.status(400).json({error:'One or more support roles are invalid.'});try{await bot.db.set('guild:'+guild.id+':tickets:dashboard-config',{categoryId:b.categoryId||null,logChannelId:b.logChannelId||null,supportRoleIds:[...(b.supportRoleIds||[])],prefix,title:String(b.title).trim(),message:String(b.message||'').trim()});return res.json({ok:true});}catch(e){return res.status(500).json({error:e.message||'Could not save ticket settings.'});}});
 
 
-  const clanStorageKey = guildId => 'dashboard:clans:' + guildId;
+  // Keep dashboard-created clans in the same registry used by Discord clan commands.
+  const clanStorageKey = guildId => 'guild:' + guildId + ':clans';
+  const legacyClanStorageKey = guildId => 'dashboard:clans:' + guildId;
+  const loadDashboardClans = async guildId => {
+    const [currentStored, legacyStored] = await Promise.all([
+      getFromDb(clanStorageKey(guildId), []),
+      getFromDb(legacyClanStorageKey(guildId), [])
+    ]);
+    const current = Array.isArray(currentStored) ? currentStored : [];
+    const legacy = Array.isArray(legacyStored) ? legacyStored : [];
+    const merged = [...current];
+    for (const oldClan of legacy) {
+      const exists = merged.some(clan =>
+        String(clan.id || clan.roleId) === String(oldClan.id || oldClan.roleId) ||
+        String(clan.roleId || '') === String(oldClan.roleId || oldClan.id)
+      );
+      if (!exists) merged.push(oldClan);
+    }
+    const normalized = merged.map(clan => ({
+      ...clan,
+      status: clan.status || 'approved',
+      memberIds: Array.isArray(clan.memberIds) ? clan.memberIds : [],
+      joinRequests: Array.isArray(clan.joinRequests) ? clan.joinRequests : []
+    }));
+    if (normalized.length) await setInDb(clanStorageKey(guildId), normalized);
+    return normalized;
+  };
   app.get('/api/dashboard/clans', async (req, res) => {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
     if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     try {
-      const stored = await getFromDb(clanStorageKey(guild.id), []);
-      const clans = Array.isArray(stored) ? stored : [];
+      const clans = await loadDashboardClans(guild.id);
       return res.json({ clans: clans.map(clan => ({ ...clan, leaderName: guild.members.cache.get(clan.leaderId)?.displayName || clan.leaderName || clan.leaderId })) });
     } catch (error) { return res.status(500).json({ error: error?.message || 'Could not load clans.' }); }
   });
@@ -716,8 +741,7 @@ export function registerDashboardRoutes(app, bot) {
     if (!me || !me.permissions.has(['ManageRoles', 'ManageChannels'])) return res.status(403).json({ error: 'Barracks-Bot needs Manage Roles and Manage Channels permissions.' });
     let clans;
     try {
-      const stored = await getFromDb(clanStorageKey(guild.id), []);
-      clans = Array.isArray(stored) ? stored : [];
+      clans = await loadDashboardClans(guild.id);
     } catch { return res.status(500).json({ error: 'Could not read saved clan records.' }); }
 
     const index = clans.findIndex(c => String(c.roleId || c.id) === clanId);
@@ -789,7 +813,7 @@ export function registerDashboardRoutes(app, bot) {
     if (!leader || leader.user.bot) return res.status(404).json({ error: 'Clan leader must be a real member of Barracks.' });
     if (!leader.manageable) return res.status(403).json({ error: 'Barracks-Bot cannot assign roles to this member. Move the bot role above the leader’s highest role.' });
     let clans;
-    try { const stored = await getFromDb(clanStorageKey(guild.id), []); clans = Array.isArray(stored) ? stored : []; }
+    try { clans = await loadDashboardClans(guild.id); }
     catch { return res.status(500).json({ error: 'Could not read saved clan records.' }); }
     if (clans.some(c => String(c.tag).toUpperCase() === tag)) return res.status(409).json({ error: 'That clan tag is already in use.' });
     if (clans.some(c => String(c.name).toLowerCase() === name.toLowerCase())) return res.status(409).json({ error: 'A clan with that name already exists.' });
@@ -807,7 +831,7 @@ export function registerDashboardRoutes(app, bot) {
       textChannel = await guild.channels.create({ name: slug + '-chat', type: 0, parent: category.id, permissionOverwrites: overwrites, reason: 'Private clan text channel created from Barracks dashboard' });
       voiceChannel = await guild.channels.create({ name: (tag + '-' + name + '-vc').toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 100), type: 2, parent: category.id, permissionOverwrites: overwrites, reason: 'Private clan voice channel created from Barracks dashboard' });
       await leader.roles.add(role, 'Assigned as clan leader by Barracks dashboard');
-      const record = { id: role.id, name, tag, description, leaderId: leader.id, leaderName: leader.displayName, roleId: role.id, categoryId: category.id, textChannelId: textChannel.id, voiceChannelId: voiceChannel.id, createdAt: new Date().toISOString() };
+      const record = { id: role.id, name, tag, description, leaderId: leader.id, leaderName: leader.displayName, roleId: role.id, categoryId: category.id, textChannelId: textChannel.id, voiceChannelId: voiceChannel.id, status: 'approved', memberIds: [], joinRequests: [], createdAt: new Date().toISOString(), source: 'dashboard' };
       await setInDb(clanStorageKey(guild.id), [...clans, record]);
       return res.json({ ok: true, clan: record });
     } catch (error) {
