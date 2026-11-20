@@ -57,7 +57,8 @@ export function registerDashboardRoutes(app, bot) {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
     if (!expectedPassword || !secret) return res.status(503).send('Dashboard login is not configured.');
     const origin = req.get('origin');
-    if (origin && origin !== `${req.protocol}://${req.get('host')}`) return res.status(403).send('Invalid request origin.');
+    const requestProtocol = req.get('x-forwarded-proto') || req.protocol;
+    if (origin && origin !== `${requestProtocol}://${req.get('host')}`) return res.status(403).send('Invalid request origin.');
     if (!safeEqual(req.body?.password || '', expectedPassword)) {
       return res.status(401).type('html').send(loginPage('Incorrect password. Please try again.'));
     }
