@@ -147,9 +147,9 @@ export function registerDashboardRoutes(app, bot) {
         return { key: category.key, name: category.displayName, icon: category.icon,
           enabledCount: commands.filter(command => isCommandEnabledInConfig(config, command.name, category.folder, 'prefix')).length,
           totalCount: commands.length,
-          commands: commands.map(command => ({ name: command.name, description: command.description,
+          commands: commands.map(command => ({ name: command.name, toggleName: command.toggleName || command.name, description: command.description,
             aliases: command.aliases, subcommands: command.subcommands,
-            enabled: isCommandEnabledInConfig(config, command.name, category.folder, 'prefix'), protected: command.protected })) };
+            enabled: isCommandEnabledInConfig(config, command.toggleName || command.name, category.folder, 'prefix'), protected: command.protected })) };
       }).filter(category => category.commands.length);
       return res.json({ categories, totalCommands: categories.reduce((sum, category) => sum + category.totalCount, 0),
         enabledTotal: categories.reduce((sum, category) => sum + category.enabledCount, 0) });
