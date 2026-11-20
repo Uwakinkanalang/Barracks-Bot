@@ -690,12 +690,24 @@ export default {
               await interaction.reply({ content: 'There are currently no approved clans available to join.', flags: MessageFlags.Ephemeral });
               return;
             }
-            const options = approved.slice(0, 25).map(clan => ({
-              label: clan.name.slice(0, 100),
-              description: `Tag: ${clan.tag} • Leader: ${interaction.guild.members.cache.get(clan.leaderId)?.displayName || 'Clan Leader'}`.slice(0, 100),
-              value: clan.id,
-              emoji: '🏰',
+            // Resolve leader display names from Discord instead of relying only on cached members.
+            const leaderNames = new Map();
+            await Promise.all(approved.map(async clan => {
+              const leaderId = String(clan.leaderId || '');
+              if (!leaderId) return;
+              const leader = await interaction.guild.members.fetch(leaderId).catch(() => null);
+              const displayName = leader?.displayName || clan.leaderName || 'Unknown Leader';
+              leaderNames.set(leaderId, displayName);
             }));
+            const options = approved.slice(0, 25).map(clan => {
+              const leaderName = leaderNames.get(String(clan.leaderId || '')) || clan.leaderName || 'Unknown Leader';
+              return {
+                label: `${clan.name} [${clan.tag}]`.slice(0, 100),
+                description: `Clan Leader: ${leaderName}`.slice(0, 100),
+                value: String(clan.id || clan.roleId),
+                emoji: '🏰',
+              };
+            });
             const menu = new StringSelectMenuBuilder()
               .setCustomId('clan:join:select')
               .setPlaceholder('Choose an approved clan')
