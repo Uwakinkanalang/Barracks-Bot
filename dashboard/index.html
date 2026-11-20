@@ -50,7 +50,7 @@ body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;borde
 <div class="modules">
 <div class="module-group-title">Messaging</div>
 <button class="module" id="welcomeModuleButton" type="button"><span class="module-icon">📢</span><span><b>Announcements</b><small>Send join, leave and other server announcements</small></span></button>
-<button class="module"  type="button"><span class="module-icon">⊞</span><span><b>Message Builder</b><small>Create custom Discord messages</small></span></button>
+<button class="module" id="messageBuilderModuleButton" type="button"><span class="module-icon">⊞</span><span><b>Message Builder</b><small>Create custom Discord messages</small></span></button>
 <button class="module"  type="button"><span class="module-icon">▤</span><span><b>Templates</b><small>Create reusable message templates</small></span></button>
 <button class="module"  type="button"><span class="module-icon">ϟ</span><span><b>Actions</b><small>Create reusable actions for buttons and menus</small></span></button>
 <button class="module"  type="button"><span class="module-icon">▣</span><span><b>Auto Responders</b><small>Configure automatic replies to messages</small></span></button>
@@ -253,6 +253,95 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
  }catch(error){setWelcomeStatus(error.message,true);}
  finally{button.disabled=false;button.textContent='Save settings';}
 });
+</script>
+
+
+<div id="messageBuilderPanel" style="display:none;position:fixed;inset:0;z-index:30;background:#080e0bd9;overflow:auto;padding:24px">
+ <div style="max-width:1100px;margin:20px auto;background:#303137;border:1px solid #484950;border-radius:16px;padding:22px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Messaging tools</div><h1>Message Builder</h1><p class="sub">Build a Discord message and preview it before copying the payload.</p></div><button id="messageBuilderClose" class="logout" type="button">Close ✕</button></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:20px">
+   <div class="card" style="background:#34353c;border-color:#484950">
+    <h2 style="font-size:15px;margin:0 0 16px">Message content</h2>
+    <label class="metric-note" for="mbContent">Text message</label><textarea id="mbContent" rows="4" maxlength="2000" placeholder="Write your message here..." style="width:100%;padding:11px;margin:7px 0 15px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px;resize:vertical"></textarea>
+    <h2 style="font-size:15px;margin:4px 0 14px">Embed</h2>
+    <label class="metric-note" for="mbTitle">Title</label><input id="mbTitle" maxlength="256" placeholder="Announcement title" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
+    <label class="metric-note" for="mbDescription">Description</label><textarea id="mbDescription" rows="5" maxlength="4096" placeholder="Add details to your embed..." style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px;resize:vertical"></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+     <div><label class="metric-note" for="mbColor">Embed color</label><input id="mbColor" type="color" value="#c3f36b" style="display:block;width:100%;height:42px;margin-top:7px;background:#25262c;border:1px solid #555761;border-radius:8px"></div>
+     <div><label class="metric-note" for="mbAuthor">Author name</label><input id="mbAuthor" maxlength="256" placeholder="Barracks HQ" style="width:100%;padding:11px;margin-top:7px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px"></div>
+    </div>
+    <label class="metric-note" for="mbFooter" style="display:block;margin-top:13px">Footer</label><input id="mbFooter" maxlength="2048" placeholder="Barracks • Official Notice" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
+    <label class="metric-note" for="mbImage">Image URL</label><input id="mbImage" type="url" placeholder="https://example.com/image.png" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
+    <label class="metric-note" for="mbThumbnail">Thumbnail URL</label><input id="mbThumbnail" type="url" placeholder="https://example.com/icon.png" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px"><input id="mbTimestamp" type="checkbox"> Include timestamp</label>
+   </div>
+   <div>
+    <div class="card" style="background:#34353c;border-color:#484950">
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="font-size:15px;margin:0">Live preview</h2><span style="font-size:10px;color:#aeb3bf">DISCORD STYLE</span></div>
+     <div style="background:#313338;border-radius:9px;padding:14px;color:#dbdee1;min-height:220px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div style="width:28px;height:28px;border-radius:50%;background:#c3f36b;color:#20251b;display:grid;place-items:center;font-weight:900">B</div><b style="color:#f2f3f5">Barracks-Bot</b><span style="font-size:10px;background:#5865f2;padding:2px 5px;border-radius:4px">BOT</span><span style="font-size:10px;color:#999">Today at 12:00</span></div>
+      <div id="mbPreviewContent" style="white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:9px"></div>
+      <div id="mbPreviewEmbed" style="display:none;border-left:4px solid #c3f36b;background:#2b2d31;border-radius:4px;padding:12px;max-width:100%">
+       <div id="mbPreviewAuthor" style="font-size:11px;font-weight:700;margin-bottom:7px"></div><div id="mbPreviewTitle" style="font-weight:750;color:#fff;margin-bottom:6px"></div><div id="mbPreviewDescription" style="font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere"></div>
+       <img id="mbPreviewThumbnail" alt="" style="display:none;float:right;max-width:76px;max-height:76px;object-fit:cover;border-radius:5px;margin:0 0 8px 10px"><img id="mbPreviewImage" alt="" style="display:none;max-width:100%;max-height:180px;object-fit:contain;margin-top:10px;border-radius:5px">
+       <div id="mbPreviewFooter" style="font-size:10px;color:#b5bac1;border-top:1px solid #41434a;padding-top:8px;margin-top:10px"></div>
+      </div>
+     </div>
+    </div>
+    <div class="card" style="background:#34353c;border-color:#484950;margin-top:14px">
+     <h2 style="font-size:15px;margin:0 0 8px">Export</h2><p class="sub" style="line-height:1.5">Copy the Discord API message JSON. Sending directly to a channel will be connected when the dashboard's message-send API is available.</p>
+     <button id="mbCopy" type="button" style="width:100%;border:0;border-radius:9px;padding:12px;background:#c3f36b;color:#18210f;font-weight:800;margin-top:12px">Copy message JSON</button>
+     <button id="mbReset" type="button" class="logout" style="width:100%;margin-top:9px">Clear builder</button>
+     <div id="mbStatus" role="status" style="font-size:11px;color:#b8c9b7;margin-top:12px"></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+<script>
+(()=>{
+ const panel=document.getElementById('messageBuilderPanel');
+ const ids=['mbContent','mbTitle','mbDescription','mbColor','mbAuthor','mbFooter','mbImage','mbThumbnail','mbTimestamp'];
+ const el=id=>document.getElementById(id);
+ const val=id=>el(id).value.trim();
+ const show=()=>{panel.style.display='block';render();};
+ document.getElementById('messageBuilderModuleButton').addEventListener('click',show);
+ el('messageBuilderClose').addEventListener('click',()=>panel.style.display='none');
+ function safeImage(id,preview){const url=val(id);const img=el(preview);if(url){img.src=url;img.style.display='block';img.onerror=()=>{img.style.display='none';};}else{img.removeAttribute('src');img.style.display='none';}}
+ function payload(){
+  const content=el('mbContent').value;
+  const embed={};
+  if(val('mbTitle'))embed.title=val('mbTitle');
+  if(val('mbDescription'))embed.description=val('mbDescription');
+  if(val('mbColor'))embed.color=parseInt(val('mbColor').slice(1),16);
+  if(val('mbAuthor'))embed.author={name:val('mbAuthor')};
+  if(val('mbFooter'))embed.footer={text:val('mbFooter')};
+  if(val('mbImage'))embed.image={url:val('mbImage')};
+  if(val('mbThumbnail'))embed.thumbnail={url:val('mbThumbnail')};
+  if(el('mbTimestamp').checked)embed.timestamp=new Date().toISOString();
+  const result={};if(content)result.content=content;if(Object.keys(embed).length)result.embeds=[embed];return result;
+ }
+ function render(){
+  el('mbPreviewContent').textContent=el('mbContent').value;
+  const hasEmbed=!!(val('mbTitle')||val('mbDescription')||val('mbAuthor')||val('mbFooter')||val('mbImage')||val('mbThumbnail'));
+  const card=el('mbPreviewEmbed');card.style.display=hasEmbed?'block':'none';card.style.borderLeftColor=val('mbColor')||'#c3f36b';
+  el('mbPreviewAuthor').textContent=val('mbAuthor');el('mbPreviewAuthor').style.display=val('mbAuthor')?'block':'none';
+  el('mbPreviewTitle').textContent=val('mbTitle');el('mbPreviewTitle').style.display=val('mbTitle')?'block':'none';
+  el('mbPreviewDescription').textContent=el('mbDescription').value;el('mbPreviewDescription').style.display=val('mbDescription')?'block':'none';
+  el('mbPreviewFooter').textContent=val('mbFooter')+(el('mbTimestamp').checked?' · '+new Date().toLocaleString():'');
+  el('mbPreviewFooter').style.display=(val('mbFooter')||el('mbTimestamp').checked)?'block':'none';
+  safeImage('mbImage','mbPreviewImage');safeImage('mbThumbnail','mbPreviewThumbnail');
+ }
+ ids.forEach(id=>el(id).addEventListener('input',render));
+ el('mbTimestamp').addEventListener('change',render);
+ el('mbCopy').addEventListener('click',async()=>{
+  const data=payload();if(!data.content&&!data.embeds){el('mbStatus').textContent='Add some message text or embed content first.';return;}
+  try{await navigator.clipboard.writeText(JSON.stringify(data,null,2));el('mbStatus').textContent='Message JSON copied. You can paste it into your bot/API workflow.';}
+  catch(e){el('mbStatus').textContent='Clipboard access was blocked by your browser. Try the dashboard over HTTPS and allow clipboard access.';}
+ });
+ el('mbReset').addEventListener('click',()=>{ids.forEach(id=>{if(id==='mbColor')el(id).value='#c3f36b';else if(id==='mbTimestamp')el(id).checked=false;else el(id).value='';});render();el('mbStatus').textContent='Builder cleared.';});
+ render();
+})();
 </script>
 
 </body></html>
