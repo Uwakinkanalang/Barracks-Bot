@@ -7,6 +7,11 @@ export default {
     .setDescription('Create and manage your clan')
     .addSubcommand(subcommand =>
       subcommand
+        .setName('panel')
+        .setDescription('Post the Create, Join, and Leave Clan panel in the configured clan channel')
+    )
+    .addSubcommand(subcommand =>
+      subcommand
         .setName('setapproverole')
         .setDescription('Set the role allowed to approve or reject clan registrations')
         .addRoleOption(option =>
@@ -70,6 +75,30 @@ export default {
     }
 
     const subcommand = interaction.options.getSubcommand();
+
+    if (subcommand === 'panel') {
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+        return interaction.reply({ content: 'You need the **Manage Server** permission to post the Clan HQ panel.', flags: MessageFlags.Ephemeral });
+      }
+      const panelChannelId = '1559627423492874351';
+      const panelChannel = await interaction.guild.channels.fetch(panelChannelId).catch(() => null);
+      if (!panelChannel?.isTextBased() || !panelChannel.send) {
+        return interaction.reply({ content: 'I could not access the configured Clan HQ channel. Check the channel ID and my View Channel / Send Messages permissions.', flags: MessageFlags.Ephemeral });
+      }
+      const panelEmbed = new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setTitle('⚔️ BARRACKS CLAN HQ')
+        .setDescription('Create your own squad, apply to join an approved clan, or leave your current clan.\\n\\n**➕ Create a Clan** — Register your own clan and become its leader.\\n**🛡️ Join a Clan** — Browse approved clans and send a membership application.\\n**🚪 Leave a Clan** — Leave your current clan after confirmation.')
+        .addFields({ name: '📜 Clan Guidelines', value: '• One clan per member.\\n• Clan creation requires staff approval.\\n• Join requests must be accepted by clan leadership.\\n• Clan Leaders must transfer leadership or remove their clan before leaving.' })
+        .setFooter({ text: 'Barracks • Clan Registry' });
+      const panelRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('clan:create').setLabel('Create a Clan').setEmoji('🏰').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('clan:join:open').setLabel('Join a Clan').setEmoji('🛡️').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('clan:leave:open').setLabel('Leave a Clan').setEmoji('🚪').setStyle(ButtonStyle.Danger)
+      );
+      await panelChannel.send({ embeds: [panelEmbed], components: [panelRow] });
+      return interaction.reply({ content: `✅ Clan HQ panel posted in <#${panelChannelId}>.`, flags: MessageFlags.Ephemeral });
+    }
 
     if (subcommand === 'leave') {
       const storageKey = `guild:${interaction.guildId}:clans`;
