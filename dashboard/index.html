@@ -25,7 +25,8 @@ body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;borde
 <button><span class="ico">⚙</span><span class="nav-text">Bot Settings</span></button>
 </nav>
 <div class="nav-label" style="margin-top:25px">SERVER MANAGEMENT</div><nav class="nav">
-<button id="welcomeNavButton" type="button"><span class="ico">👋</span><span class="nav-text">Welcome & Goodbye</span></button>
+<button id="welcomeNavButton" type="button"><span class="ico">👋</span><span class="nav-text">Welcome Message</span></button>
+ <button id="goodbyeNavButton" type="button"><span class="ico">👋</span><span class="nav-text">Goodbye Message</span></button>
 <button><span class="ico">🛡</span><span class="nav-text">Moderation</span></button>
 <button id="logsNavButton" type="button"><span class="ico">📋</span><span class="nav-text">Moderation Logs</span></button>
 <button><span class="ico">💰</span><span class="nav-text">Economy / bCash</span></button>
@@ -79,13 +80,9 @@ body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;borde
 <!-- URL-based dashboard pages -->
 <div id="routeView" style="display:none"><div class="welcome"><div><div class="eyebrow">Barracks management</div><h1 id="routeTitle">Dashboard</h1><p class="sub" id="routeDescription">Manage your server.</p></div></div><div id="welcomePanel" style="display:none;max-width:1100px;margin:0 0 24px">
  <div style="width:100%;background:transparent;border:0;border-radius:0;padding:0">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Server management</div><h1>Welcome & Goodbye</h1><p class="sub">Configure member join and departure messages.</p></div></div>
-  <div class="welcome-tabs" style="display:flex;gap:10px;margin:20px 0 16px">
-   <button id="welcomeTabButton" type="button" class="logout" style="border-color:#c3f36b;color:#c3f36b">👋 Welcome</button>
-   <button id="goodbyeTabButton" type="button" class="logout">👋 Goodbye</button>
-  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Server management</div><h2 style="font-size:18px;margin:0">Member Messages</h2><p class="sub">Configure join and departure announcements.</p></div></div>
   <div id="welcomeStatus" class="notice" style="margin:18px 0">Loading settings…</div>
-  <div id="welcomeSettingsPage" class="card">
+  <div id="welcomeSettingsPage" class="card" style="display:none">
     <h2 style="font-size:15px;margin-top:0">👋 Welcome settings</h2>
     <label class="metric-note">Welcome channel</label><select id="welcomeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
     <label class="metric-note">Welcome message</label><textarea id="welcomeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
@@ -204,21 +201,14 @@ setInterval(()=>{if(getToken())loadOverview();},60000);
 const welcomePanel=document.getElementById('welcomePanel');
 const welcomeStatus=document.getElementById('welcomeStatus');
 function setWelcomeStatus(message,isError=false){welcomeStatus.textContent=message;welcomeStatus.style.color=isError?'#ff9a91':'#b8c9b7';}
-function showWelcomePanel(){welcomePanel.style.display='block';loadWelcomeSettings();}
-document.getElementById('welcomeNavButton').addEventListener('click',showWelcomePanel);
-document.getElementById('welcomeModuleButton').addEventListener('click',showWelcomePanel);
-
-function showWelcomeTab(tab){
- const isWelcome=tab==='welcome';
- document.getElementById('welcomeSettingsPage').style.display=isWelcome?'block':'none';
- document.getElementById('goodbyeSettingsPage').style.display=isWelcome?'none':'block';
- document.getElementById('welcomeTabButton').style.borderColor=isWelcome?'#c3f36b':'#34463b';
- document.getElementById('welcomeTabButton').style.color=isWelcome?'#c3f36b':'#c0cdc4';
- document.getElementById('goodbyeTabButton').style.borderColor=isWelcome?'#34463b':'#c3f36b';
- document.getElementById('goodbyeTabButton').style.color=isWelcome?'#c0cdc4':'#c3f36b';
-}
-document.getElementById('welcomeTabButton').addEventListener('click',()=>showWelcomeTab('welcome'));
-document.getElementById('goodbyeTabButton').addEventListener('click',()=>showWelcomeTab('goodbye'));
+function showWelcomePanel(){if(window.barracksNavigate)window.barracksNavigate('welcome');}
+ document.getElementById('welcomeNavButton').addEventListener('click',showWelcomePanel);
+ document.getElementById('goodbyeNavButton').addEventListener('click',()=>window.barracksNavigate&&window.barracksNavigate('goodbye'));
+ document.getElementById('welcomeModuleButton').addEventListener('click',showWelcomePanel);
+ function showAnnouncementPage(tab){
+  document.getElementById('welcomeSettingsPage').style.display=tab==='welcome'?'block':'none';
+  document.getElementById('goodbyeSettingsPage').style.display=tab==='goodbye'?'block':'none';
+ }
 async function loadWelcomeSettings(){
  const token=getToken();if(!token){showLogin();return;}
  setWelcomeStatus('Loading settings…');
@@ -402,9 +392,9 @@ document.getElementById('settingsSave').addEventListener('click',async()=>{
 <script>
 (()=>{
  const base='/Barracks-Bot/dashboard/';
- const routes={home:{path:base,title:'Overview',description:'Your server at a glance.'},welcome:{path:base+'welcome/',title:'Welcome & Goodbye',description:'Configure join and leave messages.'},'message-builder':{path:base+'message-builder/',title:'Message Builder',description:'Build custom Discord messages and embeds.'},moderation:{path:base+'moderation/',title:'Moderation',description:'Manage moderation tools and server safety.'},settings:{path:base+'settings/',title:'Bot Settings',description:'Configure your Barracks bot.'},logs:{path:base+'logs/',title:'Server Logs',description:'Review important server activity.'}};
+ const routes={home:{path:base,title:'Overview',description:'Your server at a glance.'},welcome:{path:base+'welcome/',title:'Welcome Message',description:'Configure your member join announcement.'},goodbye:{path:base+'goodbye/',title:'Goodbye Message',description:'Configure your member departure announcement.'},'message-builder':{path:base+'message-builder/',title:'Message Builder',description:'Build custom Discord messages and embeds.'},moderation:{path:base+'moderation/',title:'Moderation',description:'Manage moderation tools and server safety.'},settings:{path:base+'settings/',title:'Bot Settings',description:'Configure your Barracks bot.'},logs:{path:base+'logs/',title:'Server Logs',description:'Review important server activity.'}};
  const routeKey=()=>{const p=location.pathname.endsWith('/')?location.pathname:location.pathname+'/';return Object.keys(routes).find(k=>routes[k].path===p)||new URLSearchParams(location.search).get('page')||'home';};
- function navigate(key,update=true){const k=routes[key]?key:'home',r=routes[k];if(update)history.pushState({page:k},'',r.path);document.getElementById('dashboardHome').style.display=k==='home'?'':'none';document.getElementById('routeView').style.display=['home','message-builder'].includes(k)?'none':'block';document.getElementById('welcomePanel').style.display=k==='welcome'?'block':'none';document.getElementById('messageBuilderPanel').style.display=k==='message-builder'?'block':'none';document.getElementById('routeTitle').textContent=r.title;document.getElementById('routeDescription').textContent=r.description;document.getElementById('moderationPanel').style.display=k==='moderation'?'block':'none';document.getElementById('moderationLogsPanel').style.display=k==='logs'?'block':'none';document.getElementById('botSettingsPanel').style.display=k==='settings'?'block':'none';if(k==='settings')loadBotSettings();if(k==='logs')loadModerationLogs();document.querySelector('.crumb b').textContent=r.title;document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const sel={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',moderation:'#moderationNavButton',logs:'#logsNavButton'}[k];if(sel){const el=document.querySelector(sel);if(el)el.classList.add('active');}if(k==='welcome'&&!window.__welcomeLoaded){window.__welcomeLoaded=true;loadWelcomeSettings();}}
+ function navigate(key,update=true){const k=routes[key]?key:'home',r=routes[k];if(update)history.pushState({page:k},'',r.path);document.getElementById('dashboardHome').style.display=k==='home'?'':'none';document.getElementById('routeView').style.display=['home','message-builder'].includes(k)?'none':'block';document.getElementById('welcomePanel').style.display=['welcome','goodbye'].includes(k)?'block':'none';showAnnouncementPage(k);document.getElementById('messageBuilderPanel').style.display=k==='message-builder'?'block':'none';document.getElementById('routeTitle').textContent=r.title;document.getElementById('routeDescription').textContent=r.description;document.getElementById('moderationPanel').style.display=k==='moderation'?'block':'none';document.getElementById('moderationLogsPanel').style.display=k==='logs'?'block':'none';document.getElementById('botSettingsPanel').style.display=k==='settings'?'block':'none';if(k==='settings')loadBotSettings();if(k==='logs')loadModerationLogs();document.querySelector('.crumb b').textContent=r.title;document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const sel={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',goodbye:'#goodbyeNavButton',moderation:'#moderationNavButton',logs:'#logsNavButton'}[k];if(sel){const el=document.querySelector(sel);if(el)el.classList.add('active');}if(['welcome','goodbye'].includes(k)&&!window.__welcomeLoaded){window.__welcomeLoaded=true;loadWelcomeSettings();}}
  window.barracksNavigate=navigate;
  document.getElementById('welcomeNavButton').addEventListener('click',()=>navigate('welcome'));
  document.getElementById('messageBuilderModuleButton').addEventListener('click',()=>navigate('message-builder'));
