@@ -41,6 +41,23 @@ const COMMAND_ERROR_SUBTYPES = {
   greroll: 'giveaway_failed',
 };
 
+async function registerClanAutoNick(client, guildId, roleId, tag) {
+  const key = `guild:${guildId}:autonick_roles`;
+  const stored = await client.db.get(key, []);
+  const entries = Array.isArray(stored)
+    ? stored.filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
+    : [];
+  const existing = entries.find(entry => entry.roleId === roleId);
+  if (existing) {
+    existing.prefix = `${tag}|`;
+    existing.priority = 20;
+  } else {
+    entries.push({ roleId, prefix: `${tag}|`, priority: 20 });
+  }
+  entries.sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
+  await client.db.set(key, entries);
+}
+
 function withTraceContext(context = {}, traceContext = {}) {
   return {
     traceId: traceContext.traceId,
@@ -887,6 +904,7 @@ export default {
                   });
                 }
 
+                await registerClanAutoNick(interaction.client, interaction.guildId, clanRole.id, reviewedClan.tag);
                 reviewedClan.roleId = clanRole.id;
                 reviewedClan.status = 'approved';
                 reviewedClan.reviewedBy = interaction.user.id;
