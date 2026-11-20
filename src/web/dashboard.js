@@ -703,7 +703,7 @@ export function registerDashboardRoutes(app, bot) {
     const name = String(req.body?.name || '').trim(), tag = String(req.body?.tag || '').trim().toUpperCase();
     const leaderId = String(req.body?.leaderId || '').trim(), description = String(req.body?.description || '').trim();
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
-    if (!/^[A-Z0-9]{2,5}$/.test(tag)) return res.status(400).json({ error: 'Clan tag must be 2–5 letters or numbers.' });
+    if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
     if (!/^\d{17,20}$/.test(leaderId)) return res.status(400).json({ error: 'Enter a valid Discord user ID for the clan leader.' });
     if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
     const me = guild.members.me;
