@@ -50,9 +50,9 @@ async function registerClanAutoNick(client, guildId, roleId, tag) {
   const existing = entries.find(entry => entry.roleId === roleId);
   if (existing) {
     existing.prefix = `${tag}|`;
-    existing.priority = 20;
+    existing.priority = 1000;
   } else {
-    entries.push({ roleId, prefix: `${tag}|`, priority: 20 });
+    entries.push({ roleId, prefix: `${tag}|`, priority: 1000 });
   }
   entries.sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
   await client.db.set(key, entries);
