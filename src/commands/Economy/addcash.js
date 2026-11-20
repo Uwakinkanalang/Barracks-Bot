@@ -5,7 +5,8 @@ import { successEmbed, errorEmbed } from '../../utils/embeds.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const BARRACKS_GUILD_ID = '1137695060096471160';
-const ADDCASH_ALLOWED_USER_ID = '1466364437622423694';
+const ADDCASH_ALLOWED_ROLE_ID = '1466364437622423694';
+const ADDCASH_ALLOWED_USER_ID = '988075359700418590';
 
 export default {
     data: new SlashCommandBuilder()
@@ -34,7 +35,10 @@ export default {
             });
         }
 
-        if (!isBotOwner(interaction.user.id) && interaction.user.id !== ADDCASH_ALLOWED_USER_ID) {
+        const hasAllowedRole = interaction.member?.roles?.cache?.has(ADDCASH_ALLOWED_ROLE_ID) ?? false;
+        const isAllowedUser = interaction.user.id === ADDCASH_ALLOWED_USER_ID;
+
+        if (!isBotOwner(interaction.user.id) && !hasAllowedRole && !isAllowedUser) {
             return InteractionHelper.universalReply(interaction, {
                 embeds: [errorEmbed('Permission Denied', 'You are not authorized to use this command.')],
                 ephemeral: true,
