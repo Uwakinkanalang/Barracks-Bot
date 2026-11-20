@@ -69,6 +69,32 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
+    // Test the Barracks Lotto winner announcement without running a real draw or paying bCash.
+    if (/^b!lottowin\\s+test$/i.test(trimmedContent)) {
+      const isServerManager = message.member?.roles?.cache?.has('1466364437622423694');
+      if (!isServerManager) {
+        await message.reply('❌ Only members with the **Server Manager** role can test the lotto winner announcement.');
+        return;
+      }
+      const announcementChannelId = '1573015325174268015';
+      const announcementChannel = await message.guild.channels.fetch(announcementChannelId).catch(() => null);
+      if (!announcementChannel?.isTextBased() || !announcementChannel.send) {
+        await message.reply(`❌ I could not find the configured lotto announcement channel <#${announcementChannelId}>.`);
+        return;
+      }
+      const testAnnouncement =
+        `🧪 **TEST — BARRACKS LOTTO WINNER!**\\n\\n` +
+        `🎖️ Congratulations, ${message.author}!\\n\\n` +
+        `You're today's lucky soldier! You've won **₱1,000,000 bCash**!\\n\\n` +
+        `This is only a test announcement. No bCash was awarded.`;
+      await announcementChannel.send({
+        content: testAnnouncement,
+        allowedMentions: { users: [message.author.id] },
+      });
+      await message.reply(`✅ Test winner announcement sent to <#${announcementChannelId}>. No bCash was awarded.`);
+      return;
+    }
+
     // Manual welcome banner preview: b!welcomebanner test
     if (/^b!welcomebanner\s+test$/i.test(trimmedContent)) {
       const canTestWelcomeBanner =
