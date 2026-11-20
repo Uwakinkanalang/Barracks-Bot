@@ -409,6 +409,7 @@ document.getElementById('settingsSave').addEventListener('click',async()=>{
  }catch(error){status.textContent=error.message;status.style.color='#ff9a91';}
  finally{button.disabled=false;button.textContent='Save settings';}
 });
+if(location.pathname.replace(/\\/$/,'').endsWith('/settings'))loadBotSettings();
 </script>
 <script>
 let moderationLogCache=[];
