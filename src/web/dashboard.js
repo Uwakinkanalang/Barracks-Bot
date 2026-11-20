@@ -719,7 +719,7 @@ export function registerDashboardRoutes(app, bot) {
     const slug = (tag + '-' + name).toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 85);
     let role = null, category = null, textChannel = null, voiceChannel = null;
     try {
-      role = await guild.roles.create({ name: '[' + tag + '] ' + name, color: '#c3f36b', hoist: true, mentionable: false, reason: 'Clan created from Barracks dashboard' });
+      role = await guild.roles.create({ name: tag + ' ' + name, color: '#c3f36b', hoist: true, mentionable: false, reason: 'Clan created from Barracks dashboard' });
       const overwrites = [
         { id: guild.id, deny: ['ViewChannel'] },
         { id: role.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles', 'EmbedLinks', 'Connect', 'Speak', 'UseVAD'] },
