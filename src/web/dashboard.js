@@ -107,18 +107,44 @@ export function registerDashboardRoutes(app, bot) {
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     try {
-      const { supportsPrefixExecution } = await import('../utils/messageAdapter.js');
+      const [{ supportsPrefixExecution }, { getPrefixRestriction }, { resolveSubcommandAlias }, { commandAliases }] = await Promise.all([
+        import('../utils/messageAdapter.js'),
+        import('../config/commands/prefixRestrictions.js'),
+        import('../config/commands/commandAliases.js'),
+        import('../config/commands/commandAliases.js'),
+      ]);
       const config = await getGuildConfig(bot, guild.id);
       const snapshot = getCommandAccessSnapshot(bot, config, 'prefix');
+      const barePrefixAliases = {
+        bcount: 'bcount', bgive: 'bgive', bmines: 'bmine', bmine: 'bmine',
+        bcash: 'balance', bbj: 'bblackjack', bslot: 'bslot', bmem: 'memory',
+        bhl: 'bhl', bdaily: 'daily', bwork: 'work', bshop: 'shop',
+        btalpak: 'btalpak', bdeposit: 'deposit', bdep: 'deposit',
+        bwithdraw: 'withdraw', bwith: 'withdraw', bttt: 'tictactoe',
+        btictactoe: 'tictactoe', bcf: 'coinflip', broulette: 'broulette',
+        brps: 'rps',
+      };
+      const aliasesByCommand = new Map();
+      for (const [alias, target] of Object.entries({ ...commandAliases, ...barePrefixAliases })) {
+        if (!aliasesByCommand.has(target)) aliasesByCommand.set(target, []);
+        aliasesByCommand.get(target).push(alias);
+      }
       const categories = snapshot.categories.map(category => {
         const commands = category.commands.filter(entry => {
           const command = bot.commands.get(entry.name.split(' ')[0]);
-          return command && supportsPrefixExecution(command);
+          if (!command || !supportsPrefixExecution(command)) return false;
+          const args = entry.name.split(' ').slice(1);
+          return !getPrefixRestriction(command, args, resolveSubcommandAlias).blocked;
+        }).map(entry => {
+          const baseName = entry.name.split(' ')[0];
+          const aliases = entry.name === baseName ? (aliasesByCommand.get(baseName) || []) : [];
+          return { ...entry, aliases: [...new Set(aliases)].sort() };
         });
         return { key: category.key, name: category.displayName, icon: category.icon,
           enabledCount: commands.filter(command => isCommandEnabledInConfig(config, command.name, category.folder, 'prefix')).length,
           totalCount: commands.length,
           commands: commands.map(command => ({ name: command.name, description: command.description,
+            aliases: command.aliases,
             enabled: isCommandEnabledInConfig(config, command.name, category.folder, 'prefix'), protected: command.protected })) };
       }).filter(category => category.commands.length);
       return res.json({ categories, totalCommands: categories.reduce((sum, category) => sum + category.totalCount, 0),
