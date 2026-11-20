@@ -39,6 +39,8 @@ body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;borde
 <div class="nav-submenu" id="announcementSubmenu" hidden>
 <button id="welcomeNavButton" type="button"><span class="ico">👋</span><span class="nav-text">Join</span></button>
 <button id="goodbyeNavButton" type="button"><span class="ico">👋</span><span class="nav-text">Leave</span></button>
+<button id="banNavButton" type="button"><span class="ico">🔨</span><span class="nav-text">Ban</span></button>
+<button id="boostNavButton" type="button"><span class="ico">🚀</span><span class="nav-text">Boost</span></button>
 </div>
 </div>
 <button><span class="ico">🛡</span><span class="nav-text">Moderation</span></button>
@@ -119,6 +121,21 @@ body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;borde
   </div>
   <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px"><button id="welcomeSave" type="button" style="border:0;border-radius:9px;padding:12px 18px;background:#c3f36b;color:#18210f;font-weight:800">Save settings</button></div>
  </div>
+
+  <div id="banSettingsPage" class="announcement-layout" style="display:none">
+   <div class="card"><h2 style="font-size:15px;margin-top:0">🔨 Ban announcement</h2><p class="sub">Choose where the bot posts when a member is banned, and customize the message.</p>
+    <label class="metric-note">Announcement channel</label><select id="banChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
+    <label class="metric-note">Ban message</label><textarea id="banMessage" rows="5" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
+    <label style="display:block;margin:8px 0"><input id="banEnabled" type="checkbox"> Enable ban announcements</label><p class="metric-note">Placeholders: {user}, {user.tag}, {user.id}, {server}</p>
+   </div><aside class="card announcement-preview"><div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="banPreviewText" class="discord-preview-message">A member has been banned.</div></div></div></aside>
+  </div>
+  <div id="boostSettingsPage" class="announcement-layout" style="display:none">
+   <div class="card"><h2 style="font-size:15px;margin-top:0">🚀 Server boost announcement</h2><p class="sub">Thank members when they start boosting Barracks.</p>
+    <label class="metric-note">Announcement channel</label><select id="boostChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
+    <label class="metric-note">Boost message</label><textarea id="boostMessage" rows="5" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
+    <label style="display:block;margin:8px 0"><input id="boostEnabled" type="checkbox"> Enable boost announcements</label><p class="metric-note">Placeholders: {user}, {user.tag}, {user.id}, {server}</p>
+   </div><aside class="card announcement-preview"><div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="boostPreviewText" class="discord-preview-message">Thank you for boosting Barracks!</div></div></div></aside>
+  </div>
  <div id="moderationPanel" style="display:none;max-width:900px">
 <div class="card" style="margin-bottom:14px"><h2 style="font-size:16px;margin-top:0">Member lookup</h2><p class="sub">Search by username, display name, or Discord ID.</p><div style="display:flex;gap:8px"><input id="modSearch" placeholder="Search members…" style="flex:1;min-width:0;padding:11px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"><button id="modSearchBtn" type="button">Search</button></div><div id="modResults" style="margin-top:10px;color:#c0c2ca;font-size:13px"></div></div>
 <div class="card"><h2 style="font-size:16px;margin-top:0">Moderation action</h2><p class="sub">Actions affect the live Barracks Discord server. Review carefully before confirming.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
@@ -223,6 +240,8 @@ function showWelcomePanel(){if(window.barracksNavigate)window.barracksNavigate('
  function showAnnouncementPage(tab){
   document.getElementById('welcomeSettingsPage').style.display=tab==='welcome'?'grid':'none';
   document.getElementById('goodbyeSettingsPage').style.display=tab==='goodbye'?'grid':'none';
+  document.getElementById('banSettingsPage').style.display=tab==='ban'?'grid':'none';
+  document.getElementById('boostSettingsPage').style.display=tab==='boost'?'grid':'none';
  }
 async function loadWelcomeSettings(){
  const token=getToken();if(!token){showLogin();return;}
@@ -245,9 +264,20 @@ async function loadWelcomeSettings(){
   document.getElementById('welcomePing').checked=!!cfg.welcomePing;
   document.getElementById('goodbyeEnabled').checked=!!cfg.goodbyeEnabled;
   document.getElementById('goodbyePing').checked=!!cfg.goodbyePing;
-  updateSimplePreview('welcome');updateSimplePreview('goodbye');
+  for(const id of ['banChannel','boostChannel']){const select=document.getElementById(id);select.innerHTML='<option value="">Not set</option>';(data.channels||[]).forEach(ch=>{const option=document.createElement('option');option.value=ch.id;option.textContent='# '+ch.name;select.appendChild(option);});}
+  document.getElementById('banChannel').value=cfg.banChannelId||'';
+  document.getElementById('boostChannel').value=cfg.boostChannelId||'';
+  document.getElementById('banMessage').value=cfg.banMessage||'{user.tag} has been banned from {server}.';
+  document.getElementById('boostMessage').value=cfg.boostMessage||'Thank you {user} for boosting {server}! Your support means a lot to us.';
+  document.getElementById('banEnabled').checked=!!cfg.banEnabled;
+  document.getElementById('boostEnabled').checked=cfg.boostEnabled!==false;
+  updateSimplePreview('welcome');updateSimplePreview('goodbye');updateEventPreview('ban');updateEventPreview('boost');
   setWelcomeStatus('Settings loaded. Save changes when ready.');
  }catch(error){setWelcomeStatus(error.message,true);}
+}
+function updateEventPreview(type){
+ const message=document.getElementById(type+'Message').value;
+ document.getElementById(type+'PreviewText').textContent=message.replaceAll('{user.tag}','Soldier#0001').replaceAll('{user}','@Soldier').replaceAll('{user.id}','123456789012345678').replaceAll('{server}','Barracks');
 }
 function updateSimplePreview(type){
  const welcome=type==='welcome';
@@ -264,6 +294,8 @@ function updateSimplePreview(type){
 }
 ['welcomeMessage','welcomeImage','welcomePing'].forEach(id=>document.getElementById(id).addEventListener('input',()=>updateSimplePreview('welcome')));
 ['goodbyeMessage','goodbyeImage','goodbyePing'].forEach(id=>document.getElementById(id).addEventListener('input',()=>updateSimplePreview('goodbye')));
+['banMessage'].forEach(id=>document.getElementById(id).addEventListener('input',()=>updateEventPreview('ban')));
+['boostMessage'].forEach(id=>document.getElementById(id).addEventListener('input',()=>updateEventPreview('boost')));
 document.getElementById('welcomeSave').addEventListener('click',async()=>{
  const button=document.getElementById('welcomeSave');button.disabled=true;button.textContent='Saving…';
  try{
@@ -277,7 +309,13 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
    enabled:document.getElementById('welcomeEnabled').checked,
    welcomePing:document.getElementById('welcomePing').checked,
    goodbyeEnabled:document.getElementById('goodbyeEnabled').checked,
-   goodbyePing:document.getElementById('goodbyePing').checked
+   goodbyePing:document.getElementById('goodbyePing').checked,
+   banChannelId:document.getElementById('banChannel').value,
+   banMessage:document.getElementById('banMessage').value,
+   banEnabled:document.getElementById('banEnabled').checked,
+   boostChannelId:document.getElementById('boostChannel').value,
+   boostMessage:document.getElementById('boostMessage').value,
+   boostEnabled:document.getElementById('boostEnabled').checked
   };
   const response=await fetch(API_BASE+'/api/dashboard/welcome',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify(payload)});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not save settings.');
@@ -407,13 +445,15 @@ document.getElementById('settingsSave').addEventListener('click',async()=>{
 <script>
 (()=>{
  const base='/Barracks-Bot/dashboard/';
- const routes={home:{path:base,title:'Overview',description:'Your server at a glance.'},welcome:{path:base+'welcome/',title:'Welcome Message',description:'Configure your member join announcement.'},goodbye:{path:base+'goodbye/',title:'Goodbye Message',description:'Configure your member departure announcement.'},'message-builder':{path:base+'message-builder/',title:'Message Builder',description:'Build custom Discord messages and embeds.'},moderation:{path:base+'moderation/',title:'Moderation',description:'Manage moderation tools and server safety.'},settings:{path:base+'settings/',title:'Bot Settings',description:'Configure your Barracks bot.'},logs:{path:base+'logs/',title:'Server Logs',description:'Review important server activity.'}};
+ const routes={home:{path:base,title:'Overview',description:'Your server at a glance.'},welcome:{path:base+'welcome/',title:'Join',description:'Configure your member join announcement.'},goodbye:{path:base+'goodbye/',title:'Leave',description:'Configure your member departure announcement.'},ban:{path:base+'ban/',title:'Ban Announcement',description:'Configure the message sent when a member is banned.'},boost:{path:base+'boost/',title:'Boost Announcement',description:'Configure the message sent when a member boosts Barracks.'},'message-builder':{path:base+'message-builder/',title:'Message Builder',description:'Build custom Discord messages and embeds.'},moderation:{path:base+'moderation/',title:'Moderation',description:'Manage moderation tools and server safety.'},settings:{path:base+'settings/',title:'Bot Settings',description:'Configure your Barracks bot.'},logs:{path:base+'logs/',title:'Server Logs',description:'Review important server activity.'}};
  const routeKey=()=>{const p=location.pathname.endsWith('/')?location.pathname:location.pathname+'/';return Object.keys(routes).find(k=>routes[k].path===p)||new URLSearchParams(location.search).get('page')||'home';};
- function navigate(key,update=true){const k=routes[key]?key:'home',r=routes[k];if(update)history.pushState({page:k},'',r.path);document.getElementById('dashboardHome').style.display=k==='home'?'':'none';document.getElementById('routeView').style.display=['home','message-builder'].includes(k)?'none':'block';document.getElementById('welcomePanel').style.display=['welcome','goodbye'].includes(k)?'block':'none';showAnnouncementPage(k);document.getElementById('messageBuilderPanel').style.display=k==='message-builder'?'block':'none';document.getElementById('routeTitle').textContent=r.title;document.getElementById('routeDescription').textContent=r.description;document.getElementById('moderationPanel').style.display=k==='moderation'?'block':'none';document.getElementById('moderationLogsPanel').style.display=k==='logs'?'block':'none';document.getElementById('botSettingsPanel').style.display=k==='settings'?'block':'none';if(k==='settings')loadBotSettings();if(k==='logs')loadModerationLogs();document.querySelector('.crumb b').textContent=r.title;document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const sel={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',goodbye:'#goodbyeNavButton',moderation:'#moderationNavButton',logs:'#logsNavButton'}[k];if(sel){const el=document.querySelector(sel);if(el)el.classList.add('active');}const announcementGroup=document.getElementById('announcementNavGroup'),announcementMenu=document.getElementById('announcementSubmenu'),announcementToggle=document.getElementById('announcementToggle');if(['welcome','goodbye'].includes(k)){announcementMenu.hidden=false;announcementGroup.classList.add('open');announcementToggle.setAttribute('aria-expanded','true');announcementToggle.classList.add('active');}else{announcementToggle.classList.remove('active');}if(['welcome','goodbye'].includes(k)&&!window.__welcomeLoaded){window.__welcomeLoaded=true;loadWelcomeSettings();}}
+ function navigate(key,update=true){const k=routes[key]?key:'home',r=routes[k];if(update)history.pushState({page:k},'',r.path);document.getElementById('dashboardHome').style.display=k==='home'?'':'none';document.getElementById('routeView').style.display=['home','message-builder'].includes(k)?'none':'block';document.getElementById('welcomePanel').style.display=['welcome','goodbye','ban','boost'].includes(k)?'block':'none';showAnnouncementPage(k);document.getElementById('messageBuilderPanel').style.display=k==='message-builder'?'block':'none';document.getElementById('routeTitle').textContent=r.title;document.getElementById('routeDescription').textContent=r.description;document.getElementById('moderationPanel').style.display=k==='moderation'?'block':'none';document.getElementById('moderationLogsPanel').style.display=k==='logs'?'block':'none';document.getElementById('botSettingsPanel').style.display=k==='settings'?'block':'none';if(k==='settings')loadBotSettings();if(k==='logs')loadModerationLogs();document.querySelector('.crumb b').textContent=r.title;document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const sel={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',goodbye:'#goodbyeNavButton',ban:'#banNavButton',boost:'#boostNavButton',moderation:'#moderationNavButton',logs:'#logsNavButton'}[k];if(sel){const el=document.querySelector(sel);if(el)el.classList.add('active');}const announcementGroup=document.getElementById('announcementNavGroup'),announcementMenu=document.getElementById('announcementSubmenu'),announcementToggle=document.getElementById('announcementToggle');if(['welcome','goodbye','ban','boost'].includes(k)){announcementMenu.hidden=false;announcementGroup.classList.add('open');announcementToggle.setAttribute('aria-expanded','true');announcementToggle.classList.add('active');}else{announcementToggle.classList.remove('active');}if(['welcome','goodbye','ban','boost'].includes(k)&&!window.__welcomeLoaded){window.__welcomeLoaded=true;loadWelcomeSettings();}}
  window.barracksNavigate=navigate;
  document.getElementById('announcementToggle').addEventListener('click',()=>{const group=document.getElementById('announcementNavGroup'),submenu=document.getElementById('announcementSubmenu'),toggle=document.getElementById('announcementToggle');const opening=submenu.hidden;submenu.hidden=!opening;group.classList.toggle('open',opening);toggle.setAttribute('aria-expanded',String(opening));});
  document.getElementById('welcomeNavButton').addEventListener('click',()=>navigate('welcome'));
  document.getElementById('goodbyeNavButton').addEventListener('click',()=>navigate('goodbye'));
+ document.getElementById('banNavButton').addEventListener('click',()=>navigate('ban'));
+ document.getElementById('boostNavButton').addEventListener('click',()=>navigate('boost'));
  document.getElementById('messageBuilderModuleButton').addEventListener('click',()=>navigate('message-builder'));
  document.getElementById('welcomeModuleButton').addEventListener('click',()=>navigate('welcome'));
  document.querySelectorAll('.nav button').forEach((b,i)=>{if(i===0)b.addEventListener('click',()=>navigate('home'));if(i===1)b.addEventListener('click',()=>navigate('settings'));if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation')b.id='moderationNavButton';if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation Logs'){b.id='logsNavButton';b.addEventListener('click',()=>navigate('logs'));}});
