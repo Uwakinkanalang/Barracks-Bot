@@ -29,7 +29,9 @@ async function refreshGuildAutoNick(guild, configs, prefixesToStrip = configs.ma
     if (member.user.bot) continue;
     const stateKey = `guild:${guild.id}:autonick_member:${member.id}`;
     const state = await client.db.get(stateKey, null);
-    const active = configs.find(entry => member.roles.cache.has(entry.roleId));
+    const active = configs
+      .filter(entry => member.roles.cache.has(entry.roleId))
+      .sort((a, b) => b.priority - a.priority)[0] || null;
 
     // Prefer the persisted unprefixed nickname. For legacy members, remove any
     // configured prefix repeatedly before establishing the base nickname.
