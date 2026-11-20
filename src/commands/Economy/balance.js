@@ -64,8 +64,7 @@ export default {
             .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
             .addFields(
                 { name: "💵 Cash", value: `₱${wallet.toLocaleString()}`, inline: true },
-                { name: "🏦 Bank", value: `₱${bank.toLocaleString()}`, inline: true },
-                { name: "📊 Bank Limit", value: `₱${bankLimit.toLocaleString()}`, inline: true },
+                { name: "🏦 Bank", value: `₱${bank.toLocaleString()} / ₱${bankLimit.toLocaleString()}`, inline: true },
                 { name: "💰 Total", value: `₱${(wallet + bank).toLocaleString()}`, inline: true }
             )
             .setFooter({
