@@ -376,7 +376,7 @@ export function registerDashboardRoutes(app, bot) {
     try {
       const rawKeys = await bot.db.list(getEconomyPrefix(guild.id));
       const keys = Array.isArray(rawKeys) ? rawKeys : Object.keys(rawKeys || {});
-      const userIds = [...new Set(keys.map(key => String(key).split(':').pop()).filter(id => /^\\d{17,20}$/.test(id)))];
+      const userIds = [...new Set(keys.map(key => String(key).split(':').pop()).filter(id => /^\d{17,20}$/.test(id)))];
       let walletTotal = 0, bankTotal = 0;
       const accounts = [];
       // Read balances concurrently in small batches to avoid serial database waits
