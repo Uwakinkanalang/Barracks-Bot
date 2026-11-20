@@ -355,9 +355,9 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
 <label style="display:block;margin-top:12px">Reason<textarea id="modReason" rows="3" maxlength="400" placeholder="Reason for this action…"></textarea></label><div style="display:flex;gap:10px;align-items:center;margin-top:14px"><button id="modExecute" type="button">Review & execute</button><span id="modStatus" role="status"></span></div></div>
 </div>
 <div id="moderationLogsPanel" style="display:none;max-width:1100px">
- <div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 style="font-size:16px;margin:0 0 5px">Moderation history</h2><p class="sub">Recent actions performed through the Barracks dashboard.</p></div><button id="modLogsRefresh" type="button" class="logout">↻ Refresh logs</button></div><div id="modLogsStatus" role="status" style="margin-top:12px;color:#c0c2ca;font-size:13px"></div></div>
+ <div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 style="font-size:16px;margin:0 0 5px">Moderation history</h2><p class="sub">Search, filter, and export moderation activity from Discord and the dashboard.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="modLogsExport" type="button">↓ Export CSV</button><button id="modLogsRefresh" type="button" class="logout">↻ Refresh logs</button></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:16px"><input id="modLogsSearch" type="search" placeholder="Search member, moderator, ID…" style="padding:10px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"><select id="modLogsAction" style="padding:10px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"><option value="">All actions</option><option value="warn">Warn</option><option value="timeout">Timeout</option><option value="untimeout">Remove timeout</option><option value="kick">Kick</option><option value="ban">Ban</option><option value="unban">Unban</option><option value="clear">Clear messages</option></select><select id="modLogsSource" style="padding:10px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"><option value="">All sources</option><option value="discord">Discord</option><option value="dashboard">Dashboard</option></select><input id="modLogsFrom" type="date" aria-label="From date" style="padding:10px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"><input id="modLogsTo" type="date" aria-label="To date" style="padding:10px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"></div><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px"><div id="modLogsStatus" role="status" style="color:#c0c2ca;font-size:13px"></div><button id="modLogsClearFilters" type="button" class="logout">Clear filters</button></div></div>
  <div class="card" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:680px;font-size:12px"><thead><tr style="text-align:left;color:#aeb0b8"><th style="padding:10px">Action</th><th style="padding:10px">Member / Target</th><th style="padding:10px">Moderator</th><th style="padding:10px">Reason</th><th style="padding:10px">Details</th><th style="padding:10px">Source</th><th style="padding:10px">Date & Time</th></tr></thead><tbody id="modLogsRows"><tr><td colspan="7" style="padding:16px;color:#aeb0b8">Loading logs…</td></tr></tbody></table></div>
- <p style="color:#9ba3ad;font-size:11px;margin:12px 2px">Up to 500 recent dashboard moderation actions are retained. Discord actions appear when the bot can read the server audit log.</p>
+ <div id="modLogsPagination" style="display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:14px"></div><p style="color:#9ba3ad;font-size:11px;margin:12px 2px">Filters apply to the most recent records loaded from the bot API. CSV export includes all loaded records matching the current filters.</p>
 </div></section>
 <script>
 (()=>{
@@ -375,25 +375,67 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
 </script>
 
 <script>
+let moderationLogCache=[];
+let moderationLogPage=1;
+const moderationLogPageSize=25;
+function getFilteredModerationLogs(){
+ const q=(document.getElementById('modLogsSearch')?.value||'').trim().toLowerCase();
+ const action=document.getElementById('modLogsAction')?.value||'';
+ const source=document.getElementById('modLogsSource')?.value||'';
+ const from=document.getElementById('modLogsFrom')?.value||'';
+ const to=document.getElementById('modLogsTo')?.value||'';
+ return moderationLogCache.filter(log=>{
+  const searchable=[log.action,log.targetName,log.targetId,log.moderator,log.moderatorId,log.reason,log.details,log.source].join(' ').toLowerCase();
+  const day=log.timestamp?new Date(log.timestamp).toISOString().slice(0,10):'';
+  return (!q||searchable.includes(q))&&(!action||String(log.action||'').toLowerCase()===action)&&(!source||String(log.source||'dashboard').toLowerCase()===source)&&(!from||day>=from)&&(!to||day<=to);
+ });
+}
+function renderModerationLogs(){
+ const rows=document.getElementById('modLogsRows'),status=document.getElementById('modLogsStatus');
+ if(!rows||!status)return;
+ const filtered=getFilteredModerationLogs();
+ const pages=Math.max(1,Math.ceil(filtered.length/moderationLogPageSize));
+ moderationLogPage=Math.min(moderationLogPage,pages);
+ const visible=filtered.slice((moderationLogPage-1)*moderationLogPageSize,moderationLogPage*moderationLogPageSize);
+ rows.replaceChildren();
+ if(!visible.length){rows.innerHTML='<tr><td colspan="7" style="padding:16px;color:#aeb0b8">No matching moderation records.</td></tr>';}
+ visible.forEach(log=>{
+  const tr=document.createElement('tr');tr.style.borderTop='1px solid #484950';
+  const values=[String(log.action||'').toUpperCase(),(log.targetName||'—')+(log.targetId?' ('+log.targetId+')':''),log.moderator||'Dashboard staff',log.reason||'—',log.details||'—',log.source==='discord'?'Discord':'Dashboard',log.timestamp?new Date(log.timestamp).toLocaleString():'—'];
+  values.forEach(value=>{const td=document.createElement('td');td.style='padding:11px 10px;color:#d8dbe1;vertical-align:top';td.textContent=value;tr.appendChild(td);});
+  rows.appendChild(tr);
+ });
+ status.textContent='Showing '+visible.length+' of '+filtered.length+' matching records · '+moderationLogCache.length+' loaded · Page '+moderationLogPage+' of '+pages;
+ const pager=document.getElementById('modLogsPagination');
+ if(pager)pager.innerHTML='<button id="modLogsPrev" class="logout" type="button" '+(moderationLogPage<=1?'disabled':'')+'>← Previous</button><span style="font-size:12px;color:#c0c2ca">Page '+moderationLogPage+' / '+pages+'</span><button id="modLogsNext" class="logout" type="button" '+(moderationLogPage>=pages?'disabled':'')+'>Next →</button>';
+ document.getElementById('modLogsPrev')?.addEventListener('click',()=>{moderationLogPage--;renderModerationLogs();});
+ document.getElementById('modLogsNext')?.addEventListener('click',()=>{moderationLogPage++;renderModerationLogs();});
+}
 async function loadModerationLogs(){
  const rows=document.getElementById('modLogsRows'),status=document.getElementById('modLogsStatus');
  if(!rows||!status)return;
- rows.innerHTML='<tr><td colspan="5" style="padding:16px;color:#aeb0b8">Loading logs…</td></tr>';status.textContent='';
+ rows.innerHTML='<tr><td colspan="7" style="padding:16px;color:#aeb0b8">Loading logs…</td></tr>';status.textContent='';
  try{
   const token=sessionStorage.getItem('barracks_dashboard_access');
-  const response=await fetch('https://barracks-bot-production.up.railway.app/api/dashboard/moderation/logs?limit=100',{headers:{Authorization:'Bearer '+token}});
+  if(!token)throw new Error('Your dashboard session has expired. Please sign in again.');
+  const response=await fetch('https://barracks-bot-production.up.railway.app/api/dashboard/moderation/logs?limit=500',{headers:{Authorization:'Bearer '+token}});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not load logs.');
-  rows.replaceChildren();
-  if(!data.logs.length){rows.innerHTML='<tr><td colspan="7" style="padding:16px;color:#aeb0b8">No moderation actions recorded yet.</td></tr>';}
-  data.logs.forEach(log=>{
-   const tr=document.createElement('tr');tr.style.borderTop='1px solid #484950';
-   const values=[String(log.action||'').toUpperCase(),(log.targetName||'—')+(log.targetId?' ('+log.targetId+')':''),log.moderator||'Dashboard staff',log.reason||'—',log.details||'—',log.source==='discord'?'Discord':'Dashboard',log.timestamp?new Date(log.timestamp).toLocaleString():'—'];
-   values.forEach(value=>{const td=document.createElement('td');td.style='padding:11px 10px;color:#d8dbe1;vertical-align:top';td.textContent=value;tr.appendChild(td);});
-   rows.appendChild(tr);
-  });
-  status.textContent='Showing '+data.logs.length+' of '+data.totalStored+' saved dashboard actions.';
+  moderationLogCache=Array.isArray(data.logs)?data.logs:[];
+  moderationLogPage=1;renderModerationLogs();
  }catch(error){rows.innerHTML='<tr><td colspan="7" style="padding:16px;color:#ff9a91"></td></tr>';rows.querySelector('td').textContent=error.message;status.textContent='';}
 }
+function exportModerationLogs(){
+ const logs=getFilteredModerationLogs();
+ if(!logs.length){document.getElementById('modLogsStatus').textContent='There are no matching records to export.';return;}
+ const columns=['timestamp','action','targetName','targetId','moderator','moderatorId','reason','details','source'];
+ const quote=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+ const csv=[columns.join(','),...logs.map(log=>columns.map(key=>quote(log[key])).join(','))].join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='barracks-moderation-logs.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+['modLogsSearch','modLogsAction','modLogsSource','modLogsFrom','modLogsTo'].forEach(id=>document.getElementById(id)?.addEventListener('input',()=>{moderationLogPage=1;renderModerationLogs();}));
+document.getElementById('modLogsClearFilters')?.addEventListener('click',()=>{['modLogsSearch','modLogsAction','modLogsSource','modLogsFrom','modLogsTo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});moderationLogPage=1;renderModerationLogs();});
+document.getElementById('modLogsExport')?.addEventListener('click',exportModerationLogs);
 document.getElementById('modLogsRefresh')?.addEventListener('click',loadModerationLogs);
 </script>
 
