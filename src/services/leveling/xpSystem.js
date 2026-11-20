@@ -226,32 +226,45 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
       ? rewardRoles.map((role) => `<@&${role.id}>`).join(', ')
       : 'Unranked';
 
-    const defaultAnnouncement = [
-      '⚔️ **LEVEL UP ALERT!**',
-      '',
-      'Well, well, well! Akala namin ordinary recruit ka lang sa Barracks, pero mukhang nag-grind ka nang todo!',
-      '',
-      '⚔️ **SOLDIER PROFILE:**',
-      '',
-      '• **Rank:** {rank}',
-      '• **Rank Level:** {level}',
-      '• **Total Battle Experience:** {totalXp} XP',
-      '',
-      '🎖️ Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
-    ].join('\\n');
-    const announcementTemplate = config.levelUpMessage || defaultAnnouncement;
-    const announcementDescription = announcementTemplate
+    const replaceAnnouncementTokens = (value) => String(value || '')
       .replaceAll('{user}', member.toString())
       .replaceAll('{username}', member.displayName || member.user.username)
       .replaceAll('{rank}', rankDisplay)
       .replaceAll('{level}', String(levelData.level))
       .replaceAll('{totalXp}', levelData.totalXp.toLocaleString('en-US'));
-
+    const embedSettings = config.levelUpEmbed || {};
+    const embedDescription = replaceAnnouncementTokens(
+      embedSettings.description || [
+        'Well, well, well! Akala namin ordinary recruit ka lang sa Barracks, pero mukhang nag-grind ka nang todo!',
+        '',
+        '⚔️ **SOLDIER PROFILE:**',
+        '',
+        '• **Rank:** {rank}',
+        '• **Rank Level:** {level}',
+        '• **Total Battle Experience:** {totalXp} XP',
+        '',
+        '🎖️ Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
+      ].join('\\n')
+    );
     const levelUpEmbed = new EmbedBuilder()
-      .setColor(0x36393F)
-      .setDescription(announcementDescription.slice(0, 4096))
-      .setThumbnail(member.displayAvatarURL({ extension: 'png', size: 256 }))
+      .setColor(/^#[0-9a-fA-F]{6}$/.test(embedSettings.color || '') ? embedSettings.color : '#36393f')
+      .setDescription(embedDescription.slice(0, 4096));
+    const authorName = replaceAnnouncementTokens(embedSettings.authorName);
+    const title = replaceAnnouncementTokens(embedSettings.title || '⚔️ LEVEL UP ALERT!');
+    const footerText = replaceAnnouncementTokens(embedSettings.footerText);
+    if (authorName) levelUpEmbed.setAuthor({ name: authorName });
+    if (title) levelUpEmbed.setTitle(title);
+    if (embedSettings.thumbnailUrl) levelUpEmbed.setThumbnail(embedSettings.thumbnailUrl);
+    if (footerText) {
+      const footer = { text: footerText };
+      if (embedSettings.footerIconUrl) footer.iconURL = embedSettings.footerIconUrl;
+      levelUpEmbed.setFooter(footer);
+    }
+    levelUpEmbed
+      .setThumbnail(embedSettings.thumbnailUrl || member.displayAvatarURL({ extension: 'png', size: 256 }))
       .setImage('https://media.discordapp.net/attachments/1563246823018336416/1563262831334391959/barracks-red-lightning-banner.gif?ex=6af6b2b7&is=6af56137&hm=6c175623588c4efc954b84cb34d624cb7ad5808e00447f79d999e505abe5df22&=');
+    const announcementContent = replaceAnnouncementTokens(config.levelUpContent || '{user}');
+    const message = [announcementContent, ...messageLines].filter(Boolean).join('\\n');
 
     await levelUpChannel.send({
       content: message,
