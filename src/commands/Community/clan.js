@@ -112,19 +112,24 @@ export default {
       if (!clan) {
         return interaction.reply({ content: 'You are not a member of an approved clan, or you are the Clan Leader. The Clan Leader must delete the clan to leave.', flags: MessageFlags.Ephemeral });
       }
+      const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+      if (!member) return interaction.reply({ content: 'I could not find your server membership. Please try again.', flags: MessageFlags.Ephemeral });
+      if (clan.roleId && member.roles.cache.has(clan.roleId)) {
+        try {
+          await member.roles.remove(clan.roleId, `Left clan ${clan.name}`);
+        } catch (error) {
+          logger.warn(`Could not remove clan role ${clan.roleId} from ${member.id}: ${error.message}`);
+          return interaction.reply({ content: 'I could not remove your clan role. Please check the bot role hierarchy and try again; your clan membership has not been changed.', flags: MessageFlags.Ephemeral });
+        }
+      }
       clan.memberIds = (clan.memberIds || []).filter(userId => userId !== interaction.user.id);
       if (clan.viceLeaderId === interaction.user.id) clan.viceLeaderId = null;
       await interaction.client.db.set(storageKey, clans);
-
-      const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
-      if (member) {
-        if (clan.roleId) await member.roles.remove(clan.roleId, `Left clan ${clan.name}`).catch(() => {});
-        const currentName = member.nickname || member.user.username;
-        const clanTagPrefix = `${clan.tag} `;
-        const baseName = currentName.startsWith(clanTagPrefix) ? currentName.slice(clanTagPrefix.length).trim() : currentName;
-        const prefix = await getNicknamePrefix(member, interaction.client, interaction.guildId);
-        await member.setNickname(`${prefix}${baseName}`.slice(0, 32), `Left clan ${clan.name}`).catch(() => {});
-      }
+      const currentName = member.nickname || member.user.username;
+      const clanTagPrefix = `${clan.tag} `;
+      const baseName = currentName.startsWith(clanTagPrefix) ? currentName.slice(clanTagPrefix.length).trim() : currentName;
+      const prefix = await getNicknamePrefix(member, interaction.client, interaction.guildId);
+      await member.setNickname(`${prefix}${baseName}`.slice(0, 32), `Left clan ${clan.name}`).catch(() => {});
       return interaction.reply({ content: `✅ You have left **${clan.name} [${clan.tag}]**. Your clan role and clan nickname tag have been removed.`, flags: MessageFlags.Ephemeral });
     }
 
