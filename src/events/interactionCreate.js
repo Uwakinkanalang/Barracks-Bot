@@ -1158,9 +1158,23 @@ export default {
               await interaction.reply({ content: 'That clan is no longer available. Please reopen the panel.', flags: MessageFlags.Ephemeral });
               return;
             }
-            if (clan.leaderId === interaction.user.id || clan.viceLeaderId === interaction.user.id || (clan.memberIds || []).includes(interaction.user.id)) {
-              await interaction.reply({ content: 'You already belong to this clan’s leadership or roster.', flags: MessageFlags.Ephemeral });
+            if (clan.leaderId === interaction.user.id) {
+              await interaction.reply({ content: 'You are the Clan Leader of this clan. Transfer leadership or delete the clan before joining another.', flags: MessageFlags.Ephemeral });
               return;
+            }
+            const isListedInSelectedClan = String(clan.viceLeaderId || '') === interaction.user.id ||
+              (Array.isArray(clan.memberIds) && clan.memberIds.map(String).includes(interaction.user.id));
+            if (isListedInSelectedClan) {
+              const applicantMember = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+              const stillHasClanRole = Boolean(applicantMember && clan.roleId && applicantMember.roles.cache.has(clan.roleId));
+              if (stillHasClanRole) {
+                await interaction.reply({ content: 'You still have this clan role. Use **Leave a Clan** first; if you already left, ask staff to check the bot role permissions.', flags: MessageFlags.Ephemeral });
+                return;
+              }
+              // Repair stale roster/vice-leader records left behind by an older leave flow.
+              clan.memberIds = (Array.isArray(clan.memberIds) ? clan.memberIds : []).filter(id => String(id) !== interaction.user.id);
+              if (String(clan.viceLeaderId || '') === interaction.user.id) clan.viceLeaderId = null;
+              await interaction.client.db.set(storageKey, clanList);
             }
             const currentClan = clanList.find(entry => entry.status === 'approved' &&
               [entry.leaderId, entry.viceLeaderId, ...(entry.memberIds || [])].includes(interaction.user.id));
