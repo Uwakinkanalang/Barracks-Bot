@@ -104,33 +104,39 @@ export default {
       const storageKey = `guild:${interaction.guildId}:clans`;
       const clanList = await interaction.client.db.get(storageKey, []);
       const clans = Array.isArray(clanList) ? clanList : [];
-      const clan = clans.find(entry =>
-        entry.status === 'approved' &&
-        (entry.viceLeaderId === interaction.user.id ||
-          (Array.isArray(entry.memberIds) && entry.memberIds.includes(interaction.user.id)))
-      );
-      if (!clan) {
-        return interaction.reply({ content: 'You are not a member of an approved clan, or you are the Clan Leader. The Clan Leader must delete the clan to leave.', flags: MessageFlags.Ephemeral });
+      const memberships = clans.filter(entry => entry.status === 'approved' &&
+        entry.leaderId !== interaction.user.id &&
+        (String(entry.viceLeaderId || '') === interaction.user.id ||
+          (Array.isArray(entry.memberIds) && entry.memberIds.map(String).includes(interaction.user.id))));
+      if (!memberships.length) {
+        return interaction.reply({ content: 'You are not a member of an approved clan, or you are the Clan Leader. The Clan Leader must transfer leadership or delete the clan before leaving.', flags: MessageFlags.Ephemeral });
       }
       const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
       if (!member) return interaction.reply({ content: 'I could not find your server membership. Please try again.', flags: MessageFlags.Ephemeral });
-      if (clan.roleId && member.roles.cache.has(clan.roleId)) {
-        try {
-          await member.roles.remove(clan.roleId, `Left clan ${clan.name}`);
-        } catch (error) {
-          logger.warn(`Could not remove clan role ${clan.roleId} from ${member.id}: ${error.message}`);
-          return interaction.reply({ content: 'I could not remove your clan role. Please check the bot role hierarchy and try again; your clan membership has not been changed.', flags: MessageFlags.Ephemeral });
+      try {
+        for (const clan of memberships) {
+          if (clan.roleId && member.roles.cache.has(clan.roleId)) {
+            await member.roles.remove(clan.roleId, `Left clan ${clan.name}`);
+          }
         }
+      } catch (error) {
+        logger.warn(`Could not remove clan role from ${member.id}: ${error.message}`);
+        return interaction.reply({ content: 'I could not remove your clan role. Please check the bot role hierarchy and try again; your clan membership has not been changed.', flags: MessageFlags.Ephemeral });
       }
-      clan.memberIds = (clan.memberIds || []).filter(userId => userId !== interaction.user.id);
-      if (clan.viceLeaderId === interaction.user.id) clan.viceLeaderId = null;
+      for (const clan of memberships) {
+        clan.memberIds = (Array.isArray(clan.memberIds) ? clan.memberIds : []).filter(userId => String(userId) !== interaction.user.id);
+        if (String(clan.viceLeaderId || '') === interaction.user.id) clan.viceLeaderId = null;
+      }
       await interaction.client.db.set(storageKey, clans);
-      const currentName = member.nickname || member.user.username;
-      const clanTagPrefix = `${clan.tag} `;
-      const baseName = currentName.startsWith(clanTagPrefix) ? currentName.slice(clanTagPrefix.length).trim() : currentName;
+      let baseName = member.nickname || member.user.username;
+      for (const clan of memberships) {
+        const clanTagPrefix = `${clan.tag} `;
+        if (baseName.startsWith(clanTagPrefix)) baseName = baseName.slice(clanTagPrefix.length).trim();
+      }
       const prefix = await getNicknamePrefix(member, interaction.client, interaction.guildId);
-      await member.setNickname(`${prefix}${baseName}`.slice(0, 32), `Left clan ${clan.name}`).catch(() => {});
-      return interaction.reply({ content: `✅ You have left **${clan.name} [${clan.tag}]**. Your clan role and clan nickname tag have been removed.`, flags: MessageFlags.Ephemeral });
+      await member.setNickname(`${prefix}${baseName}`.slice(0, 32), 'Left Barracks clan').catch(() => {});
+      const leftNames = memberships.map(clan => `**${clan.name} [${clan.tag}]**`).join(', ');
+      return interaction.reply({ content: `✅ You have left ${leftNames}. Your clan role(s) and clan nickname tag(s) have been removed.`, flags: MessageFlags.Ephemeral });
     }
 
     if (['addmember', 'kick', 'members'].includes(subcommand)) {
