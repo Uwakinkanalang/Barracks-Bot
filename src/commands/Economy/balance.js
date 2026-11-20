@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { getEconomyData } from '../../utils/economy.js';
+import { getEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -61,6 +61,7 @@ export default {
 
         const wallet = typeof userData.wallet === 'number' ? userData.wallet : 0;
         const bank = typeof userData.bank === 'number' ? userData.bank : 0;
+        const bankLimit = getMaxBankCapacity(userData);
 
         const embed = createEmbed({
             title: `${displayName}'s Balance`,
@@ -77,6 +78,11 @@ export default {
                     name: "🏦 Bank",
                     value: `₱${bank.toLocaleString()}`,
                     inline: true,
+                },
+                {
+                    name: "📊 Bank Limit",
+                    value: `₱${bank.toLocaleString()} / ₱${bankLimit.toLocaleString()}`,
+                    inline: false,
                 },
                 {
                     name: "💰 Total",
