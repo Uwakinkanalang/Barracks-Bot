@@ -70,7 +70,7 @@ async function handlePrefixCommand(message, client) {
     }
 
     // Test the Barracks Lotto winner announcement without running a real draw or paying bCash.
-    if (/^b!lottowin\\s+test$/i.test(trimmedContent)) {
+    if (/^b!lottowin\s+test$/i.test(trimmedContent)) {
       const isServerManager = message.member?.roles?.cache?.has('1466364437622423694');
       if (!isServerManager) {
         await message.reply('❌ Only members with the **Server Manager** role can test the lotto winner announcement.');
