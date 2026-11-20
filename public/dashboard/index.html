@@ -5,7 +5,7 @@
 <title>Barracks Dashboard</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1110;--panel:#111a16;--panel2:#16221b;--line:#27372d;--muted:#91a197;--text:#edf4ee;--lime:#c3f36b;--lime2:#a8d94e}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}button{font:inherit;cursor:pointer}.shell{display:flex;min-height:100vh}.side{width:250px;background:#0e1712;border-right:1px solid var(--line);padding:25px 17px;display:flex;flex-direction:column;flex-shrink:0}.brand{display:flex;align-items:center;gap:12px;padding:0 9px 28px}.brand-mark{height:39px;width:39px;border-radius:12px;background:var(--lime);color:#17210e;display:grid;place-items:center;font-weight:950;font-size:21px}.brand strong{display:block;font-size:15px;letter-spacing:.02em}.brand small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.server{display:flex;align-items:center;gap:11px;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:13px;margin-bottom:25px}.server img,.server .placeholder{height:34px;width:34px;border-radius:10px;object-fit:cover;background:#26352c;display:grid;place-items:center}.server b{font-size:12px}.server small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.nav-label{font-size:10px;font-weight:800;letter-spacing:.15em;color:#6f8175;padding:0 11px 9px}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#aebbb2;text-align:left;padding:11px 12px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:13px}.nav button:hover,.nav button.active{background:#1d2c22;color:var(--lime)}.nav .ico{width:19px;text-align:center;font-size:16px}.nav-group{display:grid;gap:4px}.nav-parent{width:100%;border:0;background:transparent;color:#aebbb2;text-align:left;padding:11px 12px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:13px}.nav-parent:hover,.nav-parent.active{background:#1d2c22;color:var(--lime)}.nav-parent .chevron{margin-left:auto;font-size:11px;transition:transform .15s}.nav-parent[aria-expanded="true"] .chevron{transform:rotate(90deg)}.subnav{margin:0 0 5px 18px;padding-left:13px;border-left:1px solid #34463b;display:grid;gap:2px}.subnav button{border:0;background:transparent;color:#829187;text-align:left;padding:7px 9px;border-radius:6px;font-size:12px}.subnav button:hover,.subnav button.active{color:var(--lime);background:#1b2920}.side-bottom{margin-top:auto;border-top:1px solid var(--line);padding:17px 8px 0;color:#718178;font-size:11px;line-height:1.6}.main{min-width:0;flex:1}.top{height:72px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 34px;background:#0d1511}.crumb{color:var(--muted);font-size:12px}.crumb b{color:var(--text);font-weight:650}.user{display:flex;align-items:center;gap:12px}.status{display:flex;align-items:center;gap:7px;color:#a9c49f;font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 12px #c3f36b88}.logout{background:transparent;border:1px solid var(--line);border-radius:9px;padding:8px 12px;color:#c0cdc4;font-size:11px}.content{max-width:1250px;margin:auto;padding:36px 34px 60px}.welcome{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:28px}.eyebrow{color:var(--lime);font-size:10px;font-weight:850;letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px}h1{font-size:28px;letter-spacing:-.04em;margin:0 0 8px}.sub{color:var(--muted);margin:0;font-size:13px}.date{color:#819187;font-size:11px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px;min-width:0}.metric-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:11px}.metric-icon{height:31px;width:31px;display:grid;place-items:center;background:#1e2d22;border-radius:9px;color:var(--lime);font-size:15px}.metric{font-size:27px;font-weight:750;letter-spacing:-.04em;margin:16px 0 4px}.metric-note{color:#718178;font-size:10px}.section-head{display:flex;align-items:center;justify-content:space-between;margin:32px 0 14px}.section-head h2{font-size:15px;margin:0}.section-head span{color:var(--muted);font-size:11px}.modules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.module{display:flex;gap:13px;align-items:flex-start;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px;color:var(--text);transition:.15s}.module:hover{border-color:#718b57;transform:translateY(-1px)}.module-icon{height:38px;width:38px;flex-shrink:0;border-radius:11px;background:#1e2d22;display:grid;place-items:center;font-size:18px}.module b{font-size:12px;display:block;margin:2px 0 5px}.module small{font-size:10px;color:var(--muted);line-height:1.5;display:block}.tag{font-size:9px;color:#a7c987;border:1px solid #344a32;border-radius:20px;padding:4px 7px;margin-left:auto;white-space:nowrap}.notice{margin-top:20px;border:1px solid #35482e;background:#172218;border-radius:13px;padding:15px 17px;display:flex;gap:12px;color:#b8c9b7;font-size:11px;line-height:1.55}.notice b{color:var(--lime)}.notice-icon{font-size:17px}.mobile-menu{display:none}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}button{font:inherit;cursor:pointer}.shell{display:flex;min-height:100vh}.side{width:250px;background:#0e1712;border-right:1px solid var(--line);padding:25px 17px;display:flex;flex-direction:column;flex-shrink:0}.brand{display:flex;align-items:center;gap:12px;padding:0 9px 28px}.brand-mark{height:39px;width:39px;border-radius:12px;background:var(--lime);color:#17210e;display:grid;place-items:center;font-weight:950;font-size:21px}.brand strong{display:block;font-size:15px;letter-spacing:.02em}.brand small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.server{display:flex;align-items:center;gap:11px;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:13px;margin-bottom:25px}.server img,.server .placeholder{height:34px;width:34px;border-radius:10px;object-fit:cover;background:#26352c;display:grid;place-items:center}.server b{font-size:12px}.server small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.nav-label{font-size:10px;font-weight:800;letter-spacing:.15em;color:#6f8175;padding:0 11px 9px}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#aebbb2;text-align:left;padding:11px 12px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:13px}.nav button:hover,.nav button.active{background:#1d2c22;color:var(--lime)}.nav .ico{width:19px;text-align:center;font-size:16px}.nav-group{display:grid;gap:4px}.nav-parent{width:100%;border:0;background:transparent;color:#aebbb2;text-align:left;padding:11px 12px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:13px}.nav-parent:hover,.nav-parent.active{background:#1d2c22;color:var(--lime)}.nav-parent .chevron{margin-left:auto;font-size:11px;transition:transform .15s}.nav-parent[aria-expanded="true"] .chevron{transform:rotate(90deg)}.subnav{margin:0 0 5px 18px;padding-left:13px;border-left:1px solid #34463b;display:grid;gap:2px}.subnav button{border:0;background:transparent;color:#829187;text-align:left;padding:7px 9px;border-radius:6px;font-size:12px}.subnav button:hover,.subnav button.active{color:var(--lime);background:#1b2920}.subnav[hidden]{display:none}.announcement-options{display:grid;gap:9px;margin-top:24px}.announcement-option{width:100%;display:flex;align-items:center;gap:15px;text-align:left;padding:16px;background:#111a16;border:1px solid #27372d;border-radius:10px;color:#edf4ee}.announcement-option:hover{border-color:#667b50;background:#17221b}.announcement-option .option-icon{width:40px;height:40px;border-radius:50%;background:#202b24;display:grid;place-items:center;font-size:18px;flex-shrink:0}.announcement-option b{display:block;font-size:14px;margin-bottom:4px}.announcement-option small{display:block;color:#a0aca4;font-size:12px}.announcement-option .option-arrow{margin-left:auto;font-size:23px;color:#cbd5ce}.announcement-option .option-state{margin-left:auto;background:#5865f2;color:white;border-radius:20px;padding:4px 9px;font-size:10px}.announcement-option .option-arrow{margin-left:0}.side-bottom{margin-top:auto;border-top:1px solid var(--line);padding:17px 8px 0;color:#718178;font-size:11px;line-height:1.6}.main{min-width:0;flex:1}.top{height:72px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 34px;background:#0d1511}.crumb{color:var(--muted);font-size:12px}.crumb b{color:var(--text);font-weight:650}.user{display:flex;align-items:center;gap:12px}.status{display:flex;align-items:center;gap:7px;color:#a9c49f;font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 12px #c3f36b88}.logout{background:transparent;border:1px solid var(--line);border-radius:9px;padding:8px 12px;color:#c0cdc4;font-size:11px}.content{max-width:1250px;margin:auto;padding:36px 34px 60px}.welcome{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:28px}.eyebrow{color:var(--lime);font-size:10px;font-weight:850;letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px}h1{font-size:28px;letter-spacing:-.04em;margin:0 0 8px}.sub{color:var(--muted);margin:0;font-size:13px}.date{color:#819187;font-size:11px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px;min-width:0}.metric-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:11px}.metric-icon{height:31px;width:31px;display:grid;place-items:center;background:#1e2d22;border-radius:9px;color:var(--lime);font-size:15px}.metric{font-size:27px;font-weight:750;letter-spacing:-.04em;margin:16px 0 4px}.metric-note{color:#718178;font-size:10px}.section-head{display:flex;align-items:center;justify-content:space-between;margin:32px 0 14px}.section-head h2{font-size:15px;margin:0}.section-head span{color:var(--muted);font-size:11px}.modules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.module{display:flex;gap:13px;align-items:flex-start;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px;color:var(--text);transition:.15s}.module:hover{border-color:#718b57;transform:translateY(-1px)}.module-icon{height:38px;width:38px;flex-shrink:0;border-radius:11px;background:#1e2d22;display:grid;place-items:center;font-size:18px}.module b{font-size:12px;display:block;margin:2px 0 5px}.module small{font-size:10px;color:var(--muted);line-height:1.5;display:block}.tag{font-size:9px;color:#a7c987;border:1px solid #344a32;border-radius:20px;padding:4px 7px;margin-left:auto;white-space:nowrap}.notice{margin-top:20px;border:1px solid #35482e;background:#172218;border-radius:13px;padding:15px 17px;display:flex;gap:12px;color:#b8c9b7;font-size:11px;line-height:1.55}.notice b{color:var(--lime)}.notice-icon{font-size:17px}.mobile-menu{display:none}
 @media(max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}.modules{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.side{width:66px;padding:17px 9px}.brand{padding:0 4px 22px}.brand>div:last-child,.server>div:last-child,.nav-label,.nav button .nav-text,.side-bottom{display:none}.brand-mark{height:42px;width:42px}.server{padding:7px;justify-content:center}.nav button{justify-content:center;padding:12px 0}.nav .ico{width:auto}.top{padding:0 16px;height:62px}.content{padding:25px 16px}.welcome{align-items:flex-start;flex-direction:column}.grid{gap:9px}.card{padding:14px}.metric{font-size:23px}.modules{grid-template-columns:1fr}.status{display:none}}
 
 /* Simple welcome/goodbye previews */
@@ -21,8 +21,14 @@
 <button class="active"><span class="ico">▦</span><span class="nav-text">Overview</span></button>
 <button><span class="ico">⚙</span><span class="nav-text">Bot Settings</span></button>
 </nav>
-<div class="nav-label" style="margin-top:25px">SERVER MANAGEMENT</div><nav class="nav">
-<button id="welcomeNavButton" type="button"><span class="ico">👋</span><span class="nav-text">Welcome & Goodbye</span></button>
+<div class="nav-label" style="margin-top:25px">MESSAGING</div><nav class="nav">
+<div class="nav-group">
+<button id="announcementsToggle" class="nav-parent" type="button" aria-expanded="true"><span class="ico">📢</span><span class="nav-text">Announcements</span><span class="chevron">⌄</span></button>
+<div id="announcementsSubnav" class="subnav">
+<button id="welcomeNavButton" type="button">Join</button>
+<button id="goodbyeNavButton" type="button">Leave</button>
+</div></div>
+<div class="nav-label" style="margin-top:12px">SERVER MANAGEMENT</div>
 <button><span class="ico">🛡</span><span class="nav-text">Moderation</span></button>
 <button><span class="ico">💰</span><span class="nav-text">Economy / bCash</span></button>
 <button><span class="ico">🎮</span><span class="nav-text">Games & Activities</span></button>
@@ -121,13 +127,17 @@ if(getToken()) loadOverview(); else showLogin();
 setInterval(()=>{if(getToken())loadOverview();},60000);
 </script>
 
-<div id="welcomePanel" style="display:none;position:fixed;inset:0;z-index:20;background:#080e0bd9;overflow:auto;padding:24px">
- <div style="max-width:850px;margin:30px auto;background:#111a16;border:1px solid #27372d;border-radius:18px;padding:24px">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Server management</div><h1>Welcome & Goodbye</h1><p class="sub">Configure member join and departure messages.</p></div><button id="welcomeClose" class="logout" type="button">Close ✕</button></div>
-  <div class="welcome-tabs" style="display:flex;gap:10px;margin:20px 0 16px">
-   <button id="welcomeTabButton" type="button" class="logout" style="border-color:#c3f36b;color:#c3f36b">👋 Welcome</button>
-   <button id="goodbyeTabButton" type="button" class="logout">👋 Goodbye</button>
+<div id="welcomePanel" style="display:none;min-height:calc(100vh - 72px);overflow:auto;padding:0">
+ <div style="max-width:1100px;margin:0 auto;padding:36px 34px 60px">
+  <div id="announcementOptionsView">
+   <div class="eyebrow">Messaging</div><h1>Announcements</h1><p class="sub">Configure announcements for your server.</p>
+   <div class="announcement-options">
+    <button class="announcement-option" type="button" onclick="showAnnouncementEditor('welcome')"><span class="option-icon">👤</span><span><b>Join Message</b><small>Send a message when a user joins the server</small></span><span class="option-state">✓</span><span class="option-arrow">›</span></button>
+    <button class="announcement-option" type="button" onclick="showAnnouncementEditor('goodbye')"><span class="option-icon">👤</span><span><b>Leave Message</b><small>Send a message when a user leaves the server</small></span><span class="option-state">✓</span><span class="option-arrow">›</span></button>
+   </div>
   </div>
+  <div id="announcementEditor" style="display:none">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px"><div><div class="eyebrow">Messaging · Announcements</div><h1 id="welcomePageTitle">Join Message</h1><p class="sub" id="welcomePageDescription">Configure the message sent when a member joins.</p></div><button id="welcomeClose" class="logout" type="button">← Announcements</button></div>
   <div id="welcomeStatus" class="notice" style="margin:18px 0">Loading settings…</div>
   <div id="welcomeSettingsPage" class="card">
     <h2 style="font-size:15px;margin-top:0">👋 Welcome settings</h2>
@@ -155,36 +165,40 @@ setInterval(()=>{if(getToken())loadOverview();},60000);
 const welcomePanel=document.getElementById('welcomePanel');
 const welcomeStatus=document.getElementById('welcomeStatus');
 function setWelcomeStatus(message,isError=false){welcomeStatus.textContent=message;welcomeStatus.style.color=isError?'#ff9a91':'#b8c9b7';}
-function showWelcomePanel(){showAnnouncementPage('welcome');}
-function showAnnouncementPage(page){
- const isWelcome=page==='welcome';
+function showWelcomePanel(){showAnnouncements();}
+function showAnnouncements(){
  document.getElementById('overviewContent').style.display='none';
  welcomePanel.style.display='block';
+ document.getElementById('announcementOptionsView').style.display='block';
+ document.getElementById('announcementEditor').style.display='none';
+ document.getElementById('pageCrumb').innerHTML='Barracks <span style="color:#526257">/</span> <b>Announcements</b>';
+ document.getElementById('welcomeNavButton').classList.remove('active');
+ document.getElementById('goodbyeNavButton').classList.remove('active');
+}
+function showAnnouncementEditor(page){
+ const isWelcome=page==='welcome';
+ document.getElementById('announcementOptionsView').style.display='none';
+ document.getElementById('announcementEditor').style.display='block';
  document.getElementById('welcomeSettingsPage').style.display=isWelcome?'block':'none';
  document.getElementById('goodbyeSettingsPage').style.display=isWelcome?'none':'block';
- document.getElementById('welcomePageTitle').textContent=isWelcome?'Join announcement':'Leave announcement';
- document.getElementById('welcomePageDescription').textContent=isWelcome?'Configure the message sent when a member joins.':'Configure the message sent when a member leaves.';
+ document.getElementById('welcomePageTitle').textContent=isWelcome?'Join Message':'Leave Message';
+ document.getElementById('welcomePageDescription').textContent=isWelcome?'Send a message when a user joins the server.':'Send a message when a user leaves the server.';
+ document.getElementById('welcomeSave').textContent=isWelcome?'Save Join Message':'Save Leave Message';
  document.getElementById('pageCrumb').innerHTML='Barracks <span style="color:#526257">/</span> Announcements <span style="color:#526257">/</span> <b>'+(isWelcome?'Join':'Leave')+'</b>';
  document.getElementById('welcomeNavButton').classList.toggle('active',isWelcome);
  document.getElementById('goodbyeNavButton').classList.toggle('active',!isWelcome);
- document.getElementById('announcementsSubnav').hidden=false;
- document.getElementById('announcementsToggle').setAttribute('aria-expanded','true');
  loadWelcomeSettings();
 }
-document.getElementById('welcomeNavButton').addEventListener('click',()=>showAnnouncementPage('welcome'));
-document.getElementById('goodbyeNavButton').addEventListener('click',()=>showAnnouncementPage('goodbye'));
+document.getElementById('welcomeNavButton').addEventListener('click',()=>showAnnouncementEditor('welcome'));
+document.getElementById('goodbyeNavButton').addEventListener('click',()=>showAnnouncementEditor('goodbye'));
 document.getElementById('announcementsToggle').addEventListener('click',()=>{
- const button=document.getElementById('announcementsToggle');
- const submenu=document.getElementById('announcementsSubnav');
+ const button=document.getElementById('announcementsToggle'),submenu=document.getElementById('announcementsSubnav');
  const expanded=button.getAttribute('aria-expanded')==='true';
  button.setAttribute('aria-expanded',String(!expanded));submenu.hidden=expanded;
 });
-document.getElementById('welcomeModuleButton').addEventListener('click',()=>showAnnouncementPage('welcome'));
-document.getElementById('welcomeClose').addEventListener('click',()=>{
- welcomePanel.style.display='none';document.getElementById('overviewContent').style.display='';
- document.getElementById('pageCrumb').innerHTML='Barracks <span style="color:#526257">/</span> <b>Overview</b>';
- document.getElementById('welcomeNavButton').classList.remove('active');document.getElementById('goodbyeNavButton').classList.remove('active');
-});
+const welcomeModuleButton=document.getElementById('welcomeModuleButton');
+if(welcomeModuleButton)welcomeModuleButton.addEventListener('click',showAnnouncements);
+document.getElementById('welcomeClose').addEventListener('click',showAnnouncements);
 async function loadWelcomeSettings(){
  const token=getToken();if(!token){showLogin();return;}
  setWelcomeStatus('Loading settings…');
