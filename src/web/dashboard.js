@@ -376,20 +376,42 @@ export function registerDashboardRoutes(app, bot) {
     try {
       const rawKeys = await bot.db.list(getEconomyPrefix(guild.id));
       const keys = Array.isArray(rawKeys) ? rawKeys : Object.keys(rawKeys || {});
-      let walletTotal = 0, bankTotal = 0, users = 0;
-      const top = [];
-      for (const key of keys) {
-        const userId = String(key).split(':').pop();
-        if (!/^\d{17,20}$/.test(userId)) continue;
-        const data = await getEconomyData(bot, guild.id, userId);
-        const wallet = Number(data.wallet) || 0, bank = Number(data.bank) || 0;
-        walletTotal += wallet; bankTotal += bank; users++;
-        const member = await guild.members.fetch(userId).catch(() => null);
-        const serverName = member?.displayName || member?.user?.globalName || member?.user?.username || userId;
-        top.push({ userId, serverName, wallet, bank, total: wallet + bank });
+      const userIds = [...new Set(keys.map(key => String(key).split(':').pop()).filter(id => /^\\d{17,20}$/.test(id)))];
+      let walletTotal = 0, bankTotal = 0;
+      const accounts = [];
+      // Read balances concurrently in small batches to avoid serial database waits
+      // while keeping database load bounded on larger servers.
+      const batchSize = 25;
+      for (let i = 0; i < userIds.length; i += batchSize) {
+        const batch = userIds.slice(i, i + batchSize);
+        const results = await Promise.all(batch.map(async userId => {
+          const data = await getEconomyData(bot, guild.id, userId);
+          const wallet = Number(data.wallet) || 0;
+          const bank = Number(data.bank) || 0;
+          return { userId, wallet, bank, total: wallet + bank };
+        }));
+        for (const account of results) {
+          walletTotal += account.wallet;
+          bankTotal += account.bank;
+          accounts.push(account);
+        }
       }
-      top.sort((a, b) => b.total - a.total);
-      return res.json({ users, walletTotal, bankTotal, total: walletTotal + bankTotal, top: top.slice(0, 15) });
+      accounts.sort((a, b) => b.total - a.total);
+      const top = await Promise.all(accounts.slice(0, 15).map(async account => {
+        const member = guild.members.cache.get(account.userId)
+          || await guild.members.fetch(account.userId).catch(() => null);
+        return {
+          ...account,
+          serverName: member?.displayName || member?.user?.globalName || member?.user?.username || account.userId
+        };
+      }));
+      return res.json({
+        users: accounts.length,
+        walletTotal,
+        bankTotal,
+        total: walletTotal + bankTotal,
+        top
+      });
     } catch (error) {
       return res.status(500).json({ error: error?.message || 'Could not load economy data.' });
     }
