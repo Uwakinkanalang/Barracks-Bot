@@ -68,8 +68,11 @@ export default {
                         )
                         .setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }))
                         .setImage(cardBackground)
-                        .setFooter({ text: `We already have ${guild.memberCount.toLocaleString('en-US')} members`, iconURL: barracksLogo })
-                        .setTimestamp();
+                        .setTimestamp()
+                        .setFooter({
+                            text: `We already have ${guild.memberCount.toLocaleString('en-US')} members`,
+                            iconURL: barracksLogo
+                        });
                     await channel.send({
                         content: `Welcome our new member, **${user.toString()}**`,
                         embeds: [welcomeEmbed],
