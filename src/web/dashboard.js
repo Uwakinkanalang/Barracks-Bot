@@ -789,7 +789,7 @@ export function registerDashboardRoutes(app, bot) {
           reason: 'Keep Barracks clan roles above the Levels separator',
         });
       }
-      await category.edit({ name: '⚔️ ' + tag + ' | ' + name, reason: 'Clan details updated from Barracks dashboard' });
+      await category.edit({ name: tag + ' | ' + name, reason: 'Clan details updated from Barracks dashboard' });
       await textChannel.edit({ name: slug + '-chat', reason: 'Clan details updated from Barracks dashboard' });
       await voiceChannel.edit({ name: voiceName, reason: 'Clan details updated from Barracks dashboard' });
 
