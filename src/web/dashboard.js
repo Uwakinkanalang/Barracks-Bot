@@ -79,11 +79,19 @@ export function registerDashboardRoutes(app, bot) {
     try {
       const guildConfig = await getGuildConfig(bot, guild.id);
       const dbStatus = bot.db?.getStatus?.() || { connectionType: 'unknown', isDegraded: true };
+      const roles = guild.roles.cache
+        .filter(role => role.id !== guild.id && !role.managed)
+        .sort((a, b) => b.position - a.position)
+        .map(role => ({ id: role.id, name: role.name, color: role.hexColor, position: role.position }));
       return res.json({
         guild: { id: guild.id, name: guild.name, memberCount: guild.memberCount, channelCount: guild.channels.cache.size, roleCount: guild.roles.cache.size },
         bot: { name: bot.user?.username || 'Barracks-Bot', id: bot.user?.id || null, online: bot.isReady(), uptimeSeconds: Math.floor(process.uptime()), commandCount: bot.commands?.size ?? 0 },
         database: { type: dbStatus.connectionType || 'unknown', degraded: Boolean(dbStatus.isDegraded) },
-        prefix: typeof guildConfig.prefix === 'string' ? guildConfig.prefix : '!'
+        prefix: typeof guildConfig.prefix === 'string' ? guildConfig.prefix : '!',
+        language: typeof guildConfig.dashboardLanguage === 'string' ? guildConfig.dashboardLanguage : 'en',
+        timezone: typeof guildConfig.timezone === 'string' ? guildConfig.timezone : 'Asia/Manila',
+        managerRoleIds: Array.isArray(guildConfig.managerRoleIds) ? guildConfig.managerRoleIds : [],
+        roles
       });
     } catch (error) {
       return res.status(500).json({ error: error?.message || 'Could not load bot settings.' });
@@ -95,17 +103,46 @@ export function registerDashboardRoutes(app, bot) {
     if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
-    const prefix = req.body?.prefix;
-    if (typeof prefix !== 'string' || prefix.length < 1 || prefix.length > 5 || /\\s/.test(prefix)) {
-      return res.status(400).json({ error: 'Prefix must be 1–5 characters with no spaces.' });
+    const body = req.body || {};
+    const updates = {};
+    if (body.prefix !== undefined) {
+      if (typeof body.prefix !== 'string' || body.prefix.length < 1 || body.prefix.length > 5 || /\\s/.test(body.prefix))
+        return res.status(400).json({ error: 'Prefix must be 1–5 characters with no spaces.' });
+      updates.prefix = body.prefix;
+    }
+    if (body.language !== undefined) {
+      if (!['en', 'fil', 'es', 'fr', 'de'].includes(body.language))
+        return res.status(400).json({ error: 'Choose a supported dashboard language.' });
+      updates.dashboardLanguage = body.language;
+    }
+    if (body.timezone !== undefined) {
+      if (typeof body.timezone !== 'string' || body.timezone.length > 80)
+        return res.status(400).json({ error: 'Choose a valid timezone.' });
+      try { new Intl.DateTimeFormat('en-US', { timeZone: body.timezone }); }
+      catch { return res.status(400).json({ error: 'Choose a valid timezone.' }); }
+      updates.timezone = body.timezone;
+    }
+    if (body.managerRoleIds !== undefined) {
+      if (!Array.isArray(body.managerRoleIds) || body.managerRoleIds.length > 100)
+        return res.status(400).json({ error: 'Manager roles must be a list of up to 100 roles.' });
+      const roleIds = [...new Set(body.managerRoleIds.map(String))];
+      if (roleIds.some(id => !/^\\d{17,20}$/.test(id) || !guild.roles.cache.has(id) || id === guild.id))
+        return res.status(400).json({ error: 'One or more selected manager roles are invalid.' });
+      updates.managerRoleIds = roleIds;
     }
     try {
-      const saved = await updateGuildConfig(bot, guild.id, { prefix });
-      if (!saved) return res.status(500).json({ error: 'Could not save the command prefix.' });
+      const saved = await updateGuildConfig(bot, guild.id, updates);
+      if (!saved) return res.status(500).json({ error: 'Could not save server settings.' });
       const verified = await getGuildConfig(bot, guild.id);
-      return res.json({ ok: true, prefix: verified.prefix });
+      return res.json({
+        ok: true,
+        prefix: verified.prefix,
+        language: verified.dashboardLanguage || 'en',
+        timezone: verified.timezone || 'Asia/Manila',
+        managerRoleIds: Array.isArray(verified.managerRoleIds) ? verified.managerRoleIds : []
+      });
     } catch (error) {
-      return res.status(500).json({ error: error?.message || 'Could not save the command prefix.' });
+      return res.status(500).json({ error: error?.message || 'Could not save server settings.' });
     }
   });
 
