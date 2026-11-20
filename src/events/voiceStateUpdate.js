@@ -10,6 +10,7 @@ import { sanitizeInput } from '../utils/validation.js';
 import { logger } from '../utils/logger.js';
 import { handleMusicVoiceState } from '../services/music/musicVoiceState.js';
 import { addXp } from '../services/leveling/xpSystem.js';
+import { getLevelingConfig } from '../services/leveling/leveling.js';
 import { getAFKKey } from '../utils/database.js';
 
 const channelCreationCooldown = new Map();
@@ -93,6 +94,9 @@ voiceXpTimer.unref?.();
 
 async function awardVoiceXp(client) {
     for (const guild of client.guilds.cache.values()) {
+        const levelingConfig = await getLevelingConfig(client, guild.id);
+        if (!levelingConfig.enabled || levelingConfig.voiceXpEnabled === false) continue;
+        const voiceXpPerMinute = Math.max(1, Math.min(100, Number(levelingConfig.voiceXpPerMinute) || VOICE_XP_PER_MINUTE));
         for (const channel of guild.channels.cache.values()) {
             if (!channel.isVoiceBased?.()) continue;
 
@@ -104,7 +108,7 @@ async function awardVoiceXp(client) {
                 if (voice.selfMute || voice.serverMute || voice.selfDeaf || voice.serverDeaf) continue;
 
                 try {
-                    await addXp(client, guild, member, VOICE_XP_PER_MINUTE, { source: 'voice' });
+                    await addXp(client, guild, member, voiceXpPerMinute, { source: 'voice' });
                 } catch (error) {
                     logger.error(`Failed to award voice XP to ${member.user.tag} in guild ${guild.id}:`, error);
                 }

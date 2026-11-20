@@ -213,7 +213,9 @@ export default {
           await message.reply('⛔ Only the **Server Owner** and **Festivities** team can start Dota 2 hero rounds.');
           return;
         }
-        const reward = startMatch[1] ? Number(startMatch[1]) : DEFAULT_REWARD;
+        const gameConfig = await client.db.get(`guild:${message.guild.id}:games:config`, {});
+        if (gameConfig.dotaEnabled === false) { await message.reply('⛔ Dota 2 Hero Guess is currently disabled in the Barracks dashboard.'); return; }
+        const reward = startMatch[1] ? Number(startMatch[1]) : (Number(gameConfig.dotaReward) || DEFAULT_REWARD);
         if (!Number.isSafeInteger(reward) || reward < 1 || reward > 1000000000) {
           await message.reply('Please enter a reward between **₱1 and ₱1,000,000,000**. Example: `bdota 5000`.');
           return;

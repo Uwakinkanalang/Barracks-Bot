@@ -178,6 +178,8 @@ export async function getLevelingConfig(client, guildId) {
     blacklistedUsers: [],
     announceLevelUp: true,
     xpMultiplier: 1,
+    voiceXpEnabled: true,
+    voiceXpPerMinute: 5,
   };
 
   try {
