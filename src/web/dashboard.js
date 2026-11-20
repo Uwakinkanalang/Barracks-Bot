@@ -166,20 +166,20 @@ export function registerDashboardRoutes(app, bot) {
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     const body = req.body || {};
     const updates = {};
-    for (const field of ['welcomeMessage', 'leaveMessage']) {
+    for (const field of ['welcomeMessage', 'leaveMessage', 'banMessage', 'boostMessage']) {
       if (body[field] !== undefined) {
         if (typeof body[field] !== 'string' || !body[field].trim() || body[field].length > 2000)
           return res.status(400).json({ error: field + ' must be between 1 and 2000 characters.' });
         updates[field] = body[field].trim();
       }
     }
-    for (const field of ['enabled', 'welcomePing', 'goodbyeEnabled', 'goodbyePing']) {
+    for (const field of ['enabled', 'welcomePing', 'goodbyeEnabled', 'goodbyePing', 'banEnabled', 'boostEnabled']) {
       if (body[field] !== undefined) {
         if (typeof body[field] !== 'boolean') return res.status(400).json({ error: field + ' must be true or false.' });
         updates[field] = body[field];
       }
     }
-    for (const field of ['channelId', 'goodbyeChannelId']) {
+    for (const field of ['channelId', 'goodbyeChannelId', 'banChannelId', 'boostChannelId']) {
       if (body[field] !== undefined) {
         const id = body[field] === '' || body[field] === null ? null : String(body[field]);
         if (id && !/^\d{17,20}$/.test(id)) return res.status(400).json({ error: 'Invalid channel selection.' });
