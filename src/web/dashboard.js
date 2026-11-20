@@ -137,7 +137,7 @@ export function registerDashboardRoutes(app, bot) {
         }).map(entry => {
           const baseName = entry.name.split(' ')[0];
           const aliases = entry.name === baseName ? (aliasesByCommand.get(baseName) || []) : [];
-          return { ...entry, aliases: [...new Set(aliases)].sort() };
+          return { ...entry, aliases: [...new Set(aliases)].filter(alias => alias !== entry.name && (!bot.commands.has(alias) || alias === baseName)).sort() };
         });
         return { key: category.key, name: category.displayName, icon: category.icon,
           enabledCount: commands.filter(command => isCommandEnabledInConfig(config, command.name, category.folder, 'prefix')).length,
