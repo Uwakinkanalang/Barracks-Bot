@@ -300,7 +300,17 @@ export default {
         .setCustomId('clan:create')
         .setLabel('Create a Clan')
         .setEmoji('🏰')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId('clan:join:open')
+        .setLabel('Join a Clan')
+        .setEmoji('🛡️')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('clan:leave:open')
+        .setLabel('Leave a Clan')
+        .setEmoji('🚪')
+        .setStyle(ButtonStyle.Danger)
     );
 
     await interaction.reply({ embeds: [embed], components: [row] });
