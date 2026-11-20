@@ -384,7 +384,9 @@ export function registerDashboardRoutes(app, bot) {
         const data = await getEconomyData(bot, guild.id, userId);
         const wallet = Number(data.wallet) || 0, bank = Number(data.bank) || 0;
         walletTotal += wallet; bankTotal += bank; users++;
-        top.push({ userId, wallet, bank, total: wallet + bank });
+        const member = await guild.members.fetch(userId).catch(() => null);
+        const serverName = member?.displayName || member?.user?.globalName || member?.user?.username || userId;
+        top.push({ userId, serverName, wallet, bank, total: wallet + bank });
       }
       top.sort((a, b) => b.total - a.total);
       return res.json({ users, walletTotal, bankTotal, total: walletTotal + bankTotal, top: top.slice(0, 15) });
