@@ -116,7 +116,7 @@ export function registerDashboardRoutes(app, bot) {
       const snapshot = getCommandAccessSnapshot(bot, config, 'prefix');
       const barePrefixAliases = {
         bcount: 'bcount', bgive: 'bgive', bmines: 'bmine', bmine: 'bmine',
-        bcash: 'balance', bbj: 'bblackjack', bslot: 'bslot', bmem: 'memory',
+        bcash: 'balance', bbj: 'bblackjack', bblackjack: 'bblackjack', bslot: 'bslot', bmem: 'memory',
         bhl: 'bhl', bdaily: 'daily', bwork: 'work', bshop: 'shop',
         btalpak: 'btalpak', bdeposit: 'deposit', bdep: 'deposit',
         bwithdraw: 'withdraw', bwith: 'withdraw', bttt: 'tictactoe',
@@ -138,10 +138,11 @@ export function registerDashboardRoutes(app, bot) {
         const commands = eligible.filter(entry => !entry.name.includes(' ')).map(entry => {
           const baseName = entry.name;
           const aliases = [...new Set(aliasesByCommand.get(baseName) || [])]
-            .filter(alias => alias !== baseName && !bot.commands.has(alias)).sort();
+            .filter(alias => alias !== baseName && !bot.commands.has(alias) && !(baseName === 'bblackjack' && alias === 'bbj')).sort();
+          const displayName = baseName === 'bblackjack' ? 'bbj' : baseName;
           const subcommands = eligible.filter(candidate => candidate.name.startsWith(baseName + ' '))
             .map(candidate => candidate.name);
-          return { ...entry, aliases, subcommands };
+          return { ...entry, name: displayName, aliases, subcommands };
         });
         return { key: category.key, name: category.displayName, icon: category.icon,
           enabledCount: commands.filter(command => isCommandEnabledInConfig(config, command.name, category.folder, 'prefix')).length,
