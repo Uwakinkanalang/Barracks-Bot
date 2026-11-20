@@ -11,6 +11,7 @@ const ROB_PERCENTAGE = 0.15;
 const FINE_PERCENTAGE = 0.1;
 
 export default {
+    prefixOnly: true,
     data: new SlashCommandBuilder()
         .setName('rob')
         .setDescription('Attempt to rob another user (very risky)')
