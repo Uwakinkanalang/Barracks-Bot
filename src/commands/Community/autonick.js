@@ -6,6 +6,7 @@ import { logger } from '../../utils/logger.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
 
 const CONFIG_KEY = (guildId) => `guild:${guildId}:autonick_roles`;
+const DEFAULT_SERVER_MANAGER_ROLE_IDS = ['1466364437622423694'];
 const normalize = (items) => (Array.isArray(items) ? items : []).filter((x) => x && typeof x.roleId === 'string' && typeof x.prefix === 'string').map((x) => ({ roleId: x.roleId, prefix: x.prefix, priority: Number(x.priority) || 0 })).sort((a, b) => b.priority - a.priority);
 
 async function refreshGuildAutoNick(guild, configs, prefixesToStrip = configs.map(entry => entry.prefix)) {
@@ -87,7 +88,7 @@ export default {
     if (!interaction.inGuild()) return interaction.reply({ content: 'Use this command inside the Barracks server.', ephemeral: true });
     // AutoNick settings are restricted to the Server Manager roles configured in the dashboard.
     const guildConfig = await getGuildConfig(interaction.client, interaction.guildId);
-    const managerRoleIds = Array.isArray(guildConfig.managerRoleIds) ? guildConfig.managerRoleIds : [];
+    const managerRoleIds = [...new Set([...(Array.isArray(guildConfig.managerRoleIds) ? guildConfig.managerRoleIds : []), ...DEFAULT_SERVER_MANAGER_ROLE_IDS])];
     const isManager = managerRoleIds.some(roleId => interaction.member?.roles?.cache?.has(roleId));
     if (!isManager && !isBotOwner(interaction.user.id)) {
       return interaction.reply({
