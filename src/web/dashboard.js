@@ -121,7 +121,7 @@ export function registerDashboardRoutes(app, bot) {
         btalpak: 'btalpak', bdeposit: 'deposit', bdep: 'deposit',
         bwithdraw: 'withdraw', bwith: 'withdraw', bttt: 'tictactoe',
         btictactoe: 'tictactoe', bcf: 'coinflip', broulette: 'broulette',
-        brps: 'rps',
+        brps: 'rps', 'b!math': 'math',
       };
       const aliasesByCommand = new Map();
       for (const [alias, target] of Object.entries({ ...commandAliases, ...barePrefixAliases })) {
@@ -137,12 +137,12 @@ export function registerDashboardRoutes(app, bot) {
         });
         const commands = eligible.filter(entry => !entry.name.includes(' ')).map(entry => {
           const baseName = entry.name;
+          const displayName = baseName === 'bblackjack' ? 'bbj' : (baseName === 'math' ? 'b!math' : baseName);
           const aliases = [...new Set(aliasesByCommand.get(baseName) || [])]
-            .filter(alias => alias !== baseName && !bot.commands.has(alias) && !(baseName === 'bblackjack' && alias === 'bbj')).sort();
-          const displayName = baseName === 'bblackjack' ? 'bbj' : baseName;
+            .filter(alias => alias !== baseName && alias !== displayName && !bot.commands.has(alias) && !(baseName === 'bblackjack' && alias === 'bbj')).sort();
           const subcommands = eligible.filter(candidate => candidate.name.startsWith(baseName + ' '))
             .map(candidate => candidate.name);
-          return { ...entry, name: displayName, aliases, subcommands };
+          return { ...entry, name: displayName, toggleName: baseName, aliases, subcommands };
         });
         return { key: category.key, name: category.displayName, icon: category.icon,
           enabledCount: commands.filter(command => isCommandEnabledInConfig(config, command.name, category.folder, 'prefix')).length,
