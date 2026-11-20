@@ -685,6 +685,20 @@ export function registerDashboardRoutes(app, bot) {
   // Keep dashboard-created clans in the same registry used by Discord clan commands.
   const clanStorageKey = guildId => 'guild:' + guildId + ':clans';
   const legacyClanStorageKey = guildId => 'dashboard:clans:' + guildId;
+  const registerClanAutoNick = async (guild, role, tag) => {
+    const key = 'guild:' + guild.id + ':autonick_roles';
+    const stored = await getFromDb(key, []);
+    const entries = Array.isArray(stored) ? stored.filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string') : [];
+    const existing = entries.find(entry => entry.roleId === role.id);
+    if (existing) {
+      existing.prefix = String(tag) + '|';
+      existing.priority = 20;
+    } else {
+      entries.push({ roleId: role.id, prefix: String(tag) + '|', priority: 20 });
+    }
+    entries.sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
+    await setInDb(key, entries);
+  };
   const loadDashboardClans = async guildId => {
     const [currentStored, legacyStored] = await Promise.all([
       getFromDb(clanStorageKey(guildId), []),
@@ -827,6 +841,7 @@ export function registerDashboardRoutes(app, bot) {
     let role = null, category = null, textChannel = null, voiceChannel = null;
     try {
       role = await guild.roles.create({ name: tag + ' ' + name, color: '#c3f36b', hoist: true, mentionable: false, reason: 'Clan created from Barracks dashboard' });
+      await registerClanAutoNick(guild, role, tag);
       const levelsRole = await guild.roles.fetch('1564159581825933353').catch(() => null);
       if (levelsRole && role.editable) {
         await role.setPosition(levelsRole.position + 1, {
