@@ -75,6 +75,17 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
  .nav button{min-height:44px}
  .clan-page-heading h2{font-size:24px}
 }
+
+.clan-edit-modal[hidden]{display:none}
+.clan-edit-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px}
+.clan-edit-backdrop{position:absolute;inset:0;background:#000b;backdrop-filter:blur(3px)}
+.clan-edit-dialog{position:relative;width:min(680px,100%);max-height:90vh;overflow:auto;background:#34353c;border:1px solid #62636d;box-shadow:0 24px 80px #0009}
+.clan-edit-dialog .clan-section-heading{justify-content:flex-start}
+.clan-edit-dialog .clan-section-heading>button{margin-left:auto}
+.clan-edit-dialog .clan-form-footer{margin-top:18px}
+.clan-edit-action{border:1px solid #686a74;background:#41424a;color:#f2f3f5;border-radius:8px;padding:8px 13px;font-size:13px;cursor:pointer}
+.clan-edit-action:hover{border-color:#c3f36b;color:#c3f36b}
+.clan-list-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -284,6 +295,23 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 
 </div>
 <div id="clanListPanel" class="clans-page" style="display:none"><div class="clan-page-heading"><div><div class="clan-eyebrow">BARRACKS · CLAN DIRECTORY</div><h2>All Barracks Clans.</h2><p>Browse every clan registered in your server and review its details.</p></div><div class="clan-heading-mark">🏰</div></div> <section class="card clan-list-card"><div class="clan-list-heading"><div class="clan-section-icon">🏰</div><div><h3>Barracks Clans</h3><p>All clans registered in your server.</p></div><button class="logout" id="clanRefresh" type="button">↻ Refresh</button></div><div id="clanList" class="clan-list" style="margin-top:15px"><p class="metric-note">Loading clans…</p></div></section>
+</div>
+
+<div id="clanEditModal" class="clan-edit-modal" hidden>
+ <div class="clan-edit-backdrop" data-clan-edit-close></div>
+ <section class="card clan-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="clanEditTitle">
+  <div class="clan-section-heading"><div class="clan-section-icon">✏️</div><div><h3 id="clanEditTitle">Edit Clan</h3><p>Update clan details and Discord resources.</p></div><button type="button" class="logout" data-clan-edit-close>✕</button></div>
+  <form id="clanEditForm">
+   <input type="hidden" id="clanEditId">
+   <div class="clan-fields">
+    <label class="clan-field"><span>Clan name</span><input id="clanEditName" maxlength="60" required></label>
+    <label class="clan-field"><span>Clan tag</span><input id="clanEditTag" minlength="1" maxlength="10" required><small>1–5 characters, including symbols and emoji.</small></label>
+    <label class="clan-field clan-field-wide"><span>Clan leader Discord ID</span><input id="clanEditLeader" inputmode="numeric" required></label>
+    <label class="clan-field clan-field-wide"><span>Description</span><textarea id="clanEditDescription" maxlength="300" rows="3"></textarea></label>
+   </div>
+   <div class="clan-form-footer"><p id="clanEditStatus" role="status">Saving updates the clan role, category, and channel names too.</p><button class="clan-submit" id="clanEditSubmit" type="submit">Save Changes</button></div>
+  </form>
+ </section>
 </div>
 <div id="ticketsPanel" style="display:none;max-width:1200px">
  <div class="card"><h2 style="font-size:16px">🎫 Ticket System Setup</h2><p class="sub">Set the default ticket category, support team, and transcript/log channel. These settings are saved for the ticket workflow.</p>
@@ -737,10 +765,37 @@ window.loadClansPanel=async function(){
  const list=document.getElementById('clanList');if(!list)return;list.innerHTML='<p class="metric-note">Loading clans…</p>';
  try{const token=sessionStorage.getItem('barracks_dashboard_access');const r=await fetch(API_BASE+'/api/dashboard/clans',{headers:{Authorization:'Bearer '+token}});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not load clans.');
  if(!d.clans.length){list.innerHTML='<p class="metric-note">No clans yet. Create the first Barracks clan above.</p>';return;}list.innerHTML='';
- d.clans.forEach(c=>{const card=document.createElement('div');card.style='display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:14px 0;border-top:1px solid #484950';const info=document.createElement('div');info.style='min-width:220px;flex:1';const title=document.createElement('b');title.textContent='['+c.tag+'] '+c.name;const desc=document.createElement('p');desc.className='metric-note';desc.style='margin:6px 0';desc.textContent=c.description||'No description provided.';const leader=document.createElement('p');leader.className='metric-note';leader.textContent='Leader: '+(c.leaderName||c.leaderId);info.append(title,desc,leader);const ids=document.createElement('p');ids.className='metric-note';ids.textContent='Role: '+c.roleId+' · Category: '+c.categoryId+' · Text: '+c.textChannelId+' · Voice: '+c.voiceChannelId;card.append(info,ids);list.append(card);});
+ d.clans.forEach(c=>{const card=document.createElement('div');card.style='display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:14px 0;border-top:1px solid #484950';const info=document.createElement('div');info.style='min-width:220px;flex:1';const title=document.createElement('b');title.textContent='['+c.tag+'] '+c.name;const desc=document.createElement('p');desc.className='metric-note';desc.style='margin:6px 0';desc.textContent=c.description||'No description provided.';const leader=document.createElement('p');leader.className='metric-note';leader.textContent='Leader: '+(c.leaderName||c.leaderId);info.append(title,desc,leader);const ids=document.createElement('p');ids.className='metric-note';ids.textContent='Role: '+c.roleId+' · Category: '+c.categoryId+' · Text: '+c.textChannelId+' · Voice: '+c.voiceChannelId;const actions=document.createElement('div');actions.className='clan-list-actions';const edit=document.createElement('button');edit.type='button';edit.className='clan-edit-action';edit.textContent='✏️ Edit Clan';edit.dataset.clanEditId=c.roleId||c.id;edit.dataset.clanName=c.name||'';edit.dataset.clanTag=c.tag||'';edit.dataset.clanLeader=c.leaderId||'';edit.dataset.clanDescription=c.description||'';actions.append(edit);card.append(info,ids,actions);list.append(card);});
  }catch(e){list.innerHTML='<p style="color:#ff9a91"></p>';list.querySelector('p').textContent=e.message;}
 };
 document.getElementById('clanRefresh')?.addEventListener('click',()=>window.loadClansPanel());
+
+const clanEditModal=document.getElementById('clanEditModal');
+function closeClanEdit(){clanEditModal.hidden=true;}
+document.querySelectorAll('[data-clan-edit-close]').forEach(el=>el.addEventListener('click',closeClanEdit));
+document.getElementById('clanList')?.addEventListener('click',e=>{
+ const btn=e.target.closest('[data-clan-edit-id]');if(!btn)return;
+ document.getElementById('clanEditId').value=btn.dataset.clanEditId;
+ document.getElementById('clanEditName').value=btn.dataset.clanName;
+ document.getElementById('clanEditTag').value=btn.dataset.clanTag;
+ document.getElementById('clanEditLeader').value=btn.dataset.clanLeader;
+ document.getElementById('clanEditDescription').value=btn.dataset.clanDescription;
+ const status=document.getElementById('clanEditStatus');status.textContent='Saving updates the clan role, category, and channel names too.';status.style.color='';
+ clanEditModal.hidden=false;document.getElementById('clanEditName').focus();
+});
+document.getElementById('clanEditForm')?.addEventListener('submit',async e=>{
+ e.preventDefault();const form=e.currentTarget,button=document.getElementById('clanEditSubmit'),status=document.getElementById('clanEditStatus');
+ button.disabled=true;button.textContent='Saving…';status.textContent='Updating clan details and Discord resources…';status.style.color='#c0c2ca';
+ try{
+  const id=document.getElementById('clanEditId').value;
+  const payload={name:document.getElementById('clanEditName').value.trim(),tag:document.getElementById('clanEditTag').value.trim(),leaderId:document.getElementById('clanEditLeader').value.trim(),description:document.getElementById('clanEditDescription').value.trim()};
+  const r=await fetch(API_BASE+'/api/dashboard/clans/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionStorage.getItem('barracks_dashboard_access')},body:JSON.stringify(payload)});
+  const d=await r.json();if(!r.ok)throw Error(d.error||'Could not update clan.');
+  status.textContent='Clan updated successfully!';status.style.color='#c3f36b';await window.loadClansPanel();setTimeout(closeClanEdit,500);
+ }catch(err){status.textContent=err.message;status.style.color='#ff9a91';}
+ finally{button.disabled=false;button.textContent='Save Changes';}
+});
+
 document.getElementById('clanCreateForm')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;const b=document.getElementById('clanCreateSubmit'),s=document.getElementById('clanCreateStatus');b.disabled=true;b.textContent='Creating clan…';s.textContent='Creating Discord role and private channels…';s.style.color='#c0c2ca';
 try{const payload={name:document.getElementById('clanName').value.trim(),tag:document.getElementById('clanTag').value.trim(),leaderId:document.getElementById('clanLeaderId').value.trim(),description:document.getElementById('clanDescription').value.trim()};const r=await fetch(API_BASE+'/api/dashboard/clans',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionStorage.getItem('barracks_dashboard_access')},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not create clan.');s.textContent='Clan created! Discord role and private channels are ready.';s.style.color='#c3f36b';form.reset();await window.loadClansPanel();}catch(err){s.textContent=err.message;s.style.color='#ff9a91';}finally{b.disabled=false;b.textContent='⚔️ Create Clan';}});
 </script>
