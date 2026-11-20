@@ -70,7 +70,8 @@ export default {
                         .setImage(cardBackground)
                         .setTimestamp()
                         .setFooter({
-                            text: `We already have ${guild.memberCount.toLocaleString('en-US')} members`
+                            text: `We already have ${guild.memberCount.toLocaleString('en-US')} members`,
+                            iconURL: 'https://cdn.discordapp.com/emojis/1573225271983738930.png?size=64&quality=lossless'
                         });
                     await channel.send({
                         content: `Welcome our new member, **${user.toString()}**`,
