@@ -534,6 +534,7 @@ const opening=submenu.hidden;submenu.hidden=!opening;group.classList.toggle('ope
  document.getElementById('welcomeModuleButton').addEventListener('click',()=>navigate('welcome'));
  document.querySelectorAll('.nav button').forEach((b,i)=>{if(i===0)b.addEventListener('click',()=>navigate('home'));if(i===1)b.addEventListener('click',()=>navigate('settings'));if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation')b.id='moderationNavButton';if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation Logs'){b.id='logsNavButton';b.addEventListener('click',()=>navigate('logs'));}});
  document.getElementById('economyNavButton').addEventListener('click',()=>navigate('economy'));document.getElementById('gamesNavButton').addEventListener('click',()=>navigate('games'));document.getElementById('levelingNavButton').addEventListener('click',()=>navigate('leveling'));document.getElementById('rolesChannelsNavButton').addEventListener('click',()=>navigate('rolesChannels'));document.getElementById('ticketsNavButton').addEventListener('click',()=>navigate('tickets'));document.getElementById('slashCommandNavButton').addEventListener('click',()=>navigate('slashCommands'));
+ document.getElementById('prefixCommandNavButton').addEventListener('click',()=>navigate('prefixCommands'));
  window.addEventListener('popstate',()=>navigate(routeKey(),false));const initial=routeKey();if(initial!=='home'&&routes[initial]){history.replaceState({page:initial},'',routes[initial].path);navigate(initial,false);}
 })();
 </script>
