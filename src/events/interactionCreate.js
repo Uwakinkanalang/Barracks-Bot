@@ -617,6 +617,71 @@ export default {
           }
 
 
+          if (interaction.customId === 'clan:leave:open') {
+            const storageKey = `guild:${interaction.guildId}:clans`;
+            const clans = await interaction.client.db.get(storageKey, []);
+            const clanList = Array.isArray(clans) ? clans : [];
+            const clan = clanList.find(entry => entry.status === 'approved' &&
+              [entry.leaderId, entry.viceLeaderId, ...(Array.isArray(entry.memberIds) ? entry.memberIds : [])].includes(interaction.user.id));
+            if (!clan) {
+              await interaction.reply({ content: 'You are not currently a member of an approved clan.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (clan.leaderId === interaction.user.id) {
+              await interaction.reply({ content: 'You are the Clan Leader. Transfer leadership or remove your clan using **/clan delete** before leaving.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = await import('discord.js');
+            const confirmEmbed = new EmbedBuilder()
+              .setColor(0xED4245)
+              .setTitle('🚪 Leave Your Clan?')
+              .setDescription(`Are you sure you want to leave **${clan.name} [${clan.tag}]**? Your clan role and nickname tag will be removed.`);
+            const row = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId(`clan:leave:confirm:${interaction.user.id}`).setLabel('Confirm Leave').setEmoji('🚪').setStyle(ButtonStyle.Danger),
+              new ButtonBuilder().setCustomId(`clan:leave:cancel:${interaction.user.id}`).setLabel('Keep My Clan').setStyle(ButtonStyle.Secondary)
+            );
+            await interaction.reply({ embeds: [confirmEmbed], components: [row], flags: MessageFlags.Ephemeral });
+            return;
+          }
+
+          if (interaction.customId.startsWith('clan:leave:')) {
+            const [, , action, ownerId] = interaction.customId.split(':');
+            if (interaction.user.id !== ownerId) {
+              await interaction.reply({ content: 'Only the member who opened this confirmation can use these buttons.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (action === 'cancel') {
+              await interaction.update({ content: 'No changes made. You are still in your clan.', embeds: [], components: [] });
+              return;
+            }
+            if (action === 'confirm') {
+              const storageKey = `guild:${interaction.guildId}:clans`;
+              const clans = await interaction.client.db.get(storageKey, []);
+              const clanList = Array.isArray(clans) ? clans : [];
+              const clan = clanList.find(entry => entry.status === 'approved' &&
+                entry.leaderId !== interaction.user.id &&
+                [entry.viceLeaderId, ...(Array.isArray(entry.memberIds) ? entry.memberIds : [])].includes(interaction.user.id));
+              if (!clan) {
+                await interaction.update({ content: 'You are no longer listed as a member of an approved clan.', embeds: [], components: [] });
+                return;
+              }
+              clan.memberIds = (Array.isArray(clan.memberIds) ? clan.memberIds : []).filter(id => id !== interaction.user.id);
+              if (clan.viceLeaderId === interaction.user.id) clan.viceLeaderId = null;
+              await interaction.client.db.set(storageKey, clanList);
+              const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+              if (member) {
+                if (clan.roleId) await member.roles.remove(clan.roleId, `Left clan ${clan.name}`).catch(() => {});
+                const currentName = member.nickname || member.user.username;
+                const tagPrefix = `${clan.tag} `;
+                const baseName = currentName.startsWith(tagPrefix) ? currentName.slice(tagPrefix.length).trim() : currentName;
+                const prefix = await getNicknamePrefix(member, interaction.client, interaction.guildId);
+                await member.setNickname(`${prefix}${baseName}`.slice(0, 32), `Left clan ${clan.name}`).catch(() => {});
+              }
+              await interaction.update({ content: `✅ You have left **${clan.name} [${clan.tag}]**. Your clan role and nickname tag have been removed.`, embeds: [], components: [] });
+              return;
+            }
+          }
+
           if (interaction.customId === 'clan:join:open') {
             const { ActionRowBuilder, StringSelectMenuBuilder } = await import('discord.js');
             const clans = await interaction.client.db.get(`guild:${interaction.guildId}:clans`, []);
