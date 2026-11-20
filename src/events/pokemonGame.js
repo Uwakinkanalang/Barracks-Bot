@@ -197,7 +197,9 @@ export default {
           await message.reply('⛔ Only members with the **Festivities**, **Management Team**, or **Server Owner** access can start Pokémon rounds.');
           return;
         }
-        const reward = startMatch[1] ? Number(startMatch[1]) : DEFAULT_REWARD;
+        const gameConfig = await client.db.get(`guild:${message.guild.id}:games:config`, {});
+        if (gameConfig.pokemonEnabled === false) { await message.reply('⛔ Pokémon Guess is currently disabled in the Barracks dashboard.'); return; }
+        const reward = startMatch[1] ? Number(startMatch[1]) : (Number(gameConfig.pokemonReward) || DEFAULT_REWARD);
         if (!Number.isSafeInteger(reward) || reward < 1 || reward > 1000000000) {
           await message.reply('Please enter a reward between **₱1 and ₱1,000,000,000**. Example: `bpokemon start 5000`.');
           return;
