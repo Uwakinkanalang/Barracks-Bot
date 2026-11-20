@@ -107,10 +107,9 @@ export function registerDashboardRoutes(app, bot) {
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     try {
-      const [{ supportsPrefixExecution }, { getPrefixRestriction }, { resolveSubcommandAlias }, { commandAliases }] = await Promise.all([
+      const [{ supportsPrefixExecution }, { getPrefixRestriction }, { resolveSubcommandAlias, commandAliases }] = await Promise.all([
         import('../utils/messageAdapter.js'),
         import('../config/commands/prefixRestrictions.js'),
-        import('../config/commands/commandAliases.js'),
         import('../config/commands/commandAliases.js'),
       ]);
       const config = await getGuildConfig(bot, guild.id);
