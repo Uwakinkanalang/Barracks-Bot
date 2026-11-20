@@ -832,9 +832,10 @@ export function registerDashboardRoutes(app, bot) {
     const leader = await guild.members.fetch(leaderId).catch(() => null);
     if (!leader || leader.user.bot) return res.status(404).json({ error: 'Clan leader must be a real member of Barracks.' });
     if (!leader.manageable) return res.status(403).json({ error: 'Barracks-Bot cannot assign roles to this member. Move the bot role above the leader’s highest role.' });
-    const viceLeader = viceLeaderId ? await guild.members.fetch(viceLeaderId).catch(() => null) : null;
-    if (viceLeaderId && (!viceLeader || viceLeader.user.bot)) return res.status(404).json({ error: 'Vice clan leader must be a real member of Barracks.' });
-    if (viceLeader && !viceLeader.manageable) return res.status(403).json({ error: 'Barracks-Bot cannot assign roles to the vice leader. Move the bot role above their highest role.' });
+    if (!/^\d{17,20}$/.test(viceLeaderId) || viceLeaderId === leaderId) return res.status(400).json({ error: 'A valid vice clan leader Discord ID is required and must be different from the clan leader.' });
+    const viceLeader = await guild.members.fetch(viceLeaderId).catch(() => null);
+    if (!viceLeader || viceLeader.user.bot) return res.status(404).json({ error: 'Vice clan leader must be a real member of Barracks.' });
+    if (!viceLeader.manageable) return res.status(403).json({ error: 'Barracks-Bot cannot assign roles to the vice leader. Move the bot role above their highest role.' });
     let clans;
     try { clans = await loadDashboardClans(guild.id); }
     catch { return res.status(500).json({ error: 'Could not read saved clan records.' }); }
