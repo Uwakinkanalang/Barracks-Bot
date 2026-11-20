@@ -19,7 +19,7 @@ export default {
       const newTimeout = newMember.communicationDisabledUntilTimestamp || null;
       if (oldTimeout !== newTimeout) {
         await captureModerationAudit(newMember.guild, {
-          type: newTimeout ? 24 : 25,
+          type: 24,
           action: newTimeout ? 'timeout' : 'untimeout',
           targetId: newMember.id,
           targetName: newMember.user.tag,
