@@ -27,6 +27,7 @@ body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;borde
 <div class="nav-label" style="margin-top:25px">SERVER MANAGEMENT</div><nav class="nav">
 <button id="welcomeNavButton" type="button"><span class="ico">👋</span><span class="nav-text">Welcome & Goodbye</span></button>
 <button><span class="ico">🛡</span><span class="nav-text">Moderation</span></button>
+<button id="logsNavButton" type="button"><span class="ico">📋</span><span class="nav-text">Moderation Logs</span></button>
 <button><span class="ico">💰</span><span class="nav-text">Economy / bCash</span></button>
 <button><span class="ico">🎮</span><span class="nav-text">Games & Activities</span></button>
 <button><span class="ico">📈</span><span class="nav-text">Leveling</span></button>
@@ -351,20 +352,48 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
 <div class="card"><h2 style="font-size:16px;margin-top:0">Moderation action</h2><p class="sub">Actions affect the live Barracks Discord server. Review carefully before confirming.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
 <label>Action<select id="modAction"><option value="warn">Warn (DM)</option><option value="timeout">Timeout</option><option value="untimeout">Remove timeout</option><option value="kick">Kick</option><option value="ban">Ban</option><option value="unban">Unban</option><option value="clear">Clear messages</option></select></label>
 <label>Discord User ID<input id="modUserId" placeholder="User ID (not needed for clear)"></label><label>Timeout duration (minutes)<input id="modDuration" type="number" min="1" max="40320" value="10"></label><label>Channel ID (clear only)<input id="modChannelId" placeholder="Text channel ID"></label><label>Messages to clear<input id="modAmount" type="number" min="1" max="100" value="10"></label></div>
-<label style="display:block;margin-top:12px">Reason<textarea id="modReason" rows="3" maxlength="400" placeholder="Reason for this action…"></textarea></label><div style="display:flex;gap:10px;align-items:center;margin-top:14px"><button id="modExecute" type="button">Review & execute</button><span id="modStatus" role="status"></span></div></div></div></section>
+<label style="display:block;margin-top:12px">Reason<textarea id="modReason" rows="3" maxlength="400" placeholder="Reason for this action…"></textarea></label><div style="display:flex;gap:10px;align-items:center;margin-top:14px"><button id="modExecute" type="button">Review & execute</button><span id="modStatus" role="status"></span></div></div>
+<div id="moderationLogsPanel" style="display:none;max-width:1100px">
+ <div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 style="font-size:16px;margin:0 0 5px">Moderation history</h2><p class="sub">Recent actions performed through the Barracks dashboard.</p></div><button id="modLogsRefresh" type="button" class="logout">↻ Refresh logs</button></div><div id="modLogsStatus" role="status" style="margin-top:12px;color:#c0c2ca;font-size:13px"></div></div>
+ <div class="card" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:680px;font-size:12px"><thead><tr style="text-align:left;color:#aeb0b8"><th style="padding:10px">Action</th><th style="padding:10px">Member / Target</th><th style="padding:10px">Reason</th><th style="padding:10px">Details</th><th style="padding:10px">Date & Time</th></tr></thead><tbody id="modLogsRows"><tr><td colspan="5" style="padding:16px;color:#aeb0b8">Loading logs…</td></tr></tbody></table></div>
+ <p style="color:#9ba3ad;font-size:11px;margin:12px 2px">Up to 500 recent dashboard moderation actions are retained. Actions performed outside the dashboard are not included.</p>
+</div></div></section>
 <script>
 (()=>{
  const base='/Barracks-Bot/dashboard/';
  const routes={home:{path:base,title:'Overview',description:'Your server at a glance.'},welcome:{path:base+'welcome/',title:'Welcome & Goodbye',description:'Configure join and leave messages.'},'message-builder':{path:base+'message-builder/',title:'Message Builder',description:'Build custom Discord messages and embeds.'},moderation:{path:base+'moderation/',title:'Moderation',description:'Manage moderation tools and server safety.'},settings:{path:base+'settings/',title:'Bot Settings',description:'Configure your Barracks bot.'},logs:{path:base+'logs/',title:'Server Logs',description:'Review important server activity.'}};
  const routeKey=()=>{const p=location.pathname.endsWith('/')?location.pathname:location.pathname+'/';return Object.keys(routes).find(k=>routes[k].path===p)||new URLSearchParams(location.search).get('page')||'home';};
- function navigate(key,update=true){const k=routes[key]?key:'home',r=routes[k];if(update)history.pushState({page:k},'',r.path);document.querySelector('.content').style.display=k==='home'?'':'none';document.getElementById('routeView').style.display=['home','welcome','message-builder'].includes(k)?'none':'block';document.getElementById('welcomePanel').style.display=k==='welcome'?'block':'none';document.getElementById('messageBuilderPanel').style.display=k==='message-builder'?'block':'none';document.getElementById('routeTitle').textContent=r.title;document.getElementById('routeDescription').textContent=r.description;document.getElementById('routeCardTitle').textContent=k==='moderation'?'Moderation tools':k==='settings'?'Bot configuration':'Activity logs';document.getElementById('routeCardText').textContent=k==='moderation'?'This page is ready for moderation settings to be added next.':k==='settings'?'This page is ready for bot configuration controls to be added next.':'This page is ready for server log views to be added next.';document.getElementById('moderationPanel').style.display=k==='moderation'?'block':'none';document.querySelector('.crumb b').textContent=r.title;document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const sel={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',moderation:'#moderationNavButton'}[k];if(sel){const el=document.querySelector(sel);if(el)el.classList.add('active');}if(k==='welcome'&&!window.__welcomeLoaded){window.__welcomeLoaded=true;loadWelcomeSettings();}}
+ function navigate(key,update=true){const k=routes[key]?key:'home',r=routes[k];if(update)history.pushState({page:k},'',r.path);document.querySelector('.content').style.display=k==='home'?'':'none';document.getElementById('routeView').style.display=['home','welcome','message-builder'].includes(k)?'none':'block';document.getElementById('welcomePanel').style.display=k==='welcome'?'block':'none';document.getElementById('messageBuilderPanel').style.display=k==='message-builder'?'block':'none';document.getElementById('routeTitle').textContent=r.title;document.getElementById('routeDescription').textContent=r.description;document.getElementById('routeCardTitle').textContent=k==='moderation'?'Moderation tools':k==='settings'?'Bot configuration':'Activity logs';document.getElementById('routeCardText').textContent=k==='moderation'?'This page is ready for moderation settings to be added next.':k==='settings'?'This page is ready for bot configuration controls to be added next.':'This page is ready for server log views to be added next.';document.getElementById('moderationPanel').style.display=k==='moderation'?'block':'none';document.getElementById('moderationLogsPanel').style.display=k==='logs'?'block':'none';if(k==='logs')loadModerationLogs();document.querySelector('.crumb b').textContent=r.title;document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const sel={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',moderation:'#moderationNavButton',logs:'#logsNavButton'}[k];if(sel){const el=document.querySelector(sel);if(el)el.classList.add('active');}if(k==='welcome'&&!window.__welcomeLoaded){window.__welcomeLoaded=true;loadWelcomeSettings();}}
  window.barracksNavigate=navigate;
  document.getElementById('welcomeNavButton').addEventListener('click',()=>navigate('welcome'));
  document.getElementById('messageBuilderModuleButton').addEventListener('click',()=>navigate('message-builder'));
  document.getElementById('welcomeModuleButton').addEventListener('click',()=>navigate('welcome'));
- document.querySelectorAll('.nav button').forEach((b,i)=>{if(i===0)b.addEventListener('click',()=>navigate('home'));if(i===1)b.addEventListener('click',()=>navigate('settings'));if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation')b.id='moderationNavButton';});
+ document.querySelectorAll('.nav button').forEach((b,i)=>{if(i===0)b.addEventListener('click',()=>navigate('home'));if(i===1)b.addEventListener('click',()=>navigate('settings'));if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation')b.id='moderationNavButton';if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation Logs'){b.id='logsNavButton';b.addEventListener('click',()=>navigate('logs'));}});
  window.addEventListener('popstate',()=>navigate(routeKey(),false));const initial=routeKey();if(initial!=='home'&&routes[initial]){history.replaceState({page:initial},'',routes[initial].path);navigate(initial,false);}
 })();
+</script>
+
+<script>
+async function loadModerationLogs(){
+ const rows=document.getElementById('modLogsRows'),status=document.getElementById('modLogsStatus');
+ if(!rows||!status)return;
+ rows.innerHTML='<tr><td colspan="5" style="padding:16px;color:#aeb0b8">Loading logs…</td></tr>';status.textContent='';
+ try{
+  const token=sessionStorage.getItem('barracks_dashboard_access');
+  const response=await fetch('https://barracks-bot-production.up.railway.app/api/dashboard/moderation/logs?limit=100',{headers:{Authorization:'Bearer '+token}});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not load logs.');
+  rows.replaceChildren();
+  if(!data.logs.length){rows.innerHTML='<tr><td colspan="5" style="padding:16px;color:#aeb0b8">No dashboard moderation actions recorded yet.</td></tr>';}
+  data.logs.forEach(log=>{
+   const tr=document.createElement('tr');tr.style.borderTop='1px solid #484950';
+   const values=[String(log.action||'').toUpperCase(),(log.targetName||'—')+(log.targetId?' ('+log.targetId+')':''),log.reason||'—',log.details||'—',log.timestamp?new Date(log.timestamp).toLocaleString():'—'];
+   values.forEach(value=>{const td=document.createElement('td');td.style='padding:11px 10px;color:#d8dbe1;vertical-align:top';td.textContent=value;tr.appendChild(td);});
+   rows.appendChild(tr);
+  });
+  status.textContent='Showing '+data.logs.length+' of '+data.totalStored+' saved dashboard actions.';
+ }catch(error){rows.innerHTML='<tr><td colspan="5" style="padding:16px;color:#ff9a91"></td></tr>';rows.querySelector('td').textContent=error.message;status.textContent='';}
+}
+document.getElementById('modLogsRefresh')?.addEventListener('click',loadModerationLogs);
 </script>
 
 <script src="moderation.js"></script>

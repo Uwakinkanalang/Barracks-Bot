@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { getWelcomeConfig, saveWelcomeConfig } from '../utils/database.js';
+import { getWelcomeConfig, saveWelcomeConfig, getFromDb, setInDb } from '../utils/database.js';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
@@ -190,6 +190,30 @@ export function registerDashboardRoutes(app, bot) {
     }
   });
 
+
+  const moderationLogKey = guildId => 'dashboard:moderation:' + guildId + ':logs';
+  const recordModerationLog = async (guildId, entry) => {
+    const key = moderationLogKey(guildId);
+    const existing = await getFromDb(key, []);
+    const logs = Array.isArray(existing) ? existing : [];
+    logs.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), moderator: 'Dashboard staff', ...entry });
+    await setInDb(key, logs.slice(0, 500));
+  };
+
+  app.get('/api/dashboard/moderation/logs', async (req, res) => {
+    const guild = requireDashboardGuild(req, res);
+    if (!guild) return;
+    const rawLimit = Number(req.query.limit) || 50;
+    const limit = Math.min(100, Math.max(1, rawLimit));
+    try {
+      const stored = await getFromDb(moderationLogKey(guild.id), []);
+      const logs = Array.isArray(stored) ? stored.slice(0, limit) : [];
+      return res.json({ logs, totalStored: Array.isArray(stored) ? stored.length : 0 });
+    } catch {
+      return res.status(500).json({ error: 'Could not load moderation logs.' });
+    }
+  });
+
   app.post('/api/dashboard/moderation/action', async (req, res) => {
     const guild = requireDashboardGuild(req, res);
     if (!guild) return;
@@ -205,6 +229,7 @@ export function registerDashboardRoutes(app, bot) {
           return res.status(400).json({ error: 'Choose a valid text channel in Barracks.' });
         const count = Math.min(100, Math.max(1, Number(amount) || 10));
         const deleted = await channel.bulkDelete(count, true);
+        await recordModerationLog(guild.id, { action, targetId: null, targetName: channel.name, reason: cleanReason, details: deleted.size + ' messages deleted' });
         return res.json({ ok: true, message: 'Deleted ' + deleted.size + ' recent messages.' });
       }
 
@@ -220,17 +245,20 @@ export function registerDashboardRoutes(app, bot) {
         if (!me.permissions.has('BanMembers')) return res.status(403).json({ error: 'Bot needs Ban Members permission.' });
         if (!target.bannable) return res.status(403).json({ error: 'The bot cannot ban this member.' });
         await target.ban({ reason: cleanReason });
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason });
         return res.json({ ok: true, message: 'Member banned successfully.' });
       }
       if (action === 'unban') {
         if (!me.permissions.has('BanMembers')) return res.status(403).json({ error: 'Bot needs Ban Members permission.' });
         await guild.members.unban(String(userId), cleanReason);
+        await recordModerationLog(guild.id, { action, targetId: String(userId), targetName: String(userId), reason: cleanReason });
         return res.json({ ok: true, message: 'User unbanned successfully.' });
       }
       if (action === 'kick') {
         if (!me.permissions.has('KickMembers')) return res.status(403).json({ error: 'Bot needs Kick Members permission.' });
         if (!target.kickable) return res.status(403).json({ error: 'The bot cannot kick this member.' });
         await target.kick(cleanReason);
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason });
         return res.json({ ok: true, message: 'Member kicked successfully.' });
       }
       if (action === 'timeout') {
@@ -238,16 +266,19 @@ export function registerDashboardRoutes(app, bot) {
         if (!target.moderatable) return res.status(403).json({ error: 'The bot cannot timeout this member.' });
         const minutes = Math.min(40320, Math.max(1, Number(duration) || 10));
         await target.timeout(minutes * 60 * 1000, cleanReason);
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, details: minutes + ' minutes' });
         return res.json({ ok: true, message: 'Member timed out for ' + minutes + ' minutes.' });
       }
       if (action === 'untimeout') {
         if (!me.permissions.has('ModerateMembers')) return res.status(403).json({ error: 'Bot needs Moderate Members permission.' });
         if (!target.moderatable) return res.status(403).json({ error: 'The bot cannot edit this member.' });
         await target.timeout(null, cleanReason);
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason });
         return res.json({ ok: true, message: 'Timeout removed.' });
       }
       if (action === 'warn') {
         const dm = await target.send('You have received a warning in **' + guild.name + '**. Reason: ' + cleanReason).then(() => true).catch(() => false);
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, details: dm ? 'DM delivered' : 'DM could not be delivered' });
         return res.json({ ok: true, message: dm ? 'Warning delivered by DM.' : 'Could not DM the member (their DMs may be closed).' });
       }
       return res.status(400).json({ error: 'Unknown moderation action.' });
