@@ -5,6 +5,7 @@ import { getEconomyPrefix } from '../utils/database.js';
 import { getEconomyData, setEconomyData, getMaxBankCapacity } from '../utils/economy.js';
 import { getLevelingConfig, saveLevelingConfig } from '../services/leveling/leveling.js';
 import { getCountingGameConfig, saveCountingGameConfig } from '../services/countingGameService.js';
+import { getCommandAccessSnapshot, disableCommand, enableCommand, isProtectedCommand } from '../services/commandAccessService.js';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
@@ -74,6 +75,47 @@ export function registerDashboardRoutes(app, bot) {
       token: createAccessToken(secret),
       expiresIn: SESSION_TTL_SECONDS
     });
+  });
+
+  app.get('/api/dashboard/commands', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    try {
+      const config = await getGuildConfig(bot, guild.id);
+      const snapshot = getCommandAccessSnapshot(bot, config);
+      return res.json({
+        totalCommands: snapshot.totalCommands,
+        enabledTotal: snapshot.enabledTotal,
+        categories: snapshot.categories.map(category => ({
+          key: category.key, name: category.displayName, icon: category.icon,
+          enabledCount: category.enabledCount, totalCount: category.totalCount,
+          commands: category.commands.map(command => ({
+            name: command.name, description: command.description,
+            enabled: category.enabledCommands.includes(command.name),
+            protected: command.protected
+          }))
+        }))
+      });
+    } catch (error) { return res.status(500).json({ error: error?.message || 'Could not load slash commands.' }); }
+  });
+
+  app.post('/api/dashboard/commands/toggle', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const name = String(req.body?.name || '').trim().toLowerCase();
+    const enabled = req.body?.enabled;
+    if (!name || typeof enabled !== 'boolean') return res.status(400).json({ error: 'Choose a command and ON or OFF.' });
+    if (isProtectedCommand(name.split(' ')[0])) return res.status(403).json({ error: 'This protected command must remain enabled.' });
+    try {
+      const result = enabled
+        ? await enableCommand(bot, guild.id, name)
+        : await disableCommand(bot, guild.id, name);
+      return res.json({ ok: true, ...result });
+    } catch (error) { return res.status(400).json({ error: error?.message || 'Could not update command.' }); }
   });
 
   app.get('/api/dashboard/settings', async (req, res) => {
