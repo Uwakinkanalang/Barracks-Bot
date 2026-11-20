@@ -769,6 +769,12 @@ export function registerDashboardRoutes(app, bot) {
     const voiceName = (tag + '-' + name + '-vc').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 100) || 'clan-vc';
     try {
       await role.edit({ name: tag + ' ' + name, reason: 'Clan details updated from Barracks dashboard' });
+      const levelsRole = await guild.roles.fetch('1564159581825933353').catch(() => null);
+      if (levelsRole && role.editable) {
+        await role.setPosition(levelsRole.position + 1, {
+          reason: 'Keep Barracks clan roles above the Levels separator',
+        });
+      }
       await category.edit({ name: '⚔️ ' + tag + ' | ' + name, reason: 'Clan details updated from Barracks dashboard' });
       await textChannel.edit({ name: slug + '-chat', reason: 'Clan details updated from Barracks dashboard' });
       await voiceChannel.edit({ name: voiceName, reason: 'Clan details updated from Barracks dashboard' });
@@ -821,6 +827,12 @@ export function registerDashboardRoutes(app, bot) {
     let role = null, category = null, textChannel = null, voiceChannel = null;
     try {
       role = await guild.roles.create({ name: tag + ' ' + name, color: '#c3f36b', hoist: true, mentionable: false, reason: 'Clan created from Barracks dashboard' });
+      const levelsRole = await guild.roles.fetch('1564159581825933353').catch(() => null);
+      if (levelsRole && role.editable) {
+        await role.setPosition(levelsRole.position + 1, {
+          reason: 'Keep Barracks clan roles above the Levels separator',
+        });
+      }
       const overwrites = [
         { id: guild.id, deny: ['ViewChannel'] },
         { id: role.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles', 'EmbedLinks', 'Connect', 'Speak', 'UseVAD'] },
