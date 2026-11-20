@@ -70,8 +70,7 @@ export default {
                         .setImage(cardBackground)
                         .setTimestamp()
                         .setFooter({
-                            text: `We already have ${guild.memberCount.toLocaleString('en-US')} members`,
-                            iconURL: barracksLogo
+                            text: `We already have ${guild.memberCount.toLocaleString('en-US')} members`
                         });
                     await channel.send({
                         content: `Welcome our new member, **${user.toString()}**`,
