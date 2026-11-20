@@ -58,9 +58,7 @@ async function handlePrefixCommand(message, client) {
 
     // Barracks Lotto public entry panel.
     if (/^b!lotto\s+panel$/i.test(trimmedContent)) {
-      const isServerManager = message.member?.roles?.cache?.some(role =>
-        role.name.trim().toLowerCase() === 'server manager'
-      );
+      const isServerManager = message.member?.roles?.cache?.has('1466364437622423694');
       if (!isServerManager) {
         await message.reply('❌ Only members with the **Server Manager** role can create the Barracks Lotto panel.');
         return;
