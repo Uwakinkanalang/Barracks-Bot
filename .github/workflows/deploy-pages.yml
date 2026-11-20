@@ -36,6 +36,7 @@ jobs:
           mkdir -p site/dashboard
           cp index.html site/index.html
           cp -R dashboard/. site/dashboard/
+          for route in leveling roles-channels tickets; do mkdir -p "site/dashboard/$route"; cp dashboard/index.html "site/dashboard/$route/index.html"; done
           # Publish the dashboard shell at every client-side route so refreshes work on GitHub Pages.
           for route in welcome goodbye ban boost message-builder moderation settings logs economy games-activities; do
             mkdir -p "site/dashboard/$route"
