@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { getWelcomeConfig, saveWelcomeConfig, getFromDb, setInDb } from '../utils/database.js';
+import { getGuildConfig, updateGuildConfig } from '../services/config/guildConfig.js';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
@@ -68,6 +69,44 @@ export function registerDashboardRoutes(app, bot) {
       token: createAccessToken(secret),
       expiresIn: SESSION_TTL_SECONDS
     });
+  });
+
+  app.get('/api/dashboard/settings', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    try {
+      const guildConfig = await getGuildConfig(bot, guild.id);
+      const dbStatus = bot.db?.getStatus?.() || { connectionType: 'unknown', isDegraded: true };
+      return res.json({
+        guild: { id: guild.id, name: guild.name, memberCount: guild.memberCount, channelCount: guild.channels.cache.size, roleCount: guild.roles.cache.size },
+        bot: { name: bot.user?.username || 'Barracks-Bot', id: bot.user?.id || null, online: bot.isReady(), uptimeSeconds: Math.floor(process.uptime()), commandCount: bot.commands?.size ?? 0 },
+        database: { type: dbStatus.connectionType || 'unknown', degraded: Boolean(dbStatus.isDegraded) },
+        prefix: typeof guildConfig.prefix === 'string' ? guildConfig.prefix : '!'
+      });
+    } catch (error) {
+      return res.status(500).json({ error: error?.message || 'Could not load bot settings.' });
+    }
+  });
+
+  app.put('/api/dashboard/settings', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const prefix = req.body?.prefix;
+    if (typeof prefix !== 'string' || prefix.length < 1 || prefix.length > 5 || /\\s/.test(prefix)) {
+      return res.status(400).json({ error: 'Prefix must be 1–5 characters with no spaces.' });
+    }
+    try {
+      const saved = await updateGuildConfig(bot, guild.id, { prefix });
+      if (!saved) return res.status(500).json({ error: 'Could not save the command prefix.' });
+      const verified = await getGuildConfig(bot, guild.id);
+      return res.json({ ok: true, prefix: verified.prefix });
+    } catch (error) {
+      return res.status(500).json({ error: error?.message || 'Could not save the command prefix.' });
+    }
   });
 
   app.get('/api/dashboard/welcome', async (req, res) => {
