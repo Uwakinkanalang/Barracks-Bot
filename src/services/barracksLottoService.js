@@ -91,8 +91,8 @@ async function settleDraw(client, guildId, state) {
     if (announcementChannel?.isTextBased()) {
       const latestWinner = state.winners[0];
       const announcement = latestWinner?.winnerId
-        ? `🏆 **BARRACKS LOTTO WINNER!**\\n\\n🎖️ Congratulations, <@${latestWinner.winnerId}>!\\n\\nYou're today's lucky soldier! You've won **₱${Number(latestWinner.prize).toLocaleString()} bCash**!\\n\\nYour prize has been credited to your wallet. Enjoy your winnings, soldier!`
-        : '🎟️ **BARRACKS LOTTO DRAW COMPLETE!**\\n\\nNo tickets were entered this round. The next draw starts with the **₱1,000,000 bCash** starting jackpot.';
+        ? `🏆 **BARRACKS LOTTO WINNER!**\n\n🎖️ Congratulations, <@${latestWinner.winnerId}>!\n\nYou're today's lucky soldier! You've won **₱${Number(latestWinner.prize).toLocaleString()} bCash**!\n\nYour prize has been credited to your wallet. Enjoy your winnings, soldier!`
+        : '🎟️ **BARRACKS LOTTO DRAW COMPLETE!**\n\nNo tickets were entered this round. The next draw starts with the **₱1,000,000 bCash** starting jackpot.';
       await announcementChannel.send({
         content: announcement,
         allowedMentions: { users: latestWinner?.winnerId ? [latestWinner.winnerId] : [] },
