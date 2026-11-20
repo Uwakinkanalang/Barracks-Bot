@@ -24,9 +24,9 @@ export default {
         
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
         
-        const welcomeChannelId = '1137703586730618961';
+        const welcomeChannelId = welcomeConfig.channelId || '1137703586730618961';
 
-        if (welcomeChannelId) {
+        if (welcomeConfig.enabled && welcomeChannelId) {
             const channel = guild.channels.cache.get(welcomeChannelId);
             const me = guild.members.me;
             const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
@@ -50,7 +50,7 @@ export default {
                     : `Welcome to ${guild.name}!`;
 
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
-                const cardBackground = 'https://cdn.discordapp.com/attachments/1572883657440366673/1573042152076738662/Maligayang_Pagdating_sa_Barracks_1.png?ex=6b00912a&is=6aff3faa&hm=7fdbb924ed0b39874cf6be29acbe49bb8b23b912a48fa8cc5ee9ac57b43e9afc';
+                const cardBackground = welcomeConfig.welcomeImage || 'https://cdn.discordapp.com/attachments/1572883657440366673/1573042152076738662/Maligayang_Pagdating_sa_Barracks_1.png?ex=6b00912a&is=6aff3faa&hm=7fdbb924ed0b39874cf6be29acbe49bb8b23b912a48fa8cc5ee9ac57b43e9afc';
                 const barracksLogo = 'https://cdn.discordapp.com/attachments/1572883657440366673/1573042580336410696/barrack.png?ex=6b009190&is=6aff4010&hm=eabc376f2deb6c47589467e5b72d50f55af28476a45cb6f38ae2c66f5fdc8c50';
 
                 // Use a Discord-supported image URL directly in the embed.
