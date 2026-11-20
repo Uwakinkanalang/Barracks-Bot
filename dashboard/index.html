@@ -307,8 +307,7 @@ const welcomePanel=document.getElementById('welcomePanel');
 const welcomeStatus=document.getElementById('welcomeStatus');
 function setWelcomeStatus(message,isError=false){welcomeStatus.textContent=message;welcomeStatus.style.color=isError?'#ff9a91':'#b8c9b7';}
 function showWelcomePanel(){if(window.barracksNavigate)window.barracksNavigate('welcome');}
- document.getElementById('prefixCommandNavButton').addEventListener('click',()=>navigate('prefixCommands'));
- document.getElementById('slashCommandNavButton').addEventListener('click',()=>navigate('slashCommands'));
+ document.getElementById('prefixCommandNavButton').addEventListener('click',()=>navigate('prefixCommands'));document.getElementById('slashCommandNavButton').addEventListener('click',()=>navigate('slashCommands'));
  document.getElementById('welcomeNavButton').addEventListener('click',showWelcomePanel);
  document.getElementById('goodbyeNavButton').addEventListener('click',()=>window.barracksNavigate&&window.barracksNavigate('goodbye'));
  document.getElementById('welcomeModuleButton').addEventListener('click',showWelcomePanel);
