@@ -822,7 +822,7 @@ export function registerDashboardRoutes(app, bot) {
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     const name = String(req.body?.name || '').trim(), tag = String(req.body?.tag || '').trim().toUpperCase();
-    const leaderId = String(req.body?.leaderId || '').trim(), description = String(req.body?.description || '').trim();
+    const leaderId = String(req.body?.leaderId || '').trim(), viceLeaderId = String(req.body?.viceLeaderId || '').trim(), description = String(req.body?.description || '').trim();
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
     if (!/^\d{17,20}$/.test(leaderId)) return res.status(400).json({ error: 'Enter a valid Discord user ID for the clan leader.' });
@@ -832,6 +832,9 @@ export function registerDashboardRoutes(app, bot) {
     const leader = await guild.members.fetch(leaderId).catch(() => null);
     if (!leader || leader.user.bot) return res.status(404).json({ error: 'Clan leader must be a real member of Barracks.' });
     if (!leader.manageable) return res.status(403).json({ error: 'Barracks-Bot cannot assign roles to this member. Move the bot role above the leader’s highest role.' });
+    const viceLeader = viceLeaderId ? await guild.members.fetch(viceLeaderId).catch(() => null) : null;
+    if (viceLeaderId && (!viceLeader || viceLeader.user.bot)) return res.status(404).json({ error: 'Vice clan leader must be a real member of Barracks.' });
+    if (viceLeader && !viceLeader.manageable) return res.status(403).json({ error: 'Barracks-Bot cannot assign roles to the vice leader. Move the bot role above their highest role.' });
     let clans;
     try { clans = await loadDashboardClans(guild.id); }
     catch { return res.status(500).json({ error: 'Could not read saved clan records.' }); }
@@ -852,17 +855,20 @@ export function registerDashboardRoutes(app, bot) {
         { id: guild.id, deny: ['ViewChannel'] },
         { id: role.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles', 'EmbedLinks', 'Connect', 'Speak', 'UseVAD'] },
         { id: leader.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'Connect', 'Speak'] },
+        ...(viceLeader ? [{ id: viceLeader.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'Connect', 'Speak'] }] : []),
         { id: me.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'Connect', 'Speak'] }
       ];
       category = await guild.channels.create({ name: '⚔️ ' + tag + ' | ' + name, type: 4, permissionOverwrites: overwrites, reason: 'Private clan category created from Barracks dashboard' });
       textChannel = await guild.channels.create({ name: slug + '-chat', type: 0, parent: category.id, permissionOverwrites: overwrites, reason: 'Private clan text channel created from Barracks dashboard' });
       voiceChannel = await guild.channels.create({ name: (tag + '-' + name + '-vc').toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 100), type: 2, parent: category.id, permissionOverwrites: overwrites, reason: 'Private clan voice channel created from Barracks dashboard' });
       await leader.roles.add(role, 'Assigned as clan leader by Barracks dashboard');
-      const record = { id: role.id, name, tag, description, leaderId: leader.id, leaderName: leader.displayName, roleId: role.id, categoryId: category.id, textChannelId: textChannel.id, voiceChannelId: voiceChannel.id, status: 'approved', memberIds: [], joinRequests: [], createdAt: new Date().toISOString(), source: 'dashboard' };
+      if (viceLeader) await viceLeader.roles.add(role, 'Assigned as vice clan leader by Barracks dashboard');
+      const record = { id: role.id, name, tag, description, leaderId: leader.id, leaderName: leader.displayName, viceLeaderId: viceLeader?.id || '', viceLeaderName: viceLeader?.displayName || '', roleId: role.id, categoryId: category.id, textChannelId: textChannel.id, voiceChannelId: voiceChannel.id, status: 'approved', memberIds: [], joinRequests: [], createdAt: new Date().toISOString(), source: 'dashboard' };
       await setInDb(clanStorageKey(guild.id), [...clans, record]);
       return res.json({ ok: true, clan: record });
     } catch (error) {
       if (role && leader.roles.cache.has(role.id)) await leader.roles.remove(role, 'Rollback failed clan creation').catch(() => {});
+      if (role && viceLeader?.roles.cache.has(role.id)) await viceLeader.roles.remove(role, 'Rollback failed clan creation').catch(() => {});
       await Promise.allSettled([voiceChannel, textChannel, category, role].filter(Boolean).map(resource => resource.delete('Rollback failed clan creation')));
       return res.status(500).json({ error: error?.message || 'Clan creation failed. Partially created Discord resources were cleaned up.' });
     }
