@@ -1,4 +1,4 @@
-﻿import 'dotenv/config';
+import 'dotenv/config';
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
@@ -20,6 +20,7 @@ import { initializeMusic } from './services/music/riffySetup.js';
 import { shutdownMusic } from './services/music/playerHandler.js';
 import pkg from '../package.json' with { type: 'json' };
 import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
+import { registerDashboardRoutes } from './web/dashboard.js';
 
 class TitanBot extends Client {
   constructor() {
@@ -120,20 +121,26 @@ class TitanBot extends Client {
     const configuredPort = Number(this.config.api?.port || process.env.PORT || 3000);
     const maxPortRetryAttempts = Number(process.env.PORT_RETRY_ATTEMPTS || 5);
     const host = process.env.WEB_HOST || '0.0.0.0';
-    const corsOrigin = this.config.api?.cors?.origin || '*';
-    
+    const allowedOrigins = (process.env.CORS_ORIGIN || 'https://uwakinkanalang.github.io')
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(Boolean);
+
     app.use((req, res, next) => {
-      const allowedOrigins = Array.isArray(corsOrigin) ? corsOrigin : [corsOrigin];
       const origin = req.headers.origin;
-      
-      if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin || '*');
+      if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Max-Age', '600');
       }
-      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      
+
       if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
+        if (!origin || !allowedOrigins.includes(origin)) {
+          return res.sendStatus(403);
+        }
+        return res.sendStatus(204);
       }
       next();
     });
@@ -161,6 +168,10 @@ class TitanBot extends Client {
       requestCounts.set(ip, times);
       next();
     });
+
+    app.use(express.json({ limit: '10kb' }));
+    app.use(express.urlencoded({ extended: false, limit: '10kb' }));
+    registerDashboardRoutes(app, this);
 
     // Serve the Barracks-Bot website from the same Express service.
     app.use(express.static(new URL('../public/', import.meta.url).pathname));
