@@ -50,7 +50,7 @@ body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;borde
 <div class="modules">
 <div class="module-group-title">Messaging</div>
 <button class="module" id="welcomeModuleButton" type="button"><span class="module-icon">📢</span><span><b>Announcements</b><small>Send join, leave and other server announcements</small></span></button>
-<button class="module" id="messageBuilderModuleButton" type="button"><span class="module-icon">⊞</span><span><b>Message Builder</b><small>Create custom Discord messages</small></span></button>
+<button class="module" id="messageBuilderModuleButton" type="button" onclick="document.getElementById('messageBuilderPanel').style.display='block'"><span class="module-icon">⊞</span><span><b>Message Builder</b><small>Create custom Discord messages</small></span></button>
 <button class="module"  type="button"><span class="module-icon">▤</span><span><b>Templates</b><small>Create reusable message templates</small></span></button>
 <button class="module"  type="button"><span class="module-icon">ϟ</span><span><b>Actions</b><small>Create reusable actions for buttons and menus</small></span></button>
 <button class="module"  type="button"><span class="module-icon">▣</span><span><b>Auto Responders</b><small>Configure automatic replies to messages</small></span></button>
@@ -258,7 +258,7 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
 
 <div id="messageBuilderPanel" style="display:none;position:fixed;inset:0;z-index:30;background:#080e0bd9;overflow:auto;padding:24px">
  <div style="max-width:1100px;margin:20px auto;background:#303137;border:1px solid #484950;border-radius:16px;padding:22px">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Messaging tools</div><h1>Message Builder</h1><p class="sub">Build a Discord message and preview it before copying the payload.</p></div><button id="messageBuilderClose" class="logout" type="button">Close ✕</button></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Messaging tools</div><h1>Message Builder</h1><p class="sub">Build a Discord message and preview it before copying the payload.</p></div><button id="messageBuilderClose" class="logout" type="button" onclick="document.getElementById('messageBuilderPanel').style.display='none'">Close ✕</button></div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:20px">
    <div class="card" style="background:#34353c;border-color:#484950">
     <h2 style="font-size:15px;margin:0 0 16px">Message content</h2>
