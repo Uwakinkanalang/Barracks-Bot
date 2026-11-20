@@ -131,7 +131,7 @@ export function registerDashboardRoutes(app, bot) {
       if (!Array.isArray(body.managerRoleIds) || body.managerRoleIds.length > 100)
         return res.status(400).json({ error: 'Manager roles must be a list of up to 100 roles.' });
       const roleIds = [...new Set(body.managerRoleIds.map(String))];
-      if (roleIds.some(id => !/^\\d{17,20}$/.test(id) || !guild.roles.cache.has(id) || id === guild.id))
+      if (roleIds.some(id => !/^\d{17,20}$/.test(id) || !guild.roles.cache.has(id) || id === guild.id))
         return res.status(400).json({ error: 'One or more selected manager roles are invalid.' });
       updates.managerRoleIds = roleIds;
     }
