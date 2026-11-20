@@ -866,6 +866,7 @@ export default {
               return;
             }
             const reviewedClan = clanList[clanIndex];
+            const levelsRole = await interaction.guild.roles.fetch('1564159581825933353').catch(() => null);
             if (decision === 'approve') {
               try {
                 let clanRole = reviewedClan.roleId
@@ -877,6 +878,12 @@ export default {
                     name: reviewedClan.name,
                     color: reviewedClan.roleHex || '#5865F2',
                     reason: `Automatic clan role for approved clan: ${reviewedClan.name}`,
+                  });
+                }
+
+                if (levelsRole && clanRole.editable) {
+                  await clanRole.setPosition(levelsRole.position + 1, {
+                    reason: 'Keep Barracks clan roles above the Levels separator',
                   });
                 }
 
