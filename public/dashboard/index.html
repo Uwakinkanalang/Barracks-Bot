@@ -10,7 +10,10 @@
 
 /* Simple welcome/goodbye previews */
 .message-preview{margin-top:18px;padding:12px;background:#0b1310;border:1px solid #34463b;border-radius:10px}.message-preview-title{font-size:10px;color:#91a197;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:9px}.discord-preview{background:#313338;border-radius:8px;padding:12px;color:#dbdee1;font:13px/1.5 system-ui,sans-serif}.discord-preview-head{display:flex;align-items:center;gap:8px;margin-bottom:7px;color:#f2f3f5;font-weight:650}.discord-preview-avatar{width:25px;height:25px;border-radius:50%;background:#5865f2;display:grid;place-items:center;font-size:13px}.discord-preview-message{white-space:pre-wrap;overflow-wrap:anywhere}.discord-preview-image{display:block;max-width:100%;max-height:150px;object-fit:contain;margin-top:9px;border-radius:5px}.discord-preview-ping{color:#c9cdfb;background:#414675;border-radius:3px;padding:1px 4px;font-size:11px;margin-bottom:6px;display:inline-block}
-</style>
+/* Koya-inspired dashboard home styling */
+body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;border-right:1px solid #45464d;padding:20px 18px}.main{background:#303137}.top{background:#303137;border-color:#45464d}.content{max-width:none;padding:26px 38px 60px}.nav-label{color:#8d909a}.nav button{color:#aeb3bf}.nav button:hover,.nav button.active{background:#45464d;color:#f5f5f7}
+.welcome-banner{display:flex;align-items:flex-start;gap:14px;padding:14px;border:1px solid #6b5734;background:#38383e;border-radius:12px;margin:0 0 22px;position:relative}.welcome-banner-icon{width:48px;height:48px;flex:0 0 48px;border-radius:12px;background:#4b402d;color:#f5c34e;display:grid;place-items:center;font-size:24px}.welcome-banner-copy h2{font-size:17px;margin:2px 0 7px}.welcome-banner-copy p{margin:0 0 13px;color:#c1c2c9;font-size:13px}.quick-actions{display:flex;flex-wrap:wrap;gap:7px}.quick-actions button{border:1px solid #5a5145;background:#393a40;color:#f1f1f4;padding:9px 12px;border-radius:8px;font-size:12px}.banner-dismiss{margin-left:auto;border:0;background:transparent;color:#c9cbd1;font-size:22px}
+.welcome{margin:0 0 18px;align-items:flex-end}.eyebrow{color:#aeb3bf;text-transform:none;font-size:12px}h1{font-size:25px}.sub{color:#c0c2ca}.grid{gap:12px}.card{background:#34353c;border-color:#484950;border-radius:12px;padding:15px}.metric-icon{background:#3b3c44;border:1px solid #4b4c54;border-radius:50%}.section-head{margin:25px 0 12px}.section-head h2{font-size:19px}.section-head span{color:#aeb0b8}.modules{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.module-group-title{grid-column:1/-1;font-size:19px;font-weight:750;margin:12px 0 0;color:#f4f4f6}.module{min-height:165px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;background:#34353c;border-color:#484950;border-radius:14px;padding:18px}.module:hover{border-color:#60616b;transform:translateY(-1px)}.module-icon{height:48px;width:48px;border-radius:50%;background:#3b3c44;border:1px solid #4b4c54;font-size:22px}.module b{font-size:14px}.module small{font-size:12px;color:#c0c2ca}.tag{margin:0}.notice{background:#363a36;border-color:#4e5948;color:#d1d6ce}.notice b{color:#c3f36b}.logout{border-color:#4b4c54;color:#e1e2e7}@media(max-width:1000px){.modules{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.side{width:66px;padding:17px 9px}.content{padding:22px 16px}.modules{grid-template-columns:1fr}.welcome-banner{padding:11px}}</style>
 </head>
 <body>
 <div class="shell">
@@ -35,21 +38,40 @@
 <main class="main">
 <header class="top"><div class="crumb">Barracks <span style="color:#526257">/</span> <b>Overview</b></div><div class="user"><div class="status"><span class="dot"></span> Dashboard secured</div><button class="logout" id="logoutButton" type="button">Sign out ↗</button></div></header>
 <section class="content">
-<div class="welcome"><div><div class="eyebrow">Command overview</div><h1>Welcome to Barracks HQ.</h1><p class="sub">Your server operations, all in one place.</p></div><div class="date" id="updated">Loading server status…</div></div>
+<div class="welcome-banner" id="welcomeBanner"><div class="welcome-banner-icon">✦</div><div class="welcome-banner-copy"><h2>Welcome to Barracks!</h2><p>Your command center is ready. Choose a module to manage your server.</p><div class="quick-actions"><button type="button" onclick="document.getElementById('welcomeModuleButton').click()">👋 Set up welcome messages</button><button type="button" onclick="document.getElementById('welcomeModuleButton').click()">📢 Open announcements</button></div></div><button class="banner-dismiss" type="button" aria-label="Dismiss welcome message" onclick="document.getElementById('welcomeBanner').remove()">×</button></div>
+<div class="welcome"><div><div class="eyebrow">General</div><h1>Barracks Dashboard</h1><p class="sub">Your server at a glance.</p></div><div class="date" id="updated">Loading server status…</div></div>
 <div class="grid">
 <div class="card"><div class="metric-top">Members <span class="metric-icon">♟</span></div><div class="metric" id="members">—</div><div class="metric-note">In your Discord server</div></div>
 <div class="card"><div class="metric-top">Text & voice channels <span class="metric-icon">▤</span></div><div class="metric" id="channels">—</div><div class="metric-note">Server channels</div></div>
 <div class="card"><div class="metric-top">Server roles <span class="metric-icon">♙</span></div><div class="metric" id="roles">—</div><div class="metric-note">Configured roles</div></div>
 <div class="card"><div class="metric-top">Bot commands <span class="metric-icon">⌘</span></div><div class="metric" id="commands">—</div><div class="metric-note">Loaded by Barracks-Bot</div></div>
 </div>
-<div class="section-head"><h2>Management modules</h2><span>Choose a section to manage your bot</span></div>
+<div class="section-head"><h2>General</h2></div>
 <div class="modules">
-<button class="module" id="welcomeModuleButton" type="button"><span class="module-icon">👋</span><span><b>Welcome & Goodbye</b><small>Welcome banners, messages and member departures.</small></span><span class="tag">PLANNED</span></button>
-<button class="module"><span class="module-icon">🛡</span><span><b>Moderation</b><small>Moderation tools, logs and server protection.</small></span><span class="tag">PLANNED</span></button>
-<button class="module"><span class="module-icon">💰</span><span><b>Economy & bCash</b><small>Bank limits, salaries, rewards and economy settings.</small></span><span class="tag">PLANNED</span></button>
-<button class="module"><span class="module-icon">🎰</span><span><b>Games & Lotto</b><small>Slots, lotto, giveaways and game configuration.</small></span><span class="tag">PLANNED</span></button>
-<button class="module"><span class="module-icon">📈</span><span><b>Leveling</b><small>XP rewards, rank roles and progression settings.</small></span><span class="tag">PLANNED</span></button>
-<button class="module"><span class="module-icon">🎭</span><span><b>Roles & Channels</b><small>Role assignments and channel configuration.</small></span><span class="tag">PLANNED</span></button>
+<div class="module-group-title">Messaging</div>
+<button class="module" id="welcomeModuleButton" type="button"><span class="module-icon">📢</span><span><b>Announcements</b><small>Send join, leave and other server announcements</small></span></button>
+<button class="module"  type="button"><span class="module-icon">⊞</span><span><b>Message Builder</b><small>Create custom Discord messages</small></span></button>
+<button class="module"  type="button"><span class="module-icon">▤</span><span><b>Templates</b><small>Create reusable message templates</small></span></button>
+<button class="module"  type="button"><span class="module-icon">ϟ</span><span><b>Actions</b><small>Create reusable actions for buttons and menus</small></span></button>
+<button class="module"  type="button"><span class="module-icon">▣</span><span><b>Auto Responders</b><small>Configure automatic replies to messages</small></span></button>
+<button class="module"  type="button"><span class="module-icon">▢</span><span><b>Auto Threads</b><small>Automatically create threads in selected channels</small></span></button>
+<button class="module"  type="button"><span class="module-icon">⚑</span><span><b>Sticky Messages</b><small>Keep important messages visible in channels</small></span></button>
+<button class="module"  type="button"><span class="module-icon">▤</span><span><b>Ticketing</b><small>Create support ticket panels</small></span></button>
+<button class="module"  type="button"><span class="module-icon">🎉</span><span><b>Giveaways</b><small>Host giveaways for your members</small></span><span class="tag">BETA</span></button>
+<button class="module"  type="button"><span class="module-icon">▧</span><span><b>Forms</b><small>Create forms for your community</small></span></button>
+<button class="module"  type="button"><span class="module-icon">▦</span><span><b>Server Calendar</b><small>Manage events and member availability</small></span></button>
+<div class="module-group-title">Commands</div>
+<button class="module"  type="button"><span class="module-icon">✣</span><span><b>Custom Commands</b><small>Create custom bot commands</small></span></button>
+<button class="module"  type="button"><span class="module-icon">/</span><span><b>Commands</b><small>Manage command availability and permissions</small></span></button>
+<div class="module-group-title">Server Engagement</div>
+<button class="module"  type="button"><span class="module-icon">🏆</span><span><b>Levels</b><small>Configure XP, levels and rank roles</small></span></button>
+<button class="module"  type="button"><span class="module-icon">♜</span><span><b>Leaderboard</b><small>Manage server leaderboards</small></span></button>
+<button class="module"  type="button"><span class="module-icon">↗</span><span><b>Stats</b><small>Configure server statistics tracking</small></span></button>
+<button class="module"  type="button"><span class="module-icon">◖</span><span><b>Temporary Voice</b><small>Create temporary voice channels</small></span></button>
+<button class="module"  type="button"><span class="module-icon">▥</span><span><b>Statistics Channels</b><small>Display live server statistics in channel names</small></span></button>
+<button class="module"  type="button"><span class="module-icon">★</span><span><b>Starboard</b><small>Highlight popular messages with reactions</small></span></button>
+<button class="module"  type="button"><span class="module-icon">♥</span><span><b>Birthdays</b><small>Manage birthday announcements</small></span></button>
+<button class="module"  type="button"><span class="module-icon">♡</span><span><b>Social</b><small>Configure social features for your server</small></span></button>
 </div>
 <div class="notice"><span class="notice-icon">✦</span><div><b>Command center initialized.</b> This first release securely signs you in and reads live Barracks server statistics. Configuration controls will be connected module by module, without changing the bot's existing settings unexpectedly.</div></div>
 </section>
