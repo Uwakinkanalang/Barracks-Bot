@@ -124,9 +124,12 @@ setInterval(()=>{if(getToken())loadOverview();},60000);
 <div id="welcomePanel" style="display:none;position:fixed;inset:0;z-index:20;background:#080e0bd9;overflow:auto;padding:24px">
  <div style="max-width:850px;margin:30px auto;background:#111a16;border:1px solid #27372d;border-radius:18px;padding:24px">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Server management</div><h1>Welcome & Goodbye</h1><p class="sub">Configure member join and departure messages.</p></div><button id="welcomeClose" class="logout" type="button">Close ✕</button></div>
+  <div class="welcome-tabs" style="display:flex;gap:10px;margin:20px 0 16px">
+   <button id="welcomeTabButton" type="button" class="logout" style="border-color:#c3f36b;color:#c3f36b">👋 Welcome</button>
+   <button id="goodbyeTabButton" type="button" class="logout">👋 Goodbye</button>
+  </div>
   <div id="welcomeStatus" class="notice" style="margin:18px 0">Loading settings…</div>
-  <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:18px">
-   <div class="card">
+  <div id="welcomeSettingsPage" class="card">
     <h2 style="font-size:15px;margin-top:0">👋 Welcome settings</h2>
     <label class="metric-note">Welcome channel</label><select id="welcomeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
     <label class="metric-note">Welcome message</label><textarea id="welcomeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
@@ -135,7 +138,8 @@ setInterval(()=>{if(getToken())loadOverview();},60000);
     <label style="display:block;margin:8px 0"><input id="welcomePing" type="checkbox"> Ping joining member</label>
     <div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="welcomePreviewPing" class="discord-preview-ping" hidden>@NewMember</div><div id="welcomePreviewText" class="discord-preview-message">Welcome NewMember to Barracks!</div><img id="welcomePreviewImage" class="discord-preview-image" hidden alt="Welcome image preview"></div></div>
    </div>
-   <div class="card">
+  </div>
+  <div id="goodbyeSettingsPage" class="card" style="display:none">
     <h2 style="font-size:15px;margin-top:0">👋 Goodbye settings</h2>
     <label class="metric-note">Goodbye channel</label><select id="goodbyeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
     <label class="metric-note">Goodbye message</label><textarea id="goodbyeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
@@ -143,7 +147,6 @@ setInterval(()=>{if(getToken())loadOverview();},60000);
     <label style="display:block;margin:8px 0"><input id="goodbyeEnabled" type="checkbox"> Enable goodbye messages</label>
     <label style="display:block;margin:8px 0"><input id="goodbyePing" type="checkbox"> Ping departing member</label>
     <div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="goodbyePreviewPing" class="discord-preview-ping" hidden>@DepartingMember</div><div id="goodbyePreviewText" class="discord-preview-message">DepartingMember has left the server.</div><img id="goodbyePreviewImage" class="discord-preview-image" hidden alt="Goodbye image preview"></div></div>
-   </div>
   </div>
   <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px"><button id="welcomeSave" type="button" style="border:0;border-radius:9px;padding:12px 18px;background:#c3f36b;color:#18210f;font-weight:800">Save settings</button></div>
  </div>
@@ -156,6 +159,17 @@ function showWelcomePanel(){welcomePanel.style.display='block';loadWelcomeSettin
 document.getElementById('welcomeNavButton').addEventListener('click',showWelcomePanel);
 document.getElementById('welcomeModuleButton').addEventListener('click',showWelcomePanel);
 document.getElementById('welcomeClose').addEventListener('click',()=>welcomePanel.style.display='none');
+function showWelcomeTab(tab){
+ const isWelcome=tab==='welcome';
+ document.getElementById('welcomeSettingsPage').style.display=isWelcome?'block':'none';
+ document.getElementById('goodbyeSettingsPage').style.display=isWelcome?'none':'block';
+ document.getElementById('welcomeTabButton').style.borderColor=isWelcome?'#c3f36b':'#34463b';
+ document.getElementById('welcomeTabButton').style.color=isWelcome?'#c3f36b':'#c0cdc4';
+ document.getElementById('goodbyeTabButton').style.borderColor=isWelcome?'#34463b':'#c3f36b';
+ document.getElementById('goodbyeTabButton').style.color=isWelcome?'#c0cdc4':'#c3f36b';
+}
+document.getElementById('welcomeTabButton').addEventListener('click',()=>showWelcomeTab('welcome'));
+document.getElementById('goodbyeTabButton').addEventListener('click',()=>showWelcomeTab('goodbye'));
 async function loadWelcomeSettings(){
  const token=getToken();if(!token){showLogin();return;}
  setWelcomeStatus('Loading settings…');
@@ -177,6 +191,7 @@ async function loadWelcomeSettings(){
   document.getElementById('welcomePing').checked=!!cfg.welcomePing;
   document.getElementById('goodbyeEnabled').checked=!!cfg.goodbyeEnabled;
   document.getElementById('goodbyePing').checked=!!cfg.goodbyePing;
+  updateSimplePreview('welcome');updateSimplePreview('goodbye');
   setWelcomeStatus('Settings loaded. Save changes when ready.');
  }catch(error){setWelcomeStatus(error.message,true);}
 }
@@ -185,7 +200,9 @@ function updateSimplePreview(type){
  const message=document.getElementById(welcome?'welcomeMessage':'goodbyeMessage').value;
  const ping=document.getElementById(welcome?'welcomePing':'goodbyePing').checked;
  const imageUrl=document.getElementById(welcome?'welcomeImage':'goodbyeImage').value.trim();
- const text=message.replace(/\\{user\\}/gi,welcome?'NewMember':'DepartingMember').replace(/\\{user\\.tag\\}/gi,welcome?'NewMember#1234':'DepartingMember#1234').replace(/\\{server\\}/gi,'Barracks').replace(/\\{membercount\\}/gi,'1,234');
+ const replacements=[['{user.tag}',welcome?'NewMember#1234':'DepartingMember#1234'],['{user}',welcome?'NewMember':'DepartingMember'],['{server}','Barracks'],['{membercount}','1,234']];
+ let text=message;
+ for(const [token,value] of replacements) text=text.split(token).join(value);
  document.getElementById(welcome?'welcomePreviewText':'goodbyePreviewText').textContent=text||'(No message)';
  document.getElementById(welcome?'welcomePreviewPing':'goodbyePreviewPing').hidden=!ping;
  const img=document.getElementById(welcome?'welcomePreviewImage':'goodbyePreviewImage');
