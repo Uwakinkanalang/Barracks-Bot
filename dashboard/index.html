@@ -270,7 +270,7 @@ async function loadWelcomeSettings(){
   document.getElementById('banMessage').value=cfg.banMessage||'{user.tag} has been banned from {server}.';
   document.getElementById('boostMessage').value=cfg.boostMessage||'Thank you {user} for boosting {server}! Your support means a lot to us.';
   document.getElementById('banEnabled').checked=!!cfg.banEnabled;
-  document.getElementById('boostEnabled').checked=!!cfg.boostEnabled;
+  document.getElementById('boostEnabled').checked=cfg.boostEnabled!==false;
   updateSimplePreview('welcome');updateSimplePreview('goodbye');updateEventPreview('ban');updateEventPreview('boost');
   setWelcomeStatus('Settings loaded. Save changes when ready.');
  }catch(error){setWelcomeStatus(error.message,true);}
