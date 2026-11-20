@@ -5,11 +5,12 @@ import { successEmbed, errorEmbed } from '../../utils/embeds.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const BARRACKS_GUILD_ID = '1137695060096471160';
+const ADDCASH_ALLOWED_USER_ID = '1466364437622423694';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('addcash')
-        .setDescription('Add cash to a member’s wallet (bot owner only)')
+        .setDescription('Add cash to a member’s wallet (authorized staff only)')
         .addUserOption(option =>
             option
                 .setName('user')
@@ -33,9 +34,9 @@ export default {
             });
         }
 
-        if (!isBotOwner(interaction.user.id)) {
+        if (!isBotOwner(interaction.user.id) && interaction.user.id !== ADDCASH_ALLOWED_USER_ID) {
             return InteractionHelper.universalReply(interaction, {
-                embeds: [errorEmbed('Permission Denied', 'Only the configured bot owner can use this command.')],
+                embeds: [errorEmbed('Permission Denied', 'You are not authorized to use this command.')],
                 ephemeral: true,
             });
         }
