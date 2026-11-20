@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "dashboard/**"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -32,8 +33,9 @@ jobs:
           enablement: true
       - name: Prepare website files
         run: |
-          mkdir site
+          mkdir -p site/dashboard
           cp index.html site/index.html
+          cp -R dashboard/. site/dashboard/
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
