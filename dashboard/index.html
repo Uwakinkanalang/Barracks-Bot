@@ -77,7 +77,37 @@ body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;borde
 <div class="notice"><span class="notice-icon">✦</span><div><b>Command center initialized.</b> This first release securely signs you in and reads live Barracks server statistics. Configuration controls will be connected module by module, without changing the bot's existing settings unexpectedly.</div></div>
 </div>
 <!-- URL-based dashboard pages -->
-<div id="routeView" style="display:none"><div class="welcome"><div><div class="eyebrow">Barracks management</div><h1 id="routeTitle">Dashboard</h1><p class="sub" id="routeDescription">Manage your server.</p></div></div><div id="moderationPanel" style="display:none;max-width:900px">
+<div id="routeView" style="display:none"><div class="welcome"><div><div class="eyebrow">Barracks management</div><h1 id="routeTitle">Dashboard</h1><p class="sub" id="routeDescription">Manage your server.</p></div></div><div id="welcomePanel" style="display:none;max-width:1100px;margin:0 0 24px">
+ <div style="width:100%;background:transparent;border:0;border-radius:0;padding:0">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Server management</div><h1>Welcome & Goodbye</h1><p class="sub">Configure member join and departure messages.</p></div></div>
+  <div class="welcome-tabs" style="display:flex;gap:10px;margin:20px 0 16px">
+   <button id="welcomeTabButton" type="button" class="logout" style="border-color:#c3f36b;color:#c3f36b">👋 Welcome</button>
+   <button id="goodbyeTabButton" type="button" class="logout">👋 Goodbye</button>
+  </div>
+  <div id="welcomeStatus" class="notice" style="margin:18px 0">Loading settings…</div>
+  <div id="welcomeSettingsPage" class="card">
+    <h2 style="font-size:15px;margin-top:0">👋 Welcome settings</h2>
+    <label class="metric-note">Welcome channel</label><select id="welcomeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
+    <label class="metric-note">Welcome message</label><textarea id="welcomeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
+    <label class="metric-note">Welcome image URL</label><input id="welcomeImage" type="url" placeholder="https://..." style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px">
+    <label style="display:block;margin:8px 0"><input id="welcomeEnabled" type="checkbox"> Enable welcome messages</label>
+    <label style="display:block;margin:8px 0"><input id="welcomePing" type="checkbox"> Ping joining member</label>
+    <div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="welcomePreviewPing" class="discord-preview-ping" hidden>@NewMember</div><div id="welcomePreviewText" class="discord-preview-message">Welcome NewMember to Barracks!</div><img id="welcomePreviewImage" class="discord-preview-image" hidden alt="Welcome image preview"></div></div>
+   </div>
+  </div>
+  <div id="goodbyeSettingsPage" class="card" style="display:none">
+    <h2 style="font-size:15px;margin-top:0">👋 Goodbye settings</h2>
+    <label class="metric-note">Goodbye channel</label><select id="goodbyeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
+    <label class="metric-note">Goodbye message</label><textarea id="goodbyeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
+    <label class="metric-note">Goodbye image URL</label><input id="goodbyeImage" type="url" placeholder="https://..." style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px">
+    <label style="display:block;margin:8px 0"><input id="goodbyeEnabled" type="checkbox"> Enable goodbye messages</label>
+    <label style="display:block;margin:8px 0"><input id="goodbyePing" type="checkbox"> Ping departing member</label>
+    <div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="goodbyePreviewPing" class="discord-preview-ping" hidden>@DepartingMember</div><div id="goodbyePreviewText" class="discord-preview-message">DepartingMember has left the server.</div><img id="goodbyePreviewImage" class="discord-preview-image" hidden alt="Goodbye image preview"></div></div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px"><button id="welcomeSave" type="button" style="border:0;border-radius:9px;padding:12px 18px;background:#c3f36b;color:#18210f;font-weight:800">Save settings</button></div>
+ </div>
+</div>
+<div id="moderationPanel" style="display:none;max-width:900px">
 <div class="card" style="margin-bottom:14px"><h2 style="font-size:16px;margin-top:0">Member lookup</h2><p class="sub">Search by username, display name, or Discord ID.</p><div style="display:flex;gap:8px"><input id="modSearch" placeholder="Search members…" style="flex:1;min-width:0;padding:11px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"><button id="modSearchBtn" type="button">Search</button></div><div id="modResults" style="margin-top:10px;color:#c0c2ca;font-size:13px"></div></div>
 <div class="card"><h2 style="font-size:16px;margin-top:0">Moderation action</h2><p class="sub">Actions affect the live Barracks Discord server. Review carefully before confirming.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
 <label>Action<select id="modAction"><option value="warn">Warn (DM)</option><option value="timeout">Timeout</option><option value="untimeout">Remove timeout</option><option value="kick">Kick</option><option value="ban">Ban</option><option value="unban">Unban</option><option value="clear">Clear messages</option></select></label>
@@ -169,36 +199,7 @@ if(getToken()) loadOverview(); else showLogin();
 setInterval(()=>{if(getToken())loadOverview();},60000);
 </script>
 
-<div id="welcomePanel" style="display:none;position:fixed;inset:0;z-index:20;background:#080e0bd9;overflow:auto;padding:24px">
- <div style="max-width:850px;margin:30px auto;background:#111a16;border:1px solid #27372d;border-radius:18px;padding:24px">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Server management</div><h1>Welcome & Goodbye</h1><p class="sub">Configure member join and departure messages.</p></div><button id="welcomeClose" class="logout" type="button">Close ✕</button></div>
-  <div class="welcome-tabs" style="display:flex;gap:10px;margin:20px 0 16px">
-   <button id="welcomeTabButton" type="button" class="logout" style="border-color:#c3f36b;color:#c3f36b">👋 Welcome</button>
-   <button id="goodbyeTabButton" type="button" class="logout">👋 Goodbye</button>
-  </div>
-  <div id="welcomeStatus" class="notice" style="margin:18px 0">Loading settings…</div>
-  <div id="welcomeSettingsPage" class="card">
-    <h2 style="font-size:15px;margin-top:0">👋 Welcome settings</h2>
-    <label class="metric-note">Welcome channel</label><select id="welcomeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
-    <label class="metric-note">Welcome message</label><textarea id="welcomeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
-    <label class="metric-note">Welcome image URL</label><input id="welcomeImage" type="url" placeholder="https://..." style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px">
-    <label style="display:block;margin:8px 0"><input id="welcomeEnabled" type="checkbox"> Enable welcome messages</label>
-    <label style="display:block;margin:8px 0"><input id="welcomePing" type="checkbox"> Ping joining member</label>
-    <div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="welcomePreviewPing" class="discord-preview-ping" hidden>@NewMember</div><div id="welcomePreviewText" class="discord-preview-message">Welcome NewMember to Barracks!</div><img id="welcomePreviewImage" class="discord-preview-image" hidden alt="Welcome image preview"></div></div>
-   </div>
-  </div>
-  <div id="goodbyeSettingsPage" class="card" style="display:none">
-    <h2 style="font-size:15px;margin-top:0">👋 Goodbye settings</h2>
-    <label class="metric-note">Goodbye channel</label><select id="goodbyeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
-    <label class="metric-note">Goodbye message</label><textarea id="goodbyeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
-    <label class="metric-note">Goodbye image URL</label><input id="goodbyeImage" type="url" placeholder="https://..." style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px">
-    <label style="display:block;margin:8px 0"><input id="goodbyeEnabled" type="checkbox"> Enable goodbye messages</label>
-    <label style="display:block;margin:8px 0"><input id="goodbyePing" type="checkbox"> Ping departing member</label>
-    <div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="goodbyePreviewPing" class="discord-preview-ping" hidden>@DepartingMember</div><div id="goodbyePreviewText" class="discord-preview-message">DepartingMember has left the server.</div><img id="goodbyePreviewImage" class="discord-preview-image" hidden alt="Goodbye image preview"></div></div>
-  </div>
-  <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px"><button id="welcomeSave" type="button" style="border:0;border-radius:9px;padding:12px 18px;background:#c3f36b;color:#18210f;font-weight:800">Save settings</button></div>
- </div>
-</div>
+
 <script>
 const welcomePanel=document.getElementById('welcomePanel');
 const welcomeStatus=document.getElementById('welcomeStatus');
@@ -206,7 +207,7 @@ function setWelcomeStatus(message,isError=false){welcomeStatus.textContent=messa
 function showWelcomePanel(){welcomePanel.style.display='block';loadWelcomeSettings();}
 document.getElementById('welcomeNavButton').addEventListener('click',showWelcomePanel);
 document.getElementById('welcomeModuleButton').addEventListener('click',showWelcomePanel);
-document.getElementById('welcomeClose').addEventListener('click',()=>welcomePanel.style.display='none');
+
 function showWelcomeTab(tab){
  const isWelcome=tab==='welcome';
  document.getElementById('welcomeSettingsPage').style.display=isWelcome?'block':'none';
@@ -403,7 +404,7 @@ document.getElementById('settingsSave').addEventListener('click',async()=>{
  const base='/Barracks-Bot/dashboard/';
  const routes={home:{path:base,title:'Overview',description:'Your server at a glance.'},welcome:{path:base+'welcome/',title:'Welcome & Goodbye',description:'Configure join and leave messages.'},'message-builder':{path:base+'message-builder/',title:'Message Builder',description:'Build custom Discord messages and embeds.'},moderation:{path:base+'moderation/',title:'Moderation',description:'Manage moderation tools and server safety.'},settings:{path:base+'settings/',title:'Bot Settings',description:'Configure your Barracks bot.'},logs:{path:base+'logs/',title:'Server Logs',description:'Review important server activity.'}};
  const routeKey=()=>{const p=location.pathname.endsWith('/')?location.pathname:location.pathname+'/';return Object.keys(routes).find(k=>routes[k].path===p)||new URLSearchParams(location.search).get('page')||'home';};
- function navigate(key,update=true){const k=routes[key]?key:'home',r=routes[k];if(update)history.pushState({page:k},'',r.path);document.getElementById('dashboardHome').style.display=k==='home'?'':'none';document.getElementById('routeView').style.display=['home','welcome','message-builder'].includes(k)?'none':'block';document.getElementById('welcomePanel').style.display=k==='welcome'?'block':'none';document.getElementById('messageBuilderPanel').style.display=k==='message-builder'?'block':'none';document.getElementById('routeTitle').textContent=r.title;document.getElementById('routeDescription').textContent=r.description;document.getElementById('moderationPanel').style.display=k==='moderation'?'block':'none';document.getElementById('moderationLogsPanel').style.display=k==='logs'?'block':'none';document.getElementById('botSettingsPanel').style.display=k==='settings'?'block':'none';if(k==='settings')loadBotSettings();if(k==='logs')loadModerationLogs();document.querySelector('.crumb b').textContent=r.title;document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const sel={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',moderation:'#moderationNavButton',logs:'#logsNavButton'}[k];if(sel){const el=document.querySelector(sel);if(el)el.classList.add('active');}if(k==='welcome'&&!window.__welcomeLoaded){window.__welcomeLoaded=true;loadWelcomeSettings();}}
+ function navigate(key,update=true){const k=routes[key]?key:'home',r=routes[k];if(update)history.pushState({page:k},'',r.path);document.getElementById('dashboardHome').style.display=k==='home'?'':'none';document.getElementById('routeView').style.display=['home','message-builder'].includes(k)?'none':'block';document.getElementById('welcomePanel').style.display=k==='welcome'?'block':'none';document.getElementById('messageBuilderPanel').style.display=k==='message-builder'?'block':'none';document.getElementById('routeTitle').textContent=r.title;document.getElementById('routeDescription').textContent=r.description;document.getElementById('moderationPanel').style.display=k==='moderation'?'block':'none';document.getElementById('moderationLogsPanel').style.display=k==='logs'?'block':'none';document.getElementById('botSettingsPanel').style.display=k==='settings'?'block':'none';if(k==='settings')loadBotSettings();if(k==='logs')loadModerationLogs();document.querySelector('.crumb b').textContent=r.title;document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const sel={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',moderation:'#moderationNavButton',logs:'#logsNavButton'}[k];if(sel){const el=document.querySelector(sel);if(el)el.classList.add('active');}if(k==='welcome'&&!window.__welcomeLoaded){window.__welcomeLoaded=true;loadWelcomeSettings();}}
  window.barracksNavigate=navigate;
  document.getElementById('welcomeNavButton').addEventListener('click',()=>navigate('welcome'));
  document.getElementById('messageBuilderModuleButton').addEventListener('click',()=>navigate('message-builder'));
