@@ -156,4 +156,104 @@ export function registerDashboardRoutes(app, bot) {
       updatedAt: new Date().toISOString()
     });
   });
+
+  // Dashboard moderation actions are restricted to the configured Barracks guild.
+  const requireDashboardGuild = (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return null;
+    }
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) {
+      res.status(503).json({ error: 'Barracks server is not available.' });
+      return null;
+    }
+    return guild;
+  };
+
+  app.get('/api/dashboard/moderation/members', async (req, res) => {
+    const guild = requireDashboardGuild(req, res);
+    if (!guild) return;
+    const query = String(req.query.q || '').trim().toLowerCase();
+    if (query.length < 2) return res.status(400).json({ error: 'Enter at least 2 characters to search.' });
+    try {
+      await guild.members.fetch();
+      const members = guild.members.cache
+        .filter(member => !member.user.bot && (member.user.username.toLowerCase().includes(query)
+          || member.displayName.toLowerCase().includes(query) || member.id.includes(query)))
+        .first(15)
+        .map(member => ({ id: member.id, username: member.user.username, displayName: member.displayName, avatar: member.user.displayAvatarURL({ size: 64 }) }));
+      return res.json({ members });
+    } catch {
+      return res.status(500).json({ error: 'Could not search server members.' });
+    }
+  });
+
+  app.post('/api/dashboard/moderation/action', async (req, res) => {
+    const guild = requireDashboardGuild(req, res);
+    if (!guild) return;
+    const { action, userId, reason, duration, channelId, amount } = req.body || {};
+    const cleanReason = String(reason || 'No reason provided').trim().slice(0, 400);
+    const me = guild.members.me;
+    if (!me) return res.status(503).json({ error: 'Bot member information is unavailable.' });
+    try {
+      if (action === 'clear') {
+        if (!me.permissions.has('ManageMessages')) return res.status(403).json({ error: 'Bot needs Manage Messages permission.' });
+        const channel = guild.channels.cache.get(String(channelId || ''));
+        if (!channel || !channel.isTextBased?.() || !channel.messages?.bulkDelete)
+          return res.status(400).json({ error: 'Choose a valid text channel in Barracks.' });
+        const count = Math.min(100, Math.max(1, Number(amount) || 10));
+        const deleted = await channel.bulkDelete(count, true);
+        return res.json({ ok: true, message: 'Deleted ' + deleted.size + ' recent messages.' });
+      }
+
+      if (!/^\d{17,20}$/.test(String(userId || ''))) return res.status(400).json({ error: 'Enter a valid Discord user ID.' });
+      const target = await guild.members.fetch(String(userId)).catch(() => null);
+      if (action !== 'unban' && !target) return res.status(404).json({ error: 'That member was not found in Barracks.' });
+      if (target && (target.id === guild.ownerId || target.id === bot.user.id || target.id === req.body?.actorId))
+        return res.status(400).json({ error: 'This member cannot be moderated from the dashboard.' });
+      if (target && me.roles.highest.comparePositionTo(target.roles.highest) <= 0)
+        return res.status(403).json({ error: 'The bot role must be higher than the target member.' });
+
+      if (action === 'ban') {
+        if (!me.permissions.has('BanMembers')) return res.status(403).json({ error: 'Bot needs Ban Members permission.' });
+        if (!target.bannable) return res.status(403).json({ error: 'The bot cannot ban this member.' });
+        await target.ban({ reason: cleanReason });
+        return res.json({ ok: true, message: 'Member banned successfully.' });
+      }
+      if (action === 'unban') {
+        if (!me.permissions.has('BanMembers')) return res.status(403).json({ error: 'Bot needs Ban Members permission.' });
+        await guild.members.unban(String(userId), cleanReason);
+        return res.json({ ok: true, message: 'User unbanned successfully.' });
+      }
+      if (action === 'kick') {
+        if (!me.permissions.has('KickMembers')) return res.status(403).json({ error: 'Bot needs Kick Members permission.' });
+        if (!target.kickable) return res.status(403).json({ error: 'The bot cannot kick this member.' });
+        await target.kick(cleanReason);
+        return res.json({ ok: true, message: 'Member kicked successfully.' });
+      }
+      if (action === 'timeout') {
+        if (!me.permissions.has('ModerateMembers')) return res.status(403).json({ error: 'Bot needs Moderate Members permission.' });
+        if (!target.moderatable) return res.status(403).json({ error: 'The bot cannot timeout this member.' });
+        const minutes = Math.min(40320, Math.max(1, Number(duration) || 10));
+        await target.timeout(minutes * 60 * 1000, cleanReason);
+        return res.json({ ok: true, message: 'Member timed out for ' + minutes + ' minutes.' });
+      }
+      if (action === 'untimeout') {
+        if (!me.permissions.has('ModerateMembers')) return res.status(403).json({ error: 'Bot needs Moderate Members permission.' });
+        if (!target.moderatable) return res.status(403).json({ error: 'The bot cannot edit this member.' });
+        await target.timeout(null, cleanReason);
+        return res.json({ ok: true, message: 'Timeout removed.' });
+      }
+      if (action === 'warn') {
+        const dm = await target.send('You have received a warning in **' + guild.name + '**. Reason: ' + cleanReason).then(() => true).catch(() => false);
+        return res.json({ ok: true, message: dm ? 'Warning delivered by DM.' : 'Could not DM the member (their DMs may be closed).' });
+      }
+      return res.status(400).json({ error: 'Unknown moderation action.' });
+    } catch (error) {
+      return res.status(400).json({ error: error?.message || 'The moderation action failed.' });
+    }
+  });
+
 }
