@@ -7,6 +7,7 @@ import { logger } from './logger.js';
 import { validateDiscordId, validateNumber } from './validation.js';
 import { DEFAULT_ECONOMY_DATA } from './constants.js';
 import { createError, ErrorTypes, wrapServiceBoundary } from './errorHandler.js';
+import { getUserLevelKey } from './database/keys.js';
 
 const ECONOMY_CONFIG = BotConfig.economy || {};
 const BASE_BANK_CAPACITY = ECONOMY_CONFIG.baseBankCapacity || 10000;
@@ -143,7 +144,18 @@ export async function getEconomyData(client, guildId, userId) {
             wallet: ECONOMY_CONFIG.startingBalance ?? DEFAULT_ECONOMY_DATA.wallet,
         };
 
-        return normalizeEconomyData(data || {}, defaults);
+        const normalized = normalizeEconomyData(data || {}, defaults);
+
+        // Leveling data is stored separately from economy data. Use the
+        // leveling system's authoritative level so rank-based bank limits
+        // match the member's actual Barracks level roles.
+        const levelKey = getUserLevelKey(guildId, userId);
+        const levelingData = await client.db.get(levelKey, null);
+        if (levelingData && Number.isFinite(Number(levelingData.level))) {
+            normalized.level = Math.max(0, Number(levelingData.level));
+        }
+
+        return normalized;
     } catch (error) {
         logger.error(`Error getting economy data for user ${userId}`, error);
         return normalizeEconomyData({}, DEFAULT_ECONOMY_DATA);
