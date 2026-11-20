@@ -1,10 +1,8 @@
 import crypto from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 
-const COOKIE_NAME = 'barracks_dashboard_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
-const dashboardFile = fileURLToPath(new URL('../../public/dashboard/index.html', import.meta.url));
+const loginAttempts = new Map();
 
 function safeEqual(left, right) {
   const a = Buffer.from(String(left));
@@ -16,70 +14,66 @@ function sign(value, secret) {
   return crypto.createHmac('sha256', secret).update(value).digest('base64url');
 }
 
-function makeSession(secret) {
-  const payload = Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS })).toString('base64url');
+function createAccessToken(secret) {
+  const payload = Buffer.from(JSON.stringify({
+    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+    scope: 'barracks-dashboard'
+  })).toString('base64url');
   return `${payload}.${sign(payload, secret)}`;
 }
 
-function validSession(req, secret) {
-  const cookieHeader = req.headers.cookie || '';
-  const entry = cookieHeader.split(';').map(part => part.trim()).find(part => part.startsWith(`${COOKIE_NAME}=`));
-  if (!entry) return false;
-  const token = decodeURIComponent(entry.slice(COOKIE_NAME.length + 1));
+function validAccessToken(req, secret) {
+  const authorization = req.get('authorization') || '';
+  if (!authorization.startsWith('Bearer ')) return false;
+  const token = authorization.slice(7);
   const [payload, signature] = token.split('.');
   if (!payload || !signature || !safeEqual(signature, sign(payload, secret))) return false;
   try {
     const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    return Number.isFinite(data.exp) && data.exp > Math.floor(Date.now() / 1000);
+    return data.scope === 'barracks-dashboard'
+      && Number.isFinite(data.exp)
+      && data.exp > Math.floor(Date.now() / 1000);
   } catch {
     return false;
   }
 }
 
-function loginPage(error = '') {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Barracks Dashboard · Sign in</title><style>
-  *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1110;color:#edf3ef;font:15px Inter,system-ui,sans-serif;padding:24px}.panel{width:min(420px,100%);padding:36px;border:1px solid #26352e;border-radius:22px;background:#111b17;box-shadow:0 24px 80px #0008}.mark{width:48px;height:48px;border-radius:14px;background:#c3f36b;color:#17220d;display:grid;place-items:center;font-size:25px;font-weight:900}.eyebrow{margin:24px 0 8px;color:#a6bd9c;text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:800}h1{font-size:28px;margin:0 0 10px}p{color:#aab8b0;line-height:1.55;margin:0 0 24px}label{display:block;margin:0 0 8px;font-size:13px;color:#dce8df}input{width:100%;padding:14px 15px;border-radius:11px;border:1px solid #34463b;background:#0b1310;color:white;font:inherit;outline:none}input:focus{border-color:#c3f36b}button{width:100%;margin-top:14px;border:0;border-radius:11px;padding:14px;background:#c3f36b;color:#18210f;font-weight:800;font-size:14px;cursor:pointer}.error{color:#ff9a91;font-size:13px;margin:12px 0 0}.foot{margin-top:24px;font-size:11px;color:#718178;text-align:center}</style></head><body><main class="panel"><div class="mark">B</div><div class="eyebrow">Barracks · Command Center</div><h1>Welcome back, soldier.</h1><p>Sign in with your private dashboard password to manage Barracks-Bot.</p><form method="post" action="/dashboard/login"><label for="password">Dashboard password</label><input id="password" name="password" type="password" autocomplete="current-password" required autofocus><button type="submit">Enter Dashboard</button>${error ? `<div class="error">${error}</div>` : ''}</form><div class="foot">AUTHORIZED PERSONNEL ONLY · BARRACKS SERVER</div></main></body></html>`;
+function allowLoginAttempt(ip) {
+  const now = Date.now();
+  const recent = (loginAttempts.get(ip) || []).filter(time => time > now - 15 * 60 * 1000);
+  if (recent.length >= 8) {
+    loginAttempts.set(ip, recent);
+    return false;
+  }
+  recent.push(now);
+  loginAttempts.set(ip, recent);
+  return true;
 }
 
 export function registerDashboardRoutes(app, bot) {
-  app.use('/dashboard', (req, res, next) => {
-    if (req.path === '/login') return next();
-    const secret = process.env.DASHBOARD_SESSION_SECRET;
-    if (!secret || !process.env.DASHBOARD_PASSWORD) return res.status(503).send('Dashboard login is not configured.');
-    if (!validSession(req, secret)) return res.status(401).type('html').send(loginPage());
-    next();
-  });
-
-  app.get(['/dashboard', '/dashboard/'], (req, res) => res.sendFile(dashboardFile));
-
-  app.post('/dashboard/login', (req, res) => {
+  app.post('/api/dashboard/login', (req, res) => {
     const expectedPassword = process.env.DASHBOARD_PASSWORD;
     const secret = process.env.DASHBOARD_SESSION_SECRET;
-    if (!expectedPassword || !secret) return res.status(503).send('Dashboard login is not configured.');
-    const origin = req.get('origin');
-    const requestProtocol = req.get('x-forwarded-proto') || req.protocol;
-    if (origin && origin !== `${requestProtocol}://${req.get('host')}`) return res.status(403).send('Invalid request origin.');
-    if (!safeEqual(req.body?.password || '', expectedPassword)) {
-      return res.status(401).type('html').send(loginPage('Incorrect password. Please try again.'));
+    if (!expectedPassword || !secret) {
+      return res.status(503).json({ error: 'Dashboard login is not configured.' });
     }
-    res.cookie(COOKIE_NAME, makeSession(secret), {
-      httpOnly: true,
-      secure: req.secure || req.get('x-forwarded-proto') === 'https',
-      sameSite: 'strict',
-      maxAge: SESSION_TTL_SECONDS * 1000,
-      path: '/'
+    if (!allowLoginAttempt(req.ip)) {
+      return res.status(429).json({ error: 'Too many login attempts. Try again in 15 minutes.' });
+    }
+    if (!safeEqual(req.body?.password || '', expectedPassword)) {
+      return res.status(401).json({ error: 'Incorrect password.' });
+    }
+    return res.json({
+      token: createAccessToken(secret),
+      expiresIn: SESSION_TTL_SECONDS
     });
-    return res.redirect(303, '/dashboard');
-  });
-
-  app.post('/dashboard/logout', (req, res) => {
-    res.clearCookie(COOKIE_NAME, { httpOnly: true, secure: true, sameSite: 'strict', path: '/' });
-    res.redirect(303, '/dashboard');
   });
 
   app.get('/api/dashboard/overview', (req, res) => {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
-    if (!secret || !validSession(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    if (!secret || !validAccessToken(req, secret)) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     return res.json({
       guildId: DASHBOARD_GUILD_ID,
