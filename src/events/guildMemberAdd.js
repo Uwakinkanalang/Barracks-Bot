@@ -58,7 +58,6 @@ export default {
                 if (cardBackground && canEmbed) {
                     const welcomeEmbed = new EmbedBuilder()
                         .setColor('#556B2F')
-                        .setAuthor({ name: 'BARRACKS | RECRUITMENT' })
                         .setTitle('WELCOME TO BARRACKS!')
                         .setDescription(
                             `Welcome our new member, ${user.toString()}\n\n` +
@@ -68,10 +67,6 @@ export default {
                             'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
                         )
                         .setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }))
-                        .addFields(
-                            { name: 'NEW RECRUIT', value: user.displayName || user.username, inline: true },
-                            { name: 'MEMBER NUMBER', value: `#${guild.memberCount.toLocaleString('en-US')}`, inline: true }
-                        )
                         .setImage(cardBackground)
                         .setFooter({ text: `We already have ${guild.memberCount.toLocaleString('en-US')} members`, iconURL: barracksLogo })
                         .setTimestamp();
