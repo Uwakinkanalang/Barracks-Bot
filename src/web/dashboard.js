@@ -5,7 +5,7 @@ import { getEconomyPrefix } from '../utils/database.js';
 import { getEconomyData, setEconomyData, getMaxBankCapacity } from '../utils/economy.js';
 import { getLevelingConfig, saveLevelingConfig } from '../services/leveling/leveling.js';
 import { getCountingGameConfig, saveCountingGameConfig } from '../services/countingGameService.js';
-import { getCommandAccessSnapshot, disableCommand, enableCommand, isProtectedCommand } from '../services/commandAccessService.js';
+import { getCommandAccessSnapshot, disableCommand, enableCommand, isProtectedCommand, isCommandEnabledInConfig } from '../services/commandAccessService.js';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
@@ -84,7 +84,7 @@ export function registerDashboardRoutes(app, bot) {
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     try {
       const config = await getGuildConfig(bot, guild.id);
-      const snapshot = getCommandAccessSnapshot(bot, config);
+      const snapshot = getCommandAccessSnapshot(bot, config, 'slash');
       return res.json({
         totalCommands: snapshot.totalCommands,
         enabledTotal: snapshot.enabledTotal,
@@ -99,6 +99,45 @@ export function registerDashboardRoutes(app, bot) {
         }))
       });
     } catch (error) { return res.status(500).json({ error: error?.message || 'Could not load slash commands.' }); }
+  });
+
+  app.get('/api/dashboard/prefix-commands', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    try {
+      const { supportsPrefixExecution } = await import('../utils/messageAdapter.js');
+      const config = await getGuildConfig(bot, guild.id);
+      const snapshot = getCommandAccessSnapshot(bot, config, 'prefix');
+      const categories = snapshot.categories.map(category => {
+        const commands = category.commands.filter(entry => {
+          const command = bot.commands.get(entry.name.split(' ')[0]);
+          return command && supportsPrefixExecution(command);
+        });
+        return { key: category.key, name: category.displayName, icon: category.icon,
+          enabledCount: commands.filter(command => isCommandEnabledInConfig(config, command.name, category.folder, 'prefix')).length,
+          totalCount: commands.length,
+          commands: commands.map(command => ({ name: command.name, description: command.description,
+            enabled: isCommandEnabledInConfig(config, command.name, category.folder, 'prefix'), protected: command.protected })) };
+      }).filter(category => category.commands.length);
+      return res.json({ categories, totalCommands: categories.reduce((sum, category) => sum + category.totalCount, 0),
+        enabledTotal: categories.reduce((sum, category) => sum + category.enabledCount, 0) });
+    } catch (error) { return res.status(500).json({ error: error?.message || 'Could not load prefix commands.' }); }
+  });
+
+  app.post('/api/dashboard/prefix-commands/toggle', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const name = String(req.body?.name || '').trim().toLowerCase(), enabled = req.body?.enabled;
+    if (!name || typeof enabled !== 'boolean') return res.status(400).json({ error: 'Choose a command and ON or OFF.' });
+    if (isProtectedCommand(name.split(' ')[0])) return res.status(403).json({ error: 'This protected command must remain enabled.' });
+    try {
+      const result = enabled ? await enableCommand(bot, guild.id, name, {}, 'prefix') : await disableCommand(bot, guild.id, name, {}, 'prefix');
+      return res.json({ ok: true, ...result });
+    } catch (error) { return res.status(400).json({ error: error?.message || 'Could not update prefix command.' }); }
   });
 
   app.post('/api/dashboard/commands/toggle', async (req, res) => {
