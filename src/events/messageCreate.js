@@ -159,6 +159,15 @@ async function handlePrefixCommand(message, client) {
         await message.reply('❌ The Math Challenge is temporarily unavailable. Please contact an administrator.');
         return;
       }
+      if (!(await isCommandEnabled(client, message.guild.id, 'math', mathCommand.category, 'prefix'))) {
+        const embed = createEmbed({
+          title: 'Command Disabled',
+          description: 'This command has been disabled for this server.',
+          color: 'error',
+        });
+        await message.channel.send({ embeds: [embed] }).catch(() => {});
+        return;
+      }
       await executePrefixCommand(
         mathCommand,
         message,
