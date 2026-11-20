@@ -7,6 +7,7 @@ import { getServerCounters, updateCounter } from '../services/serverstatsService
 import { getGuildBirthdays, deleteBirthday } from '../utils/database.js';
 import { deleteUserLevelData } from '../services/leveling/leveling.js';
 import { logger } from '../utils/logger.js';
+import { captureModerationAudit } from '../services/moderationAuditMirror.js';
 
 export default {
   name: Events.GuildMemberRemove,
@@ -15,6 +16,15 @@ export default {
   async execute(member) {
     try {
         const { guild, user } = member;
+
+        // A kick is a moderation action; ordinary voluntary departures are not.
+        await captureModerationAudit(guild, {
+            type: 20,
+            action: 'kick',
+            targetId: user.id,
+            targetName: user.tag,
+            details: 'Member removed from server',
+        });
 
         // Remove departed users from any clan roster so the registry stays accurate.
         try {

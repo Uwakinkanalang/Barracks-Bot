@@ -5,6 +5,7 @@ import { getEconomyData, setEconomyData } from '../utils/economy.js';
 import { getLevelingConfig } from '../services/leveling/leveling.js';
 import { getNicknamePrefix } from '../commands/Economy/nickname.js';
 import { getAFKKey } from '../utils/database.js';
+import { captureModerationAudit } from '../services/moderationAuditMirror.js';
 
 export default {
   name: Events.GuildMemberUpdate,
@@ -13,6 +14,18 @@ export default {
   async execute(oldMember, newMember) {
     try {
       if (!newMember.guild) return;
+
+      const oldTimeout = oldMember.communicationDisabledUntilTimestamp || null;
+      const newTimeout = newMember.communicationDisabledUntilTimestamp || null;
+      if (oldTimeout !== newTimeout) {
+        await captureModerationAudit(newMember.guild, {
+          type: 24,
+          action: newTimeout ? 'timeout' : 'untimeout',
+          targetId: newMember.id,
+          targetName: newMember.user.tag,
+          details: newTimeout ? 'Until ' + new Date(newTimeout).toLocaleString() : 'Timeout removed',
+        });
+      }
 
       // Automatic Barracks nickname formatting must never run in other servers.
       const isBarracksGuild = Boolean(process.env.GUILD_ID) && newMember.guild.id === process.env.GUILD_ID;
