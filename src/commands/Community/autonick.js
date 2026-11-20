@@ -3,6 +3,7 @@ import { isBotOwner } from '../../config/bot.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getAFKKey } from '../../utils/database.js';
 import { logger } from '../../utils/logger.js';
+import { getGuildConfig } from '../../services/config/guildConfig.js';
 
 const CONFIG_KEY = (guildId) => `guild:${guildId}:autonick_roles`;
 const normalize = (items) => (Array.isArray(items) ? items : []).filter((x) => x && typeof x.roleId === 'string' && typeof x.prefix === 'string').map((x) => ({ roleId: x.roleId, prefix: x.prefix, priority: Number(x.priority) || 0 })).sort((a, b) => b.priority - a.priority);
@@ -84,8 +85,16 @@ export default {
     .addSubcommand(s => s.setName('list').setDescription('List configured AutoNick roles')),
   async execute(interaction) {
     if (!interaction.inGuild()) return interaction.reply({ content: 'Use this command inside the Barracks server.', ephemeral: true });
-    // AutoNick settings are stored per guild, so each server manages its own role prefixes.
-    if (!isBotOwner(interaction.user.id)) return interaction.reply({ content: 'Only the bot owner can manage AutoNick settings.', ephemeral: true });
+    // AutoNick settings are restricted to the Server Manager roles configured in the dashboard.
+    const guildConfig = await getGuildConfig(interaction.client, interaction.guildId);
+    const managerRoleIds = Array.isArray(guildConfig.managerRoleIds) ? guildConfig.managerRoleIds : [];
+    const isManager = managerRoleIds.some(roleId => interaction.member?.roles?.cache?.has(roleId));
+    if (!isManager && !isBotOwner(interaction.user.id)) {
+      return interaction.reply({
+        content: 'You need one of the configured **Server Manager** roles to use /autonick.',
+        ephemeral: true,
+      });
+    }
     const deferred = await InteractionHelper.safeDefer(interaction);
     if (!deferred) return;
     const { guild, client } = interaction;
