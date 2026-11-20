@@ -381,6 +381,28 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId === 'clan:create:continue') {
+            const draftKey = `guild:${interaction.guildId}:clan_create_draft:${interaction.user.id}`;
+            const draft = await interaction.client.db.get(draftKey, null);
+            if (!draft || Date.now() - draft.createdAt > 30 * 60 * 1000) {
+              await interaction.client.db.delete(draftKey).catch(() => {});
+              await interaction.reply({ content: 'Your clan creation session expired. Please open the Create a Clan panel again.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+            const continueRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('clan:create:continue')
+                .setLabel('Continue to Clan Rules & Logo')
+                .setStyle(ButtonStyle.Primary)
+            );
+            await interaction.reply({
+              content: 'Your clan details have been saved for this session. Click below to continue to **Clan Rules** and **Clan Logo**.',
+              components: [continueRow],
+              flags: MessageFlags.Ephemeral,
+            });
+            return;
+          }
           if (interaction.customId.startsWith('barracksLotto:')) {
             const { handleLottoButton } = await import('../services/barracksLottoService.js');
             await handleLottoButton(interaction, client);
