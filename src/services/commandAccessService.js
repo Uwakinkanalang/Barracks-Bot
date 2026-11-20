@@ -108,7 +108,7 @@ export function isProtectedCommand(commandName) {
   return PROTECTED_COMMANDS.has(String(commandName || '').toLowerCase());
 }
 
-export function isCommandEnabledInConfig(config, commandName, category) {
+export function isCommandEnabledInConfig(config, commandName, category, mode = 'slash') {
   const normalizedName = String(commandName || '').toLowerCase();
 
   // Check if it's a subcommand (contains space)
@@ -121,7 +121,7 @@ export function isCommandEnabledInConfig(config, commandName, category) {
     return true;
   }
 
-  const disabledCommands = normalizeToggleRecord(config?.disabledCommands);
+  const disabledCommands = normalizeToggleRecord(mode === 'prefix' ? config?.disabledPrefixCommands : config?.disabledCommands);
   const disabledCategories = normalizeToggleRecord(config?.disabledCategories);
 
   // Check if the specific command/subcommand is disabled
@@ -142,7 +142,7 @@ export function isCommandEnabledInConfig(config, commandName, category) {
   return true;
 }
 
-export async function isCommandEnabled(client, guildId, commandName, category = null) {
+export async function isCommandEnabled(client, guildId, commandName, category = null, mode = 'slash') {
   const config = await getGuildConfig(client, guildId);
   let resolvedCategory = category;
 
@@ -151,12 +151,12 @@ export async function isCommandEnabled(client, guildId, commandName, category = 
     resolvedCategory = command?.category || 'Core';
   }
 
-  return isCommandEnabledInConfig(config, commandName, resolvedCategory);
+  return isCommandEnabledInConfig(config, commandName, resolvedCategory, mode);
 }
 
-export function getCommandAccessSnapshot(client, config) {
+export function getCommandAccessSnapshot(client, config, mode = 'slash') {
   const registry = buildCommandRegistry(client);
-  const disabledCommands = normalizeToggleRecord(config?.disabledCommands);
+  const disabledCommands = normalizeToggleRecord(mode === 'prefix' ? config?.disabledPrefixCommands : config?.disabledCommands);
   const disabledCategories = normalizeToggleRecord(config?.disabledCategories);
 
   const categories = [];
@@ -167,7 +167,7 @@ export function getCommandAccessSnapshot(client, config) {
     const disabledCommandNames = [];
 
     for (const command of category.commands) {
-      const enabled = isCommandEnabledInConfig(config, command.name, category.folder);
+      const enabled = isCommandEnabledInConfig(config, command.name, category.folder, mode);
       if (enabled) {
         enabledCommands.push(command.name);
       } else {
@@ -219,7 +219,7 @@ export function resolveCommandTarget(client, commandName) {
   return null;
 }
 
-export async function disableCommand(client, guildId, commandName, context = {}) {
+export async function disableCommand(client, guildId, commandName, context = {}, mode = 'slash') {
   const normalizedName = String(commandName || '').toLowerCase().trim();
   const target = resolveCommandTarget(client, normalizedName);
 
@@ -233,14 +233,15 @@ export async function disableCommand(client, guildId, commandName, context = {})
   }
 
   const config = await getGuildConfig(client, guildId, context);
-  const disabledCommands = normalizeToggleRecord(config?.disabledCommands);
+  const field = mode === 'prefix' ? 'disabledPrefixCommands' : 'disabledCommands';
+  const disabledCommands = normalizeToggleRecord(config?.[field]);
   disabledCommands[normalizedName] = true;
 
-  await persistAccessConfig(client, guildId, { disabledCommands }, context);
+  await persistAccessConfig(client, guildId, { [field]: disabledCommands }, context);
   return { commandName: normalizedName, enabled: false };
 }
 
-export async function enableCommand(client, guildId, commandName, context = {}) {
+export async function enableCommand(client, guildId, commandName, context = {}, mode = 'slash') {
   const normalizedName = String(commandName || '').toLowerCase().trim();
   const target = resolveCommandTarget(client, normalizedName);
 
@@ -249,10 +250,11 @@ export async function enableCommand(client, guildId, commandName, context = {}) 
   }
 
   const config = await getGuildConfig(client, guildId, context);
-  const disabledCommands = normalizeToggleRecord(config?.disabledCommands);
+  const field = mode === 'prefix' ? 'disabledPrefixCommands' : 'disabledCommands';
+  const disabledCommands = normalizeToggleRecord(config?.[field]);
   delete disabledCommands[normalizedName];
 
-  await persistAccessConfig(client, guildId, { disabledCommands }, context);
+  await persistAccessConfig(client, guildId, { [field]: disabledCommands }, context);
   return { commandName: normalizedName, enabled: true };
 }
 
