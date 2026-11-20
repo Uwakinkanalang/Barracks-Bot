@@ -15,175 +15,6 @@ function safeEqual(left, right) {
   const b = Buffer.from(String(right));
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 
-  app.get('/api/dashboard/economy', async (req, res) => {
-    const secret = process.env.DASHBOARD_SESSION_SECRET;
-    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
-    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
-    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
-    try {
-      const rawKeys = await bot.db.list(getEconomyPrefix(guild.id));
-      const keys = Array.isArray(rawKeys) ? rawKeys : Object.keys(rawKeys || {});
-      let walletTotal = 0, bankTotal = 0, users = 0;
-      const top = [];
-      for (const key of keys) {
-        const userId = String(key).split(':').pop();
-        if (!/^\d{17,20}$/.test(userId)) continue;
-        const data = await getEconomyData(bot, guild.id, userId);
-        const wallet = Number(data.wallet) || 0, bank = Number(data.bank) || 0;
-        walletTotal += wallet; bankTotal += bank; users++;
-        top.push({ userId, wallet, bank, total: wallet + bank });
-      }
-      top.sort((a, b) => b.total - a.total);
-      return res.json({ users, walletTotal, bankTotal, total: walletTotal + bankTotal, top: top.slice(0, 15) });
-    } catch (error) {
-      return res.status(500).json({ error: error?.message || 'Could not load economy data.' });
-    }
-  });
-
-  app.post('/api/dashboard/economy/adjust', async (req, res) => {
-    const secret = process.env.DASHBOARD_SESSION_SECRET;
-    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
-    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
-    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
-    const { userId, account, amount, action } = req.body || {};
-    if (!/^\d{17,20}$/.test(String(userId || ''))) return res.status(400).json({ error: 'Enter a valid Discord user ID.' });
-    if (!['wallet', 'bank'].includes(account)) return res.status(400).json({ error: 'Choose wallet or bank.' });
-    const value = Number(amount);
-    if (!Number.isSafeInteger(value) || value < 1 || value > 1000000000) return res.status(400).json({ error: 'Amount must be a whole number from 1 to 1,000,000,000.' });
-    if (!['add', 'remove'].includes(action)) return res.status(400).json({ error: 'Choose add or remove.' });
-    try {
-      const data = await getEconomyData(bot, guild.id, String(userId));
-      const before = Number(data[account]) || 0;
-      const after = action === 'add' ? before + value : before - value;
-      if (!Number.isSafeInteger(after) || after < 0) return res.status(400).json({ error: 'This change would make the balance invalid or negative.' });
-      if (account === 'bank' && after > getMaxBankCapacity(data)) return res.status(400).json({ error: 'This would exceed the member bank capacity.' });
-      data[account] = after;
-      const saved = await setEconomyData(bot, guild.id, String(userId), data);
-      if (!saved) return res.status(500).json({ error: 'Could not save the balance change.' });
-      const logKey = 'global:economy:dashboard_transactions';
-      const existing = await bot.db.get(logKey, []);
-      const entries = Array.isArray(existing) ? existing : [];
-      entries.unshift({ userId: String(userId), account, action, amount: value, before, after, at: Date.now() });
-      await bot.db.set(logKey, entries.slice(0, 200));
-      return res.json({ ok: true, userId: String(userId), account, before, after });
-    } catch (error) {
-      return res.status(500).json({ error: error?.message || 'Could not adjust the member balance.' });
-    }
-  });
-
-  app.get('/api/dashboard/games-activities', async (req, res) => {
-    const secret = process.env.DASHBOARD_SESSION_SECRET;
-    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
-    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
-    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
-    try {
-      const games = await bot.db.get(`guild:${guild.id}:games:config`, {});
-      const counting = await getCountingGameConfig(bot, guild.id);
-      const leveling = await getLevelingConfig(bot, guild.id);
-      const channels = guild.channels.cache.filter(ch => ch.isTextBased?.() && !ch.isThread?.()).map(ch => ({ id: ch.id, name: ch.name })).sort((a,b)=>a.name.localeCompare(b.name));
-      return res.json({
-        games: { dotaEnabled: games.dotaEnabled !== false, dotaReward: Number(games.dotaReward) || 1000, pokemonEnabled: games.pokemonEnabled !== false, pokemonReward: Number(games.pokemonReward) || 1000 },
-        counting: { enabled: counting.enabled, channelId: counting.channelId, system: counting.system, nextNumber: counting.nextNumber, currentStreak: counting.currentStreak, bestStreak: counting.bestStreak },
-        leveling: { enabled: leveling.enabled, xpMin: Number(leveling.xpRange?.min ?? leveling.xpPerMessage?.min ?? 15), xpMax: Number(leveling.xpRange?.max ?? leveling.xpPerMessage?.max ?? 25), xpCooldown: Number(leveling.xpCooldown ?? 60), xpMultiplier: Number(leveling.xpMultiplier ?? 1), voiceXpEnabled: leveling.voiceXpEnabled !== false, voiceXpPerMinute: Number(leveling.voiceXpPerMinute ?? 5) },
-        channels
-      });
-    } catch (error) {
-      return res.status(500).json({ error: error?.message || 'Could not load games and activities.' });
-    }
-  });
-
-  app.put('/api/dashboard/games-activities', async (req, res) => {
-    const secret = process.env.DASHBOARD_SESSION_SECRET;
-    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
-    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
-    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
-    const body = req.body || {};
-    try {
-      if (body.games !== undefined) {
-        const current = await bot.db.get(`guild:${guild.id}:games:config`, {});
-        const next = { ...current };
-        for (const key of ['dotaEnabled', 'pokemonEnabled']) {
-          if (body.games[key] !== undefined) {
-            if (typeof body.games[key] !== 'boolean') return res.status(400).json({ error: key + ' must be true or false.' });
-            next[key] = body.games[key];
-          }
-        }
-        for (const key of ['dotaReward', 'pokemonReward']) {
-          if (body.games[key] !== undefined) {
-            const amount = Number(body.games[key]);
-            if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1000000000) return res.status(400).json({ error: key + ' must be from 1 to 1,000,000,000.' });
-            next[key] = amount;
-          }
-        }
-        await bot.db.set(`guild:${guild.id}:games:config`, next);
-      }
-      if (body.counting !== undefined) {
-        const current = await getCountingGameConfig(bot, guild.id);
-        const next = { ...current };
-        if (body.counting.enabled !== undefined) {
-          if (typeof body.counting.enabled !== 'boolean') return res.status(400).json({ error: 'Counting enabled must be true or false.' });
-          next.enabled = body.counting.enabled;
-        }
-        if (body.counting.channelId !== undefined) {
-          const id = body.counting.channelId ? String(body.counting.channelId) : null;
-          const channel = id ? guild.channels.cache.get(id) : null;
-          if (id && (!channel || !channel.isTextBased?.() || channel.isThread?.())) return res.status(400).json({ error: 'Select a valid text channel for counting.' });
-          next.channelId = id;
-        }
-        if (body.counting.system !== undefined) {
-          if (!['decimal','binary','hexadecimal','base36','base64','roman','math','alphabet'].includes(body.counting.system)) return res.status(400).json({ error: 'Choose a supported counting system.' });
-          next.system = body.counting.system;
-        }
-        await saveCountingGameConfig(bot, guild.id, next);
-      }
-      if (body.leveling !== undefined) {
-        const current = await getLevelingConfig(bot, guild.id);
-        const next = { ...current };
-        if (body.leveling.enabled !== undefined) {
-          if (typeof body.leveling.enabled !== 'boolean') return res.status(400).json({ error: 'Leveling enabled must be true or false.' });
-          next.enabled = body.leveling.enabled;
-        }
-        const min = Number(body.leveling.xpMin ?? next.xpRange?.min ?? next.xpPerMessage?.min ?? 15);
-        const max = Number(body.leveling.xpMax ?? next.xpRange?.max ?? next.xpPerMessage?.max ?? 25);
-        if (!Number.isInteger(min) || !Number.isInteger(max) || min < 1 || max < min || max > 1000) return res.status(400).json({ error: 'Message XP must be whole numbers between 1 and 1,000, with minimum not above maximum.' });
-        next.xpRange = { min, max };
-        if (body.leveling.xpCooldown !== undefined) {
-          const cooldown = Number(body.leveling.xpCooldown);
-          if (!Number.isInteger(cooldown) || cooldown < 0 || cooldown > 3600) return res.status(400).json({ error: 'Message XP cooldown must be between 0 and 3,600 seconds.' });
-          next.xpCooldown = cooldown;
-        }
-        if (body.leveling.xpMultiplier !== undefined) {
-          const multiplier = Number(body.leveling.xpMultiplier);
-          if (!Number.isFinite(multiplier) || multiplier < 0.1 || multiplier > 10) return res.status(400).json({ error: 'XP multiplier must be between 0.1 and 10.' });
-          next.xpMultiplier = multiplier;
-        }
-        if (body.leveling.voiceXpEnabled !== undefined) {
-          if (typeof body.leveling.voiceXpEnabled !== 'boolean') return res.status(400).json({ error: 'Voice XP enabled must be true or false.' });
-          next.voiceXpEnabled = body.leveling.voiceXpEnabled;
-        }
-        if (body.leveling.voiceXpPerMinute !== undefined) {
-          const amount = Number(body.leveling.voiceXpPerMinute);
-          if (!Number.isInteger(amount) || amount < 1 || amount > 100) return res.status(400).json({ error: 'Voice XP per minute must be between 1 and 100.' });
-          next.voiceXpPerMinute = amount;
-        }
-        await saveLevelingConfig(bot, guild.id, next);
-      }
-      return res.json({ ok: true });
-    } catch (error) {
-      return res.status(500).json({ error: error?.message || 'Could not save games and activities settings.' });
-    }
-  });
-
-  app.post('/api/dashboard/games-activities/counting/reset', async (req, res) => {
-    const secret = process.env.DASHBOARD_SESSION_SECRET;
-    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
-    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
-    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
-    const current = await getCountingGameConfig(bot, guild.id);
-    await saveCountingGameConfig(bot, guild.id, { ...current, nextNumber: 1, lastUserId: null, currentStreak: 0 });
-    return res.json({ ok: true });
-  });
-
 }
 
 function sign(value, secret) {
@@ -535,6 +366,175 @@ export function registerDashboardRoutes(app, bot) {
     } catch (error) {
       return res.status(400).json({ error: error?.message || 'The moderation action failed.' });
     }
+  });
+
+  app.get('/api/dashboard/economy', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    try {
+      const rawKeys = await bot.db.list(getEconomyPrefix(guild.id));
+      const keys = Array.isArray(rawKeys) ? rawKeys : Object.keys(rawKeys || {});
+      let walletTotal = 0, bankTotal = 0, users = 0;
+      const top = [];
+      for (const key of keys) {
+        const userId = String(key).split(':').pop();
+        if (!/^\d{17,20}$/.test(userId)) continue;
+        const data = await getEconomyData(bot, guild.id, userId);
+        const wallet = Number(data.wallet) || 0, bank = Number(data.bank) || 0;
+        walletTotal += wallet; bankTotal += bank; users++;
+        top.push({ userId, wallet, bank, total: wallet + bank });
+      }
+      top.sort((a, b) => b.total - a.total);
+      return res.json({ users, walletTotal, bankTotal, total: walletTotal + bankTotal, top: top.slice(0, 15) });
+    } catch (error) {
+      return res.status(500).json({ error: error?.message || 'Could not load economy data.' });
+    }
+  });
+
+  app.post('/api/dashboard/economy/adjust', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const { userId, account, amount, action } = req.body || {};
+    if (!/^\d{17,20}$/.test(String(userId || ''))) return res.status(400).json({ error: 'Enter a valid Discord user ID.' });
+    if (!['wallet', 'bank'].includes(account)) return res.status(400).json({ error: 'Choose wallet or bank.' });
+    const value = Number(amount);
+    if (!Number.isSafeInteger(value) || value < 1 || value > 1000000000) return res.status(400).json({ error: 'Amount must be a whole number from 1 to 1,000,000,000.' });
+    if (!['add', 'remove'].includes(action)) return res.status(400).json({ error: 'Choose add or remove.' });
+    try {
+      const data = await getEconomyData(bot, guild.id, String(userId));
+      const before = Number(data[account]) || 0;
+      const after = action === 'add' ? before + value : before - value;
+      if (!Number.isSafeInteger(after) || after < 0) return res.status(400).json({ error: 'This change would make the balance invalid or negative.' });
+      if (account === 'bank' && after > getMaxBankCapacity(data)) return res.status(400).json({ error: 'This would exceed the member bank capacity.' });
+      data[account] = after;
+      const saved = await setEconomyData(bot, guild.id, String(userId), data);
+      if (!saved) return res.status(500).json({ error: 'Could not save the balance change.' });
+      const logKey = 'global:economy:dashboard_transactions';
+      const existing = await bot.db.get(logKey, []);
+      const entries = Array.isArray(existing) ? existing : [];
+      entries.unshift({ userId: String(userId), account, action, amount: value, before, after, at: Date.now() });
+      await bot.db.set(logKey, entries.slice(0, 200));
+      return res.json({ ok: true, userId: String(userId), account, before, after });
+    } catch (error) {
+      return res.status(500).json({ error: error?.message || 'Could not adjust the member balance.' });
+    }
+  });
+
+  app.get('/api/dashboard/games-activities', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    try {
+      const games = await bot.db.get(`guild:${guild.id}:games:config`, {});
+      const counting = await getCountingGameConfig(bot, guild.id);
+      const leveling = await getLevelingConfig(bot, guild.id);
+      const channels = guild.channels.cache.filter(ch => ch.isTextBased?.() && !ch.isThread?.()).map(ch => ({ id: ch.id, name: ch.name })).sort((a,b)=>a.name.localeCompare(b.name));
+      return res.json({
+        games: { dotaEnabled: games.dotaEnabled !== false, dotaReward: Number(games.dotaReward) || 1000, pokemonEnabled: games.pokemonEnabled !== false, pokemonReward: Number(games.pokemonReward) || 1000 },
+        counting: { enabled: counting.enabled, channelId: counting.channelId, system: counting.system, nextNumber: counting.nextNumber, currentStreak: counting.currentStreak, bestStreak: counting.bestStreak },
+        leveling: { enabled: leveling.enabled, xpMin: Number(leveling.xpRange?.min ?? leveling.xpPerMessage?.min ?? 15), xpMax: Number(leveling.xpRange?.max ?? leveling.xpPerMessage?.max ?? 25), xpCooldown: Number(leveling.xpCooldown ?? 60), xpMultiplier: Number(leveling.xpMultiplier ?? 1), voiceXpEnabled: leveling.voiceXpEnabled !== false, voiceXpPerMinute: Number(leveling.voiceXpPerMinute ?? 5) },
+        channels
+      });
+    } catch (error) {
+      return res.status(500).json({ error: error?.message || 'Could not load games and activities.' });
+    }
+  });
+
+  app.put('/api/dashboard/games-activities', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const body = req.body || {};
+    try {
+      if (body.games !== undefined) {
+        const current = await bot.db.get(`guild:${guild.id}:games:config`, {});
+        const next = { ...current };
+        for (const key of ['dotaEnabled', 'pokemonEnabled']) {
+          if (body.games[key] !== undefined) {
+            if (typeof body.games[key] !== 'boolean') return res.status(400).json({ error: key + ' must be true or false.' });
+            next[key] = body.games[key];
+          }
+        }
+        for (const key of ['dotaReward', 'pokemonReward']) {
+          if (body.games[key] !== undefined) {
+            const amount = Number(body.games[key]);
+            if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1000000000) return res.status(400).json({ error: key + ' must be from 1 to 1,000,000,000.' });
+            next[key] = amount;
+          }
+        }
+        await bot.db.set(`guild:${guild.id}:games:config`, next);
+      }
+      if (body.counting !== undefined) {
+        const current = await getCountingGameConfig(bot, guild.id);
+        const next = { ...current };
+        if (body.counting.enabled !== undefined) {
+          if (typeof body.counting.enabled !== 'boolean') return res.status(400).json({ error: 'Counting enabled must be true or false.' });
+          next.enabled = body.counting.enabled;
+        }
+        if (body.counting.channelId !== undefined) {
+          const id = body.counting.channelId ? String(body.counting.channelId) : null;
+          const channel = id ? guild.channels.cache.get(id) : null;
+          if (id && (!channel || !channel.isTextBased?.() || channel.isThread?.())) return res.status(400).json({ error: 'Select a valid text channel for counting.' });
+          next.channelId = id;
+        }
+        if (body.counting.system !== undefined) {
+          if (!['decimal','binary','hexadecimal','base36','base64','roman','math','alphabet'].includes(body.counting.system)) return res.status(400).json({ error: 'Choose a supported counting system.' });
+          next.system = body.counting.system;
+        }
+        await saveCountingGameConfig(bot, guild.id, next);
+      }
+      if (body.leveling !== undefined) {
+        const current = await getLevelingConfig(bot, guild.id);
+        const next = { ...current };
+        if (body.leveling.enabled !== undefined) {
+          if (typeof body.leveling.enabled !== 'boolean') return res.status(400).json({ error: 'Leveling enabled must be true or false.' });
+          next.enabled = body.leveling.enabled;
+        }
+        const min = Number(body.leveling.xpMin ?? next.xpRange?.min ?? next.xpPerMessage?.min ?? 15);
+        const max = Number(body.leveling.xpMax ?? next.xpRange?.max ?? next.xpPerMessage?.max ?? 25);
+        if (!Number.isInteger(min) || !Number.isInteger(max) || min < 1 || max < min || max > 1000) return res.status(400).json({ error: 'Message XP must be whole numbers between 1 and 1,000, with minimum not above maximum.' });
+        next.xpRange = { min, max };
+        if (body.leveling.xpCooldown !== undefined) {
+          const cooldown = Number(body.leveling.xpCooldown);
+          if (!Number.isInteger(cooldown) || cooldown < 0 || cooldown > 3600) return res.status(400).json({ error: 'Message XP cooldown must be between 0 and 3,600 seconds.' });
+          next.xpCooldown = cooldown;
+        }
+        if (body.leveling.xpMultiplier !== undefined) {
+          const multiplier = Number(body.leveling.xpMultiplier);
+          if (!Number.isFinite(multiplier) || multiplier < 0.1 || multiplier > 10) return res.status(400).json({ error: 'XP multiplier must be between 0.1 and 10.' });
+          next.xpMultiplier = multiplier;
+        }
+        if (body.leveling.voiceXpEnabled !== undefined) {
+          if (typeof body.leveling.voiceXpEnabled !== 'boolean') return res.status(400).json({ error: 'Voice XP enabled must be true or false.' });
+          next.voiceXpEnabled = body.leveling.voiceXpEnabled;
+        }
+        if (body.leveling.voiceXpPerMinute !== undefined) {
+          const amount = Number(body.leveling.voiceXpPerMinute);
+          if (!Number.isInteger(amount) || amount < 1 || amount > 100) return res.status(400).json({ error: 'Voice XP per minute must be between 1 and 100.' });
+          next.voiceXpPerMinute = amount;
+        }
+        await saveLevelingConfig(bot, guild.id, next);
+      }
+      return res.json({ ok: true });
+    } catch (error) {
+      return res.status(500).json({ error: error?.message || 'Could not save games and activities settings.' });
+    }
+  });
+
+  app.post('/api/dashboard/games-activities/counting/reset', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const current = await getCountingGameConfig(bot, guild.id);
+    await saveCountingGameConfig(bot, guild.id, { ...current, nextNumber: 1, lastUserId: null, currentStreak: 0 });
+    return res.json({ ok: true });
   });
 
 }
