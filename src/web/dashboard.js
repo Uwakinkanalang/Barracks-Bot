@@ -692,9 +692,9 @@ export function registerDashboardRoutes(app, bot) {
     const existing = entries.find(entry => entry.roleId === role.id);
     if (existing) {
       existing.prefix = String(tag) + '|';
-      existing.priority = 20;
+      existing.priority = 1000;
     } else {
-      entries.push({ roleId: role.id, prefix: String(tag) + '|', priority: 20 });
+      entries.push({ roleId: role.id, prefix: String(tag) + '|', priority: 1000 });
     }
     entries.sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
     await setInDb(key, entries);
