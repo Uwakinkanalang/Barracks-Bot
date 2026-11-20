@@ -5,6 +5,7 @@ import { getEconomyData, setEconomyData } from '../utils/economy.js';
 export const LOTTO_PRICE = 20000;
 export const LOTTO_STARTING_JACKPOT = 1000000;
 const DRAW_INTERVAL = 24 * 60 * 60 * 1000;
+const LOTTO_ANNOUNCEMENT_CHANNEL_ID = '1573015325174268015';
 const keyFor = guildId => `guild:${guildId}:barracksLotto`;
 const locks = new Set();
 
@@ -32,7 +33,6 @@ export function buildLottoPanel(state) {
       { name: '🎟️ Total Entries', value: String(state.tickets?.length || 0), inline: true },
       { name: '⏰ Next Draw', value: `${hours}h ${minutes}m`, inline: true },
     )
-    .setFooter({ text: 'BARRACKS • LOTTO PANEL V2 • Good luck, soldier!' })
     .setTimestamp();
   if (bannerUrl) embed.setImage(bannerUrl);
   const row = new ActionRowBuilder().addComponents(
@@ -84,6 +84,26 @@ async function settleDraw(client, guildId, state) {
   state.jackpotBaseInitialized = true;
   state.nextDrawAt = Date.now() + DRAW_INTERVAL;
   await save(client, guildId, state);
+
+  // Announce the result in the dedicated Barracks Lotto announcement channel.
+  try {
+    const announcementChannel = await client.channels.fetch(LOTTO_ANNOUNCEMENT_CHANNEL_ID).catch(() => null);
+    if (announcementChannel?.isTextBased()) {
+      const latestWinner = state.winners[0];
+      const announcement = latestWinner?.winnerId
+        ? `🏆 **BARRACKS LOTTO WINNER!**\\n\\n🎖️ Congratulations, <@${latestWinner.winnerId}>!\\n\\nYou're today's lucky soldier! You've won **₱${Number(latestWinner.prize).toLocaleString()} bCash**!\\n\\nYour prize has been credited to your wallet. Enjoy your winnings, soldier!`
+        : '🎟️ **BARRACKS LOTTO DRAW COMPLETE!**\\n\\nNo tickets were entered this round. The next draw starts with the **₱1,000,000 bCash** starting jackpot.';
+      await announcementChannel.send({
+        content: announcement,
+        allowedMentions: { users: latestWinner?.winnerId ? [latestWinner.winnerId] : [] },
+      });
+    } else {
+      console.error('[LOTTO] Announcement channel is unavailable or is not text-based.');
+    }
+  } catch (error) {
+    console.error('[LOTTO] Winner announcement failed:', error);
+  }
+
   await refreshPanel(client, guildId, state);
 }
 export async function runLottoDraws(client) {
