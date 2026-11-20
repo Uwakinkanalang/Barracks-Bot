@@ -448,6 +448,7 @@ async function handlePrefixCommand(message, client) {
     const bareBgiveMatch = trimmedContent.match(/^bgive(?:\s+([\s\S]+))?$/i);
     const bareMinesMatch = trimmedContent.match(/^bmines?(?:\s+([\s\S]+))?$/i);
     const bareCashMatch = trimmedContent.match(/^bcash(?:\s+([\s\S]+))?$/i);
+    const bareRobMatch = trimmedContent.match(/^brob(?:\s+([\s\S]+))?$/i);
     const bareBlackjackMatch = trimmedContent.match(/^bbj(?:\s+([\s\S]+))?$/i);
     const bareSlotsMatch = trimmedContent.match(/^bslot(?:\s+([\s\S]+))?$/i);
     const bareMemoryMatch = trimmedContent.match(/^bmem(?:\s+([\s\S]+))?$/i);
@@ -480,6 +481,8 @@ async function handlePrefixCommand(message, client) {
         })()
       : bareMinesMatch
       ? { commandName: 'bmine', args: bareMinesMatch[1] ? bareMinesMatch[1].trim().split(/\s+/) : [] }
+      : bareRobMatch
+        ? { commandName: 'rob', args: bareRobMatch[1] ? bareRobMatch[1].trim().split(/\s+/) : [] }
       : bareCashMatch
         ? { commandName: 'balance', args: bareCashMatch[1] ? bareCashMatch[1].trim().split(/\s+/) : [] }
         : bareBlackjackMatch
