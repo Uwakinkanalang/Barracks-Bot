@@ -20,6 +20,7 @@ import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
 import { getNicknamePrefix } from '../commands/Economy/nickname.js';
+import { getAFKKey } from '../utils/database.js';
 import { getItems as getBShopItems, getColorItems as getBShopColorItems, getBoosterColorItems as getBShopBoosterColorItems, buildColorShopPage, buildBoosterColorShopPage } from '../commands/Economy/roleshop.js';
 import { getEconomyData, getMaxBankCapacity, setEconomyData, removeMoney, addMoney } from '../utils/economy.js';
 import { getClanShopItems, buildClanShopPage } from '../commands/Economy/clanshop.js';
@@ -40,6 +41,57 @@ const COMMAND_ERROR_SUBTYPES = {
   gdelete: 'giveaway_failed',
   greroll: 'giveaway_failed',
 };
+
+async function applyHighestPriorityAutoNick(member) {
+  const { client, guild } = member;
+  const key = `guild:${guild.id}:autonick_roles`;
+  const stored = await client.db.get(key, []);
+  const configs = (Array.isArray(stored) ? stored : [])
+    .filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
+    .map(entry => ({ ...entry, priority: Number(entry.priority) || 0 }))
+    .sort((a, b) => b.priority - a.priority);
+  const active = configs.find(entry => member.roles.cache.has(entry.roleId)) || null;
+  const stateKey = `guild:${guild.id}:autonick_member:${member.id}`;
+  const state = await client.db.get(stateKey, null);
+  const prefixes = [...new Set(configs.map(entry => entry.prefix.trim()).filter(Boolean))]
+    .sort((a, b) => b.length - a.length);
+
+  let base = typeof state?.originalNickname === 'string'
+    ? state.originalNickname
+    : (member.nickname ?? member.user.globalName ?? member.user.username);
+  base = String(base).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+  let matched;
+  do {
+    matched = prefixes.find(prefix => base.startsWith(prefix));
+    if (matched) base = base.slice(matched.length).trimStart();
+  } while (matched);
+  if (!base.trim()) base = member.user.globalName || member.user.username;
+
+  let desired;
+  if (active) {
+    await client.db.set(stateKey, { originalNickname: base, savedAt: state?.savedAt || Date.now() });
+    desired = `${active.prefix.trim()} ${base}`.slice(0, 32);
+  } else if (state) {
+    desired = base || null;
+    await client.db.delete(stateKey).catch(() => {});
+  } else {
+    // No AutoNick configuration applies; preserve the normal nickname-prefix system.
+    const normalPrefix = await getNicknamePrefix(member, client, guild.id);
+    desired = `${normalPrefix}${base}`.slice(0, 32) || null;
+  }
+
+  const afkKey = getAFKKey(guild.id, member.id);
+  const afk = await client.db.get(afkKey, null);
+  if (afk) {
+    afk.originalNickname = desired;
+    afk.afkNickname = desired ? `[AFK] ${desired}`.slice(0, 32) : null;
+    await client.db.set(afkKey, afk);
+    desired = afk.afkNickname;
+  }
+  if (member.nickname !== desired) {
+    await member.setNickname(desired, 'Apply highest-priority AutoNick after clan membership change');
+  }
+}
 
 async function registerClanAutoNick(client, guildId, roleId, tag) {
   const key = `guild:${guildId}:autonick_roles`;
@@ -704,13 +756,9 @@ export default {
                 if (String(clan.viceLeaderId || '') === interaction.user.id) clan.viceLeaderId = null;
               }
               await interaction.client.db.set(storageKey, clanList);
-              let baseName = member.nickname || member.user.username;
-              for (const clan of memberships) {
-                const tagPrefix = `${clan.tag} `;
-                if (baseName.startsWith(tagPrefix)) baseName = baseName.slice(tagPrefix.length).trim();
-              }
-              const prefix = await getNicknamePrefix(member, interaction.client, interaction.guildId);
-              await member.setNickname(`${prefix}${baseName}`.slice(0, 32), 'Left Barracks clan').catch(() => {});
+              await applyHighestPriorityAutoNick(member).catch(error => {
+                logger.warn(`Could not apply highest-priority AutoNick for ${member.id} after leaving clan: ${error.message}`);
+              });
               const leftNames = memberships.map(clan => `**${clan.name} [${clan.tag}]**`).join(', ');
               await interaction.update({ content: `✅ You have left ${leftNames}. Your clan role(s) and clan nickname tag(s) have been removed.`, embeds: [], components: [] });
               return;
@@ -848,9 +896,8 @@ export default {
                 return;
               }
               await applicant.roles.add(role, `Accepted into clan ${clan.name}`);
-              const baseName = applicant.displayName.replace(/^\\S{1,6}\\s+/, '').trim() || applicant.user.username;
-              await applicant.setNickname(`${clan.tag} ${baseName}`.slice(0, 32), `Joined clan ${clan.name}`).catch(error => {
-                logger.warn(`Could not update clan nickname for ${applicantId}: ${error.message}`);
+              await applyHighestPriorityAutoNick(applicant).catch(error => {
+                logger.warn(`Could not apply highest-priority AutoNick for ${applicantId} after joining clan: ${error.message}`);
               });
               clan.memberIds = [...new Set([...(clan.memberIds || []), applicantId])];
               requests[requestIndex].status = 'accepted';
