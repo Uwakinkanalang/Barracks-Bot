@@ -26,19 +26,13 @@ export default {
         const guildId = interaction.guildId;
 
         logger.info(`[ECONOMY] Balance check - userOption: ${userOption?.id || 'null'}, targetUser: ${targetUser.id}, guildId: ${guildId}, isPrefix: ${!!interaction._commandStartTime}`);
-
         logger.debug(`[ECONOMY] Balance check for ${targetUser.id}`, { userId: targetUser.id, guildId });
 
         if (targetUser.bot) {
-            throw createError(
-                "Bot user queried for balance",
-                ErrorTypes.VALIDATION,
-                "Bots don't have an economy balance."
-            );
+            throw createError("Bot user queried for balance", ErrorTypes.VALIDATION, "Bots don't have an economy balance.");
         }
 
         const userData = await getEconomyData(client, guildId, targetUser.id);
-
         logger.info(`[ECONOMY] Economy data retrieved - userData:`, userData);
 
         if (!userData) {
@@ -69,34 +63,17 @@ export default {
         })
             .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
             .addFields(
-                {
-                    name: "💵 Cash",
-                    value: `₱${wallet.toLocaleString()}`,
-                    inline: true,
-                },
-                {
-                    name: "🏦 Bank",
-                    value: `₱${bank.toLocaleString()}`,
-                    inline: true,
-                },
-                {
-                    name: "📊 Bank Limit",
-                    value: `₱${bank.toLocaleString()} / ₱${bankLimit.toLocaleString()}`,
-                    inline: false,
-                },
-                {
-                    name: "💰 Total",
-                    value: `₱${(wallet + bank).toLocaleString()}`,
-                    inline: true,
-                }
+                { name: "💵 Cash", value: `₱${wallet.toLocaleString()}`, inline: true },
+                { name: "🏦 Bank", value: `₱${bank.toLocaleString()}`, inline: true },
+                { name: "📊 Bank Limit", value: `₱${bankLimit.toLocaleString()}`, inline: true },
+                { name: "💰 Total", value: `₱${(wallet + bank).toLocaleString()}`, inline: true }
             )
             .setFooter({
                 text: `Requested by ${interaction.user.tag}`,
                 iconURL: interaction.user.displayAvatarURL(),
             });
 
-        logger.info(`[ECONOMY] Balance retrieved`, { userId: targetUser.id, wallet, bank });
-
+        logger.info(`[ECONOMY] Balance retrieved`, { userId: targetUser.id, wallet, bank, bankLimit });
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'balance' })
 };
