@@ -88,8 +88,8 @@ export default {
       const panelEmbed = new EmbedBuilder()
         .setColor(0x5865F2)
         .setTitle('⚔️ BARRACKS CLAN HQ')
-        .setDescription('Create your own squad, apply to join an approved clan, or leave your current clan.\\n\\n**➕ Create a Clan** — Register your own clan and become its leader.\\n**🛡️ Join a Clan** — Browse approved clans and send a membership application.\\n**🚪 Leave a Clan** — Leave your current clan after confirmation.')
-        .addFields({ name: '📜 Clan Guidelines', value: '• One clan per member.\\n• Clan creation requires staff approval.\\n• Join requests must be accepted by clan leadership.\\n• Clan Leaders must transfer leadership or remove their clan before leaving.' })
+        .setDescription('Create your own squad, apply to join an approved clan, or leave your current clan.\n\n**➕ Create a Clan** — Register your own clan and become its leader.\n**🛡️ Join a Clan** — Browse approved clans and send a membership application.\n**🚪 Leave a Clan** — Leave your current clan after confirmation.')
+        .addFields({ name: '📜 Clan Guidelines', value: '• One clan per member.\n• Clan creation requires staff approval.\n• Join requests must be accepted by clan leadership.\n• Clan Leaders must transfer leadership or remove their clan before leaving.' })
         .setFooter({ text: 'Barracks • Clan Registry' });
       const panelRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('clan:create').setLabel('Create a Clan').setEmoji('🏰').setStyle(ButtonStyle.Success),
@@ -159,7 +159,7 @@ export default {
         const rosterEmbed = new EmbedBuilder()
           .setColor(Number.parseInt((clan.roleHex || '#5865F2').replace('#', ''), 16))
           .setTitle(`🏰 ${clan.name} [${clan.tag}] — Members`)
-          .setDescription(roster.join('\\n'))
+          .setDescription(roster.join('\n'))
           .setFooter({ text: `Total roster: ${memberIds.length + 2} • Barracks Clan Registry` });
         return interaction.reply({ embeds: [rosterEmbed], flags: MessageFlags.Ephemeral });
       }
