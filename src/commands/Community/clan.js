@@ -51,7 +51,7 @@ export default {
       subcommand
         .setName('members')
         .setDescription('View your clan membership roster')
-    ),
+    )
     .addSubcommand(subcommand =>
       subcommand.setName('bank').setDescription('View your clan bank balance')
     )
