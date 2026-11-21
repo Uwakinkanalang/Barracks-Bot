@@ -93,6 +93,19 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 <style id="levelingDashboardPolish">
 .lvl-page{padding-bottom:30px}.lvl-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin:4px 0 20px}.lvl-eyebrow{font-size:11px;font-weight:800;letter-spacing:1.6px;color:#c3f36b;margin-bottom:8px}.lvl-heading h1{font-size:30px;line-height:1.15;margin:0 0 8px;color:#f3f5f2}.lvl-heading p{color:#aeb7b0;margin:0;font-size:14px;line-height:1.55}.lvl-secondary{white-space:nowrap;border:1px solid #46534a;background:#202a23;color:#e7eee8;border-radius:9px;padding:10px 14px;cursor:pointer}.lvl-status-banner{display:flex;align-items:center;gap:12px;padding:15px 17px;border:1px solid #3b4b3e;background:#1b261e;border-radius:12px;margin-bottom:16px}.lvl-status-dot{width:10px;height:10px;border-radius:50%;background:#7b8580;box-shadow:0 0 0 4px #7b85801c}.lvl-status-banner.is-on .lvl-status-dot{background:#c3f36b;box-shadow:0 0 0 4px #c3f36b20}.lvl-status-banner b,.lvl-status-banner small{display:block}.lvl-status-banner b{font-size:14px;color:#eef3ed}.lvl-status-banner small{font-size:12px;color:#aab6ac;margin-top:3px}.lvl-status-spacer{flex:1}.lvl-switch{position:relative;display:inline-flex;cursor:pointer}.lvl-switch input{position:absolute;opacity:0;width:1px;height:1px}.lvl-switch span{width:44px;height:25px;border-radius:30px;background:#4a554d;transition:.18s;position:relative}.lvl-switch span:after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#f4f6f3;transition:.18s}.lvl-switch input:checked+span{background:#88b94c}.lvl-switch input:checked+span:after{transform:translateX(19px)}.lvl-switch input:focus-visible+span{outline:2px solid #c3f36b;outline-offset:3px}.lvl-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;align-items:start}.lvl-card{padding:20px;min-width:0}.lvl-card-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:17px}.lvl-icon{width:40px;height:40px;border-radius:10px;background:#2a382e;display:grid;place-items:center;font-size:19px;flex:none}.lvl-card-head h2{font-size:17px;margin:1px 0 5px}.lvl-card-head p{font-size:12px;color:#aab5ac;margin:0;line-height:1.5}.lvl-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.lvl-fields label,.lvl-field{display:flex;flex-direction:column;gap:7px;color:#d4ddd5;font-size:12px;font-weight:650}.lvl-fields label small,.lvl-field small,.lvl-check-row small{display:block;color:#8f9c92;font-size:11px;font-weight:400;line-height:1.45}.lvl-fields input,.lvl-field input,.lvl-field select{width:100%;box-sizing:border-box;background:#111914;border:1px solid #3b4940;border-radius:8px;color:#eef2ee;padding:10px;font:inherit;min-width:0}.lvl-field{margin-top:14px}.lvl-field select[multiple]{min-height:125px;padding:6px}.lvl-field select option{padding:5px}.lvl-check-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px;border:1px solid #344137;background:#17201a;border-radius:9px;margin:12px 0}.lvl-check-row b{display:block;font-size:13px;color:#e8eee8;margin-bottom:3px}.lvl-check-row input{width:18px;height:18px;accent-color:#c3f36b;flex:none}.lvl-preview{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #344137;margin-top:16px;padding-top:13px;color:#aab5ac;font-size:12px}.lvl-preview b{font-size:15px;color:#c3f36b}.lvl-message-preview{background:#141c17;border:1px solid #344137;border-radius:9px;padding:11px 12px;margin-top:13px}.lvl-message-preview small{font-size:9px;letter-spacing:1px;color:#92a092;font-weight:800}.lvl-message-preview p{margin:6px 0 0;color:#e0e8e0;font-size:12px;overflow-wrap:anywhere}.lvl-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:16px;padding:16px 18px;border:1px solid #3b4b3e;background:#1b261e;border-radius:12px}.lvl-footer b,.lvl-footer small{display:block}.lvl-footer b{font-size:13px;color:#edf2ed}.lvl-footer small{font-size:11px;color:#aab6ac;margin-top:4px}.lvl-save{background:#c3f36b;color:#152015;border:0;border-radius:8px;padding:11px 16px;font-weight:800;cursor:pointer;white-space:nowrap}.lvl-save:disabled{opacity:.55;cursor:wait}@media(max-width:800px){.lvl-grid{grid-template-columns:1fr}}@media(max-width:520px){.lvl-heading{flex-direction:column}.lvl-heading h1{font-size:25px}.lvl-fields{grid-template-columns:1fr}.lvl-footer{align-items:stretch;flex-direction:column}.lvl-save{width:100%}}
 </style>
+
+<style id="levelingAnnouncementSideBySide">
+.lvl-announcement-card{grid-column:1/-1}
+.lvl-announcement-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:22px;align-items:start}
+.lvl-announcement-settings,.lvl-announcement-preview{min-width:0}
+.lvl-announcement-preview{position:sticky;top:18px;padding:16px;background:#141c17;border:1px solid #344137;border-radius:11px}
+.lvl-preview-heading{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.lvl-preview-heading span{font-size:11px;font-weight:850;letter-spacing:1px;color:#d0f28f}
+.lvl-preview-heading small{font-size:12px;color:#aab6ac}
+.lvl-announcement-preview .lvl-message-preview{margin-top:0;padding:0;background:transparent;border:0}
+.lvl-announcement-preview .lvl-discord-preview{margin-top:0}
+@media(max-width:900px){.lvl-announcement-layout{grid-template-columns:minmax(0,1fr)}.lvl-announcement-preview{position:static}}
+</style>
 <style id="levelingReadableTextFix">
 /* Stronger text hierarchy and contrast for the Leveling page */
 .lvl-page{font-size:15px;color:#f0f4f0}
@@ -295,20 +308,28 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
    <div class="lvl-fields"><label>Minimum XP<input id="lvlMin" type="number" min="1" max="1000" step="1"></label><label>Maximum XP<input id="lvlMax" type="number" min="1" max="1000" step="1"></label><label>Message cooldown <small>Seconds between XP awards</small><input id="lvlCooldown" type="number" min="0" max="3600" step="1"></label><label>XP multiplier <small>Overall message XP multiplier</small><input id="lvlMultiplier" type="number" min="0.1" max="10" step="0.1"></label></div>
    <div class="lvl-preview"><span>Typical message reward</span><b id="lvlXpPreview">— XP</b></div>
   </section>
-  <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">📣</span><div><h2>Level-up announcements</h2><p>Choose where and how the bot celebrates new levels.</p></div></div>
-   <label class="lvl-check-row"><span><b>Announce level-ups</b><small>Send a message when a member reaches a new level.</small></span><input id="lvlAnnounce" type="checkbox"></label>
-   <label class="lvl-field">Announcement channel<select id="lvlChannel"><option value="">Use default channel</option></select></label>
-   <div class="lvl-embed-editor">
-    <label class="lvl-field">Message content<textarea id="lvlMessage" maxlength="2000" rows="2" placeholder="{user}"></textarea><small>Text sent above the embed. Placeholders: {user}, {username}, {rank}, {level}, {totalXp}.</small></label>
-    <label class="lvl-field">Embed color<div class="lvl-color-row"><input id="lvlEmbedColor" type="color" value="#36393f"><span id="lvlEmbedColorValue">#36393F</span></div></label>
-    <label class="lvl-field">Author<input id="lvlEmbedAuthor" maxlength="256" placeholder="Author name"></label>
-    <label class="lvl-field">Title<input id="lvlEmbedTitle" maxlength="256" placeholder="Title of the embed"></label>
-    <label class="lvl-field">Thumbnail URL<input id="lvlEmbedThumbnail" type="url" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
-    <label class="lvl-field">Description<textarea id="lvlEmbedDescription" maxlength="4096" rows="8" placeholder="Description of the embed"></textarea></label>
-    <label class="lvl-field">Footer text<input id="lvlEmbedFooter" maxlength="2048" placeholder="Footer text"></label>
-    <label class="lvl-field">Footer icon URL<input id="lvlEmbedFooterIcon" type="url" maxlength="500" placeholder="https://example.com/footer-icon.png"></label>
+  <section class="card lvl-card lvl-announcement-card">
+   <div class="lvl-announcement-layout">
+    <div class="lvl-announcement-settings">
+     <div class="lvl-card-head"><span class="lvl-icon">📣</span><div><h2>Level-up announcements</h2><p>Choose where and how the bot celebrates new levels.</p></div></div>
+     <label class="lvl-check-row"><span><b>Announce level-ups</b><small>Send a message when a member reaches a new level.</small></span><input id="lvlAnnounce" type="checkbox"></label>
+     <label class="lvl-field">Announcement channel<select id="lvlChannel"><option value="">Use default channel</option></select></label>
+     <div class="lvl-embed-editor">
+      <label class="lvl-field">Message content<textarea id="lvlMessage" maxlength="2000" rows="2" placeholder="{user}"></textarea><small>Text sent above the embed. Placeholders: {user}, {username}, {rank}, {level}, {totalXp}.</small></label>
+      <label class="lvl-field">Embed color<div class="lvl-color-row"><input id="lvlEmbedColor" type="color" value="#36393f"><span id="lvlEmbedColorValue">#36393F</span></div></label>
+      <label class="lvl-field">Author<input id="lvlEmbedAuthor" maxlength="256" placeholder="Author name"></label>
+      <label class="lvl-field">Title<input id="lvlEmbedTitle" maxlength="256" placeholder="Title of the embed"></label>
+      <label class="lvl-field">Thumbnail URL<input id="lvlEmbedThumbnail" type="url" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
+      <label class="lvl-field">Description<textarea id="lvlEmbedDescription" maxlength="4096" rows="8" placeholder="Description of the embed"></textarea></label>
+      <label class="lvl-field">Footer text<input id="lvlEmbedFooter" maxlength="2048" placeholder="Footer text"></label>
+      <label class="lvl-field">Footer icon URL<input id="lvlEmbedFooterIcon" type="url" maxlength="500" placeholder="https://example.com/footer-icon.png"></label>
+     </div>
+    </div>
+    <aside class="lvl-announcement-preview">
+     <div class="lvl-preview-heading"><span>LIVE PREVIEW</span><small>Discord message appearance</small></div>
+     <div class="lvl-message-preview"><div id="lvlEmbedPreview" class="lvl-discord-preview"><div class="lvl-preview-content" id="lvlPreviewContent"></div><div class="lvl-preview-embed" id="lvlPreviewEmbed"><div class="lvl-preview-main"><div id="lvlPreviewAuthor"></div><div id="lvlPreviewTitle"></div><div id="lvlPreviewDescription"></div><div id="lvlPreviewFooter"></div></div><img id="lvlPreviewThumbnail" alt="Embed thumbnail" hidden></div></div></div>
+    </aside>
    </div>
-   <div class="lvl-message-preview"><small>EMBED PREVIEW</small><div id="lvlEmbedPreview" class="lvl-discord-preview"><div class="lvl-preview-content" id="lvlPreviewContent"></div><div class="lvl-preview-embed" id="lvlPreviewEmbed"><div class="lvl-preview-main"><div id="lvlPreviewAuthor"></div><div id="lvlPreviewTitle"></div><div id="lvlPreviewDescription"></div><div id="lvlPreviewFooter"></div></div><img id="lvlPreviewThumbnail" alt="Embed thumbnail" hidden></div></div></div>
   </section>
   <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🎙️</span><div><h2>Voice XP</h2><p>Reward members for spending time in voice channels.</p></div></div>
    <label class="lvl-check-row"><span><b>Enable voice XP</b><small>Allow members to earn XP while in voice.</small></span><input id="lvlVoiceEnabled" type="checkbox"></label>
