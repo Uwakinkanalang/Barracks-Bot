@@ -387,9 +387,15 @@ export function registerDashboardRoutes(app, bot) {
     try {
       await guild.roles.fetch();
       const stored = await getFromDb(autoNickRulesKey(guild.id), []);
-      const rules = (Array.isArray(stored) ? stored : []).map(rule => ({
-        ...rule, roleName: rule.roleId ? (guild.roles.cache.get(rule.roleId)?.name || 'Deleted role') : null
+      const slashStored = await getFromDb(`guild:${guild.id}:autonick_roles`, []);
+      const dashboardRules = (Array.isArray(stored) ? stored : []).map(rule => ({
+        ...rule, source: 'dashboard', roleName: rule.roleId ? (guild.roles.cache.get(rule.roleId)?.name || 'Deleted role') : null
       }));
+      const slashRules = (Array.isArray(slashStored) ? slashStored : []).map(rule => ({
+        id: `slash-role:${rule.roleId}`, nickname: rule.prefix, format: 'none', type: 'role', roleId: rule.roleId,
+        priority: Number(rule.priority) || 0, source: 'slash', roleName: guild.roles.cache.get(rule.roleId)?.name || 'Deleted role'
+      }));
+      const rules = [...dashboardRules, ...slashRules];
       const roles = guild.roles.cache.filter(role => role.id !== guild.id && !role.managed)
         .sort((a,b)=>b.position-a.position).map(role=>({id:role.id,name:role.name}));
       return res.json({ rules, roles });
@@ -418,9 +424,19 @@ export function registerDashboardRoutes(app, bot) {
   app.delete('/api/dashboard/autonick/:ruleId', async (req, res) => {
     const guild = requireDashboardGuild(req, res); if (!guild) return;
     try {
+      const requestedId = String(req.params.ruleId || '');
+      if (requestedId.startsWith('slash-role:')) {
+        const roleId = requestedId.slice('slash-role:'.length);
+        const slashRules = await getFromDb(`guild:${guild.id}:autonick_roles`, []);
+        const slashList = Array.isArray(slashRules) ? slashRules : [];
+        const slashNext = slashList.filter(rule => rule.roleId !== roleId);
+        if (slashNext.length === slashList.length) return res.status(404).json({ error: 'AutoNick role rule not found.' });
+        await setInDb(`guild:${guild.id}:autonick_roles`, slashNext);
+        return res.json({ ok: true });
+      }
       const rules = await getFromDb(autoNickRulesKey(guild.id), []);
       const list = Array.isArray(rules) ? rules : [];
-      const next = list.filter(rule => rule.id !== String(req.params.ruleId || ''));
+      const next = list.filter(rule => rule.id !== requestedId);
       if (next.length === list.length) return res.status(404).json({ error: 'AutoNick rule not found.' });
       await setInDb(autoNickRulesKey(guild.id), next);
       return res.json({ ok: true });
