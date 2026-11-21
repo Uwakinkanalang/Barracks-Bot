@@ -265,37 +265,111 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 <div id="routeView" style="display:none"><div class="welcome"><div><h1 id="routeTitle">Dashboard</h1><p class="sub" id="routeDescription">Manage your server.</p></div></div><div id="welcomePanel" style="display:none;max-width:1100px;margin:0 0 24px">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><h2 style="font-size:18px;margin:0">Member Messages</h2><p class="sub">Configure join and departure announcements.</p></div></div>
   <div id="welcomeStatus" class="notice" style="margin:18px 0">Loading settings…</div>
-  <div id="welcomeSettingsPage" class="announcement-layout" style="display:none">
-   <div class="card">
-    <h2 style="font-size:15px;margin-top:0">👋 Welcome settings</h2>
-    <label class="metric-note">Welcome channel</label><select id="welcomeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
-    <label class="metric-note">Welcome message</label><textarea id="welcomeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
-    <label class="metric-note">Welcome image URL</label><input id="welcomeImage" type="url" placeholder="https://..." style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px">
-    <label style="display:block;margin:8px 0"><input id="welcomeEnabled" type="checkbox"> Enable welcome messages</label>
-    <label style="display:block;margin:8px 0"><input id="welcomePing" type="checkbox"> Ping joining member</label>
-   </div>
-   <aside class="card announcement-preview"><div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="welcomePreviewPing" class="discord-preview-ping" hidden>@NewMember</div><div id="welcomePreviewText" class="discord-preview-message">Welcome NewMember to Barracks!</div><img id="welcomePreviewImage" class="discord-preview-image" hidden alt="Welcome image preview"></div></div></aside>
-  </div>
-  <div id="goodbyeSettingsPage" class="announcement-layout" style="display:none">
-   <div class="card">
-    <h2 style="font-size:15px;margin-top:0">👋 Goodbye settings</h2>
-    <label class="metric-note">Goodbye channel</label><select id="goodbyeChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
-    <label class="metric-note">Goodbye message</label><textarea id="goodbyeMessage" rows="4" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
-    <label class="metric-note">Goodbye image URL</label><input id="goodbyeImage" type="url" placeholder="https://..." style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px">
-    <label style="display:block;margin:8px 0"><input id="goodbyeEnabled" type="checkbox"> Enable goodbye messages</label>
-    <label style="display:block;margin:8px 0"><input id="goodbyePing" type="checkbox"> Ping departing member</label>
-   </div>
-   <aside class="card announcement-preview"><div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="goodbyePreviewPing" class="discord-preview-ping" hidden>@DepartingMember</div><div id="goodbyePreviewText" class="discord-preview-message">DepartingMember has left the server.</div><img id="goodbyePreviewImage" class="discord-preview-image" hidden alt="Goodbye image preview"></div></div></aside>
-  </div>
-  <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px"><button id="welcomeSave" type="button" style="border:0;border-radius:9px;padding:12px 18px;background:#c3f36b;color:#18210f;font-weight:800">Save settings</button></div>
- </div>
 
-  <div id="banSettingsPage" class="announcement-layout" style="display:none">
-   <div class="card"><h2 style="font-size:15px;margin-top:0">🔨 Ban announcement</h2><p class="sub">Choose where the bot posts when a member is banned, and customize the message.</p>
-    <label class="metric-note">Announcement channel</label><select id="banChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
-    <label class="metric-note">Ban message</label><textarea id="banMessage" rows="5" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
-    <label style="display:block;margin:8px 0"><input id="banEnabled" type="checkbox"> Enable ban announcements</label><p class="metric-note">Placeholders: {user}, {user.tag}, {user.id}, {server}</p>
-   </div><aside class="card announcement-preview"><div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="banPreviewText" class="discord-preview-message">A member has been banned.</div></div></div></aside>
+  <div id="welcomeSettingsPage" class="lvl-announcement-layout lvl-event-announcement-page" style="display:none">
+   <div class="card lvl-announcement-settings">
+    <div class="lvl-card-head"><span class="lvl-icon">👋</span><div><h2>Join announcements</h2><p>Choose where and how the bot posts this announcement.</p></div></div>
+    <label class="lvl-check-row"><span><b>Enable join announcements</b><small>Turn this announcement on or off.</small></span><input id="welcomeEnabled" type="checkbox"></label>
+    <label class="lvl-field">Announcement channel<select id="welcomeChannel"><option value="">Not set</option></select></label>
+    <label class="lvl-check-row"><span><b>Ping joining member</b><small>Allow the announcement to mention this member.</small></span><input id="welcomePing" type="checkbox"></label>
+    <label class="lvl-field">Message above embed<textarea id="welcomeMessage" maxlength="2000" rows="4" placeholder="Optional message sent above the embed">Welcome {user} to {server}!</textarea><small>Use {user}, {user.tag}, {user.id}, and {server}.</small></label>
+    <div class="lvl-embed-editor">
+     <div class="lvl-embed-section-heading"><b>Embed</b><small>Customize the announcement embed.</small></div>
+     <label class="lvl-field">Embed color<div class="lvl-color-row"><input id="welcomeEmbedColor" type="color" value="#556B2F"><input id="welcomeEmbedColorHex" class="lvl-hex-input" type="text" value="#556B2F" maxlength="7" placeholder="#556B2F"></div></label>
+     <label class="lvl-field">Author<input id="welcomeEmbedAuthor" maxlength="256" placeholder="Author name"></label>
+     <label class="lvl-field">Title<input id="welcomeEmbedTitle" maxlength="256" placeholder="Embed title"></label>
+     <label class="lvl-field">Thumbnail URL<input id="welcomeEmbedThumbnail" type="url" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
+     <label class="lvl-field">Description<textarea id="welcomeEmbedDescription" maxlength="4096" rows="7" placeholder="Embed description"></textarea></label>
+     <label class="lvl-field">Image URL<input id="welcomeEmbedImage" type="url" maxlength="500" placeholder="https://example.com/image.png"><small>Large image displayed below the description.</small></label>
+     <div class="lvl-footer-row">
+      <label class="lvl-field">Footer icon URL<input id="welcomeEmbedFooterIcon" type="url" maxlength="500" placeholder="https://example.com/footer-icon.png"></label>
+      <label class="lvl-field">Footer text<input id="welcomeEmbedFooter" maxlength="2048" placeholder="Footer text"></label>
+     </div>
+    </div>
+   </div>
+   <aside class="lvl-announcement-preview">
+    <div class="lvl-preview-heading"><span>LIVE PREVIEW</span><small>Discord message appearance</small></div>
+    <div class="lvl-message-preview"><div class="lvl-discord-preview">
+     <div class="lvl-preview-content" id="welcomePreviewContent"></div>
+     <div class="discord-preview-ping" id="welcomePreviewPing" hidden>@Member</div>
+     <div class="lvl-preview-embed" id="welcomePreviewEmbed" style="display:none"><div class="lvl-preview-main">
+      <div id="welcomePreviewAuthor"></div><div id="welcomePreviewTitle"></div><div id="welcomePreviewDescription"></div>
+      <img id="welcomePreviewImage" class="lvl-preview-image" alt="Embed image" hidden>
+      <div class="lvl-preview-footer"><img id="welcomePreviewFooterIcon" alt="Footer icon" hidden><span id="welcomePreviewFooterText"></span></div>
+     </div><img id="welcomePreviewThumbnail" alt="Embed thumbnail" hidden></div>
+    </div></div>
+   </aside>
+  </div>
+
+  <div id="goodbyeSettingsPage" class="lvl-announcement-layout lvl-event-announcement-page" style="display:none">
+   <div class="card lvl-announcement-settings">
+    <div class="lvl-card-head"><span class="lvl-icon">👋</span><div><h2>Leave announcements</h2><p>Choose where and how the bot posts this announcement.</p></div></div>
+    <label class="lvl-check-row"><span><b>Enable leave announcements</b><small>Turn this announcement on or off.</small></span><input id="goodbyeEnabled" type="checkbox"></label>
+    <label class="lvl-field">Announcement channel<select id="goodbyeChannel"><option value="">Not set</option></select></label>
+    <label class="lvl-check-row"><span><b>Ping departing member</b><small>Allow the announcement to mention this member.</small></span><input id="goodbyePing" type="checkbox"></label>
+    <label class="lvl-field">Message above embed<textarea id="goodbyeMessage" maxlength="2000" rows="4" placeholder="Optional message sent above the embed">{user.tag} has left the server.</textarea><small>Use {user}, {user.tag}, {user.id}, and {server}.</small></label>
+    <div class="lvl-embed-editor">
+     <div class="lvl-embed-section-heading"><b>Embed</b><small>Customize the announcement embed.</small></div>
+     <label class="lvl-field">Embed color<div class="lvl-color-row"><input id="goodbyeEmbedColor" type="color" value="#556B2F"><input id="goodbyeEmbedColorHex" class="lvl-hex-input" type="text" value="#556B2F" maxlength="7" placeholder="#556B2F"></div></label>
+     <label class="lvl-field">Author<input id="goodbyeEmbedAuthor" maxlength="256" placeholder="Author name"></label>
+     <label class="lvl-field">Title<input id="goodbyeEmbedTitle" maxlength="256" placeholder="Embed title"></label>
+     <label class="lvl-field">Thumbnail URL<input id="goodbyeEmbedThumbnail" type="url" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
+     <label class="lvl-field">Description<textarea id="goodbyeEmbedDescription" maxlength="4096" rows="7" placeholder="Embed description"></textarea></label>
+     <label class="lvl-field">Image URL<input id="goodbyeEmbedImage" type="url" maxlength="500" placeholder="https://example.com/image.png"><small>Large image displayed below the description.</small></label>
+     <div class="lvl-footer-row">
+      <label class="lvl-field">Footer icon URL<input id="goodbyeEmbedFooterIcon" type="url" maxlength="500" placeholder="https://example.com/footer-icon.png"></label>
+      <label class="lvl-field">Footer text<input id="goodbyeEmbedFooter" maxlength="2048" placeholder="Footer text"></label>
+     </div>
+    </div>
+   </div>
+   <aside class="lvl-announcement-preview">
+    <div class="lvl-preview-heading"><span>LIVE PREVIEW</span><small>Discord message appearance</small></div>
+    <div class="lvl-message-preview"><div class="lvl-discord-preview">
+     <div class="lvl-preview-content" id="goodbyePreviewContent"></div>
+     <div class="discord-preview-ping" id="goodbyePreviewPing" hidden>@Member</div>
+     <div class="lvl-preview-embed" id="goodbyePreviewEmbed" style="display:none"><div class="lvl-preview-main">
+      <div id="goodbyePreviewAuthor"></div><div id="goodbyePreviewTitle"></div><div id="goodbyePreviewDescription"></div>
+      <img id="goodbyePreviewImage" class="lvl-preview-image" alt="Embed image" hidden>
+      <div class="lvl-preview-footer"><img id="goodbyePreviewFooterIcon" alt="Footer icon" hidden><span id="goodbyePreviewFooterText"></span></div>
+     </div><img id="goodbyePreviewThumbnail" alt="Embed thumbnail" hidden></div>
+    </div></div>
+   </aside>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin:18px 0"><button id="welcomeSave" type="button" style="border:0;border-radius:9px;padding:12px 18px;background:#c3f36b;color:#18210f;font-weight:800">Save settings</button></div>
+
+  <div id="banSettingsPage" class="lvl-announcement-layout lvl-event-announcement-page" style="display:none">
+   <div class="card lvl-announcement-settings">
+    <div class="lvl-card-head"><span class="lvl-icon">🔨</span><div><h2>Ban announcements</h2><p>Choose where and how the bot posts this announcement.</p></div></div>
+    <label class="lvl-check-row"><span><b>Enable ban announcements</b><small>Turn this announcement on or off.</small></span><input id="banEnabled" type="checkbox"></label>
+    <label class="lvl-field">Announcement channel<select id="banChannel"><option value="">Not set</option></select></label>
+    
+    <label class="lvl-field">Message above embed<textarea id="banMessage" maxlength="2000" rows="4" placeholder="Optional message sent above the embed">{user.tag} has been banned from {server}.</textarea><small>Use {user}, {user.tag}, {user.id}, and {server}.</small></label>
+    <div class="lvl-embed-editor">
+     <div class="lvl-embed-section-heading"><b>Embed</b><small>Customize the announcement embed.</small></div>
+     <label class="lvl-field">Embed color<div class="lvl-color-row"><input id="banEmbedColor" type="color" value="#556B2F"><input id="banEmbedColorHex" class="lvl-hex-input" type="text" value="#556B2F" maxlength="7" placeholder="#556B2F"></div></label>
+     <label class="lvl-field">Author<input id="banEmbedAuthor" maxlength="256" placeholder="Author name"></label>
+     <label class="lvl-field">Title<input id="banEmbedTitle" maxlength="256" placeholder="Embed title"></label>
+     <label class="lvl-field">Thumbnail URL<input id="banEmbedThumbnail" type="url" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
+     <label class="lvl-field">Description<textarea id="banEmbedDescription" maxlength="4096" rows="7" placeholder="Embed description"></textarea></label>
+     <label class="lvl-field">Image URL<input id="banEmbedImage" type="url" maxlength="500" placeholder="https://example.com/image.png"><small>Large image displayed below the description.</small></label>
+     <div class="lvl-footer-row">
+      <label class="lvl-field">Footer icon URL<input id="banEmbedFooterIcon" type="url" maxlength="500" placeholder="https://example.com/footer-icon.png"></label>
+      <label class="lvl-field">Footer text<input id="banEmbedFooter" maxlength="2048" placeholder="Footer text"></label>
+     </div>
+    </div>
+   </div>
+   <aside class="lvl-announcement-preview">
+    <div class="lvl-preview-heading"><span>LIVE PREVIEW</span><small>Discord message appearance</small></div>
+    <div class="lvl-message-preview"><div class="lvl-discord-preview">
+     <div class="lvl-preview-content" id="banPreviewContent"></div>
+     
+     <div class="lvl-preview-embed" id="banPreviewEmbed" style="display:none"><div class="lvl-preview-main">
+      <div id="banPreviewAuthor"></div><div id="banPreviewTitle"></div><div id="banPreviewDescription"></div>
+      <img id="banPreviewImage" class="lvl-preview-image" alt="Embed image" hidden>
+      <div class="lvl-preview-footer"><img id="banPreviewFooterIcon" alt="Footer icon" hidden><span id="banPreviewFooterText"></span></div>
+     </div><img id="banPreviewThumbnail" alt="Embed thumbnail" hidden></div>
+    </div></div>
+   </aside>
   </div>
   <div id="boostSettingsPage" class="announcement-layout" style="display:none">
    <div class="card"><h2 style="font-size:15px;margin-top:0">🚀 Server boost announcement</h2><p class="sub">Thank members when they start boosting Barracks.</p>
@@ -641,76 +715,93 @@ async function loadWelcomeSettings(){
   const response=await fetch(API_BASE+'/api/dashboard/welcome',{headers:{Authorization:'Bearer '+token}});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not load settings.');
   const cfg=data.config||{};
-  for(const id of ['welcomeChannel','goodbyeChannel']){
+  for(const id of ['welcomeChannel','goodbyeChannel','banChannel','boostChannel']){
    const select=document.getElementById(id);select.innerHTML='<option value="">Not set</option>';
    (data.channels||[]).forEach(ch=>{const option=document.createElement('option');option.value=ch.id;option.textContent='# '+ch.name;select.appendChild(option);});
   }
   document.getElementById('welcomeChannel').value=cfg.channelId||'';
   document.getElementById('goodbyeChannel').value=cfg.goodbyeChannelId||'';
-  document.getElementById('welcomeMessage').value=cfg.welcomeMessage||'Welcome {user} to {server}!';
-  document.getElementById('goodbyeMessage').value=cfg.leaveMessage||'{user.tag} has left the server.';
-  document.getElementById('welcomeImage').value=cfg.welcomeImage||'';
-  document.getElementById('goodbyeImage').value=typeof cfg.leaveEmbed?.image==='string'?cfg.leaveEmbed.image:(cfg.leaveEmbed?.image?.url||'');
+  document.getElementById('banChannel').value=cfg.banChannelId||'';
+  document.getElementById('boostChannel').value=cfg.boostChannelId||'';
+  document.getElementById('welcomeMessage').value=cfg.welcomeMessage??'';
+  document.getElementById('goodbyeMessage').value=cfg.leaveMessage??'';
+  document.getElementById('banMessage').value=cfg.banMessage??'';
   document.getElementById('welcomeEnabled').checked=!!cfg.enabled;
   document.getElementById('welcomePing').checked=!!cfg.welcomePing;
   document.getElementById('goodbyeEnabled').checked=!!cfg.goodbyeEnabled;
   document.getElementById('goodbyePing').checked=!!cfg.goodbyePing;
-  for(const id of ['banChannel','boostChannel']){const select=document.getElementById(id);select.innerHTML='<option value="">Not set</option>';(data.channels||[]).forEach(ch=>{const option=document.createElement('option');option.value=ch.id;option.textContent='# '+ch.name;select.appendChild(option);});}
-  document.getElementById('banChannel').value=cfg.banChannelId||'';
-  document.getElementById('boostChannel').value=cfg.boostChannelId||'';
-  document.getElementById('banMessage').value=cfg.banMessage||'{user.tag} has been banned from {server}.';
-  document.getElementById('boostMessage').value=cfg.boostMessage||'Thank you {user} for boosting {server}! Your support means a lot to us.';
   document.getElementById('banEnabled').checked=!!cfg.banEnabled;
+  document.getElementById('boostMessage').value=cfg.boostMessage||'Thank you {user} for boosting {server}! Your support means a lot to us.';
   document.getElementById('boostEnabled').checked=cfg.boostEnabled!==false;
-  updateSimplePreview('welcome');updateSimplePreview('goodbye');updateEventPreview('ban');updateEventPreview('boost');
+  const welcomeDesc=cfg.welcomeEmbed?.description==='Welcome {user} to {server}!'&&cfg.welcomeMessage?'':(cfg.welcomeEmbed?.description||'');
+  const leaveDesc=cfg.leaveEmbed?.description==='{user.tag} has left the server.'&&cfg.leaveMessage?'':(cfg.leaveEmbed?.description||'');
+  fillAnnouncementEmbed('welcome',{...cfg.welcomeEmbed,description:welcomeDesc,imageUrl:cfg.welcomeEmbed?.imageUrl||cfg.welcomeImage||'',footerText:cfg.welcomeEmbed?.footerText||cfg.welcomeEmbed?.footer||''},{color:'#556B2F',title:'🎉 Welcome!'});
+  fillAnnouncementEmbed('goodbye',{...cfg.leaveEmbed,description:leaveDesc,imageUrl:cfg.leaveEmbed?.imageUrl||(typeof cfg.leaveEmbed?.image==='string'?cfg.leaveEmbed.image:cfg.leaveEmbed?.image?.url)||'',footerText:cfg.leaveEmbed?.footerText||cfg.leaveEmbed?.footer||''},{color:'#D9534F',title:'👋 Goodbye'});
+  fillAnnouncementEmbed('ban',cfg.banEmbed||{},{color:'#D9534F',title:'🔨 Member Banned'});
+  updateAnnouncementPreview('welcome');updateAnnouncementPreview('goodbye');updateAnnouncementPreview('ban');updateEventPreview('boost');
   setWelcomeStatus('Settings loaded. Save changes when ready.');
  }catch(error){setWelcomeStatus(error.message,true);}
 }
+function fillAnnouncementEmbed(prefix,settings={},defaults={}){
+ const values={Color:settings.color||defaults.color||'#36393F',Author:settings.authorName||'',Title:settings.title??defaults.title??'',Thumbnail:settings.thumbnailUrl||'',Description:settings.description||'',Image:settings.imageUrl||'',FooterIcon:settings.footerIconUrl||'',Footer:settings.footerText||''};
+ for(const [key,value] of Object.entries(values)){const input=document.getElementById(prefix+'Embed'+key);if(input)input.value=value;}
+ const hex=document.getElementById(prefix+'EmbedColorHex');if(hex)hex.value=String(values.Color).toUpperCase();
+}
+function formatAnnouncementPreview(value){
+ return String(value||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+ .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+ .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g,'<em>$1</em>').replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g,'<em>$1</em>').replace(/\n/g,'<br>');
+}
+function announcementTokens(value,prefix){
+ const sample=prefix==='welcome'?{user:'@NewMember',tag:'NewMember#1234',id:'123456789012345678'}:prefix==='goodbye'?{user:'@DepartingMember',tag:'DepartingMember#1234',id:'123456789012345678'}:{user:'@BannedMember',tag:'BannedMember#1234',id:'123456789012345678'};
+ return String(value||'').replaceAll('{user.tag}',sample.tag).replaceAll('{user.id}',sample.id).replaceAll('{user}',sample.user).replaceAll('{server}','Barracks').replaceAll('{server.name}','Barracks');
+}
+function updateAnnouncementPreview(prefix){
+ const message=announcementTokens(document.getElementById(prefix+'Message').value,prefix);
+ document.getElementById(prefix+'PreviewContent').innerHTML=formatAnnouncementPreview(message);
+ const ping=document.getElementById(prefix+'PreviewPing');if(ping)ping.hidden=!document.getElementById(prefix+'Ping').checked;
+ const get=id=>document.getElementById(prefix+'Embed'+id).value.trim();
+ const author=announcementTokens(get('Author'),prefix),title=announcementTokens(get('Title'),prefix),description=announcementTokens(get('Description'),prefix),footer=announcementTokens(get('Footer'),prefix);
+ const color=get('Color')||'#36393F',embed=document.getElementById(prefix+'PreviewEmbed');embed.style.borderLeftColor=color;
+ document.getElementById(prefix+'PreviewAuthor').innerHTML=formatAnnouncementPreview(author);
+ document.getElementById(prefix+'PreviewTitle').innerHTML=formatAnnouncementPreview(title);
+ document.getElementById(prefix+'PreviewDescription').innerHTML=formatAnnouncementPreview(description);
+ document.getElementById(prefix+'PreviewFooterText').innerHTML=formatAnnouncementPreview(footer);
+ const image=document.getElementById(prefix+'PreviewImage'),imageUrl=get('Image');image.hidden=!imageUrl;if(imageUrl){image.src=imageUrl;image.onerror=()=>{image.hidden=true;};}else image.removeAttribute('src');
+ const thumb=document.getElementById(prefix+'PreviewThumbnail'),thumbUrl=get('Thumbnail');thumb.hidden=!thumbUrl;if(thumbUrl){thumb.src=thumbUrl;thumb.onerror=()=>{thumb.hidden=true;};}else thumb.removeAttribute('src');
+ const footerIcon=document.getElementById(prefix+'PreviewFooterIcon'),footerIconUrl=get('FooterIcon');footerIcon.hidden=!footerIconUrl;if(footerIconUrl){footerIcon.src=footerIconUrl;footerIcon.onerror=()=>{footerIcon.hidden=true;};}else footerIcon.removeAttribute('src');
+ embed.style.display=[author,title,description,footer,get('FooterIcon'),imageUrl,thumbUrl].some(Boolean)?'flex':'none';
+}
 function updateEventPreview(type){
- const message=document.getElementById(type+'Message').value;
+ const message=document.getElementById(type+'Message')?.value||'';
  document.getElementById(type+'PreviewText').textContent=message.replaceAll('{user.tag}','Soldier#0001').replaceAll('{user}','@Soldier').replaceAll('{user.id}','123456789012345678').replaceAll('{server}','Barracks');
 }
-function updateSimplePreview(type){
- const welcome=type==='welcome';
- const message=document.getElementById(welcome?'welcomeMessage':'goodbyeMessage').value;
- const ping=document.getElementById(welcome?'welcomePing':'goodbyePing').checked;
- const imageUrl=document.getElementById(welcome?'welcomeImage':'goodbyeImage').value.trim();
- const replacements=[['{user.tag}',welcome?'NewMember#1234':'DepartingMember#1234'],['{user}',welcome?'NewMember':'DepartingMember'],['{server}','Barracks'],['{membercount}','1,234']];
- let text=message;
- for(const [token,value] of replacements) text=text.split(token).join(value);
- document.getElementById(welcome?'welcomePreviewText':'goodbyePreviewText').textContent=text||'(No message)';
- document.getElementById(welcome?'welcomePreviewPing':'goodbyePreviewPing').hidden=!ping;
- const img=document.getElementById(welcome?'welcomePreviewImage':'goodbyePreviewImage');
- if(imageUrl){img.src=imageUrl;img.hidden=false;img.onerror=()=>{img.hidden=true;};}else{img.removeAttribute('src');img.hidden=true;}
+['welcome','goodbye','ban'].forEach(prefix=>{
+ const ids=[prefix+'Message',prefix+'EmbedColor',prefix+'EmbedColorHex',prefix+'EmbedAuthor',prefix+'EmbedTitle',prefix+'EmbedThumbnail',prefix+'EmbedDescription',prefix+'EmbedImage',prefix+'EmbedFooterIcon',prefix+'EmbedFooter'];
+ ids.forEach(id=>document.getElementById(id).addEventListener('input',()=>{
+  if(id.endsWith('EmbedColor'))document.getElementById(prefix+'EmbedColorHex').value=document.getElementById(id).value.toUpperCase();
+  if(id.endsWith('EmbedColorHex')){let v=document.getElementById(id).value.trim();if(v&&!v.startsWith('#'))v='#'+v;if(/^#[0-9a-fA-F]{6}$/.test(v))document.getElementById(prefix+'EmbedColor').value=v;}
+  updateAnnouncementPreview(prefix);
+ }));
+ const ping=document.getElementById(prefix+'Ping');if(ping)ping.addEventListener('change',()=>updateAnnouncementPreview(prefix));
+});
+document.getElementById('boostMessage').addEventListener('input',()=>updateEventPreview('boost'));
+function getAnnouncementEmbedPayload(prefix){
+ return {color:document.getElementById(prefix+'EmbedColor').value,authorName:document.getElementById(prefix+'EmbedAuthor').value,title:document.getElementById(prefix+'EmbedTitle').value,thumbnailUrl:document.getElementById(prefix+'EmbedThumbnail').value,description:document.getElementById(prefix+'EmbedDescription').value,imageUrl:document.getElementById(prefix+'EmbedImage').value,footerIconUrl:document.getElementById(prefix+'EmbedFooterIcon').value,footerText:document.getElementById(prefix+'EmbedFooter').value};
 }
-['welcomeMessage','welcomeImage','welcomePing'].forEach(id=>document.getElementById(id).addEventListener('input',()=>updateSimplePreview('welcome')));
-['goodbyeMessage','goodbyeImage','goodbyePing'].forEach(id=>document.getElementById(id).addEventListener('input',()=>updateSimplePreview('goodbye')));
-['banMessage'].forEach(id=>document.getElementById(id).addEventListener('input',()=>updateEventPreview('ban')));
-['boostMessage'].forEach(id=>document.getElementById(id).addEventListener('input',()=>updateEventPreview('boost')));
 document.getElementById('welcomeSave').addEventListener('click',async()=>{
  const button=document.getElementById('welcomeSave');button.disabled=true;button.textContent='Saving…';
  try{
   const payload={
-   channelId:document.getElementById('welcomeChannel').value,
-   goodbyeChannelId:document.getElementById('goodbyeChannel').value,
-   welcomeMessage:document.getElementById('welcomeMessage').value,
-   leaveMessage:document.getElementById('goodbyeMessage').value,
-   welcomeImage:document.getElementById('welcomeImage').value,
-   goodbyeImage:document.getElementById('goodbyeImage').value,
-   enabled:document.getElementById('welcomeEnabled').checked,
-   welcomePing:document.getElementById('welcomePing').checked,
-   goodbyeEnabled:document.getElementById('goodbyeEnabled').checked,
-   goodbyePing:document.getElementById('goodbyePing').checked,
-   banChannelId:document.getElementById('banChannel').value,
-   banMessage:document.getElementById('banMessage').value,
-   banEnabled:document.getElementById('banEnabled').checked,
-   boostChannelId:document.getElementById('boostChannel').value,
-   boostMessage:document.getElementById('boostMessage').value,
-   boostEnabled:document.getElementById('boostEnabled').checked
+   channelId:document.getElementById('welcomeChannel').value,goodbyeChannelId:document.getElementById('goodbyeChannel').value,banChannelId:document.getElementById('banChannel').value,
+   welcomeMessage:document.getElementById('welcomeMessage').value,leaveMessage:document.getElementById('goodbyeMessage').value,banMessage:document.getElementById('banMessage').value,
+   enabled:document.getElementById('welcomeEnabled').checked,welcomePing:document.getElementById('welcomePing').checked,goodbyeEnabled:document.getElementById('goodbyeEnabled').checked,goodbyePing:document.getElementById('goodbyePing').checked,banEnabled:document.getElementById('banEnabled').checked,
+   welcomeEmbed:getAnnouncementEmbedPayload('welcome'),leaveEmbed:getAnnouncementEmbedPayload('goodbye'),banEmbed:getAnnouncementEmbedPayload('ban'),
+   boostChannelId:document.getElementById('boostChannel').value,boostMessage:document.getElementById('boostMessage').value,boostEnabled:document.getElementById('boostEnabled').checked
   };
   const response=await fetch(API_BASE+'/api/dashboard/welcome',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify(payload)});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not save settings.');
-  setWelcomeStatus('Saved successfully. Barracks-Bot will use the updated settings.');
+  setWelcomeStatus('Saved successfully. The bot will use the updated Join, Leave, and Ban settings.');
  }catch(error){setWelcomeStatus(error.message,true);}
  finally{button.disabled=false;button.textContent='Save settings';}
 });
