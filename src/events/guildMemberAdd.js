@@ -1,6 +1,7 @@
-import { Events, PermissionFlagsBits } from 'discord.js';
+import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { buildMemberAnnouncementEmbed } from '../utils/announcementEmbeds.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
+import { getColor } from '../config/bot.js';
 import { getWelcomeConfig } from '../utils/database.js';
 import { formatWelcomeMessage } from '../utils/welcome.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
