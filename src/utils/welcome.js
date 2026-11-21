@@ -46,6 +46,7 @@ export function formatWelcomeMessage(message, data) {
         '{username}': user?.username || 'Unknown',
         '{user.discriminator}': user?.discriminator || '0000',
         '{user.id}': user?.id || 'unknown',
+        '{user.avatar}': user?.displayAvatarURL?.({ extension: 'png', size: 256 }) || user?.avatarURL?.({ extension: 'png', size: 256 }) || '',
         '{server}': guild?.name || 'Server',
         '{server.name}': guild?.name || 'Server',
         '{guild.name}': guild?.name || 'Server',
