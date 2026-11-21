@@ -529,6 +529,29 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 <div id="welcomePanel" style="display:none;max-width:1100px;margin:0 0 24px">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><h2 style="font-size:18px;margin:0">Member Messages</h2><p class="sub">Configure join and departure announcements.</p></div></div>
   <div id="welcomeStatus" class="notice" style="margin:18px 0">Loading settings…</div>
+  <div class="lvl-variable-guide-bar"><button class="lvl-variable-guide-trigger" id="announcementVariableGuideOpen" type="button" aria-haspopup="dialog" aria-controls="announcementVariableGuide">ⓘ Variables guide</button><small>See supported placeholders for Join, Leave, and Ban announcements.</small></div>
+  <div class="lvl-variable-modal" id="announcementVariableGuide" role="dialog" aria-modal="true" aria-labelledby="announcementVariableGuideTitle">
+   <div class="lvl-variable-dialog">
+    <div class="lvl-variable-dialog-head"><div><h3 id="announcementVariableGuideTitle">📘 Announcement Variables Guide</h3><p>Use these in the message above the embed, embed author, title, description, and footer. Preview shows sample values; the bot substitutes real member/server details when posting.</p></div><button class="lvl-variable-close" id="announcementVariableGuideClose" type="button" aria-label="Close guide">×</button></div>
+    <div class="lvl-variable-group"><h4>User</h4>
+     <div class="lvl-variable-row"><code>{user}</code><span>Member mention.</span></div>
+     <div class="lvl-variable-row"><code>{user.mention}</code><span>Member mention.</span></div>
+     <div class="lvl-variable-row"><code>{user.username}</code><span>Member's username.</span></div>
+     <div class="lvl-variable-row"><code>{user.tag}</code><span>Member's Discord tag / username display.</span></div>
+     <div class="lvl-variable-row"><code>{user.id}</code><span>Member's Discord ID.</span></div>
+     <div class="lvl-variable-row"><code>{user.avatar}</code><span>Member's avatar URL. Use in Thumbnail URL, Image URL, or Footer icon URL.</span></div>
+    </div>
+    <div class="lvl-variable-group"><h4>Server</h4>
+     <div class="lvl-variable-row"><code>{server}</code><span>Server name.</span></div>
+     <div class="lvl-variable-row"><code>{server.name}</code><span>Server name.</span></div>
+     <div class="lvl-variable-row"><code>{server.id}</code><span>Server's Discord ID.</span></div>
+     <div class="lvl-variable-row"><code>{server.icon}</code><span>Server icon URL.</span></div>
+    </div>
+    <div class="lvl-variable-group"><h4>Channels</h4>
+     <div class="lvl-variable-row"><code>{#channel-name}</code><span>Channel mention. Replace channel-name with the exact channel name, for example {#📜・rules}. The preview shows a Discord-style channel label.</span></div>
+    </div>
+   </div>
+  </div>
 
   <div id="welcomeSettingsPage" class="lvl-announcement-layout lvl-event-announcement-page" style="display:none">
    <div class="card lvl-announcement-settings">
@@ -998,6 +1021,10 @@ function formatAnnouncementPreview(value){
  .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
  .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g,'<em>$1</em>').replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g,'<em>$1</em>').replace(/\n/g,'<br>');
 }
+const announcementGuide=document.getElementById('announcementVariableGuide');
+document.getElementById('announcementVariableGuideOpen')?.addEventListener('click',()=>announcementGuide?.classList.add('open'));
+document.getElementById('announcementVariableGuideClose')?.addEventListener('click',()=>announcementGuide?.classList.remove('open'));
+announcementGuide?.addEventListener('click',event=>{if(event.target===announcementGuide)announcementGuide.classList.remove('open');});
 function announcementTokens(value,prefix){
  const sample=prefix==='welcome'?{user:'@NewMember',username:'NewMember',tag:'NewMember#1234',id:'123456789012345678'}:prefix==='goodbye'?{user:'@DepartingMember',username:'DepartingMember',tag:'DepartingMember#1234',id:'123456789012345678'}:{user:'@BannedMember',username:'BannedMember',tag:'BannedMember#1234',id:'123456789012345678'};
  const avatar='https://cdn.discordapp.com/embed/avatars/0.png';
