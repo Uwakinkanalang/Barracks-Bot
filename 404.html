@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Redirecting to Barracks Dashboard…</title>
+<script>
+(function () {
+  var dashboardBase = '/Barracks-Bot/dashboard/';
+  var path = window.location.pathname || '';
+  if (path.indexOf(dashboardBase) === 0) {
+    // Dashboard routes are client-side routes. Return to the dashboard entry
+    // point; its startup resolver restores the last route from browser storage.
+    window.location.replace(dashboardBase);
+    return;
+  }
+})();
+</script>
+</head>
+<body>
+<p>This page could not be found. <a href="/Barracks-Bot/dashboard/">Return to Barracks Dashboard</a>.</p>
+</body>
+</html>
