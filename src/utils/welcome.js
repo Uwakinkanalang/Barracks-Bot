@@ -57,7 +57,7 @@ export function formatWelcomeMessage(message, data) {
     };
 
     // Resolve {#channel-name} placeholders to real Discord channel mentions.
-    const channelTokens = [...message.matchAll(/\\{#([^{}]+)\\}/g)];
+    const channelTokens = [...message.matchAll(/\{#([^{}]+)\}/g)];
     let channelResolvedMessage = message;
     for (const match of channelTokens) {
         const requestedName = match[1].trim();
