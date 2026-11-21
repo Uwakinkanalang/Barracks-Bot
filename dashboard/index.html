@@ -344,6 +344,14 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 }
 </style>
 
+<style id="embedFooterLayoutFix">
+/* Keep Discord embed footer metadata at the very bottom, with a compact icon. */
+.lvl-preview-embed .lvl-preview-main{display:flex;flex-direction:column;min-width:0}
+.lvl-preview-embed .lvl-preview-footer{display:flex;align-items:center;gap:6px;min-height:16px;margin-top:10px;font-size:11px;line-height:16px;color:#b5bac1}
+.lvl-preview-embed .lvl-preview-footer img{display:inline-block;width:16px;height:16px;min-width:16px;max-width:16px;object-fit:cover;border-radius:50%;vertical-align:middle;flex:0 0 16px}
+.lvl-preview-embed .lvl-preview-footer img[hidden]{display:none}
+.lvl-preview-embed .lvl-preview-footer span{min-width:0;overflow-wrap:anywhere}
+</style>
 </head>
 <body>
 <div class="shell">
