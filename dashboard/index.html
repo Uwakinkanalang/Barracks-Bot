@@ -1009,8 +1009,6 @@ function showWelcomePanel(){if(window.barracksNavigate)window.barracksNavigate('
   setWelcomeStatus('Join announcement fields cleared. Click Save settings to apply the blank fields.');
  });
  document.getElementById('slashCommandNavButton').addEventListener('click',()=>navigate('slashCommands'));
- document.getElementById('welcomeNavButton').addEventListener('click',showWelcomePanel);
- document.getElementById('goodbyeNavButton').addEventListener('click',()=>window.barracksNavigate&&window.barracksNavigate('goodbye'));
  document.getElementById('welcomeModuleButton').addEventListener('click',showWelcomePanel);
  function showAnnouncementPage(tab){
 
@@ -1237,16 +1235,9 @@ document.getElementById('settingsSave').addEventListener('click',async()=>{
  document.getElementById('announcementToggle').addEventListener('click',()=>{const group=document.getElementById('announcementNavGroup'),submenu=document.getElementById('announcementSubmenu'),toggle=document.getElementById('announcementToggle');
 const opening=submenu.hidden;submenu.hidden=!opening;group.classList.toggle('open',opening);toggle.setAttribute('aria-expanded',String(opening));});
  document.getElementById('commandToggle').addEventListener('click',()=>{const group=document.getElementById('commandNavGroup'),menu=document.getElementById('commandSubmenu'),toggle=document.getElementById('commandToggle');const opening=menu.hidden;menu.hidden=!opening;group.classList.toggle('open',opening);toggle.setAttribute('aria-expanded',String(opening));});
- document.getElementById('welcomeNavButton').addEventListener('click',()=>navigate('welcome'));
- document.getElementById('goodbyeNavButton').addEventListener('click',()=>navigate('goodbye'));
- document.getElementById('banNavButton').addEventListener('click',()=>navigate('ban'));
- document.getElementById('boostNavButton').addEventListener('click',()=>navigate('boost'));
  document.getElementById('messageBuilderModuleButton').addEventListener('click',()=>navigate('message-builder'));
  document.getElementById('welcomeModuleButton').addEventListener('click',()=>navigate('welcome'));
- document.querySelectorAll('.nav button').forEach((b,i)=>{if(i===0)b.addEventListener('click',()=>navigate('home'));if(i===1)b.addEventListener('click',()=>navigate('settings'));/* Moderation is a dropdown; keep its moderationToggle ID intact. */if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation Logs'){b.id='logsNavButton';b.addEventListener('click',()=>navigate('logs'));}});
  document.getElementById('moderationToggle').addEventListener('click',()=>{const g=document.getElementById('moderationNavGroup'),m=document.getElementById('moderationSubmenu'),t=document.getElementById('moderationToggle');const opening=m.hidden;m.hidden=!opening;g.classList.toggle('open',opening);t.setAttribute('aria-expanded',String(opening));});
- document.getElementById('moderationHomeNavButton').addEventListener('click',()=>navigate('moderation'));
- document.getElementById('autoNickNavButton').addEventListener('click',()=>navigate('autonick'));
  document.getElementById('autoNickType').addEventListener('change',()=>{document.getElementById('autoNickRoleFields').hidden=document.getElementById('autoNickType').value!=='role';document.getElementById('autoNickFormHeading').textContent=document.getElementById('autoNickType').value==='role'?'Rename users when they receive a role':'Rename users to ... when they join the server';});
  document.getElementById('autoNickVariablesOpen').addEventListener('click',()=>document.getElementById('autoNickVariablesModal').style.display='flex');
  document.getElementById('autoNickVariablesClose').addEventListener('click',()=>document.getElementById('autoNickVariablesModal').style.display='none');
@@ -1255,9 +1246,18 @@ const opening=submenu.hidden;submenu.hidden=!opening;group.classList.toggle('ope
  document.getElementById('autoNickRefresh').addEventListener('click',loadAutoNickRules);
  document.getElementById('autoNickSearch').addEventListener('input',renderAutoNickRules);
  document.getElementById('autoNickForm').addEventListener('submit',async e=>{e.preventDefault();const button=document.getElementById('autoNickCreate'),status=document.getElementById('autoNickStatus');const payload={nickname:document.getElementById('autoNickName').value.trim(),format:document.getElementById('autoNickFormat').value,type:document.getElementById('autoNickType').value,roleId:document.getElementById('autoNickRole').value,priority:Number(document.getElementById('autoNickPriority').value)};if(!payload.nickname){status.textContent='Enter a nickname format.';return;}if(payload.type==='role'&&!payload.roleId){status.textContent='Choose a role.';return;}button.disabled=true;button.textContent='Creating…';try{const r=await fetch(API_BASE+'/api/dashboard/autonick',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionStorage.getItem('barracks_dashboard_access')},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not create AutoNick rule.');status.textContent='AutoNick rule created.';status.style.color='#c3f36b';document.getElementById('autoNickForm').reset();document.getElementById('autoNickType').dispatchEvent(new Event('change'));await loadAutoNickRules();}catch(err){status.textContent=err.message;status.style.color='#ff9a91';}finally{button.disabled=false;button.textContent='Create';}});
- document.getElementById('economyNavButton').addEventListener('click',()=>navigate('economy'));document.getElementById('gamesNavButton').addEventListener('click',()=>navigate('games'));document.getElementById('levelingNavButton').addEventListener('click',()=>navigate('leveling'));document.getElementById('rolesChannelsNavButton').addEventListener('click',()=>navigate('rolesChannels'));document.getElementById('boostersNavButton').addEventListener('click',()=>navigate('boosters'));document.getElementById('clanToggle').addEventListener('click',()=>{const g=document.getElementById('clanNavGroup'),m=document.getElementById('clanSubmenu'),t=document.getElementById('clanToggle');const opening=m.hidden;m.hidden=!opening;g.classList.toggle('open',opening);t.setAttribute('aria-expanded',String(opening));});document.getElementById('createClanNavButton').addEventListener('click',()=>navigate('clans'));document.getElementById('barracksClansNavButton').addEventListener('click',()=>navigate('clanList'));document.getElementById('ticketsNavButton').addEventListener('click',()=>navigate('tickets'));document.getElementById('slashCommandNavButton').addEventListener('click',()=>navigate('slashCommands'));
- document.getElementById('prefixCommandNavButton').addEventListener('click',()=>navigate('prefixCommands'));
  
+
+ // One delegated handler keeps every dedicated sidebar page clickable, including nested dropdown items.
+ document.querySelector('.side').addEventListener('click',e=>{
+   const button=e.target.closest('.nav button');
+   if(!button)return;
+   const pageById={welcomeNavButton:'welcome',goodbyeNavButton:'goodbye',banNavButton:'ban',boostNavButton:'boost',moderationHomeNavButton:'moderation',autoNickNavButton:'autonick',logsNavButton:'logs',economyNavButton:'economy',gamesNavButton:'games',levelingNavButton:'leveling',rolesChannelsNavButton:'rolesChannels',boostersNavButton:'boosters',createClanNavButton:'clans',barracksClansNavButton:'clanList',ticketsNavButton:'tickets',prefixCommandNavButton:'prefixCommands',slashCommandNavButton:'slashCommands'};
+   let page=pageById[button.id];
+   if(!page&&button.querySelector('.nav-text')?.textContent.trim()==='Overview')page='home';
+   if(!page&&button.querySelector('.nav-text')?.textContent.trim()==='Bot Settings')page='settings';
+   if(page){e.preventDefault();navigate(page);}
+ });
  window.addEventListener('popstate',()=>navigate(routeKey(),false));document.addEventListener('DOMContentLoaded',()=>{const initial=routeKey();if(initial!=='home'&&routes[initial])history.replaceState({page:initial},'',routes[initial].path);navigate(initial,false);},{once:true});window.addEventListener('pageshow',event=>{if(event.persisted)navigate(routeKey(),false);});
 })();
 </script>
