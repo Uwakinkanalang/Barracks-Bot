@@ -115,6 +115,8 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 #levelingRoutePage:not([hidden]) .lvl-card:has(#lvlIgnoredChannels) {
   display: block !important;
 }
+#dashboardPageContainer{display:block;width:100%;min-width:0;max-width:100%;}
+#dashboardPageContainer>#dashboardHome,#dashboardPageContainer>#routeView{width:100%;min-width:0;max-width:100%;}
 </style>
 <style id="rolesChannelsPolish">
 .rc-page{padding-bottom:30px}.rc-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin:4px 0 22px}.rc-eyebrow{font-size:11px;font-weight:800;letter-spacing:1.6px;color:#c3f36b;margin-bottom:8px}.rc-heading h1{font-size:30px;line-height:1.15;margin:0 0 8px;color:#f3f5f2}.rc-heading p,.rc-card-head p{color:#aeb7b0;margin:0;font-size:14px;line-height:1.55}.rc-refresh{white-space:nowrap;border:1px solid #46534a;background:#202a23;color:#e7eee8;border-radius:9px;padding:10px 14px;cursor:pointer}.rc-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.rc-stat{display:flex;align-items:center;gap:13px;background:#1b241e;border:1px solid #354238;border-radius:12px;padding:15px}.rc-stat-icon{width:40px;height:40px;border-radius:10px;background:#2a382e;display:grid;place-items:center;font-size:19px}.rc-stat small{display:block;color:#aab5ac;font-size:12px;margin-bottom:3px}.rc-stat b{font-size:22px;color:#f4f6f3}.rc-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}.rc-card{min-width:0;padding:20px}.rc-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.rc-card-head h2{font-size:18px;margin:0 0 5px}.rc-search{width:min(100%,190px);background:#111914;border:1px solid #3b4940;border-radius:8px;color:#eef2ee;padding:9px 10px}.rc-list{display:flex;flex-direction:column;gap:7px;margin:16px 0;max-height:440px;overflow:auto;padding-right:3px}.rc-item{display:flex;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #303d34;background:#17201a;border-radius:9px}.rc-swatch{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid #ffffff30}.rc-item-main{min-width:0;flex:1}.rc-item-name{display:block;color:#edf2ed;font-weight:650;font-size:13px;overflow-wrap:anywhere}.rc-item-meta{display:block;color:#849188;font-size:11px;margin-top:3px}.rc-pill{font-size:10px;color:#bdc9bf;border:1px solid #465249;border-radius:20px;padding:3px 7px;white-space:nowrap}.rc-loading,.rc-empty{color:#9ba79e;font-size:13px;padding:12px 2px}.rc-create{border-top:1px solid #344137;padding-top:16px;margin-top:14px}.rc-create h3{font-size:15px;margin:0 0 12px}.rc-create-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:12px}.rc-create-fields label{display:flex;flex-direction:column;gap:7px;color:#cbd4cd;font-size:12px;font-weight:650}.rc-create-fields input:not([type=color]),.rc-create-fields select{width:100%;box-sizing:border-box;background:#111914;border:1px solid #3b4940;border-radius:8px;color:#eef2ee;padding:10px;font:inherit}.rc-color-control{display:flex;align-items:center;gap:10px;background:#111914;border:1px solid #3b4940;border-radius:8px;padding:5px 9px;min-height:30px}.rc-color-control input{width:30px;height:28px;border:0;background:transparent;padding:0;cursor:pointer}.rc-color-control span{font-size:12px;color:#dce5dd;font-family:monospace}.rc-primary{background:#c3f36b;color:#152015;border:0;border-radius:8px;padding:10px 14px;font-weight:750;cursor:pointer}.rc-primary:disabled{opacity:.55;cursor:wait}.rc-status{font-size:12px;color:#c3f36b;min-height:16px;margin:8px 0 0}.rc-channel-filters{display:flex;gap:6px;margin-top:14px}.rc-filter{border:1px solid #3b4940;background:#17201a;color:#b9c4bb;border-radius:20px;padding:6px 11px;font-size:11px;cursor:pointer}.rc-filter.active{background:#33432f;color:#d9f6ad;border-color:#6b8750}.rc-group-title{font-size:11px;color:#9daa9f;font-weight:800;letter-spacing:.8px;padding:10px 2px 3px;text-transform:uppercase}.rc-group-title:first-child{padding-top:0}@media(max-width:850px){.rc-layout{grid-template-columns:1fr}.rc-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.rc-heading{flex-direction:column}.rc-heading h1{font-size:25px}.rc-create-fields{grid-template-columns:1fr}.rc-card{padding:15px}}
@@ -238,6 +240,7 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 <main class="main">
 <header class="top"><div class="crumb">Barracks <span style="color:#526257">/</span> <b>Overview</b></div><div class="user"><div class="status"><span class="dot"></span> Dashboard secured</div><button class="logout" id="logoutButton" type="button">Sign out ↗</button></div></header>
 <section class="content" id="dashboardContent">
+<div id="dashboardPageContainer">
 <div id="dashboardHome"><div class="welcome-banner" id="welcomeBanner"><div class="welcome-banner-icon">✦</div><div class="welcome-banner-copy"><h2>Welcome to Barracks!</h2><p>Your command center is ready. Choose a module to manage your server.</p><div class="quick-actions"><button type="button" onclick="document.getElementById('welcomeModuleButton').click()">👋 Set up welcome messages</button><button type="button" onclick="document.getElementById('welcomeModuleButton').click()">📢 Open announcements</button></div></div><button class="banner-dismiss" type="button" aria-label="Dismiss welcome message" onclick="document.getElementById('welcomeBanner').remove()">×</button></div>
 <div class="welcome"><div><div class="eyebrow">General</div><h1>Barracks Dashboard</h1><p class="sub">Your server at a glance.</p></div><div class="date" id="updated">Loading server status…</div></div>
 <div class="grid">
@@ -640,6 +643,50 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
  </div><div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap"><button id="activitySave" type="button" style="border:0;border-radius:9px;padding:11px 17px;background:#c3f36b;color:#18210f;font-weight:800">Save activity settings</button><span id="activityStatus" role="status" style="font-size:12px;color:#c0c2ca"></span></div></div>
 </div>
 </div>
+<div id="messageBuilderPanel" style="display:none;position:fixed;inset:0;z-index:30;background:#080e0bd9;overflow:auto;padding:24px">
+ <div style="max-width:1100px;margin:20px auto;background:#303137;border:1px solid #484950;border-radius:16px;padding:22px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Messaging tools</div><h1>Message Builder</h1><p class="sub">Build a Discord message and preview it before copying the payload.</p></div><button id="messageBuilderClose" class="logout" type="button" onclick="document.getElementById('messageBuilderPanel').style.display='none'">Close ✕</button></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:20px">
+   <div class="card" style="background:#34353c;border-color:#484950">
+    <h2 style="font-size:15px;margin:0 0 16px">Message content</h2>
+    <label class="metric-note" for="mbContent">Text message</label><textarea id="mbContent" rows="4" maxlength="2000" placeholder="Write your message here..." style="width:100%;padding:11px;margin:7px 0 15px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px;resize:vertical"></textarea>
+    <h2 style="font-size:15px;margin:4px 0 14px">Embed</h2>
+    <label class="metric-note" for="mbTitle">Title</label><input id="mbTitle" maxlength="256" placeholder="Announcement title" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
+    <label class="metric-note" for="mbDescription">Description</label><textarea id="mbDescription" rows="5" maxlength="4096" placeholder="Add details to your embed..." style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px;resize:vertical"></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+     <div><label class="metric-note" for="mbColor">Embed color</label><input id="mbColor" type="color" value="#c3f36b" style="display:block;width:100%;height:42px;margin-top:7px;background:#25262c;border:1px solid #555761;border-radius:8px"></div>
+     <div><label class="metric-note" for="mbAuthor">Author name</label><input id="mbAuthor" maxlength="256" placeholder="Barracks HQ" style="width:100%;padding:11px;margin-top:7px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px"></div>
+    </div>
+    <label class="metric-note" for="mbFooter" style="display:block;margin-top:13px">Footer</label><input id="mbFooter" maxlength="2048" placeholder="Barracks • Official Notice" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
+    <label class="metric-note" for="mbImage">Image URL</label><input id="mbImage" type="url" placeholder="https://example.com/image.png" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
+    <label class="metric-note" for="mbThumbnail">Thumbnail URL</label><input id="mbThumbnail" type="url" placeholder="https://example.com/icon.png" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px"><input id="mbTimestamp" type="checkbox"> Include timestamp</label>
+   </div>
+   <div>
+    <div class="card" style="background:#34353c;border-color:#484950">
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="font-size:15px;margin:0">Live preview</h2><span style="font-size:10px;color:#aeb3bf">DISCORD STYLE</span></div>
+     <div style="background:#313338;border-radius:9px;padding:14px;color:#dbdee1;min-height:220px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div style="width:28px;height:28px;border-radius:50%;background:#c3f36b;color:#20251b;display:grid;place-items:center;font-weight:900">B</div><b style="color:#f2f3f5">Barracks-Bot</b><span style="font-size:10px;background:#5865f2;padding:2px 5px;border-radius:4px">BOT</span><span style="font-size:10px;color:#999">Today at 12:00</span></div>
+      <div id="mbPreviewContent" style="white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:9px"></div>
+      <div id="mbPreviewEmbed" style="display:none;border-left:4px solid #c3f36b;background:#2b2d31;border-radius:4px;padding:12px;max-width:100%">
+       <div id="mbPreviewAuthor" style="font-size:11px;font-weight:700;margin-bottom:7px"></div><div id="mbPreviewTitle" style="font-weight:750;color:#fff;margin-bottom:6px"></div><div id="mbPreviewDescription" style="font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere"></div>
+       <img id="mbPreviewThumbnail" alt="" style="display:none;float:right;max-width:76px;max-height:76px;object-fit:cover;border-radius:5px;margin:0 0 8px 10px"><img id="mbPreviewImage" alt="" style="display:none;max-width:100%;max-height:180px;object-fit:contain;margin-top:10px;border-radius:5px">
+       <div id="mbPreviewFooter" style="font-size:10px;color:#b5bac1;border-top:1px solid #41434a;padding-top:8px;margin-top:10px"></div>
+      </div>
+     </div>
+    </div>
+    <div class="card" style="background:#34353c;border-color:#484950;margin-top:14px">
+     <h2 style="font-size:15px;margin:0 0 8px">Export</h2><p class="sub" style="line-height:1.5">Copy the Discord API message JSON. Sending directly to a channel will be connected when the dashboard's message-send API is available.</p>
+     <button id="mbCopy" type="button" style="width:100%;border:0;border-radius:9px;padding:12px;background:#c3f36b;color:#18210f;font-weight:800;margin-top:12px">Copy message JSON</button>
+     <button id="mbReset" type="button" class="logout" style="width:100%;margin-top:9px">Clear builder</button>
+     <div id="mbStatus" role="status" style="font-size:11px;color:#b8c9b7;margin-top:12px"></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+</div>
+
 </div>
 </section>
 </main>
@@ -834,48 +881,7 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
 </script>
 
 
-<div id="messageBuilderPanel" style="display:none;position:fixed;inset:0;z-index:30;background:#080e0bd9;overflow:auto;padding:24px">
- <div style="max-width:1100px;margin:20px auto;background:#303137;border:1px solid #484950;border-radius:16px;padding:22px">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Messaging tools</div><h1>Message Builder</h1><p class="sub">Build a Discord message and preview it before copying the payload.</p></div><button id="messageBuilderClose" class="logout" type="button" onclick="document.getElementById('messageBuilderPanel').style.display='none'">Close ✕</button></div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:20px">
-   <div class="card" style="background:#34353c;border-color:#484950">
-    <h2 style="font-size:15px;margin:0 0 16px">Message content</h2>
-    <label class="metric-note" for="mbContent">Text message</label><textarea id="mbContent" rows="4" maxlength="2000" placeholder="Write your message here..." style="width:100%;padding:11px;margin:7px 0 15px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px;resize:vertical"></textarea>
-    <h2 style="font-size:15px;margin:4px 0 14px">Embed</h2>
-    <label class="metric-note" for="mbTitle">Title</label><input id="mbTitle" maxlength="256" placeholder="Announcement title" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
-    <label class="metric-note" for="mbDescription">Description</label><textarea id="mbDescription" rows="5" maxlength="4096" placeholder="Add details to your embed..." style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px;resize:vertical"></textarea>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-     <div><label class="metric-note" for="mbColor">Embed color</label><input id="mbColor" type="color" value="#c3f36b" style="display:block;width:100%;height:42px;margin-top:7px;background:#25262c;border:1px solid #555761;border-radius:8px"></div>
-     <div><label class="metric-note" for="mbAuthor">Author name</label><input id="mbAuthor" maxlength="256" placeholder="Barracks HQ" style="width:100%;padding:11px;margin-top:7px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px"></div>
-    </div>
-    <label class="metric-note" for="mbFooter" style="display:block;margin-top:13px">Footer</label><input id="mbFooter" maxlength="2048" placeholder="Barracks • Official Notice" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
-    <label class="metric-note" for="mbImage">Image URL</label><input id="mbImage" type="url" placeholder="https://example.com/image.png" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
-    <label class="metric-note" for="mbThumbnail">Thumbnail URL</label><input id="mbThumbnail" type="url" placeholder="https://example.com/icon.png" style="width:100%;padding:11px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px">
-    <label style="display:flex;align-items:center;gap:8px;margin-top:10px"><input id="mbTimestamp" type="checkbox"> Include timestamp</label>
-   </div>
-   <div>
-    <div class="card" style="background:#34353c;border-color:#484950">
-     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="font-size:15px;margin:0">Live preview</h2><span style="font-size:10px;color:#aeb3bf">DISCORD STYLE</span></div>
-     <div style="background:#313338;border-radius:9px;padding:14px;color:#dbdee1;min-height:220px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div style="width:28px;height:28px;border-radius:50%;background:#c3f36b;color:#20251b;display:grid;place-items:center;font-weight:900">B</div><b style="color:#f2f3f5">Barracks-Bot</b><span style="font-size:10px;background:#5865f2;padding:2px 5px;border-radius:4px">BOT</span><span style="font-size:10px;color:#999">Today at 12:00</span></div>
-      <div id="mbPreviewContent" style="white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:9px"></div>
-      <div id="mbPreviewEmbed" style="display:none;border-left:4px solid #c3f36b;background:#2b2d31;border-radius:4px;padding:12px;max-width:100%">
-       <div id="mbPreviewAuthor" style="font-size:11px;font-weight:700;margin-bottom:7px"></div><div id="mbPreviewTitle" style="font-weight:750;color:#fff;margin-bottom:6px"></div><div id="mbPreviewDescription" style="font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere"></div>
-       <img id="mbPreviewThumbnail" alt="" style="display:none;float:right;max-width:76px;max-height:76px;object-fit:cover;border-radius:5px;margin:0 0 8px 10px"><img id="mbPreviewImage" alt="" style="display:none;max-width:100%;max-height:180px;object-fit:contain;margin-top:10px;border-radius:5px">
-       <div id="mbPreviewFooter" style="font-size:10px;color:#b5bac1;border-top:1px solid #41434a;padding-top:8px;margin-top:10px"></div>
-      </div>
-     </div>
-    </div>
-    <div class="card" style="background:#34353c;border-color:#484950;margin-top:14px">
-     <h2 style="font-size:15px;margin:0 0 8px">Export</h2><p class="sub" style="line-height:1.5">Copy the Discord API message JSON. Sending directly to a channel will be connected when the dashboard's message-send API is available.</p>
-     <button id="mbCopy" type="button" style="width:100%;border:0;border-radius:9px;padding:12px;background:#c3f36b;color:#18210f;font-weight:800;margin-top:12px">Copy message JSON</button>
-     <button id="mbReset" type="button" class="logout" style="width:100%;margin-top:9px">Clear builder</button>
-     <div id="mbStatus" role="status" style="font-size:11px;color:#b8c9b7;margin-top:12px"></div>
-    </div>
-   </div>
-  </div>
- </div>
-</div>
+
 <script>
 (()=>{
  const panel=document.getElementById('messageBuilderPanel');
