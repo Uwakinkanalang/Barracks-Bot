@@ -8,8 +8,8 @@ export function buildMemberAnnouncementEmbed(settings = {}, data = {}, defaults 
   const authorName = resolve(settings.authorName);
   const title = resolve(settings.title);
   const description = resolve(settings.description);
-  const thumbnailUrl = settings.thumbnailUrl || defaults.thumbnailUrl;
-  const imageUrl = settings.imageUrl || defaults.imageUrl;
+  const thumbnailUrl = resolve(settings.thumbnailUrl || defaults.thumbnailUrl || '');
+  const imageUrl = resolve(settings.imageUrl || defaults.imageUrl || '');
   const footerText = resolve(settings.footerText);
   if (authorName) embed.setAuthor({ name: authorName.slice(0, 256) });
   if (title) embed.setTitle(title.slice(0, 256));
@@ -18,7 +18,7 @@ export function buildMemberAnnouncementEmbed(settings = {}, data = {}, defaults 
   if (imageUrl) embed.setImage(imageUrl);
   if (footerText) {
     const footer = { text: footerText.slice(0, 2048) };
-    if (settings.footerIconUrl) footer.iconURL = settings.footerIconUrl;
+    if (settings.footerIconUrl) footer.iconURL = resolve(settings.footerIconUrl);
     embed.setFooter(footer);
   }
   return embed;

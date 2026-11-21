@@ -539,7 +539,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
      <label class="lvl-field">Embed color<div class="lvl-color-row"><input id="welcomeEmbedColor" type="color" value="#556B2F"><input id="welcomeEmbedColorHex" class="lvl-hex-input" type="text" value="#556B2F" maxlength="7" placeholder="#556B2F"></div></label>
      <label class="lvl-field">Author<input id="welcomeEmbedAuthor" maxlength="256" placeholder="Author name"></label>
      <label class="lvl-field">Title<input id="welcomeEmbedTitle" maxlength="256" placeholder="Embed title"></label>
-     <label class="lvl-field">Thumbnail URL<input id="welcomeEmbedThumbnail" type="url" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
+     <label class="lvl-field">Thumbnail URL<input id="welcomeEmbedThumbnail" type="text" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
      <label class="lvl-field">Description<textarea id="welcomeEmbedDescription" maxlength="4096" rows="7" placeholder="Embed description"></textarea></label>
      <label class="lvl-field">Image URL<input id="welcomeEmbedImage" type="url" maxlength="500" placeholder="https://example.com/image.png"><small>Large image displayed below the description.</small></label>
      <div class="lvl-footer-row">
@@ -572,7 +572,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
      <label class="lvl-field">Embed color<div class="lvl-color-row"><input id="goodbyeEmbedColor" type="color" value="#556B2F"><input id="goodbyeEmbedColorHex" class="lvl-hex-input" type="text" value="#556B2F" maxlength="7" placeholder="#556B2F"></div></label>
      <label class="lvl-field">Author<input id="goodbyeEmbedAuthor" maxlength="256" placeholder="Author name"></label>
      <label class="lvl-field">Title<input id="goodbyeEmbedTitle" maxlength="256" placeholder="Embed title"></label>
-     <label class="lvl-field">Thumbnail URL<input id="goodbyeEmbedThumbnail" type="url" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
+     <label class="lvl-field">Thumbnail URL<input id="goodbyeEmbedThumbnail" type="text" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
      <label class="lvl-field">Description<textarea id="goodbyeEmbedDescription" maxlength="4096" rows="7" placeholder="Embed description"></textarea></label>
      <label class="lvl-field">Image URL<input id="goodbyeEmbedImage" type="url" maxlength="500" placeholder="https://example.com/image.png"><small>Large image displayed below the description.</small></label>
      <div class="lvl-footer-row">
@@ -607,7 +607,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
      <label class="lvl-field">Embed color<div class="lvl-color-row"><input id="banEmbedColor" type="color" value="#556B2F"><input id="banEmbedColorHex" class="lvl-hex-input" type="text" value="#556B2F" maxlength="7" placeholder="#556B2F"></div></label>
      <label class="lvl-field">Author<input id="banEmbedAuthor" maxlength="256" placeholder="Author name"></label>
      <label class="lvl-field">Title<input id="banEmbedTitle" maxlength="256" placeholder="Embed title"></label>
-     <label class="lvl-field">Thumbnail URL<input id="banEmbedThumbnail" type="url" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
+     <label class="lvl-field">Thumbnail URL<input id="banEmbedThumbnail" type="text" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
      <label class="lvl-field">Description<textarea id="banEmbedDescription" maxlength="4096" rows="7" placeholder="Embed description"></textarea></label>
      <label class="lvl-field">Image URL<input id="banEmbedImage" type="url" maxlength="500" placeholder="https://example.com/image.png"><small>Large image displayed below the description.</small></label>
      <div class="lvl-footer-row">
@@ -996,7 +996,7 @@ function formatAnnouncementPreview(value){
 }
 function announcementTokens(value,prefix){
  const sample=prefix==='welcome'?{user:'@NewMember',tag:'NewMember#1234',id:'123456789012345678'}:prefix==='goodbye'?{user:'@DepartingMember',tag:'DepartingMember#1234',id:'123456789012345678'}:{user:'@BannedMember',tag:'BannedMember#1234',id:'123456789012345678'};
- return String(value||'').replaceAll('{user.tag}',sample.tag).replaceAll('{user.id}',sample.id).replaceAll('{user}',sample.user).replaceAll('{server}','Barracks').replaceAll('{server.name}','Barracks');
+ return String(value||'').replaceAll('{user.avatar}','https://cdn.discordapp.com/embed/avatars/0.png').replaceAll('{user.tag}',sample.tag).replaceAll('{user.id}',sample.id).replaceAll('{user}',sample.user).replaceAll('{server}','Barracks').replaceAll('{server.name}','Barracks');
 }
 function updateAnnouncementPreview(prefix){
  const message=announcementTokens(document.getElementById(prefix+'Message').value,prefix);
@@ -1009,9 +1009,9 @@ function updateAnnouncementPreview(prefix){
  document.getElementById(prefix+'PreviewTitle').innerHTML=formatAnnouncementPreview(title);
  document.getElementById(prefix+'PreviewDescription').innerHTML=formatAnnouncementPreview(description);
  document.getElementById(prefix+'PreviewFooterText').innerHTML=formatAnnouncementPreview(footer);
- const image=document.getElementById(prefix+'PreviewImage'),imageUrl=get('Image');image.hidden=!imageUrl;if(imageUrl){image.src=imageUrl;image.onerror=()=>{image.hidden=true;};}else image.removeAttribute('src');
- const thumb=document.getElementById(prefix+'PreviewThumbnail'),thumbUrl=get('Thumbnail');thumb.hidden=!thumbUrl;if(thumbUrl){thumb.src=thumbUrl;thumb.onerror=()=>{thumb.hidden=true;};}else thumb.removeAttribute('src');
- const footerIcon=document.getElementById(prefix+'PreviewFooterIcon'),footerIconUrl=get('FooterIcon');footerIcon.hidden=!footerIconUrl;if(footerIconUrl){footerIcon.src=footerIconUrl;footerIcon.onerror=()=>{footerIcon.hidden=true;};}else footerIcon.removeAttribute('src');
+ const image=document.getElementById(prefix+'PreviewImage'),imageUrl=announcementTokens(get('Image'),prefix);image.hidden=!imageUrl;if(imageUrl){image.src=imageUrl;image.onerror=()=>{image.hidden=true;};}else image.removeAttribute('src');
+ const thumb=document.getElementById(prefix+'PreviewThumbnail'),thumbUrl=announcementTokens(get('Thumbnail'),prefix);thumb.hidden=!thumbUrl;if(thumbUrl){thumb.src=thumbUrl;thumb.onerror=()=>{thumb.hidden=true;};}else thumb.removeAttribute('src');
+ const footerIcon=document.getElementById(prefix+'PreviewFooterIcon'),footerIconUrl=announcementTokens(get('FooterIcon'),prefix);footerIcon.hidden=!footerIconUrl;if(footerIconUrl){footerIcon.src=footerIconUrl;footerIcon.onerror=()=>{footerIcon.hidden=true;};}else footerIcon.removeAttribute('src');
  embed.style.display=[author,title,description,footer,get('FooterIcon'),imageUrl,thumbUrl].some(Boolean)?'flex':'none';
 }
 function updateEventPreview(type){
