@@ -137,7 +137,11 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 .lvl-announcement-settings .lvl-field input,.lvl-announcement-settings .lvl-field select,.lvl-announcement-settings .lvl-field textarea{font-size:12px;padding:8px 9px;min-height:34px}
 .lvl-announcement-settings .lvl-field textarea{min-height:58px}
 .lvl-announcement-settings .lvl-field small,.lvl-announcement-settings .lvl-check-row small{font-size:10px;line-height:1.35}
-.lvl-embed-editor{gap:8px}
+.lvl-embed-editor{gap:8px;border:1px solid var(--border-color,#3a3d44);border-radius:10px;padding:12px;background:rgba(127,127,127,.035)}
+.lvl-embed-section-heading{grid-column:1/-1;display:flex;flex-direction:column;gap:3px;padding-bottom:8px;border-bottom:1px solid var(--border-color,#3a3d44);margin-bottom:2px}
+.lvl-embed-section-heading b{font-size:13px}.lvl-embed-section-heading small{font-size:10px;color:var(--muted,#a5aab3)}
+.lvl-embed-editor>.lvl-image-field{grid-column:1/-1}
+.lvl-auto-message-editor{margin-bottom:10px}
 .lvl-embed-editor>.lvl-field:first-child,.lvl-embed-editor>.lvl-description-field,.lvl-embed-editor>.lvl-image-field,.lvl-embed-editor>.lvl-footer-row{grid-column:1/-1}
 .lvl-embed-editor>.lvl-field:nth-child(2),.lvl-embed-editor>.lvl-field:nth-child(3),.lvl-embed-editor>.lvl-field:nth-child(4){grid-column:span 1}
 .lvl-thumbnail-field{grid-column:1/-1;max-width:100%;justify-self:stretch}
@@ -361,10 +365,11 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
      <div class="lvl-card-head"><span class="lvl-icon">📣</span><div><h2>Level-up announcements</h2><p>Choose where and how the bot celebrates new levels.</p></div></div>
      <label class="lvl-check-row"><span><b>Announce level-ups</b><small>Send a message when a member reaches a new level.</small></span><input id="lvlAnnounce" type="checkbox"></label>
      <label class="lvl-field">Announcement channel<select id="lvlChannel"><option value="">Use default channel</option></select></label>
-     <div class="lvl-embed-editor">
-      <label class="lvl-field lvl-auto-message-editor">Level-up announcement message<textarea id="lvlAutoMessageTemplate" maxlength="2000" rows="7" placeholder="Write the complete message sent above the embed">**{user}**, you just reached level **{level}**!
+           <label class="lvl-field lvl-auto-message-editor">Level-up announcement message<textarea id="lvlAutoMessageTemplate" maxlength="2000" rows="7" placeholder="Write the complete message sent above the embed">**{user}**, you just reached level **{level}**!
 🎉 Your current highest rank is **{rank}**!
 💰 You received **₱{bcash} Bcash** for reaching level **{rewardLevel}**!</textarea><small>Edit the entire announcement in one place. Use a new line for each message. Lines containing {rank} appear only when a rank is assigned; lines containing {bcash} appear only when a Bcash reward is earned. Variables: {user}, {username}, {level}, {rank}, {bcash}, {rewardLevel}, {totalXp}.</small></label>
+     <div class="lvl-embed-editor">
+      <div class="lvl-embed-section-heading"><b>Embed</b><small>Customize the appearance and images inside your Discord embed.</small></div>
       <label class="lvl-field">Embed color<div class="lvl-color-row"><input id="lvlEmbedColor" type="color" value="#36393f"><input id="lvlEmbedColorHex" class="lvl-hex-input" type="text" value="#36393F" maxlength="7" placeholder="#36393F" aria-label="Embed color hex code" spellcheck="false"></div><small>Choose a color or type a HEX code (example: #C3F36B).</small></label>
       <label class="lvl-field">Author<input id="lvlEmbedAuthor" maxlength="256" placeholder="Author name"></label>
       <label class="lvl-field">Title<input id="lvlEmbedTitle" maxlength="256" placeholder="Title of the embed"></label>
