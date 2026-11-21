@@ -385,6 +385,7 @@ export function registerDashboardRoutes(app, bot) {
   app.get('/api/dashboard/autonick', async (req, res) => {
     const guild = requireDashboardGuild(req, res); if (!guild) return;
     try {
+      await guild.roles.fetch();
       const stored = await getFromDb(autoNickRulesKey(guild.id), []);
       const rules = (Array.isArray(stored) ? stored : []).map(rule => ({
         ...rule, roleName: rule.roleId ? (guild.roles.cache.get(rule.roleId)?.name || 'Deleted role') : null
