@@ -286,9 +286,24 @@ export function registerDashboardRoutes(app, bot) {
     const updates = {};
     for (const field of ['welcomeMessage', 'leaveMessage', 'banMessage', 'boostMessage']) {
       if (body[field] !== undefined) {
-        if (typeof body[field] !== 'string' || !body[field].trim() || body[field].length > 2000)
-          return res.status(400).json({ error: field + ' must be between 1 and 2000 characters.' });
+        if (typeof body[field] !== 'string' || body[field].length > 2000) return res.status(400).json({ error: field + ' must be 2000 characters or fewer.' });
         updates[field] = body[field].trim();
+      }
+    }
+    for (const field of ['welcomeEmbed', 'leaveEmbed', 'banEmbed']) {
+      if (body[field] !== undefined) {
+        const embed = body[field];
+        if (!embed || typeof embed !== 'object' || Array.isArray(embed)) return res.status(400).json({ error: 'Invalid ' + field + ' settings.' });
+        const clean = {};
+        for (const [key, max] of Object.entries({ color: 7, authorName: 256, title: 256, description: 4096, thumbnailUrl: 500, imageUrl: 500, footerIconUrl: 500, footerText: 2048 })) {
+          if (embed[key] === undefined) continue;
+          if (typeof embed[key] !== 'string' || embed[key].length > max) return res.status(400).json({ error: 'Invalid ' + field + ' ' + key + '.' });
+          const value = embed[key].trim();
+          if (['thumbnailUrl', 'imageUrl', 'footerIconUrl'].includes(key) && value) { try { const parsed = new URL(value); if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error(); } catch { return res.status(400).json({ error: field + ' ' + key + ' must be a valid HTTP or HTTPS URL.' }); } }
+          clean[key] = value;
+        }
+        if (clean.color && !/^#[0-9a-fA-F]{6}$/.test(clean.color)) return res.status(400).json({ error: field + ' color must be a 6-digit HEX color.' });
+        updates[field] = clean;
       }
     }
     for (const field of ['enabled', 'welcomePing', 'goodbyeEnabled', 'goodbyePing', 'banEnabled', 'boostEnabled']) {

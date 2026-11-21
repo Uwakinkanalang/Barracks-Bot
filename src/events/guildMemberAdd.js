@@ -1,6 +1,7 @@
 import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
-import { getColor, botConfig } from '../config/bot.js';
+import { buildMemberAnnouncementEmbed } from '../utils/announcementEmbeds.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
+import { getColor } from '../config/bot.js';
 import { getWelcomeConfig } from '../utils/database.js';
 import { formatWelcomeMessage } from '../utils/welcome.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
@@ -30,81 +31,20 @@ export default {
             const channel = guild.channels.cache.get(welcomeChannelId);
             const me = guild.members.me;
             const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
-            // Skip only the welcome message if permissions are missing; the rest of the
-            // join pipeline (auto-role, verification, logging, counters) must still run.
             if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
                 const formatData = { user, guild, member };
-                const welcomeMessage = formatWelcomeMessage(
-                    welcomeConfig.welcomeMessage || welcomeConfig.welcomeEmbed?.description || botConfig.welcome?.defaultWelcomeMessage || 'Welcome {user} to {server}!',
-                    formatData
-                );
-
-                const messageContent = welcomeConfig.welcomePing ? user.toString() : null;
-
-                const embedTitle = formatWelcomeMessage(
-                    welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
-                    formatData
-                );
-                const embedFooter = welcomeConfig.welcomeEmbed?.footer
-                    ? formatWelcomeMessage(welcomeConfig.welcomeEmbed.footer, formatData)
-                    : `Welcome to ${guild.name}!`;
-
-                const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
-                const cardBackground = welcomeConfig.welcomeImage || 'https://cdn.discordapp.com/attachments/1572883657440366673/1573042152076738662/Maligayang_Pagdating_sa_Barracks_1.png?ex=6b00912a&is=6aff3faa&hm=7fdbb924ed0b39874cf6be29acbe49bb8b23b912a48fa8cc5ee9ac57b43e9afc';
-                const barracksLogo = 'https://cdn.discordapp.com/attachments/1572883657440366673/1573042580336410696/barrack.png?ex=6b009190&is=6aff4010&hm=eabc376f2deb6c47589467e5b72d50f55af28476a45cb6f38ae2c66f5fdc8c50';
-
-                // Use a Discord-supported image URL directly in the embed.
-                // SVG attachments are not reliably rendered by Discord embed previews.
-                if (cardBackground && canEmbed) {
-                    const welcomeEmbed = new EmbedBuilder()
-                        .setColor('#556B2F')
-                        .setTitle('WELCOME TO BARRACKS!')
-                        .setDescription(
-                            `Welcome our new member, ${user.toString()}\n\n` +
-                            '• Read rules at <#1137696545890893904>\n' +
-                            '• Take your roles at <#1325091032697798727>\n' +
-                            '• After that, you can chat with us here <#1137695061501558905>\n\n' +
-                            'Remember to always prioritize having an enjoyable experience, Barracks! <a:dancehotdog:1540375739453407284>'
-                        )
-                        .setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }))
-                        .setImage(cardBackground)
-                        .setTimestamp()
-                        .setFooter({
-                            text: `We already have ${guild.memberCount.toLocaleString('en-US')} members`,
-                            iconURL: 'https://cdn.discordapp.com/emojis/1573225271983738930.png?size=64&quality=lossless'
-                        });
-                    await channel.send({
-                        content: `Welcome our new member, **${user.toString()}**`,
-                        embeds: [welcomeEmbed],
-                        allowedMentions: { users: [user.id] },
+                const message = formatWelcomeMessage(welcomeConfig.welcomeMessage || '', formatData);
+                const content = [welcomeConfig.welcomePing ? user.toString() : '', message].filter(Boolean).join('\n');
+                if (permissions.has(PermissionFlagsBits.EmbedLinks)) {
+                    const embed = buildMemberAnnouncementEmbed(welcomeConfig.welcomeEmbed || {}, formatData, {
+                        color: '#556B2F',
+                        title: '🎉 Welcome!',
+                        thumbnailUrl: user.displayAvatarURL({ extension: 'png', size: 256 }),
+                        imageUrl: welcomeConfig.welcomeImage || ''
                     });
-                } else if (!canEmbed) {
-                    await channel.send({
-                        content: messageContent || welcomeMessage
-                    });
-                } else {
-                    const embed = new EmbedBuilder()
-                        .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
-                        .setTitle(embedTitle)
-                        .setDescription(welcomeMessage)
-                        .setThumbnail(user.displayAvatarURL())
-                        .addFields(
-                            { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
-                            { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
-                        )
-                        .setTimestamp()
-                        .setFooter({ text: embedFooter });
-                    
-                    if (welcomeConfig.welcomeImage) {
-                        embed.setImage(welcomeConfig.welcomeImage);
-                    } else if (welcomeConfig.welcomeEmbed?.image?.url) {
-                        embed.setImage(welcomeConfig.welcomeEmbed.image.url);
-                    }
-                    
-                    await channel.send({ 
-                        content: messageContent,
-                        embeds: [embed] 
-                    });
+                    await channel.send({ content: content || undefined, embeds: [embed], allowedMentions: welcomeConfig.welcomePing ? { users: [user.id] } : { parse: [] } });
+                } else if (content) {
+                    await channel.send({ content, allowedMentions: welcomeConfig.welcomePing ? { users: [user.id] } : { parse: [] } });
                 }
             }
         }

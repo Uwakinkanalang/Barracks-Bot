@@ -1,4 +1,5 @@
-import { Events, AuditLogEvent } from 'discord.js';
+import { Events, AuditLogEvent, PermissionFlagsBits } from 'discord.js';
+import { buildMemberAnnouncementEmbed } from '../utils/announcementEmbeds.js';
 import { captureModerationAudit } from '../services/moderationAuditMirror.js';
 import { getWelcomeConfig } from '../utils/database.js';
 import { formatWelcomeMessage } from '../utils/welcome.js';
@@ -13,11 +14,21 @@ export default {
       if (config.banEnabled && config.banChannelId) {
         const channel = await ban.guild.channels.fetch(config.banChannelId).catch(() => null);
         if (channel?.isTextBased?.() && channel.send) {
-          const message = formatWelcomeMessage(
-            config.banMessage || '{user.tag} has been banned from {server}.',
-            { user: ban.user, guild: ban.guild }
-          );
-          await channel.send({ content: message, allowedMentions: { parse: [] } });
+          const formatData = { user: ban.user, guild: ban.guild };
+          const message = formatWelcomeMessage(config.banMessage || '', formatData);
+          const permissions = channel.permissionsFor(ban.guild.members.me);
+          if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
+            if (permissions.has(PermissionFlagsBits.EmbedLinks)) {
+              const embed = buildMemberAnnouncementEmbed(config.banEmbed || {}, formatData, {
+                color: '#D9534F',
+                title: '🔨 Member Banned',
+                thumbnailUrl: ban.user.displayAvatarURL?.({ extension: 'png', size: 256 })
+              });
+              await channel.send({ content: message || undefined, embeds: [embed], allowedMentions: { parse: [] } });
+            } else if (message) {
+              await channel.send({ content: message, allowedMentions: { parse: [] } });
+            }
+          }
         }
       }
       await captureModerationAudit(ban.guild, {
