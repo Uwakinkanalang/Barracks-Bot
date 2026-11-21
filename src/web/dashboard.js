@@ -735,6 +735,85 @@ export function registerDashboardRoutes(app, bot) {
   });
 
 
+  app.delete('/api/dashboard/clans/:clanId', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+
+    const clanId = String(req.params.clanId || '');
+    const mode = String(req.body?.mode || '');
+    if (!['record', 'resources'].includes(mode)) return res.status(400).json({ error: 'Choose a valid clan deletion option.' });
+    const me = guild.members.me;
+    if (!me || !me.permissions.has(['ManageRoles', 'ManageChannels'])) {
+      return res.status(403).json({ error: 'Barracks-Bot needs Manage Roles and Manage Channels permissions to delete a clan.' });
+    }
+
+    let clans;
+    try { clans = await loadDashboardClans(guild.id); }
+    catch { return res.status(500).json({ error: 'Could not read saved clan records.' }); }
+    const index = clans.findIndex(c => String(c.roleId || c.id) === clanId);
+    if (index < 0) return res.status(404).json({ error: 'Clan not found.' });
+    const clan = clans[index];
+    const role = guild.roles.cache.get(String(clan.roleId || clan.id));
+    const category = guild.channels.cache.get(String(clan.categoryId));
+    const channelIds = [clan.textChannelId, clan.voiceChannelId].filter(Boolean).map(String);
+    const channels = channelIds.map(id => guild.channels.cache.get(id)).filter(Boolean);
+    if (role && !role.editable) return res.status(403).json({ error: 'Barracks-Bot cannot manage this clan role. Move the bot role above the clan role.' });
+    if (mode === 'resources') {
+      if (category && !category.manageable) return res.status(403).json({ error: 'Barracks-Bot cannot manage the clan category. Check its role hierarchy and Manage Channels permission.' });
+      if (channels.some(channel => !channel.manageable)) return res.status(403).json({ error: 'Barracks-Bot cannot manage one or more clan channels. Check its role hierarchy and Manage Channels permission.' });
+    }
+
+    const memberIds = new Set([
+      ...(Array.isArray(clan.memberIds) ? clan.memberIds : []),
+      clan.leaderId,
+      clan.viceLeaderId
+    ].filter(Boolean).map(String));
+    if (role) for (const member of role.members.values()) memberIds.add(member.id);
+
+    try {
+      const members = await Promise.all([...memberIds].map(id => guild.members.fetch(id).catch(() => null)));
+      for (const member of members.filter(Boolean)) {
+        if (role && member.roles.cache.has(role.id)) {
+          if (!member.manageable) throw new Error('Cannot remove the clan role from ' + member.user.tag + '. Move the bot role above that member and retry.');
+          await member.roles.remove(role, 'Clan deleted from Barracks dashboard');
+        }
+      }
+
+      for (const channel of [...channels, ...(category ? [category] : [])]) {
+        for (const id of memberIds) {
+          await channel.permissionOverwrites.delete(id, 'Clan deleted from Barracks dashboard').catch(() => {});
+        }
+      }
+
+      if (mode === 'resources') {
+        for (const channel of channels) {
+          if (category && channel.parentId !== category.id) {
+            throw new Error('A saved clan channel is no longer inside its recorded clan category. No unrelated channel was deleted.');
+          }
+          await channel.delete('Clan and Discord resources deleted from Barracks dashboard');
+        }
+        if (category) await category.delete('Clan and Discord resources deleted from Barracks dashboard');
+        if (role) await role.delete('Clan and Discord resources deleted from Barracks dashboard');
+      }
+
+      clans.splice(index, 1);
+      await setInDb(clanStorageKey(guild.id), clans);
+      return res.json({
+        ok: true,
+        mode,
+        deleted: { clan: true, role: mode === 'resources' && !!role, category: mode === 'resources' && !!category, channels: mode === 'resources' ? channels.length : 0 },
+        keptDiscordResources: mode === 'record'
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: error?.message || 'Could not fully delete the clan. Check Discord permissions and inspect the clan resources before retrying.',
+        partial: true
+      });
+    }
+  });
+
   app.patch('/api/dashboard/clans/:clanId', async (req, res) => {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
     if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
