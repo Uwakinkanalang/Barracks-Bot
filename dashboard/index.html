@@ -515,7 +515,7 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 </div>
  </div>
  <div class="lvl-footer"><div><b>Remember to save your changes</b><small id="lvlStatus" role="status" aria-live="polite">Settings have not been loaded yet.</small></div><button id="lvlSave" class="lvl-save" type="button">Save Leveling Settings</button></div>
-</div></div>
+</div>
 <div id="rolesChannelsPanel" class="rc-page" style="display:none;max-width:1200px">
  <div class="rc-heading"><div><div class="rc-eyebrow">BARRACKS · SERVER MANAGEMENT</div><h1>Roles &amp; Channels</h1><p>Manage your server structure, review existing roles, and create new Discord resources.</p></div><button id="rcRefresh" class="rc-refresh" type="button">↻ Refresh</button></div>
  <div class="rc-stats">
@@ -638,6 +638,7 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
  <div class="card"><h2 style="font-size:16px;margin:0 0 5px">🎖️ Activities & Leveling</h2><p class="sub">Control message and voice XP rewards.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-top:14px">
   <label style="align-self:center"><input id="activityEnabled" type="checkbox"> Enable leveling</label><label>Minimum message XP<input id="activityXpMin" type="number" min="1" max="1000" style="display:block;width:100%;margin-top:6px;padding:10px;background:#25262c;color:white;border:1px solid #484950;border-radius:8px"></label><label>Maximum message XP<input id="activityXpMax" type="number" min="1" max="1000" style="display:block;width:100%;margin-top:6px;padding:10px;background:#25262c;color:white;border:1px solid #484950;border-radius:8px"></label><label>Message XP cooldown (seconds)<input id="activityCooldown" type="number" min="0" max="3600" style="display:block;width:100%;margin-top:6px;padding:10px;background:#25262c;color:white;border:1px solid #484950;border-radius:8px"></label><label>XP multiplier<input id="activityMultiplier" type="number" min="0.1" max="10" step="0.1" style="display:block;width:100%;margin-top:6px;padding:10px;background:#25262c;color:white;border:1px solid #484950;border-radius:8px"></label><label style="align-self:center"><input id="voiceXpEnabled" type="checkbox"> Enable voice XP</label><label>Voice XP per minute<input id="voiceXpPerMinute" type="number" min="1" max="100" style="display:block;width:100%;margin-top:6px;padding:10px;background:#25262c;color:white;border:1px solid #484950;border-radius:8px"></label>
  </div><div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap"><button id="activitySave" type="button" style="border:0;border-radius:9px;padding:11px 17px;background:#c3f36b;color:#18210f;font-weight:800">Save activity settings</button><span id="activityStatus" role="status" style="font-size:12px;color:#c0c2ca"></span></div></div>
+</div>
 </div>
 </div>
 </section>
