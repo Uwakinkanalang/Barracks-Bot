@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { getNicknamePrefix } from '../Economy/nickname.js';
+import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -50,6 +51,22 @@ export default {
       subcommand
         .setName('members')
         .setDescription('View your clan membership roster')
+    ),
+    .addSubcommand(subcommand =>
+      subcommand.setName('bank').setDescription('View your clan bank balance')
+    )
+    .addSubcommand(subcommand =>
+      subcommand.setName('deposit')
+        .setDescription('Deposit Bcash into your clan bank')
+        .addStringOption(option => option.setName('amount').setDescription('Amount to deposit, or all').setRequired(true))
+    )
+    .addSubcommand(subcommand =>
+      subcommand.setName('withdraw')
+        .setDescription('Withdraw Bcash from your clan bank')
+        .addStringOption(option => option.setName('amount').setDescription('Amount to withdraw, or all').setRequired(true))
+    )
+    .addSubcommand(subcommand =>
+      subcommand.setName('transactions').setDescription('View your clan bank transaction history')
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -137,6 +154,85 @@ export default {
       await member.setNickname(`${prefix}${baseName}`.slice(0, 32), 'Left Barracks clan').catch(() => {});
       const leftNames = memberships.map(clan => `**${clan.name} [${clan.tag}]**`).join(', ');
       return interaction.reply({ content: `✅ You have left ${leftNames}. Your clan role(s) and clan nickname tag(s) have been removed.`, flags: MessageFlags.Ephemeral });
+    }
+
+    if (['bank', 'deposit', 'withdraw', 'transactions'].includes(subcommand)) {
+      const storageKey = `guild:${interaction.guildId}:clans`;
+      const clans = await interaction.client.db.get(storageKey, []);
+      const clanList = Array.isArray(clans) ? clans : [];
+      const clan = clanList.find(entry =>
+        entry.status === 'approved' &&
+        (String(entry.leaderId) === interaction.user.id || String(entry.viceLeaderId || '') === interaction.user.id)
+      );
+
+      if (!clan) {
+        return interaction.reply({ content: 'Only a **Clan Leader** or **Vice Clan Leader** can access and manage the Clan Bank.', flags: MessageFlags.Ephemeral });
+      }
+
+      clan.bankBalance = Math.max(0, Number(clan.bankBalance) || 0);
+      clan.bankTransactions = Array.isArray(clan.bankTransactions) ? clan.bankTransactions : [];
+
+      if (subcommand === 'bank') {
+        const embed = new EmbedBuilder()
+          .setColor(Number.parseInt((clan.roleHex || '#5865F2').replace('#', ''), 16))
+          .setTitle(`🏦 ${clan.name} [${clan.tag}] — Clan Bank`)
+          .setDescription(`**Available Funds**\n₱${clan.bankBalance.toLocaleString()}\n\nOnly the Clan Leader and Vice Clan Leader can manage this treasury.`)
+          .setFooter({ text: 'Barracks • Clan Treasury' });
+        await interaction.client.db.set(storageKey, clanList);
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
+      if (subcommand === 'transactions') {
+        const recent = clan.bankTransactions.slice(-10).reverse();
+        const lines = recent.map(tx => {
+          const icon = tx.type === 'deposit' ? '📥' : '📤';
+          const date = tx.createdAt ? new Date(tx.createdAt).toLocaleString() : 'Unknown date';
+          return `${icon} **₱${Number(tx.amount || 0).toLocaleString()}** — ${tx.type} by <@${tx.userId}> • ${date}`;
+        });
+        const embed = new EmbedBuilder()
+          .setColor(Number.parseInt((clan.roleHex || '#5865F2').replace('#', ''), 16))
+          .setTitle(`📜 ${clan.name} — Bank Transactions`)
+          .setDescription(lines.length ? lines.join('\n') : 'No transactions recorded yet.')
+          .setFooter({ text: 'Showing the latest 10 transactions' });
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
+      const amountInput = interaction.options.getString('amount', true).trim().toLowerCase();
+      const userData = await getEconomyData(interaction.client, interaction.guildId, interaction.user.id);
+      if (!userData) {
+        return interaction.reply({ content: 'Could not load your Bcash account. Please try again.', flags: MessageFlags.Ephemeral });
+      }
+
+      const amount = amountInput === 'all'
+        ? (subcommand === 'deposit' ? Number(userData.wallet) || 0 : clan.bankBalance)
+        : Number(amountInput);
+      if (!Number.isSafeInteger(amount) || amount <= 0) {
+        return interaction.reply({ content: 'Enter a valid whole-number amount greater than 0, or use `all`.', flags: MessageFlags.Ephemeral });
+      }
+
+      if (subcommand === 'deposit') {
+        if (amount > (Number(userData.wallet) || 0)) {
+          return interaction.reply({ content: 'You do not have enough Bcash in your wallet.', flags: MessageFlags.Ephemeral });
+        }
+        userData.wallet -= amount;
+        clan.bankBalance += amount;
+      } else {
+        if (amount > clan.bankBalance) {
+          return interaction.reply({ content: 'The Clan Bank does not have enough funds for that withdrawal.', flags: MessageFlags.Ephemeral });
+        }
+        userData.wallet = (Number(userData.wallet) || 0) + amount;
+        clan.bankBalance -= amount;
+      }
+
+      await setEconomyData(interaction.client, interaction.guildId, interaction.user.id, userData);
+      clan.bankTransactions.push({ type: subcommand, amount, userId: interaction.user.id, createdAt: Date.now() });
+      clan.bankTransactions = clan.bankTransactions.slice(-100);
+      await interaction.client.db.set(storageKey, clanList);
+
+      return interaction.reply({
+        content: `✅ ${subcommand === 'deposit' ? 'Deposited' : 'Withdrew'} **₱${amount.toLocaleString()}** ${subcommand === 'deposit' ? 'into' : 'from'} **${clan.name} [${clan.tag}] Clan Bank**.\n🏦 Clan Bank balance: **₱${clan.bankBalance.toLocaleString()}**\n💵 Your wallet: **₱${(Number(userData.wallet) || 0).toLocaleString()}**`,
+        flags: MessageFlags.Ephemeral,
+      });
     }
 
     if (['addmember', 'kick', 'members'].includes(subcommand)) {
