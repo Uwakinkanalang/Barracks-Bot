@@ -201,86 +201,146 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 .lvl-exclusion-field{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px 10px;align-items:end;margin-top:14px}.lvl-exclusion-field .lvl-field{margin-top:0}.lvl-add-btn,.lvl-remove-btn{border:1px solid #53634f;border-radius:8px;background:#263528;color:#e9f5e7;padding:11px 14px;font:inherit;font-size:13px;font-weight:750;cursor:pointer;white-space:nowrap}.lvl-add-btn{background:#c3f36b;color:#172116;border-color:#c3f36b}.lvl-exclusion-list{grid-column:1/-1;display:flex;flex-direction:column;gap:7px;min-height:42px;padding:9px;background:#111914;border:1px solid #3b4940;border-radius:8px}.lvl-exclusion-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 8px;background:#202c23;border:1px solid #354538;border-radius:7px;color:#edf3ed;font-size:13px}.lvl-remove-btn{padding:6px 10px;color:#ffc1b9;border-color:#70443f;background:#392421;font-size:12px}.lvl-empty{color:#b3beb5;font-size:12px;padding:4px}.lvl-exclusion-field select{min-width:0}@media(max-width:520px){.lvl-exclusion-field{grid-template-columns:1fr}.lvl-add-btn{width:100%}}.lvl-embed-editor{display:grid;grid-template-columns:1fr 1fr;gap:12px}.lvl-embed-editor .lvl-field{margin:0}.lvl-embed-editor>.lvl-field:nth-child(-n+4),.lvl-embed-editor>.lvl-description-field,.lvl-embed-editor>.lvl-image-field,.lvl-embed-editor>.lvl-footer-row{grid-column:1/-1}.lvl-thumbnail-field{grid-column:1/-1;max-width:50%;justify-self:end}.lvl-footer-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}.lvl-footer-row .lvl-field{min-width:0}.lvl-color-row{display:flex;align-items:center;gap:8px}.lvl-color-row input[type=color]{width:40px;height:34px;padding:2px;border:1px solid #49515b;border-radius:7px;background:#22252b;flex:0 0 auto}.lvl-color-row .lvl-hex-input{width:104px;min-width:0;height:34px;padding:6px 8px;border:1px solid #49515b;border-radius:7px;background:#22252b;color:#f4f7f4;font:12px ui-monospace,monospace}.lvl-discord-preview{margin-top:10px;padding:14px;background:#232428;border-radius:8px;color:#dbdee1;font-size:13px}.lvl-preview-content{margin-bottom:10px}.lvl-preview-embed{display:flex;gap:14px;border-left:4px solid #36393f;background:#2b2d31;border-radius:4px;padding:12px;min-height:70px}.lvl-preview-main{min-width:0;flex:1}.lvl-preview-embed img{width:80px;height:80px;object-fit:cover;border-radius:5px}.lvl-preview-embed img[hidden]{display:none}.lvl-preview-author{font-weight:700;margin-bottom:8px}.lvl-preview-title{font-weight:750;color:#fff;font-size:15px;margin-bottom:7px}.lvl-preview-description{white-space:pre-wrap;overflow-wrap:anywhere}.lvl-preview-footer{font-size:11px;color:#b5bac1;margin-top:12px}.lvl-preview-footer:empty{display:none}@media(max-width:620px){.lvl-embed-editor{grid-template-columns:1fr}.lvl-embed-editor .lvl-field,.lvl-embed-editor>.lvl-footer-row{grid-column:1/-1}.lvl-thumbnail-field{max-width:none;justify-self:stretch}.lvl-footer-row{grid-template-columns:1fr}}.clan-delete-action{border:1px solid #754640;border-radius:8px;background:#3b2525;color:#ffb6ad;padding:9px 12px;font:inherit;font-size:11px;font-weight:800;cursor:pointer}.clan-delete-action:hover{background:#512d2b}.clan-delete-warning{padding:13px;border:1px solid #70443f;background:#382725;border-radius:10px;color:#f1d5d1;margin:14px 0}.clan-delete-warning p{font-size:12px;color:#d5bcb8;margin:6px 0 0;line-height:1.5}.clan-delete-options{display:grid;gap:10px}.clan-delete-option{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:14px;border:1px solid #56614c;border-radius:10px;background:#29342a;color:#edf4e9;cursor:pointer}.clan-delete-option b{font-size:13px}.clan-delete-option span{font-size:11px;color:#c2c9c0;line-height:1.5}.clan-delete-option.danger{border-color:#754640;background:#382725}.clan-delete-option:hover{filter:brightness(1.12)}.clan-list-actions{display:flex;gap:8px;flex-wrap:wrap}.clan-delete-action{display:inline-flex!important;align-items:center;justify-content:center;visibility:visible!important;opacity:1!important;min-height:36px;border:1px solid #a34b45!important;background:#542b29!important;color:#ffe2df!important;border-radius:8px;padding:9px 14px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.clan-delete-action:hover{background:#743733!important;border-color:#e17a70!important}.clan-list-actions{display:flex!important;gap:8px;align-items:center;flex-wrap:wrap;width:auto}</style>
 
 <style id="barracksDashboardPresentation">
-/* Consistent command-center layout across every dashboard page */
-:root{--dash-gap:18px;--dash-card:#34353c;--dash-border:#4b4d56;--dash-muted:#c0c2ca}
-html{scroll-behavior:smooth}
-body{min-width:320px}
-.shell{min-height:100vh;align-items:stretch}
-.side{position:sticky;top:0;height:100vh;max-height:100vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;z-index:5}
-.main{min-width:0;display:flex;flex-direction:column}
-.top{position:sticky;top:0;z-index:4;backdrop-filter:blur(12px);background:#303137ed}
-.content{width:100%;max-width:1540px!important;margin:0 auto;padding:30px clamp(18px,3vw,46px) 64px!important}
-#dashboardPageContainer{width:100%;min-width:0;display:block}
-#dashboardHome,#routeView{width:100%;min-width:0}
-#routeView>.welcome{padding:0 2px 18px;margin:0 0 22px;border-bottom:1px solid #484950}
-#routeView>.welcome h1{font-size:clamp(25px,2.4vw,34px);font-weight:800;letter-spacing:-.035em}
-#routeView>.welcome .sub{max-width:760px}
-#routeView>[id$="Panel"],#routeView>#levelingRoutePage,#routeView>#welcomePanel,#routeView>#moderationPanel,#routeView>#moderationLogsPanel,#routeView>#botSettingsPanel,#routeView>#boostersPanel,#routeView>#economyPanel,#routeView>#rolesChannelsPanel,#routeView>#clansPanel,#routeView>#clanListPanel,#routeView>#ticketsPanel,#routeView>#prefixCommandsPanel,#routeView>#slashCommandsPanel,#routeView>#gamesActivitiesPanel{
- width:100%!important;max-width:none!important;min-width:0;margin:0 auto 22px!important
+/* Barracks dashboard design system */
+:root{
+ --ui-bg:#202329;--ui-sidebar:#1b1e24;--ui-surface:#292d35;--ui-surface-raised:#30353e;
+ --ui-border:#414752;--ui-border-soft:#363c46;--ui-text:#f1f3f5;--ui-muted:#aeb5c0;
+ --ui-accent:#c3f36b;--ui-accent-soft:#35432a;--ui-radius:14px;--ui-gap:18px;
 }
-#routeView .card{min-width:0;border:1px solid var(--dash-border);border-radius:14px;padding:clamp(16px,1.7vw,23px);background:var(--dash-card);box-shadow:0 8px 24px #00000012}
-#routeView .card h2{font-size:17px;line-height:1.35;font-weight:750}
-#routeView .card h3{font-size:15px;line-height:1.4}
-#routeView .sub{color:var(--dash-muted);line-height:1.65}
+html{scroll-behavior:smooth;scroll-padding-top:88px}
+body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:14px;line-height:1.55}
+.shell{min-height:100vh;align-items:stretch;background:var(--ui-bg)}
+.side{position:sticky;top:0;align-self:flex-start;width:264px;height:100vh;max-height:100vh;overflow-y:auto;overscroll-behavior:contain;background:var(--ui-sidebar);border-color:var(--ui-border-soft);padding:22px 16px;scrollbar-width:thin}
+.brand{padding-bottom:22px}
+.brand-mark{box-shadow:0 5px 18px #c3f36b20}
+.server{background:var(--ui-surface);border-color:var(--ui-border);margin-bottom:20px}
+.nav-label{color:#929aa6;font-size:11px}
+.nav{gap:4px}
+.nav button{min-height:42px;border:1px solid transparent;border-radius:10px;color:#c1c7d0;font-size:13px;transition:background .15s,border-color .15s,color .15s}
+.nav button:hover{background:#2a3038;color:#fff}
+.nav button.active,.nav-dropdown>button.active,.nav-submenu button.active{background:var(--ui-accent-soft);border-color:#607748;color:#e4f8c8}
+.nav-submenu{gap:4px;padding:5px 0 7px 14px}
+.nav-submenu button{min-height:38px}
+.side-bottom{border-color:var(--ui-border-soft);color:#87909d}
+.main{min-width:0;flex:1;background:var(--ui-bg)}
+.top{position:sticky;top:0;z-index:20;min-height:66px;height:66px;padding:0 clamp(18px,3vw,38px);background:#22262df2;border-color:var(--ui-border-soft);backdrop-filter:blur(14px)}
+.crumb{font-size:13px;color:var(--ui-muted)}
+.crumb b{color:var(--ui-text)}
+.status{font-size:12px}
+.logout{min-height:38px;border-color:#505865;background:#2b3038;color:#e3e7ec;font-size:12px}
+.logout:hover{border-color:#81915f;background:#343b34;color:#f4f8ef}
+.content{width:100%;max-width:1600px;margin:0 auto;padding:30px clamp(18px,3vw,44px) 64px}
+#dashboardPageContainer,#dashboardHome,#routeView{display:block;width:100%;min-width:0;max-width:none}
+#routeView>.welcome{align-items:flex-end;padding:0 2px 20px;margin:0 0 24px;border-bottom:1px solid var(--ui-border-soft)}
+#routeView>.welcome h1{font-size:clamp(26px,2.2vw,34px);font-weight:800;line-height:1.15;letter-spacing:-.035em;margin:0 0 7px}
+#routeView>.welcome .sub{max-width:760px;color:var(--ui-muted);font-size:14px}
+#routeView>[id$="Panel"],#routeView>#levelingRoutePage{
+ width:100%!important;max-width:1320px!important;min-width:0;margin:0 auto 22px!important
+}
+#routeView .card,#routeView .lvl-card,#routeView .rc-card,#routeView .clan-form-card,#routeView .clan-setup-card,#routeView .clan-list-card{
+ min-width:0;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:var(--ui-radius);
+ box-shadow:0 8px 24px #00000014
+}
+#routeView .card{padding:clamp(17px,1.6vw,23px)}
+#routeView .card h2,#routeView .lvl-card-head h2,#routeView .rc-card-head h2{font-size:17px;line-height:1.35;font-weight:750;color:var(--ui-text)}
+#routeView .card h3{font-size:15px;line-height:1.4;color:var(--ui-text)}
+#routeView .sub,#routeView .card p{color:var(--ui-muted);line-height:1.6}
 #routeView .notice{border-radius:11px;line-height:1.6}
-#routeView input:not([type=checkbox]):not([type=radio]):not([type=color]),#routeView select,#routeView textarea{
- max-width:100%;min-width:0;border-radius:9px
+#routeView .grid{gap:var(--ui-gap)}
+#routeView .announcement-layout,#routeView .lvl-announcement-layout{
+ width:100%;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:var(--ui-gap);align-items:start
 }
-#routeView button{border-radius:9px;transition:background-color .15s,border-color .15s,transform .15s}
-#routeView button:focus-visible,#routeView input:focus-visible,#routeView select:focus-visible,#routeView textarea:focus-visible{outline:2px solid #c3f36b;outline-offset:2px}
-#routeView .grid{gap:var(--dash-gap)}
-#routeView .announcement-layout,#routeView .lvl-announcement-layout{width:100%;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:var(--dash-gap);align-items:start}
 #routeView .lvl-announcement-settings,#routeView .lvl-announcement-preview{min-width:0}
-#routeView .lvl-announcement-preview{position:sticky;top:92px}
-#routeView .lvl-page{width:100%;max-width:none}
-#routeView .lvl-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--dash-gap)}
-#routeView .lvl-card{height:100%}
-#routeView .clans-page{width:100%;max-width:none}
-#routeView .clan-create-layout{grid-template-columns:minmax(0,1.35fr) minmax(280px,.8fr);gap:var(--dash-gap)}
-#routeView #moderationPanel{max-width:none!important}
+#routeView .lvl-announcement-preview{position:sticky;top:84px;background:var(--ui-surface);border-color:var(--ui-border);border-radius:var(--ui-radius)}
+#routeView .lvl-page,#routeView .rc-page,#routeView .clans-page{width:100%;max-width:none!important;min-width:0;margin-left:auto;margin-right:auto}
+#routeView .lvl-heading,#routeView .rc-heading{margin:0 0 20px}
+#routeView .lvl-heading h1,#routeView .rc-heading h1{font-size:clamp(26px,2.2vw,33px);font-weight:800;letter-spacing:-.03em}
+#routeView .lvl-eyebrow,#routeView .rc-eyebrow{color:var(--ui-accent);letter-spacing:.12em}
+#routeView .lvl-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ui-gap)}
+#routeView .lvl-card{height:100%;padding:20px}
+#routeView .lvl-status-banner{background:#29352b;border-color:#536748;border-radius:12px}
+#routeView .lvl-icon,#routeView .rc-stat-icon,#routeView .clan-section-icon{background:#394333;border-color:#526346}
+#routeView .lvl-fields,#routeView .rc-create-fields{gap:14px}
+#routeView .lvl-field,#routeView .lvl-fields label,#routeView .rc-create-fields label,#routeView .clan-field{color:#e2e6ec;font-size:13px;font-weight:650}
+#routeView input:not([type=checkbox]):not([type=radio]):not([type=color]),#routeView select,#routeView textarea{
+ max-width:100%;min-width:0;min-height:42px;border:1px solid #505865;border-radius:9px;
+ background:#20242b;color:var(--ui-text);font:inherit;padding:10px 12px
+}
+#routeView textarea{min-height:100px;resize:vertical;line-height:1.55}
+#routeView input::placeholder,#routeView textarea::placeholder{color:#7f8996}
+#routeView input:focus,#routeView select:focus,#routeView textarea:focus{outline:2px solid #a8d95e;outline-offset:1px;border-color:#a8d95e}
+#routeView input[type=checkbox],#routeView input[type=radio]{accent-color:var(--ui-accent)}
+#routeView button{font:inherit;border-radius:9px;transition:background-color .15s,border-color .15s,color .15s,transform .15s}
+#routeView button:focus-visible,#dashboardHome button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
+#routeView .lvl-secondary,#routeView .rc-refresh,#routeView .clan-edit-action{min-height:40px;background:#343b34;border:1px solid #56654b;color:#e9f2e3;padding:9px 13px;font-size:13px}
+#routeView .lvl-save,#routeView .rc-primary,#routeView .clan-submit{min-height:42px;background:var(--ui-accent);border:1px solid var(--ui-accent);color:#202719;font-size:13px;font-weight:800;padding:10px 16px}
+#routeView .lvl-save:hover,#routeView .rc-primary:hover,#routeView .clan-submit:hover{background:#d1fa83;transform:translateY(-1px)}
+#routeView .clan-page-heading{background:linear-gradient(115deg,#303b31,#2b3038 70%,#34352f);border-color:#4c5a46;border-radius:var(--ui-radius);padding:22px 24px}
+#routeView .clan-page-heading h2{font-size:clamp(24px,2vw,30px)}
+#routeView .clan-eyebrow{color:var(--ui-accent)}
+#routeView .clan-create-layout{grid-template-columns:minmax(0,1.25fr) minmax(280px,.8fr);gap:var(--ui-gap)}
+#routeView .clan-preview-card{background:#22272e;border-color:var(--ui-border)}
+#routeView .clan-form-footer{border-color:var(--ui-border)}
+#routeView .clan-list>div{border-color:var(--ui-border)!important}
+#routeView #moderationPanel,#routeView #moderationLogsPanel,#routeView #botSettingsPanel,#routeView #boostersPanel,#routeView #economyPanel,#routeView #ticketsPanel,#routeView #prefixCommandsPanel,#routeView #slashCommandsPanel,#routeView #gamesActivitiesPanel{max-width:1320px!important}
 #routeView #prefixCommandsList,#routeView #slashCommandsList{gap:12px}
-#routeView #gamesActivitiesPanel>.card{margin-bottom:var(--dash-gap)!important}
+#routeView #gamesActivitiesPanel>.card{margin-bottom:var(--ui-gap)!important}
 #routeView #gamesActivitiesPanel .grid>.card{height:100%}
-#routeView #messageBuilderPanel{z-index:30}
 #dashboardHome .welcome{margin-bottom:22px}
+#dashboardHome .welcome h1{font-size:clamp(27px,2.4vw,35px);font-weight:800;letter-spacing:-.035em}
 #dashboardHome .grid{gap:14px}
-#dashboardHome .modules{gap:14px}
-#dashboardHome .module{min-width:0;min-height:155px}
-@media(max-width:1050px){
- .content{padding:24px 22px 52px!important}
+#dashboardHome .card{background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:var(--ui-radius);padding:18px}
+#dashboardHome .metric{font-size:30px}
+#dashboardHome .modules{grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+#dashboardHome .module{min-width:0;min-height:138px;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;text-align:left;gap:13px;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:13px;padding:17px}
+#dashboardHome .module:hover{background:var(--ui-surface-raised);border-color:#71835a;transform:translateY(-2px)}
+#dashboardHome .module-icon{width:42px;height:42px;flex:0 0 42px;background:#394333;border:1px solid #526346;border-radius:12px}
+#dashboardHome .module b{font-size:14px}
+#dashboardHome .module small{font-size:12px;line-height:1.5;color:var(--ui-muted)}
+#dashboardHome .module-group-title{grid-column:1/-1;margin:16px 0 0;padding-bottom:7px;border-bottom:1px solid var(--ui-border-soft);font-size:16px;color:#e9edf1}
+#dashboardHome .notice{background:#29352b;border-color:#526346;border-radius:12px}
+#messageBuilderPanel>div{background:var(--ui-surface)!important;border-color:var(--ui-border)!important;box-shadow:0 24px 80px #0009}
+#messageBuilderPanel .card{background:var(--ui-surface-raised)!important;border-color:var(--ui-border)!important}
+@media(max-width:1100px){
+ .content{padding:25px 22px 54px}
+ #dashboardHome .modules{grid-template-columns:repeat(2,minmax(0,1fr))}
  #routeView .announcement-layout,#routeView .lvl-announcement-layout{grid-template-columns:minmax(0,1fr)}
  #routeView .lvl-announcement-preview{position:static}
  #routeView .clan-create-layout{grid-template-columns:1fr}
 }
 @media(max-width:760px){
  .shell{display:block}
- .side{position:relative;top:auto;width:100%;height:auto;max-height:none;overflow:visible;padding:12px 14px;border-right:0;border-bottom:1px solid #45464d}
- .brand{padding:0 4px 12px}
+ .side{position:relative;top:auto;width:100%;height:auto;max-height:none;overflow:visible;padding:12px 14px;border-right:0;border-bottom:1px solid var(--ui-border)}
+ .brand{padding:0 4px 10px}
  .brand>div:last-child{display:block}
  .server{margin:0 0 10px;padding:8px 10px}
  .server>div:last-child{display:block}
  .side .nav-label,.side .side-bottom{display:none}
- .side nav.nav{display:flex;gap:6px;overflow-x:auto;padding:2px 0 5px;scrollbar-width:thin}
+ .side nav.nav{display:flex;gap:6px;overflow-x:auto;padding:3px 0 6px;scrollbar-width:thin}
  .side nav.nav>button,.side nav.nav>.nav-dropdown{flex:0 0 auto}
  .side nav.nav button{justify-content:flex-start;white-space:nowrap;padding:9px 11px;min-height:40px}
  .side nav.nav .nav-text{display:inline}
  .side nav.nav .ico{width:auto}
- .side .nav-submenu{position:static;padding-left:8px}
+ .side .nav-submenu{display:flex;gap:5px;padding:5px 0;overflow-x:auto}
+ .side .nav-submenu button{flex:0 0 auto}
  .main{width:100%}
- .top{position:relative;padding:0 18px;min-height:58px}
- .content{padding:20px 15px 42px!important}
+ .top{position:relative;min-height:58px;height:58px;padding:0 16px}
+ .content{padding:20px 15px 42px}
  #dashboardHome .modules{grid-template-columns:repeat(2,minmax(0,1fr))}
  #routeView .lvl-grid{grid-template-columns:1fr}
  #routeView .clan-side-column{grid-template-columns:1fr}
+ #routeView .lvl-heading,#routeView .rc-heading{flex-direction:column;align-items:stretch}
+ #routeView .lvl-heading>button,#routeView .rc-heading>button{align-self:flex-start}
 }
-@media(max-width:480px){
+@media(max-width:520px){
  #dashboardHome .modules{grid-template-columns:1fr}
  #dashboardHome .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
- #routeView .clan-fields,#routeView .lvl-fields{grid-template-columns:1fr}
- #routeView .lvl-footer{align-items:stretch;flex-direction:column}
- #routeView .lvl-save{width:100%}
- .user{gap:7px}
- .status{display:none}
+ #routeView .clan-fields,#routeView .lvl-fields,#routeView .rc-create-fields{grid-template-columns:1fr}
+ #routeView .clan-field-wide{grid-column:auto}
+ #routeView .lvl-footer-row{grid-template-columns:1fr}
+ #routeView .clan-form-footer{align-items:stretch;flex-direction:column}
+ #routeView .clan-submit{width:100%}
+ .user{gap:7px}.status{display:none}
 }
 </style>
 
