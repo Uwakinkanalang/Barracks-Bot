@@ -712,8 +712,29 @@ export function registerDashboardRoutes(app, bot) {
       }
       const boosters = [...snapshot.members.values()].filter(member => member.premiumSince).map(member => {
         const boostStartedAt = member.premiumSince;
-        const estimatedExpiresAt = new Date(boostStartedAt);
-        estimatedExpiresAt.setMonth(estimatedExpiresAt.getMonth() + 1);
+        const now = new Date();
+        const monthDifference = (now.getUTCFullYear() - boostStartedAt.getUTCFullYear()) * 12
+          + now.getUTCMonth() - boostStartedAt.getUTCMonth();
+        const addMonthsClamped = months => {
+          const monthIndex = boostStartedAt.getUTCMonth() + months;
+          const year = boostStartedAt.getUTCFullYear() + Math.floor(monthIndex / 12);
+          const month = ((monthIndex % 12) + 12) % 12;
+          const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+          const day = Math.min(boostStartedAt.getUTCDate(), lastDayOfMonth);
+          return new Date(Date.UTC(
+            year, month, day,
+            boostStartedAt.getUTCHours(),
+            boostStartedAt.getUTCMinutes(),
+            boostStartedAt.getUTCSeconds(),
+            boostStartedAt.getUTCMilliseconds()
+          ));
+        };
+        let monthsUntilNextRenewal = Math.max(1, monthDifference);
+        let estimatedExpiresAt = addMonthsClamped(monthsUntilNextRenewal);
+        if (estimatedExpiresAt <= now) {
+          monthsUntilNextRenewal += 1;
+          estimatedExpiresAt = addMonthsClamped(monthsUntilNextRenewal);
+        }
         return {
           displayName: member.displayName || member.user.globalName || member.user.username,
           userId: member.id,
