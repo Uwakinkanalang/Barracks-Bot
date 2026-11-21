@@ -507,7 +507,6 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
      <button id="clearJoinFields" type="button" class="lvl-secondary" style="margin:0 0 14px">Clear join announcement fields</button>
     <label class="lvl-check-row"><span><b>Enable join announcements</b><small>Turn this announcement on or off.</small></span><input id="welcomeEnabled" type="checkbox"></label>
     <label class="lvl-field">Announcement channel<select id="welcomeChannel"><option value="">Not set</option></select></label>
-    <label class="lvl-check-row"><span><b>Ping joining member</b><small>Allow the announcement to mention this member.</small></span><input id="welcomePing" type="checkbox"></label>
     <label class="lvl-field">Message above embed<textarea id="welcomeMessage" maxlength="2000" rows="4" placeholder="Optional message sent above the embed">Welcome {user} to {server}!</textarea><small>Use {user}, {user.tag}, {user.id}, and {server}.</small></label>
     <div class="lvl-embed-editor">
      <div class="lvl-embed-section-heading"><b>Embed</b><small>Customize the announcement embed.</small></div>
@@ -527,7 +526,6 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
     <div class="lvl-preview-heading"><span>LIVE PREVIEW</span><small>Discord message appearance</small></div>
     <div class="lvl-message-preview"><div class="lvl-discord-preview">
      <div class="lvl-preview-content" id="welcomePreviewContent"></div>
-     <div class="discord-preview-ping" id="welcomePreviewPing" hidden>@Member</div>
      <div class="lvl-preview-embed" id="welcomePreviewEmbed" style="display:none"><div class="lvl-preview-main">
       <div id="welcomePreviewAuthor"></div><div id="welcomePreviewTitle"></div><div id="welcomePreviewDescription"></div>
       <img id="welcomePreviewImage" class="lvl-preview-image" alt="Embed image" hidden>
@@ -542,7 +540,6 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
     <div class="lvl-card-head"><span class="lvl-icon">👋</span><div><h2>Leave announcements</h2><p>Choose where and how the bot posts this announcement.</p></div></div>
     <label class="lvl-check-row"><span><b>Enable leave announcements</b><small>Turn this announcement on or off.</small></span><input id="goodbyeEnabled" type="checkbox"></label>
     <label class="lvl-field">Announcement channel<select id="goodbyeChannel"><option value="">Not set</option></select></label>
-    <label class="lvl-check-row"><span><b>Ping departing member</b><small>Allow the announcement to mention this member.</small></span><input id="goodbyePing" type="checkbox"></label>
     <label class="lvl-field">Message above embed<textarea id="goodbyeMessage" maxlength="2000" rows="4" placeholder="Optional message sent above the embed">{user.tag} has left the server.</textarea><small>Use {user}, {user.tag}, {user.id}, and {server}.</small></label>
     <div class="lvl-embed-editor">
      <div class="lvl-embed-section-heading"><b>Embed</b><small>Customize the announcement embed.</small></div>
@@ -562,7 +559,6 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
     <div class="lvl-preview-heading"><span>LIVE PREVIEW</span><small>Discord message appearance</small></div>
     <div class="lvl-message-preview"><div class="lvl-discord-preview">
      <div class="lvl-preview-content" id="goodbyePreviewContent"></div>
-     <div class="discord-preview-ping" id="goodbyePreviewPing" hidden>@Member</div>
      <div class="lvl-preview-embed" id="goodbyePreviewEmbed" style="display:none"><div class="lvl-preview-main">
       <div id="goodbyePreviewAuthor"></div><div id="goodbyePreviewTitle"></div><div id="goodbyePreviewDescription"></div>
       <img id="goodbyePreviewImage" class="lvl-preview-image" alt="Embed image" hidden>
@@ -949,9 +945,7 @@ async function loadWelcomeSettings(){
   document.getElementById('goodbyeMessage').value=cfg.leaveMessage??'';
   document.getElementById('banMessage').value=cfg.banMessage??'';
   document.getElementById('welcomeEnabled').checked=!!cfg.enabled;
-  document.getElementById('welcomePing').checked=!!cfg.welcomePing;
   document.getElementById('goodbyeEnabled').checked=!!cfg.goodbyeEnabled;
-  document.getElementById('goodbyePing').checked=!!cfg.goodbyePing;
   document.getElementById('banEnabled').checked=!!cfg.banEnabled;
   document.getElementById('boostMessage').value=cfg.boostMessage||'Thank you {user} for boosting {server}! Your support means a lot to us.';
   document.getElementById('boostEnabled').checked=cfg.boostEnabled!==false;
@@ -1017,7 +1011,7 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
   const payload={
    channelId:document.getElementById('welcomeChannel').value,goodbyeChannelId:document.getElementById('goodbyeChannel').value,banChannelId:document.getElementById('banChannel').value,
    welcomeMessage:document.getElementById('welcomeMessage').value,leaveMessage:document.getElementById('goodbyeMessage').value,banMessage:document.getElementById('banMessage').value,
-   enabled:document.getElementById('welcomeEnabled').checked,welcomePing:document.getElementById('welcomePing').checked,goodbyeEnabled:document.getElementById('goodbyeEnabled').checked,goodbyePing:document.getElementById('goodbyePing').checked,banEnabled:document.getElementById('banEnabled').checked,
+   enabled:document.getElementById('welcomeEnabled').checked,welcomePing:false,goodbyeEnabled:document.getElementById('goodbyeEnabled').checked,goodbyePing:false,banEnabled:document.getElementById('banEnabled').checked,
    welcomeEmbed:getAnnouncementEmbedPayload('welcome'),leaveEmbed:getAnnouncementEmbedPayload('goodbye'),banEmbed:getAnnouncementEmbedPayload('ban'),
    boostChannelId:document.getElementById('boostChannel').value,boostMessage:document.getElementById('boostMessage').value,boostEnabled:document.getElementById('boostEnabled').checked
   };
