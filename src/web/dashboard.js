@@ -798,8 +798,20 @@ export function registerDashboardRoutes(app, bot) {
         if (role) await role.delete('Clan and Discord resources deleted from Barracks dashboard');
       }
 
+      // Remove the clan from both registries. The dashboard loader merges the
+      // legacy registry into the current one, so leaving a stale legacy record
+      // would make a deleted clan reappear after the next dashboard refresh.
       clans.splice(index, 1);
-      await setInDb(clanStorageKey(guild.id), clans);
+      const legacyKey = legacyClanStorageKey(guild.id);
+      const legacyClans = await getFromDb(legacyKey, []);
+      const remainingLegacyClans = (Array.isArray(legacyClans) ? legacyClans : []).filter(oldClan =>
+        String(oldClan.roleId || oldClan.id) !== clanId &&
+        String(oldClan.id || oldClan.roleId) !== clanId
+      );
+      await Promise.all([
+        setInDb(clanStorageKey(guild.id), clans),
+        setInDb(legacyKey, remainingLegacyClans)
+      ]);
       return res.json({
         ok: true,
         mode,
