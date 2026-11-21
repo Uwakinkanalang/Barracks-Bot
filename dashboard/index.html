@@ -352,6 +352,24 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 .lvl-preview-embed .lvl-preview-footer img[hidden]{display:none}
 .lvl-preview-embed .lvl-preview-footer span{min-width:0;overflow-wrap:anywhere}
 </style>
+<style id="embedLargeImageSizingFix">
+/* Discord-style large embed image: full content width, natural ratio, bounded preview height. */
+.lvl-preview-embed .lvl-preview-main .lvl-preview-image,
+.lvl-announcement-preview .lvl-preview-embed #lvlPreviewImage{
+ display:block;
+ width:100%;
+ max-width:100%;
+ height:auto;
+ max-height:320px;
+ object-fit:contain;
+ object-position:left top;
+ margin:10px 0 0;
+ border-radius:5px;
+ flex:0 0 auto;
+}
+.lvl-preview-embed .lvl-preview-main .lvl-preview-image[hidden],
+.lvl-announcement-preview .lvl-preview-embed #lvlPreviewImage[hidden]{display:none}
+</style>
 </head>
 <body>
 <div class="shell">
