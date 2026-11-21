@@ -23,14 +23,13 @@ export default {
           const activityKey = `guild:${newMember.guild.id}:boost_activity`;
           const activity = await newMember.client.db.get(activityKey, []);
           const entries = Array.isArray(activity) ? activity : [];
-          // Count each newly observed boost start. This is not a simultaneous boost quantity.
-          if (newBoostStartedAt) {
-            const countsKey = 'guild:' + newMember.guild.id + ':boost_start_counts';
-            const countsRaw = await newMember.client.db.get(countsKey, {});
-            const counts = countsRaw && typeof countsRaw === 'object' && !Array.isArray(countsRaw) ? countsRaw : {};
-            counts[newMember.id] = Number(counts[newMember.id] || 0) + 1;
-            await newMember.client.db.set(countsKey, counts);
-          }
+          // Keep only the current active boost status; an ended/expired boost is not counted.
+          const countsKey = 'guild:' + newMember.guild.id + ':boost_start_counts';
+          const countsRaw = await newMember.client.db.get(countsKey, {});
+          const counts = countsRaw && typeof countsRaw === 'object' && !Array.isArray(countsRaw) ? countsRaw : {};
+          if (newBoostStartedAt) counts[newMember.id] = 1;
+          else delete counts[newMember.id];
+          await newMember.client.db.set(countsKey, counts);
           entries.unshift({
             action: newBoostStartedAt ? 'started' : 'ended',
             displayName: newMember.displayName || newMember.user.globalName || newMember.user.username,
