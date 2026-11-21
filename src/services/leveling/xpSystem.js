@@ -269,7 +269,10 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
     }
     if (!embedSettings.thumbnailUrl) levelUpEmbed.setThumbnail(member.displayAvatarURL({ extension: 'png', size: 256 }));
     if (embedSettings.imageUrl) levelUpEmbed.setImage(embedSettings.imageUrl);
-    const announcementContent = replaceAnnouncementTokens(config.levelUpContent || '{user}');
+    const customAnnouncementContent = String(config.levelUpContent || '').trim();
+    const announcementContent = customAnnouncementContent && customAnnouncementContent !== '{user}'
+      ? replaceAnnouncementTokens(customAnnouncementContent)
+      : '';
     const announcementMessage = [announcementContent, ...messageLines].filter(Boolean).join('\n');
 
     await levelUpChannel.send({
