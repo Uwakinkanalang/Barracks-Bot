@@ -1287,7 +1287,7 @@ const opening=submenu.hidden;submenu.hidden=!opening;group.classList.toggle('ope
    if(page){e.preventDefault();e.stopImmediatePropagation();navigate(page);}
  },true);
  window.addEventListener('popstate',()=>navigate(routeKey(),false));
- const restoreDashboardRoute=()=>navigate(routeKey(),false);
+ const restoreDashboardRoute=()=>navigate(window.__BARRACKS_INITIAL_ROUTE||routeKey(),false);
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restoreDashboardRoute,{once:true});else restoreDashboardRoute();
 
 })();
