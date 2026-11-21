@@ -725,6 +725,8 @@ export function registerDashboardRoutes(app, bot) {
       return res.json({
         boosters,
         total: boosters.length,
+        serverBoostCount: guild.premiumSubscriptionCount ?? 0,
+        serverBoostLevel: guild.premiumTier ?? 0,
         expiryIsEstimate: true,
         membersScanned: snapshot.members.size,
         activity: Array.isArray(activity) ? activity.slice(0, 50) : [],
