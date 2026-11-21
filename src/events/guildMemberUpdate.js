@@ -15,6 +15,27 @@ export default {
     try {
       if (!newMember.guild) return;
 
+      // Record Nitro boost starts and stops for the Barracks dashboard activity feed.
+      try {
+        const oldBoostStartedAt = oldMember.premiumSince?.toISOString?.() || null;
+        const newBoostStartedAt = newMember.premiumSince?.toISOString?.() || null;
+        if (oldBoostStartedAt !== newBoostStartedAt) {
+          const activityKey = `guild:${newMember.guild.id}:boost_activity`;
+          const activity = await newMember.client.db.get(activityKey, []);
+          const entries = Array.isArray(activity) ? activity : [];
+          entries.unshift({
+            action: newBoostStartedAt ? 'started' : 'ended',
+            displayName: newMember.displayName || newMember.user.globalName || newMember.user.username,
+            userId: newMember.id,
+            boostStartedAt: newBoostStartedAt,
+            occurredAt: new Date().toISOString()
+          });
+          await newMember.client.db.set(activityKey, entries.slice(0, 50));
+        }
+      } catch (error) {
+        logger.warn(`Could not record boost activity for member ${newMember.id}: ${error.message}`);
+      }
+
       const oldTimeout = oldMember.communicationDisabledUntilTimestamp || null;
       const newTimeout = newMember.communicationDisabledUntilTimestamp || null;
       if (oldTimeout !== newTimeout) {

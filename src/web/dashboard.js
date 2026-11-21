@@ -10,6 +10,8 @@ import { getCommandAccessSnapshot, disableCommand, enableCommand, isProtectedCom
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
 const loginAttempts = new Map();
+const BOOSTER_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
+const boosterMemberSnapshots = new Map();
 
 function safeEqual(left, right) {
   const a = Buffer.from(String(left));
@@ -681,10 +683,34 @@ export function registerDashboardRoutes(app, bot) {
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     try {
-      // Use the member cache only. guild.members.fetch() requests the entire
-      // member list through Gateway Opcode 8 and can hit Discord's identify/member
-      // request rate limits when the dashboard is opened or refreshed.
-      const boosters = guild.members.cache.filter(member => member.premiumSince).map(member => {
+      // Fetch members through Discord's REST List Guild Members endpoint in
+      // pages. This includes members absent from the gateway cache and avoids
+      // Gateway Opcode 8 member chunk requests on every dashboard refresh.
+      const now = Date.now();
+      let snapshot = boosterMemberSnapshots.get(guild.id);
+      if (!snapshot || now - snapshot.createdAt > BOOSTER_SNAPSHOT_TTL_MS) {
+        if (!snapshot?.pending) {
+          const pending = (async () => {
+            const allMembers = new Map();
+            let after;
+            while (true) {
+              const page = await guild.members.list({ limit: 1000, ...(after ? { after } : {}) });
+              for (const [id, member] of page) allMembers.set(id, member);
+              if (page.size < 1000) break;
+              const lastId = [...page.keys()].at(-1);
+              if (!lastId || lastId === after) break;
+              after = lastId;
+            }
+            const result = { createdAt: Date.now(), members: allMembers };
+            boosterMemberSnapshots.set(guild.id, result);
+            return result;
+          })();
+          boosterMemberSnapshots.set(guild.id, { ...(snapshot || {}), pending });
+        }
+        snapshot = boosterMemberSnapshots.get(guild.id);
+        snapshot = await snapshot.pending;
+      }
+      const boosters = [...snapshot.members.values()].filter(member => member.premiumSince).map(member => {
         const boostStartedAt = member.premiumSince;
         const estimatedExpiresAt = new Date(boostStartedAt);
         estimatedExpiresAt.setMonth(estimatedExpiresAt.getMonth() + 1);
@@ -695,7 +721,15 @@ export function registerDashboardRoutes(app, bot) {
           estimatedExpiresAt: estimatedExpiresAt.toISOString()
         };
       }).sort((a, b) => new Date(a.estimatedExpiresAt) - new Date(b.estimatedExpiresAt));
-      return res.json({ boosters, total: boosters.length, expiryIsEstimate: true, source: 'member-cache' });
+      const activity = await getFromDb(`guild:${guild.id}:boost_activity`, []);
+      return res.json({
+        boosters,
+        total: boosters.length,
+        expiryIsEstimate: true,
+        membersScanned: snapshot.members.size,
+        activity: Array.isArray(activity) ? activity.slice(0, 50) : [],
+        snapshotUpdatedAt: new Date(snapshot.createdAt).toISOString()
+      });
     } catch (error) {
       return res.status(500).json({ error: error?.message || 'Could not load current server boosters.' });
     }
