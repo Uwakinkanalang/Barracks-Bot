@@ -105,14 +105,15 @@ export default {
       const panelEmbed = new EmbedBuilder()
         .setColor(0x5865F2)
         .setTitle('⚔️ BARRACKS CLAN')
-        .setDescription('Rally your soldiers, build your squad, and stand together under the Barracks banner. Create your own clan or join an approved clan to fight alongside your fellow recruits.\n\n**➕ Create a Clan** — Establish your own squad and take command as its Clan Leader.\n**🛡️ Join a Clan** — Browse approved clans and send a request to join their ranks.')
+        .setDescription('Your squad. Your mission. Your Barracks. Whether you are ready to lead, looking for a team, or moving on to a new chapter, manage your place in the clan ranks here.\n\n**➕ Create a Clan** — Build your own squad, choose your clan identity, and lead your soldiers.\n**🛡️ Join a Clan** — Explore approved clans and send a request to join a squad.\n**🚪 Leave a Clan** — Step away from your current clan when it is time for a new assignment. Clan Leaders must transfer leadership or disband their clan first.')
         .setImage('https://cdn.discordapp.com/attachments/1572883657440366673/1573781600288903338/Barracks_ng_Clan__Lumikha_o_Sumali.png?ex=6b0341d4&is=6b01f054&hm=facef902ae537aa1991ce3213bede46f9959e17e4e9998bae03980b016a160db&')
         .addFields({ name: '📜 Clan Guidelines', value: '• One clan per member.\n• Clan creation requires staff approval.\n• Join requests must be accepted by clan leadership.\n• Clan Leaders must transfer leadership or remove their clan before leaving.' })
         .setFooter({ text: 'Barracks • Clan Registry' });
       const panelRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('clan:create').setLabel('Create a Clan').setEmoji('🏰').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId('clan:join:open').setLabel('Join a Clan').setEmoji('🛡️').setStyle(ButtonStyle.Primary),
-        );
+        new ButtonBuilder().setCustomId('clan:leave:open').setLabel('Leave a Clan').setEmoji('🚪').setStyle(ButtonStyle.Danger),
+      );
       await panelChannel.send({ embeds: [panelEmbed], components: [panelRow] });
       return interaction.reply({ content: `✅ Clan HQ panel posted in <#${panelChannelId}>.`, flags: MessageFlags.Ephemeral });
     }
