@@ -56,7 +56,18 @@ export function formatWelcomeMessage(message, data) {
         '{membercount}': guild?.memberCount?.toString?.() || '0'
     };
 
-    let result = message;
+    // Resolve {#channel-name} placeholders to real Discord channel mentions.
+    const channelTokens = [...message.matchAll(/\\{#([^{}]+)\\}/g)];
+    let channelResolvedMessage = message;
+    for (const match of channelTokens) {
+        const requestedName = match[1].trim();
+        const channel = guild?.channels?.cache?.find?.(item => item?.name === requestedName);
+        if (channel?.id) {
+            channelResolvedMessage = channelResolvedMessage.split(match[0]).join(`<#${channel.id}>`);
+        }
+    }
+
+    let result = channelResolvedMessage;
     for (const [token, value] of Object.entries(tokens)) {
         if (value === undefined || value === null) continue;
         result = replaceAll(result, token, String(value));
