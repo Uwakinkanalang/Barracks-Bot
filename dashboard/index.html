@@ -706,8 +706,8 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
  <div class="card"><h2 style="font-size:16px;margin:0 0 12px">🏆 Highest balances</h2><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="color:#aeb0b8;text-align:left"><th style="padding:10px">Server Nickname</th><th style="padding:10px">User ID</th><th style="padding:10px">Wallet</th><th style="padding:10px">Bank</th><th style="padding:10px">Total</th></tr></thead><tbody id="ecoTopRows"><tr><td colspan="5" style="padding:12px">Load economy data to view balances.</td></tr></tbody></table></div></div>
 </div>
 <div id="levelingRoutePage" hidden style="display:none"><div id="levelingPanel" class="lvl-page" style="max-width:1200px">
- <div class="lvl-heading"><div><div class="lvl-eyebrow">BARRACKS · SERVER ENGAGEMENT</div><h1>Leveling &amp; XP</h1><p>Reward activity, tune message XP, and control where level-ups are announced.</p></div><button id="lvlRefr<div class="lvl-variable-guide-bar"><button class="lvl-variable-guide-trigger" id="lvlVariableGuideOpen" type="button" aria-haspopup="dialog" aria-controls="lvlVariableGuide">ⓘ Variables guide</button><small>Click to see all supported placeholders.</small></div>
-      esh" class="lvl-secondary" type="button">↻ Reload settings</button></div>
+ <div class="lvl-heading"><div><div class="lvl-eyebrow">BARRACKS · SERVER ENGAGEMENT</div><h1>Leveling &amp; XP</h1><p>Reward activity, tune message XP, and control where level-ups are announced.</p></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button id="lvlRefresh" class="lvl-secondary" type="button">↻ Reload settings</button><button id="lvlSave" class="lvl-save" type="button">Save Settings</button></div></div>
+ <div class="lvl-variable-guide-bar"><button class="lvl-variable-guide-trigger" id="lvlVariableGuideOpen" type="button" aria-haspopup="dialog" aria-controls="lvlVariableGuide">ⓘ Variables guide</button><small>Click to see all supported placeholders.</small></div>
  <div class="lvl-status-banner"><span class="lvl-status-dot" id="lvlStatusDot"></span><div><b id="lvlEnabledLabel">Leveling status</b><small id="lvlEnabledHint">Loading your server configuration…</small></div><span class="lvl-status-spacer"></span><label class="lvl-switch"><input id="lvlEnabled" type="checkbox"><span></span></label></div>
  <div class="lvl-grid">
   <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">✉️</span><div><h2>Message XP</h2><p>Set how much experience members earn from chatting.</p></div></div>
@@ -779,7 +779,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
   </div>
  </div>
 </div>
- <div class="lvl-footer"><div><b>Remember to save your changes</b><small id="lvlStatus" role="status" aria-live="polite">Settings have not been loaded yet.</small></div><button id="lvlSave" class="lvl-save" type="button">Save Leveling Settings</button></div>
+ <span id="lvlStatus" role="status" aria-live="polite" hidden></span>
  </div>
 </div>
 <div id="rolesChannelsPanel" class="rc-page" style="display:none;max-width:1200px">
