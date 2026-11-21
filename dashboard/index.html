@@ -418,6 +418,25 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 </nav>
 <div class="side-bottom">BARRACKS-BOT<br>Private server dashboard · v1</div>
 </aside>
+<script id="barracksSidebarBootstrap">
+// Register sidebar navigation before the dashboard's larger initialization scripts.
+// This keeps the sidebar responsive even if an unrelated panel initializer fails.
+(()=>{
+ const pages={welcomeNavButton:'welcome',goodbyeNavButton:'goodbye',banNavButton:'ban',boostNavButton:'boost',moderationHomeNavButton:'moderation',autoNickNavButton:'autonick',logsNavButton:'logs',economyNavButton:'economy',gamesNavButton:'games',levelingNavButton:'leveling',rolesChannelsNavButton:'rolesChannels',boostersNavButton:'boosters',createClanNavButton:'clans',barracksClansNavButton:'clanList',ticketsNavButton:'tickets',prefixCommandNavButton:'prefixCommands',slashCommandNavButton:'slashCommands'};
+ const paths={home:'',settings:'settings/',welcome:'welcome/',goodbye:'goodbye/',ban:'ban/',boost:'boost/',moderation:'moderation/',autonick:'autonick/',logs:'logs/',economy:'economy/',games:'games-activities/',leveling:'leveling/','rolesChannels':'roles-channels/',boosters:'boosters/',clans:'clans/','clanList':'clans/list/',tickets:'tickets/','prefixCommands':'prefix-commands/','slashCommands':'slash-commands/'};
+ const toggles={announcementToggle:['announcementNavGroup','announcementSubmenu'],moderationToggle:['moderationNavGroup','moderationSubmenu'],clanToggle:['clanNavGroup','clanSubmenu'],commandToggle:['commandNavGroup','commandSubmenu']};
+ document.addEventListener('click',event=>{
+  const button=event.target.closest('aside.side .nav button');if(!button)return;
+  const id=button.id;
+  if(toggles[id]){const [groupId,menuId]=toggles[id],group=document.getElementById(groupId),menu=document.getElementById(menuId);if(!group||!menu)return;const opening=menu.hidden;menu.hidden=!opening;group.classList.toggle('open',opening);button.setAttribute('aria-expanded',String(opening));event.preventDefault();event.stopImmediatePropagation();return;}
+  let page=pages[id];if(!page){const label=button.querySelector('.nav-text')?.textContent.trim();if(label==='Overview')page='home';else if(label==='Bot Settings')page='settings';}
+  if(!page)return;
+  event.preventDefault();event.stopImmediatePropagation();
+  if(typeof window.barracksNavigate==='function')window.barracksNavigate(page);
+  else location.href='/Barracks-Bot/dashboard/'+(paths[page]||'');
+ },true);
+})();
+</script>
 <main class="main">
 <header class="top"><div class="crumb">Barracks <span style="color:#526257">/</span> <b>Overview</b></div><div class="user"><div class="status"><span class="dot"></span> Dashboard secured</div><button class="logout" id="logoutButton" type="button">Sign out ↗</button></div></header>
 <section class="content" id="dashboardContent">
