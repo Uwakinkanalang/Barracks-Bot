@@ -122,6 +122,33 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 .lvl-announcement-preview .lvl-discord-preview{margin-top:0}
 @media(max-width:900px){.lvl-announcement-layout{grid-template-columns:minmax(0,1fr)}.lvl-announcement-preview{position:static}}
 </style>
+<style id="levelingAnnouncementCompact">
+/* Compact Level-up Announcements panel */
+.lvl-announcement-card{padding:16px!important}
+.lvl-announcement-layout{grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);gap:14px}
+.lvl-announcement-settings .lvl-card-head{margin-bottom:12px}
+.lvl-announcement-settings .lvl-card-head h2{font-size:17px}
+.lvl-announcement-settings .lvl-card-head p{font-size:12px;line-height:1.4;margin-top:2px}
+.lvl-announcement-settings .lvl-check-row{padding:8px 10px;margin-bottom:9px}
+.lvl-announcement-settings .lvl-field{font-size:12px;line-height:1.3}
+.lvl-announcement-settings .lvl-field input,.lvl-announcement-settings .lvl-field select,.lvl-announcement-settings .lvl-field textarea{font-size:12px;padding:8px 9px;min-height:34px}
+.lvl-announcement-settings .lvl-field textarea{min-height:58px}
+.lvl-announcement-settings .lvl-field small,.lvl-announcement-settings .lvl-check-row small{font-size:10px;line-height:1.35}
+.lvl-embed-editor{gap:8px}
+.lvl-embed-editor>.lvl-field:first-child,.lvl-embed-editor>.lvl-description-field,.lvl-embed-editor>.lvl-image-field,.lvl-embed-editor>.lvl-footer-row{grid-column:1/-1}
+.lvl-embed-editor>.lvl-field:nth-child(2),.lvl-embed-editor>.lvl-field:nth-child(3),.lvl-embed-editor>.lvl-field:nth-child(4){grid-column:span 1}
+.lvl-thumbnail-field{grid-column:1/-1;max-width:100%;justify-self:stretch}
+.lvl-footer-row{gap:8px}
+.lvl-announcement-preview{padding:11px}
+.lvl-preview-heading{gap:2px;margin-bottom:8px}
+.lvl-preview-heading small{font-size:10px}
+.lvl-announcement-preview .lvl-discord-preview{padding:9px;font-size:11px}
+.lvl-announcement-preview .lvl-preview-embed{padding:9px;gap:9px}
+.lvl-announcement-preview .lvl-preview-embed img{width:64px;height:64px}
+.lvl-announcement-preview .lvl-preview-image{max-height:170px;object-fit:contain}
+@media(max-width:900px){.lvl-announcement-layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:620px){.lvl-announcement-card{padding:12px!important}.lvl-embed-editor>.lvl-field:nth-child(2),.lvl-embed-editor>.lvl-field:nth-child(3),.lvl-embed-editor>.lvl-field:nth-child(4){grid-column:1/-1}.lvl-footer-row{grid-template-columns:1fr}}
+</style>
 <style id="levelingReadableTextFix">
 /* Stronger text hierarchy and contrast for the Leveling page */
 .lvl-page{font-size:15px;color:#f0f4f0}
