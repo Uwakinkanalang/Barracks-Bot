@@ -43,7 +43,7 @@ jobs:
             cp dashboard/index.html "site/dashboard/$route/index.html"
           done
       - name: Upload website
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: site
       - name: Deploy to GitHub Pages
