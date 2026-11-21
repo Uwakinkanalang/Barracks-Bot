@@ -86,6 +86,21 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 .clan-edit-action{border:1px solid #686a74;background:#41424a;color:#f2f3f5;border-radius:8px;padding:8px 13px;font-size:13px;cursor:pointer}
 .clan-edit-action:hover{border-color:#c3f36b;color:#c3f36b}
 .clan-list-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Leveling variable guide popup */
+.lvl-variable-guide-trigger{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border,#3b3f46);background:var(--panel,#202329);color:inherit;border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}
+.lvl-variable-guide-trigger:hover{border-color:var(--accent,#7289da);background:rgba(114,137,218,.12)}
+.lvl-variable-modal{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.68);display:none;align-items:center;justify-content:center;padding:18px}
+.lvl-variable-modal.open{display:flex}
+.lvl-variable-dialog{width:min(680px,100%);max-height:min(82vh,760px);overflow:auto;background:var(--card,#202329);color:var(--text,#f2f3f5);border:1px solid var(--border,#3b3f46);border-radius:16px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
+.lvl-variable-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}
+.lvl-variable-dialog-head h3{margin:0 0 5px;font-size:20px}.lvl-variable-dialog-head p{margin:0;opacity:.72;font-size:13px}
+.lvl-variable-close{border:0;background:transparent;color:inherit;font-size:25px;cursor:pointer;line-height:1;padding:2px 7px}
+.lvl-variable-group{margin-top:16px}.lvl-variable-group h4{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;opacity:.75}
+.lvl-variable-row{display:grid;grid-template-columns:minmax(130px,190px) 1fr;gap:12px;padding:10px 0;border-top:1px solid var(--border,rgba(255,255,255,.1));align-items:center}
+.lvl-variable-row code{color:#a9c4ff;background:rgba(114,137,218,.13);padding:5px 7px;border-radius:6px;font-size:12px;width:max-content;max-width:100%;overflow-wrap:anywhere}
+.lvl-variable-row span{font-size:13px;opacity:.85;line-height:1.45}
+@media(max-width:520px){.lvl-variable-dialog{padding:17px}.lvl-variable-row{grid-template-columns:1fr;gap:5px}}
 </style>
 <style id="rolesChannelsPolish">
 .rc-page{padding-bottom:30px}.rc-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin:4px 0 22px}.rc-eyebrow{font-size:11px;font-weight:800;letter-spacing:1.6px;color:#c3f36b;margin-bottom:8px}.rc-heading h1{font-size:30px;line-height:1.15;margin:0 0 8px;color:#f3f5f2}.rc-heading p,.rc-card-head p{color:#aeb7b0;margin:0;font-size:14px;line-height:1.55}.rc-refresh{white-space:nowrap;border:1px solid #46534a;background:#202a23;color:#e7eee8;border-radius:9px;padding:10px 14px;cursor:pointer}.rc-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.rc-stat{display:flex;align-items:center;gap:13px;background:#1b241e;border:1px solid #354238;border-radius:12px;padding:15px}.rc-stat-icon{width:40px;height:40px;border-radius:10px;background:#2a382e;display:grid;place-items:center;font-size:19px}.rc-stat small{display:block;color:#aab5ac;font-size:12px;margin-bottom:3px}.rc-stat b{font-size:22px;color:#f4f6f3}.rc-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}.rc-card{min-width:0;padding:20px}.rc-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.rc-card-head h2{font-size:18px;margin:0 0 5px}.rc-search{width:min(100%,190px);background:#111914;border:1px solid #3b4940;border-radius:8px;color:#eef2ee;padding:9px 10px}.rc-list{display:flex;flex-direction:column;gap:7px;margin:16px 0;max-height:440px;overflow:auto;padding-right:3px}.rc-item{display:flex;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #303d34;background:#17201a;border-radius:9px}.rc-swatch{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid #ffffff30}.rc-item-main{min-width:0;flex:1}.rc-item-name{display:block;color:#edf2ed;font-weight:650;font-size:13px;overflow-wrap:anywhere}.rc-item-meta{display:block;color:#849188;font-size:11px;margin-top:3px}.rc-pill{font-size:10px;color:#bdc9bf;border:1px solid #465249;border-radius:20px;padding:3px 7px;white-space:nowrap}.rc-loading,.rc-empty{color:#9ba79e;font-size:13px;padding:12px 2px}.rc-create{border-top:1px solid #344137;padding-top:16px;margin-top:14px}.rc-create h3{font-size:15px;margin:0 0 12px}.rc-create-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:12px}.rc-create-fields label{display:flex;flex-direction:column;gap:7px;color:#cbd4cd;font-size:12px;font-weight:650}.rc-create-fields input:not([type=color]),.rc-create-fields select{width:100%;box-sizing:border-box;background:#111914;border:1px solid #3b4940;border-radius:8px;color:#eef2ee;padding:10px;font:inherit}.rc-color-control{display:flex;align-items:center;gap:10px;background:#111914;border:1px solid #3b4940;border-radius:8px;padding:5px 9px;min-height:30px}.rc-color-control input{width:30px;height:28px;border:0;background:transparent;padding:0;cursor:pointer}.rc-color-control span{font-size:12px;color:#dce5dd;font-family:monospace}.rc-primary{background:#c3f36b;color:#152015;border:0;border-radius:8px;padding:10px 14px;font-weight:750;cursor:pointer}.rc-primary:disabled{opacity:.55;cursor:wait}.rc-status{font-size:12px;color:#c3f36b;min-height:16px;margin:8px 0 0}.rc-channel-filters{display:flex;gap:6px;margin-top:14px}.rc-filter{border:1px solid #3b4940;background:#17201a;color:#b9c4bb;border-radius:20px;padding:6px 11px;font-size:11px;cursor:pointer}.rc-filter.active{background:#33432f;color:#d9f6ad;border-color:#6b8750}.rc-group-title{font-size:11px;color:#9daa9f;font-weight:800;letter-spacing:.8px;padding:10px 2px 3px;text-transform:uppercase}.rc-group-title:first-child{padding-top:0}@media(max-width:850px){.rc-layout{grid-template-columns:1fr}.rc-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.rc-heading{flex-direction:column}.rc-heading h1{font-size:25px}.rc-create-fields{grid-template-columns:1fr}.rc-card{padding:15px}}
@@ -301,7 +316,8 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
  <div class="card"><h2 style="font-size:16px;margin:0 0 12px">🏆 Highest balances</h2><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="color:#aeb0b8;text-align:left"><th style="padding:10px">Server Nickname</th><th style="padding:10px">User ID</th><th style="padding:10px">Wallet</th><th style="padding:10px">Bank</th><th style="padding:10px">Total</th></tr></thead><tbody id="ecoTopRows"><tr><td colspan="5" style="padding:12px">Load economy data to view balances.</td></tr></tbody></table></div></div>
 </div>
 <div id="levelingPanel" class="lvl-page" style="display:none;max-width:1200px">
- <div class="lvl-heading"><div><div class="lvl-eyebrow">BARRACKS · SERVER ENGAGEMENT</div><h1>Leveling &amp; XP</h1><p>Reward activity, tune message XP, and control where level-ups are announced.</p></div><button id="lvlRefresh" class="lvl-secondary" type="button">↻ Reload settings</button></div>
+ <div class="lvl-heading"><div><div class="lvl-eyebrow">BARRACKS · SERVER ENGAGEMENT</div><h1>Leveling &amp; XP</h1><p>Reward activity, tune message XP, and control where level-ups are announced.</p></div><button id="lvlRefr<div class="lvl-variable-guide-bar"><button class="lvl-variable-guide-trigger" id="lvlVariableGuideOpen" type="button" aria-haspopup="dialog" aria-controls="lvlVariableGuide">ⓘ Variables guide</button><small>Click to see all supported placeholders.</small></div>
+      esh" class="lvl-secondary" type="button">↻ Reload settings</button></div>
  <div class="lvl-status-banner"><span class="lvl-status-dot" id="lvlStatusDot"></span><div><b id="lvlEnabledLabel">Leveling status</b><small id="lvlEnabledHint">Loading your server configuration…</small></div><span class="lvl-status-spacer"></span><label class="lvl-switch"><input id="lvlEnabled" type="checkbox"><span></span></label></div>
  <div class="lvl-grid">
   <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">✉️</span><div><h2>Message XP</h2><p>Set how much experience members earn from chatting.</p></div></div>
@@ -331,7 +347,31 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
     </aside>
    </div>
   </section>
-  <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🎙️</span><div><h2>Voice XP</h2><p>Reward members for spending time in voice channels.</p></div></div>
+  <div class="lvl-variable-modal" id="lvlVariableGuide" role="dialog" aria-modal="true" aria-labelledby="lvlVariableGuideTitle">
+ <div class="lvl-variable-dialog">
+  <div class="lvl-variable-dialog-head"><div><h3 id="lvlVariableGuideTitle">📘 Leveling Variables Guide</h3><p>Use these placeholders in your level-up message, embed author, title, description, and footer.</p></div><button class="lvl-variable-close" id="lvlVariableGuideClose" type="button" aria-label="Close guide">×</button></div>
+  <div class="lvl-variable-group"><h4>Levels</h4>
+   <div class="lvl-variable-row"><code>{level}</code><span>Display the user's current level.</span></div>
+   <div class="lvl-variable-row"><code>{xp.current}</code><span>Display the user's current XP.</span></div>
+   <div class="lvl-variable-row"><code>{xp.required}</code><span>Display the XP required to reach the next level.</span></div>
+   <div class="lvl-variable-row"><code>{xp.total}</code><span>Display the user's total XP.</span></div>
+   <div class="lvl-variable-row"><code>{messages}</code><span>Display the number of messages the user has sent.</span></div>
+  </div>
+  <div class="lvl-variable-group"><h4>User</h4>
+   <div class="lvl-variable-row"><code>{user}</code><span>Mention the user or display their username.</span></div>
+   <div class="lvl-variable-row"><code>{user.username}</code><span>Display the user's username.</span></div>
+   <div class="lvl-variable-row"><code>{user.id}</code><span>Display the user's Discord ID.</span></div>
+   <div class="lvl-variable-row"><code>{user.avatar}</code><span>Display the user's avatar URL.</span></div>
+   <div class="lvl-variable-row"><code>{user.mention}</code><span>Mention the user.</span></div>
+  </div>
+  <div class="lvl-variable-group"><h4>Server</h4>
+   <div class="lvl-variable-row"><code>{server.name}</code><span>Display the server name.</span></div>
+   <div class="lvl-variable-row"><code>{server.id}</code><span>Display the server's Discord ID.</span></div>
+   <div class="lvl-variable-row"><code>{server.icon}</code><span>Display the server icon URL.</span></div>
+  </div>
+ </div>
+</div>
+<section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🎙️</span><div><h2>Voice XP</h2><p>Reward members for spending time in voice channels.</p></div></div>
    <label class="lvl-check-row"><span><b>Enable voice XP</b><small>Allow members to earn XP while in voice.</small></span><input id="lvlVoiceEnabled" type="checkbox"></label>
    <label class="lvl-field">XP per minute<input id="lvlVoiceXp" type="number" min="1" max="100" step="1"></label>
   </section>
@@ -995,5 +1035,19 @@ document.getElementById('clanEditForm')?.addEventListener('submit',async e=>{
 
 document.getElementById('clanCreateForm')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;const b=document.getElementById('clanCreateSubmit'),s=document.getElementById('clanCreateStatus');b.disabled=true;b.textContent='Creating clan…';s.textContent='Creating Discord role and private channels…';s.style.color='#c0c2ca';
 try{const payload={name:document.getElementById('clanName').value.trim(),tag:document.getElementById('clanTag').value.trim(),roleHex:document.getElementById('clanRoleHex').value.trim(),leaderId:document.getElementById('clanLeaderId').value.trim(),viceLeaderId:document.getElementById('clanViceLeaderId').value.trim(),description:document.getElementById('clanDescription').value.trim(),rules:document.getElementById('clanRules').value.trim()};const r=await fetch(API_BASE+'/api/dashboard/clans',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionStorage.getItem('barracks_dashboard_access')},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not create clan.');s.textContent='Clan created! Discord role and private channels are ready.';s.style.color='#c3f36b';form.reset();await window.loadClansPanel();}catch(err){s.textContent=err.message;s.style.color='#ff9a91';}finally{b.disabled=false;b.textContent='⚔️ Create Clan';}});
+
+(function(){
+ const modal=document.getElementById('lvlVariableGuide');
+ const open=document.getElementById('lvlVariableGuideOpen');
+ const close=document.getElementById('lvlVariableGuideClose');
+ if(!modal||!open||!close||modal.dataset.bound==='1')return;
+ modal.dataset.bound='1';
+ const show=()=>{modal.classList.add('open');close.focus();};
+ const hide=()=>{modal.classList.remove('open');open.focus();};
+ open.addEventListener('click',show);
+ close.addEventListener('click',hide);
+ modal.addEventListener('click',e=>{if(e.target===modal)hide();});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))hide();});
+})();
 </script>
 </body></html>
