@@ -483,6 +483,27 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 </div>
 <!-- URL-based dashboard pages -->
 <div id="routeView" style="display:none"><div class="welcome"><div><h1 id="routeTitle">Dashboard</h1><p class="sub" id="routeDescription">Manage your server.</p></div></div>
+<div id="rolesChannelsPanel" class="rc-page" style="display:none;max-width:1200px">
+ <div class="rc-heading"><div><div class="rc-eyebrow">BARRACKS · SERVER MANAGEMENT</div><h1>Roles &amp; Channels</h1><p>Manage your server structure, review existing roles, and create new Discord resources.</p></div><button id="rcRefresh" class="rc-refresh" type="button">↻ Refresh</button></div>
+ <div class="rc-stats">
+  <div class="rc-stat"><span class="rc-stat-icon">🎭</span><div><small>Server roles</small><b id="rcRoleCount">—</b></div></div>
+  <div class="rc-stat"><span class="rc-stat-icon">💬</span><div><small>Text channels</small><b id="rcTextCount">—</b></div></div>
+  <div class="rc-stat"><span class="rc-stat-icon">🔊</span><div><small>Voice channels</small><b id="rcVoiceCount">—</b></div></div>
+  <div class="rc-stat"><span class="rc-stat-icon">📁</span><div><small>Categories</small><b id="rcCategoryCount">—</b></div></div>
+ </div>
+ <div class="rc-layout">
+  <section class="card rc-card"><div class="rc-card-head"><div><h2>🎭 Server Roles</h2><p>Browse roles and create a new role with your chosen color.</p></div><input id="rcRoleSearch" class="rc-search" placeholder="Search roles…" aria-label="Search roles"></div>
+   <div id="rcRoles" class="rc-list"><p class="rc-loading">Loading roles…</p></div>
+   <div class="rc-create"><h3>Create a Role</h3><div class="rc-create-fields"><label>Role name<input id="rcRoleName" maxlength="100" placeholder="e.g. Event Staff"></label><label>Role color<div class="rc-color-control"><input id="rcRoleColor" type="color" value="#c3f36b"><span id="rcRoleColorValue">#C3F36B</span></div></label></div><button id="rcCreateRole" class="rc-primary" type="button">＋ Create Role</button><p id="rcRoleStatus" class="rc-status" role="status" aria-live="polite"></p>
+   </div>
+  </section>
+  <section class="card rc-card"><div class="rc-card-head"><div><h2>📁 Server Channels</h2><p>Review channels by category and create text, voice, or category channels.</p></div><input id="rcChannelSearch" class="rc-search" placeholder="Search channels…" aria-label="Search channels"></div>
+   <div class="rc-channel-filters"><button type="button" class="rc-filter active" data-rc-filter="all">All</button><button type="button" class="rc-filter" data-rc-filter="text">Text</button><button type="button" class="rc-filter" data-rc-filter="voice">Voice</button><button type="button" class="rc-filter" data-rc-filter="category">Categories</button></div>
+   <div id="rcChannels" class="rc-list"><p class="rc-loading">Loading channels…</p></div>
+   <div class="rc-create"><h3>Create a Channel</h3><div class="rc-create-fields"><label>Channel name<input id="rcChannelName" maxlength="100" placeholder="e.g. announcements"></label><label>Channel type<select id="rcChannelType"><option value="text">Text channel</option><option value="voice">Voice channel</option><option value="category">Category</option></select></label></div><button id="rcCreateChannel" class="rc-primary" type="button">＋ Create Channel</button><p id="rcChannelStatus" class="rc-status" role="status" aria-live="polite"></p>
+  </div></section>
+ </div>
+</div>
 <div id="gamesActivitiesPanel" style="display:none;max-width:1200px">
  <div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 style="font-size:16px;margin:0 0 5px">🎮 Games</h2><p class="sub">Configure Barracks mini-games and their bCash rewards.</p></div><button class="logout" id="gamesRefresh" type="button">↻ Refresh</button></div>
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:14px">
@@ -848,27 +869,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
  <span id="lvlStatus" role="status" aria-live="polite" hidden></span>
  </div>
 </div>
-<div id="rolesChannelsPanel" class="rc-page" style="display:none;max-width:1200px">
- <div class="rc-heading"><div><div class="rc-eyebrow">BARRACKS · SERVER MANAGEMENT</div><h1>Roles &amp; Channels</h1><p>Manage your server structure, review existing roles, and create new Discord resources.</p></div><button id="rcRefresh" class="rc-refresh" type="button">↻ Refresh</button></div>
- <div class="rc-stats">
-  <div class="rc-stat"><span class="rc-stat-icon">🎭</span><div><small>Server roles</small><b id="rcRoleCount">—</b></div></div>
-  <div class="rc-stat"><span class="rc-stat-icon">💬</span><div><small>Text channels</small><b id="rcTextCount">—</b></div></div>
-  <div class="rc-stat"><span class="rc-stat-icon">🔊</span><div><small>Voice channels</small><b id="rcVoiceCount">—</b></div></div>
-  <div class="rc-stat"><span class="rc-stat-icon">📁</span><div><small>Categories</small><b id="rcCategoryCount">—</b></div></div>
- </div>
- <div class="rc-layout">
-  <section class="card rc-card"><div class="rc-card-head"><div><h2>🎭 Server Roles</h2><p>Browse roles and create a new role with your chosen color.</p></div><input id="rcRoleSearch" class="rc-search" placeholder="Search roles…" aria-label="Search roles"></div>
-   <div id="rcRoles" class="rc-list"><p class="rc-loading">Loading roles…</p></div>
-   <div class="rc-create"><h3>Create a Role</h3><div class="rc-create-fields"><label>Role name<input id="rcRoleName" maxlength="100" placeholder="e.g. Event Staff"></label><label>Role color<div class="rc-color-control"><input id="rcRoleColor" type="color" value="#c3f36b"><span id="rcRoleColorValue">#C3F36B</span></div></label></div><button id="rcCreateRole" class="rc-primary" type="button">＋ Create Role</button><p id="rcRoleStatus" class="rc-status" role="status" aria-live="polite"></p>
-   </div>
-  </section>
-  <section class="card rc-card"><div class="rc-card-head"><div><h2>📁 Server Channels</h2><p>Review channels by category and create text, voice, or category channels.</p></div><input id="rcChannelSearch" class="rc-search" placeholder="Search channels…" aria-label="Search channels"></div>
-   <div class="rc-channel-filters"><button type="button" class="rc-filter active" data-rc-filter="all">All</button><button type="button" class="rc-filter" data-rc-filter="text">Text</button><button type="button" class="rc-filter" data-rc-filter="voice">Voice</button><button type="button" class="rc-filter" data-rc-filter="category">Categories</button></div>
-   <div id="rcChannels" class="rc-list"><p class="rc-loading">Loading channels…</p></div>
-   <div class="rc-create"><h3>Create a Channel</h3><div class="rc-create-fields"><label>Channel name<input id="rcChannelName" maxlength="100" placeholder="e.g. announcements"></label><label>Channel type<select id="rcChannelType"><option value="text">Text channel</option><option value="voice">Voice channel</option><option value="category">Category</option></select></label></div><button id="rcCreateChannel" class="rc-primary" type="button">＋ Create Channel</button><p id="rcChannelStatus" class="rc-status" role="status" aria-live="polite"></p>
-  </div></section>
- </div>
-</div>
+
 <div id="clanEditModal" class="clan-edit-modal" hidden>
  <div class="clan-edit-backdrop" data-clan-edit-close></div>
  <section class="card clan-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="clanEditTitle">
