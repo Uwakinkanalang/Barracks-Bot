@@ -1026,12 +1026,49 @@ export default {
               }
             }
             if (decision === 'reject') {
+              const refundAmount = Number(reviewedClan.creationFeePaid) || 0;
+              if (refundAmount > 0) {
+                try {
+                  await addMoney(
+                    interaction.client,
+                    interaction.guildId,
+                    reviewedClan.leaderId,
+                    refundAmount,
+                    'wallet'
+                  );
+                } catch (error) {
+                  logger.error('Failed to refund rejected clan creation fee:', {
+                    error: error.message,
+                    guildId: interaction.guildId,
+                    clanId,
+                    leaderId: reviewedClan.leaderId,
+                    refundAmount,
+                  });
+                  await interaction.reply({
+                    content: 'I could not refund the clan creation fee, so this application remains pending. Please resolve the economy error and try rejecting it again.',
+                    flags: MessageFlags.Ephemeral,
+                  });
+                  return;
+                }
+              }
+
               clanList.splice(clanIndex, 1);
               await interaction.client.db.set(storageKey, clanList);
               const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
                 .setColor(0xED4245)
-                .addFields({ name: '📝 Status', value: `❌ Rejected by <@${interaction.user.id}>`, inline: true });
+                .addFields({
+                  name: '📝 Status',
+                  value: refundAmount > 0
+                    ? `❌ Rejected by <@${interaction.user.id}> • 💰 ${refundAmount.toLocaleString()} bCash refunded to the clan leader`
+                    : `❌ Rejected by <@${interaction.user.id}>`,
+                  inline: false,
+                });
               await interaction.update({ embeds: [updated], components: [] });
+
+              const leader = await interaction.guild.members.fetch(reviewedClan.leaderId).catch(() => null);
+              if (leader && refundAmount > 0) {
+                await leader.send(`❌ Your clan application for **${reviewedClan.name} [${reviewedClan.tag}]** was not approved. Your **${refundAmount.toLocaleString()} bCash** clan creation fee has been refunded to your wallet.`).catch(() => {});
+              }
               return;
             }
           }
@@ -1454,6 +1491,7 @@ export default {
               memberIds: [],
               roleHex,
               status: 'pending',
+              creationFeePaid: clanCreationFee,
               logoMessageId: null,
               logoChannelId: null,
               createdAt: new Date().toISOString(),
