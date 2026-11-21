@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "404.html"
       - "dashboard/**"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
@@ -36,6 +37,7 @@ jobs:
         run: |
           mkdir -p site/dashboard
           cp index.html site/index.html
+          if [ -f 404.html ]; then cp 404.html site/404.html; fi
           cp -R dashboard/. site/dashboard/
           # Publish the dashboard shell at every dedicated sidebar URL so direct visits and F5 refreshes load the correct panel.
           for route in welcome goodbye ban boost message-builder moderation autonick settings logs economy games-activities leveling roles-channels boosters tickets clans clans/list prefix-commands slash-commands; do
