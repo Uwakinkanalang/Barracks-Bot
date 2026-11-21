@@ -1,4 +1,5 @@
 name: Deploy Barracks Bot website
+# Fresh-run deployment trigger after a failed-run artifact was duplicated.
 
 on:
   push:
