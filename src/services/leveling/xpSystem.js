@@ -267,9 +267,8 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
       if (embedSettings.footerIconUrl) footer.iconURL = embedSettings.footerIconUrl;
       levelUpEmbed.setFooter(footer);
     }
-    levelUpEmbed
-      .setThumbnail(embedSettings.thumbnailUrl || member.displayAvatarURL({ extension: 'png', size: 256 }))
-      .setImage('https://media.discordapp.net/attachments/1563246823018336416/1563262831334391959/barracks-red-lightning-banner.gif?ex=6af6b2b7&is=6af56137&hm=6c175623588c4efc954b84cb34d624cb7ad5808e00447f79d999e505abe5df22&=');
+    if (!embedSettings.thumbnailUrl) levelUpEmbed.setThumbnail(member.displayAvatarURL({ extension: 'png', size: 256 }));
+    if (embedSettings.imageUrl) levelUpEmbed.setImage(embedSettings.imageUrl);
     const announcementContent = replaceAnnouncementTokens(config.levelUpContent || '{user}');
     const announcementMessage = [announcementContent, ...messageLines].filter(Boolean).join('\n');
 
