@@ -745,7 +745,7 @@ export function registerDashboardRoutes(app, bot) {
       const activity = await getFromDb(`guild:${guild.id}:boost_activity`, []);
       const boostStartCountsRaw = await getFromDb(`guild:${guild.id}:boost_start_counts`, {});
       const boostStartCounts = boostStartCountsRaw && typeof boostStartCountsRaw === 'object' && !Array.isArray(boostStartCountsRaw) ? boostStartCountsRaw : {};
-      for (const member of boosters) member.boostActivityCount = Number(boostStartCounts[member.userId] || 0);
+      for (const member of boosters) member.boostCount = Number(boostStartCounts[member.userId] || 1);
       return res.json({
         boosters,
         total: boosters.length,
