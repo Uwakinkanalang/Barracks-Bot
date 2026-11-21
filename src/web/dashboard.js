@@ -299,7 +299,7 @@ export function registerDashboardRoutes(app, bot) {
           if (embed[key] === undefined) continue;
           if (typeof embed[key] !== 'string' || embed[key].length > max) return res.status(400).json({ error: 'Invalid ' + field + ' ' + key + '.' });
           const value = embed[key].trim();
-          if (['thumbnailUrl', 'imageUrl', 'footerIconUrl'].includes(key) && value) { try { const parsed = new URL(value); if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error(); } catch { return res.status(400).json({ error: field + ' ' + key + ' must be a valid HTTP or HTTPS URL.' }); } }
+          if (['thumbnailUrl', 'imageUrl', 'footerIconUrl'].includes(key) && value) { try { const validationUrl = value.replaceAll('{user.avatar}', 'https://cdn.discordapp.com/embed/avatars/0.png'); const parsed = new URL(validationUrl); if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error(); } catch { return res.status(400).json({ error: field + ' ' + key + ' must be a valid HTTP or HTTPS URL or a URL containing {user.avatar}.' }); } }
           clean[key] = value;
         }
         if (clean.color && !/^#[0-9a-fA-F]{6}$/.test(clean.color)) return res.status(400).json({ error: field + ' color must be a 6-digit HEX color.' });
