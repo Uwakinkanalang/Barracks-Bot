@@ -465,6 +465,18 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
     </aside>
    </div>
   </section>
+  <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🎙️</span><div><h2>Voice XP</h2><p>Reward members for spending time in voice channels.</p></div></div>
+   <label class="lvl-check-row"><span><b>Enable voice XP</b><small>Allow members to earn XP while in voice.</small></span><input id="lvlVoiceEnabled" type="checkbox"></label>
+   <label class="lvl-field">XP per minute<input id="lvlVoiceXp" type="number" min="1" max="100" step="1"></label>
+  </section>
+  <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🎖️</span><div><h2>Role XP multipliers</h2><p>Give selected roles extra XP. If a member has multiple configured roles, only their highest multiplier applies.</p></div></div>
+   <div class="lvl-exclusion-field"><label class="lvl-field" for="lvlMultiplierRole">Discord role<select id="lvlMultiplierRole"><option value="">Choose a role…</option></select></label><label class="lvl-field" for="lvlRoleMultiplier">XP multiplier<input id="lvlRoleMultiplier" type="number" min="0.1" max="10" step="0.1" value="2"></label><button class="lvl-add-btn" id="lvlAddRoleMultiplier" type="button">＋ Add multiplier</button><div class="lvl-exclusion-list" id="lvlRoleMultipliers" aria-live="polite"><span class="lvl-empty">No role multipliers configured.</span></div></div>
+  </section>
+  <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🚫</span><div><h2>XP exclusions</h2><p>Choose channels and roles that should not earn XP.</p></div></div>
+   <div class="lvl-exclusion-field"><label class="lvl-field" for="lvlChannelToAdd">Ignored channels<select id="lvlChannelToAdd"><option value="">Choose a channel to exclude…</option></select></label><button class="lvl-add-btn" id="lvlAddChannel" type="button">＋ Add channel</button><div class="lvl-exclusion-list" id="lvlIgnoredChannels" aria-live="polite"><span class="lvl-empty">No excluded channels added.</span></div></div>
+   <div class="lvl-exclusion-field"><label class="lvl-field" for="lvlRoleToAdd">Ignored roles<select id="lvlRoleToAdd"><option value="">Choose a role to exclude…</option></select></label><button class="lvl-add-btn" id="lvlAddRole" type="button">＋ Add role</button><div class="lvl-exclusion-list" id="lvlIgnoredRoles" aria-live="polite"><span class="lvl-empty">No excluded roles added.</span></div></div>
+  </section>
+
   <div class="lvl-variable-modal" id="lvlVariableGuide" role="dialog" aria-modal="true" aria-labelledby="lvlVariableGuideTitle">
  <div class="lvl-variable-dialog">
   <div class="lvl-variable-dialog-head"><div><h3 id="lvlVariableGuideTitle">📘 Leveling Variables Guide</h3><p>Use these placeholders in your level-up message, embed author, title, description, and footer.</p></div><button class="lvl-variable-close" id="lvlVariableGuideClose" type="button" aria-label="Close guide">×</button></div>
@@ -489,17 +501,6 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
   </div>
  </div>
 </div>
-<section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🎙️</span><div><h2>Voice XP</h2><p>Reward members for spending time in voice channels.</p></div></div>
-   <label class="lvl-check-row"><span><b>Enable voice XP</b><small>Allow members to earn XP while in voice.</small></span><input id="lvlVoiceEnabled" type="checkbox"></label>
-   <label class="lvl-field">XP per minute<input id="lvlVoiceXp" type="number" min="1" max="100" step="1"></label>
-  </section>
-  <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🎖️</span><div><h2>Role XP multipliers</h2><p>Give selected roles extra XP. If a member has multiple configured roles, only their highest multiplier applies.</p></div></div>
-   <div class="lvl-exclusion-field"><label class="lvl-field" for="lvlMultiplierRole">Discord role<select id="lvlMultiplierRole"><option value="">Choose a role…</option></select></label><label class="lvl-field" for="lvlRoleMultiplier">XP multiplier<input id="lvlRoleMultiplier" type="number" min="0.1" max="10" step="0.1" value="2"></label><button class="lvl-add-btn" id="lvlAddRoleMultiplier" type="button">＋ Add multiplier</button><div class="lvl-exclusion-list" id="lvlRoleMultipliers" aria-live="polite"><span class="lvl-empty">No role multipliers configured.</span></div></div>
-  </section>
-  <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🚫</span><div><h2>XP exclusions</h2><p>Choose channels and roles that should not earn XP.</p></div></div>
-   <div class="lvl-exclusion-field"><label class="lvl-field" for="lvlChannelToAdd">Ignored channels<select id="lvlChannelToAdd"><option value="">Choose a channel to exclude…</option></select></label><button class="lvl-add-btn" id="lvlAddChannel" type="button">＋ Add channel</button><div class="lvl-exclusion-list" id="lvlIgnoredChannels" aria-live="polite"><span class="lvl-empty">No excluded channels added.</span></div></div>
-   <div class="lvl-exclusion-field"><label class="lvl-field" for="lvlRoleToAdd">Ignored roles<select id="lvlRoleToAdd"><option value="">Choose a role to exclude…</option></select></label><button class="lvl-add-btn" id="lvlAddRole" type="button">＋ Add role</button><div class="lvl-exclusion-list" id="lvlIgnoredRoles" aria-live="polite"><span class="lvl-empty">No excluded roles added.</span></div></div>
-  </section>
  </div>
  <div class="lvl-footer"><div><b>Remember to save your changes</b><small id="lvlStatus" role="status" aria-live="polite">Settings have not been loaded yet.</small></div><button id="lvlSave" class="lvl-save" type="button">Save Leveling Settings</button></div>
 </div></div>
