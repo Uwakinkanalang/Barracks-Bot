@@ -1243,7 +1243,7 @@ const opening=submenu.hidden;submenu.hidden=!opening;group.classList.toggle('ope
  document.getElementById('boostNavButton').addEventListener('click',()=>navigate('boost'));
  document.getElementById('messageBuilderModuleButton').addEventListener('click',()=>navigate('message-builder'));
  document.getElementById('welcomeModuleButton').addEventListener('click',()=>navigate('welcome'));
- document.querySelectorAll('.nav button').forEach((b,i)=>{if(i===0)b.addEventListener('click',()=>navigate('home'));if(i===1)b.addEventListener('click',()=>navigate('settings'));if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation')b.id='moderationNavButton';if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation Logs'){b.id='logsNavButton';b.addEventListener('click',()=>navigate('logs'));}});
+ document.querySelectorAll('.nav button').forEach((b,i)=>{if(i===0)b.addEventListener('click',()=>navigate('home'));if(i===1)b.addEventListener('click',()=>navigate('settings'));/* Moderation is a dropdown; keep its moderationToggle ID intact. */if(b.querySelector('.nav-text')?.textContent.trim()==='Moderation Logs'){b.id='logsNavButton';b.addEventListener('click',()=>navigate('logs'));}});
  document.getElementById('moderationToggle').addEventListener('click',()=>{const g=document.getElementById('moderationNavGroup'),m=document.getElementById('moderationSubmenu'),t=document.getElementById('moderationToggle');const opening=m.hidden;m.hidden=!opening;g.classList.toggle('open',opening);t.setAttribute('aria-expanded',String(opening));});
  document.getElementById('moderationHomeNavButton').addEventListener('click',()=>navigate('moderation'));
  document.getElementById('autoNickNavButton').addEventListener('click',()=>navigate('autonick'));
