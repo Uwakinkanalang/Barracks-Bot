@@ -766,7 +766,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 <div class="card"><div class="metric-top">Commands loaded</div><div class="metric" id="settingsCommands">—</div><div class="metric-note">Available commands</div></div>
 <div class="card"><div class="metric-top">Bot uptime</div><div class="metric" id="settingsUptime" style="font-size:20px">—</div><div class="metric-note">Since last restart</div></div></div>
 <div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h2 style="font-size:16px;margin:0 0 5px">⚙️ General bot settings</h2><p class="sub">Update the text-command prefix used in Barracks.</p></div><button class="logout" id="settingsRefresh" type="button">↻ Refresh status</button></div>
-<label style="display:block;margin-top:18px;max-width:360px">Command prefix<input id="settingsPrefix" maxlength="5" placeholder="!" style="display:block;width:100%;margin-top:7px;padding:12px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"></label><p style="color:#9ba3ad;font-size:11px;margin:8px 0">Use 1–5 characters with no spaces.</p><div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap"><button id="settingsSave" type="button" style="border:0;border-radius:9px;padding:11px 17px;background:#c3f36b;color:#18210f;font-weight:800">Save settings</button><span id="settingsStatus" role="status" style="color:#c0c2ca;font-size:12px"></span></div></div>
+<label style="display:block;margin-top:18px;max-width:360px">Command prefix<input id="settingsPrefix" maxlength="5" placeholder="!" style="display:block;width:100%;margin-top:7px;padding:12px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"></label><p style="color:#9ba3ad;font-size:11px;margin:8px 0">Use 1–5 characters with no spaces.</p><div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap"><button id="settingsSave" type="button" onclick="saveBotSettings()" style="border:0;border-radius:9px;padding:11px 17px;background:#c3f36b;color:#18210f;font-weight:800;cursor:pointer">Save settings</button><span id="settingsStatus" role="status" style="color:#c0c2ca;font-size:12px"></span></div></div>
 <div class="card"><h2 style="font-size:16px;margin:0 0 12px">🪖 Server & bot information</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;color:#c0c2ca;font-size:13px"><div>Server<strong id="settingsGuildName" class="settings-value">—</strong></div><div>Server ID<strong id="settingsGuildId" class="settings-value">—</strong></div><div>Members<strong id="settingsMembers" class="settings-value">—</strong></div><div>Channels<strong id="settingsChannels" class="settings-value">—</strong></div><div>Roles<strong id="settingsRoles" class="settings-value">—</strong></div><div>Bot account<strong id="settingsBotName" class="settings-value">—</strong></div><div>Bot ID<strong id="settingsBotId" class="settings-value">—</strong></div></div></div></div>
 <style>.settings-value{display:block;color:#f2f3f5;margin-top:5px;font-weight:650;overflow-wrap:anywhere}</style>
 
@@ -1237,21 +1237,22 @@ async function loadBotSettings(){
   status.textContent='Settings loaded.';
  }catch(error){status.textContent=error.message;status.style.color='#ff9a91';}
 }
-document.getElementById('settingsRefresh').addEventListener('click',loadBotSettings);
-document.getElementById('settingsSave').addEventListener('click',async()=>{
- const button=document.getElementById('settingsSave'),status=document.getElementById('settingsStatus');button.disabled=true;button.textContent='Saving…';status.style.color='#c0c2ca';
+document.getElementById('settingsRefresh').window.saveBotSettings=async function(){
+ const button=document.getElementById('settingsSave'),status=document.getElementById('settingsStatus');
+ if(!button||!status)return;
+ button.disabled=true;button.textContent='Saving…';status.textContent='Saving settings…';status.style.color='#c0c2ca';
  try{
   const response=await fetch(API_BASE+'/api/dashboard/settings',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionStorage.getItem('barracks_dashboard_access')},body:JSON.stringify({prefix:document.getElementById('settingsPrefix').value})});
-  const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not save prefix.');
-  document.getElementById('settingsPrefix').value=data.prefix;status.textContent='✓ Settings saved successfully!';status.style.color='#c3f36b';status.style.fontWeight='700';
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not save settings.');
+  document.getElementById('settingsPrefix').value=data.prefix;
+  status.textContent='✓ Settings saved successfully!';status.style.color='#c3f36b';status.style.fontWeight='700';
   const previousToast=document.getElementById('settingsSavedToast');if(previousToast)previousToast.remove();
-  const toast=document.createElement('div');toast.id='settingsSavedToast';toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');toast.textContent='✓ Settings saved successfully!';
-  Object.assign(toast.style,{position:'fixed',right:'24px',top:'88px',zIndex:'9999',padding:'14px 20px',borderRadius:'12px',background:'#1d2c22',border:'1px solid #6f963e',color:'#c3f36b',fontSize:'13px',fontWeight:'750',boxShadow:'0 12px 32px #0008'});
-  document.body.appendChild(toast);setTimeout(()=>toast.remove(),4000);
- }catch(error){status.textContent=error.message;status.style.color='#ff9a91';}
+  const toast=document.createElement('div');toast.id='settingsSavedToast';toast.setAttribute('role','alert');toast.setAttribute('aria-live','assertive');toast.textContent='✓ Settings saved successfully!';
+  Object.assign(toast.style,{position:'fixed',right:'24px',top:'88px',zIndex:'99999',padding:'16px 22px',borderRadius:'12px',background:'#1d2c22',border:'2px solid #8fbd4b',color:'#d6ff91',fontSize:'14px',fontWeight:'800',boxShadow:'0 12px 32px #0008'});
+  document.body.appendChild(toast);setTimeout(()=>toast.remove(),5000);
+ }catch(error){status.textContent='Save failed: '+error.message;status.style.color='#ff9a91';status.style.fontWeight='700';}
  finally{button.disabled=false;button.textContent='Save settings';}
-});
-</script>
+};</script>
 <script>
 (()=>{
  const base='/Barracks-Bot/dashboard/';
