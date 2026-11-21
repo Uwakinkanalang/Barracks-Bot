@@ -207,9 +207,6 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
     }
 
     // Show only the highest rank earned at the member's final level.
-    const messageLines = [
-      `**${member.toString()}**, you just reached level **${levelData.level}**!`
-    ];
     const highestRewardLevel = Object.keys(config.roleRewards || {})
       .map(Number)
       .filter((level) => Number.isInteger(level) && level <= levelData.level)
@@ -218,27 +215,35 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
     const rewardRoles = highestRoleId
       ? [guild.roles.cache.get(highestRoleId)].filter(Boolean)
       : [];
-
-    for (const rewardRole of rewardRoles) {
-      messageLines.push(`🎉 Your current highest rank is **<@&${rewardRole.id}>**!`);
-    }
-    const announcedBcashRewards = bcashRewards ?? Object.entries(BCASH_ROLE_REWARDS)
-      .filter(([level]) => Number(level) > previousLevel && Number(level) <= levelData.level)
-      .map(([level, amount]) => ({ level: Number(level), amount }));
-    for (const reward of announcedBcashRewards) {
-      messageLines.push(`💰 You received **₱${reward.amount.toLocaleString('en-US')} Bcash** for reaching level **${reward.level}**!`);
-    }
-    const message = messageLines.join('\n');
     const rankDisplay = rewardRoles.length
       ? rewardRoles.map((role) => `<@&${role.id}>`).join(', ')
       : 'Unranked';
-
-    const replaceAnnouncementTokens = (value) => String(value || '')
+    const announcedBcashRewards = bcashRewards ?? Object.entries(BCASH_ROLE_REWARDS)
+      .filter(([level]) => Number(level) > previousLevel && Number(level) <= levelData.level)
+      .map(([level, amount]) => ({ level: Number(level), amount }));
+    const replaceAnnouncementTokens = (value, extra = {}) => String(value || '')
       .replaceAll('{user}', member.toString())
       .replaceAll('{username}', member.displayName || member.user.username)
       .replaceAll('{rank}', rankDisplay)
       .replaceAll('{level}', String(levelData.level))
-      .replaceAll('{totalXp}', levelData.totalXp.toLocaleString('en-US'));
+      .replaceAll('{totalXp}', levelData.totalXp.toLocaleString('en-US'))
+      .replaceAll('{bcash}', String(extra.bcash ?? ''))
+      .replaceAll('{rewardLevel}', String(extra.rewardLevel ?? levelData.level));
+    const autoMessages = config.levelUpMessages || {};
+    const messageLines = [
+      replaceAnnouncementTokens(autoMessages.level ?? '**{user}**, you just reached level **{level}**!')
+    ].filter(Boolean);
+    if (rewardRoles.length) {
+      const rankLine = replaceAnnouncementTokens(autoMessages.rank ?? '🎉 Your current highest rank is **{rank}**!');
+      if (rankLine) messageLines.push(rankLine);
+    }
+    for (const reward of announcedBcashRewards) {
+      const rewardLine = replaceAnnouncementTokens(
+        autoMessages.bcash ?? '💰 You received **₱{bcash} Bcash** for reaching level **{level}**!',
+        { bcash: reward.amount.toLocaleString('en-US'), rewardLevel: reward.level }
+      );
+      if (rewardLine) messageLines.push(rewardLine);
+    }
     const embedSettings = config.levelUpEmbed || {};
     const embedDescription = replaceAnnouncementTokens(
       embedSettings.description || [
