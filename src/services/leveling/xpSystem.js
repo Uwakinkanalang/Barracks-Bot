@@ -234,11 +234,11 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
       '**{user}**, you just reached level **{level}**!',
       '🎉 Your current highest rank is **{rank}**!',
       '💰 You received **₱{bcash} Bcash** for reaching level **{rewardLevel}**!'
-    ].join('\\n');
-    const legacyTemplate = [autoMessages.level, autoMessages.rank, autoMessages.bcash].filter(Boolean).join('\\n');
+    ].join('\n');
+    const legacyTemplate = [autoMessages.level, autoMessages.rank, autoMessages.bcash].filter(Boolean).join('\n');
     const messageTemplate = String(autoMessages.template ?? (legacyTemplate || defaultMessageTemplate));
     const messageLines = [];
-    for (const line of messageTemplate.split(/\\r?\\n/)) {
+    for (const line of messageTemplate.replace(/\\\\n/g, '\n').split(/\r?\n/)) {
       if (line.includes('{rank}') && !rewardRoles.length) continue;
       if ((line.includes('{bcash}') || line.includes('{rewardLevel}')) && !announcedBcashRewards.length) continue;
       if (line.includes('{bcash}') && announcedBcashRewards.length) {
@@ -263,7 +263,7 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
         '• **Total Battle Experience:** {totalXp} XP',
         '',
         '🎖️ Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
-      ].join('\\n')
+      ].join('\n')
     );
     const levelUpEmbed = new EmbedBuilder()
       .setColor(/^#[0-9a-fA-F]{6}$/.test(embedSettings.color || '') ? embedSettings.color : '#36393f')
