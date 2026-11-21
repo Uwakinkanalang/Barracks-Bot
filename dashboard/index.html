@@ -270,6 +270,7 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
   <div id="welcomeSettingsPage" class="lvl-announcement-layout lvl-event-announcement-page" style="display:none">
    <div class="card lvl-announcement-settings">
     <div class="lvl-card-head"><span class="lvl-icon">👋</span><div><h2>Join announcements</h2><p>Choose where and how the bot posts this announcement.</p></div></div>
+     <button id="clearJoinFields" type="button" class="lvl-secondary" style="margin:0 0 14px">Clear join announcement fields</button>
     <label class="lvl-check-row"><span><b>Enable join announcements</b><small>Turn this announcement on or off.</small></span><input id="welcomeEnabled" type="checkbox"></label>
     <label class="lvl-field">Announcement channel<select id="welcomeChannel"><option value="">Not set</option></select></label>
     <label class="lvl-check-row"><span><b>Ping joining member</b><small>Allow the announcement to mention this member.</small></span><input id="welcomePing" type="checkbox"></label>
@@ -699,6 +700,13 @@ const welcomePanel=document.getElementById('welcomePanel');
 const welcomeStatus=document.getElementById('welcomeStatus');
 function setWelcomeStatus(message,isError=false){welcomeStatus.textContent=message;welcomeStatus.style.color=isError?'#ff9a91':'#b8c9b7';}
 function showWelcomePanel(){if(window.barracksNavigate)window.barracksNavigate('welcome');}
+ document.getElementById('clearJoinFields').addEventListener('click',()=>{
+  ['welcomeMessage','welcomeEmbedAuthor','welcomeEmbedTitle','welcomeEmbedThumbnail','welcomeEmbedDescription','welcomeEmbedImage','welcomeEmbedFooterIcon','welcomeEmbedFooter'].forEach(id=>{const field=document.getElementById(id);if(field)field.value='';});
+  const color=document.getElementById('welcomeEmbedColor');if(color)color.value='#556B2F';
+  const colorHex=document.getElementById('welcomeEmbedColorHex');if(colorHex)colorHex.value='#556B2F';
+  updateAnnouncementPreview('welcome');
+  setWelcomeStatus('Join announcement fields cleared. Click Save settings to apply the blank fields.');
+ });
  document.getElementById('slashCommandNavButton').addEventListener('click',()=>navigate('slashCommands'));
  document.getElementById('welcomeNavButton').addEventListener('click',showWelcomePanel);
  document.getElementById('goodbyeNavButton').addEventListener('click',()=>window.barracksNavigate&&window.barracksNavigate('goodbye'));
