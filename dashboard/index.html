@@ -370,6 +370,9 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 .lvl-preview-embed .lvl-preview-main .lvl-preview-image[hidden],
 .lvl-announcement-preview .lvl-preview-embed #lvlPreviewImage[hidden]{display:none}
 </style>
+<style id="discordChannelMentionPreview">
+.discord-channel-mention-preview{display:inline-block;padding:0 3px;border-radius:3px;background:rgba(88,101,242,.22);color:#c9cdfb;font-weight:600;white-space:nowrap}
+</style>
 </head>
 <body>
 <div class="shell">
@@ -991,8 +994,9 @@ function fillAnnouncementEmbed(prefix,settings={},defaults={}){
 }
 function formatAnnouncementPreview(value){
  return String(value||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
- .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
- .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g,'<em>$1</em>').replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g,'<em>$1</em>').replace(/\n/g,'<br>');
+ .replace(/\\{#([^{}]+)\\}/g,'<span class="discord-channel-mention-preview">#$1</span>')
+ .replace(/\\*\\*\\*(.+?)\\*\\*\\*/g,'<strong><em>$1</em></strong>').replace(/\\*\\*(.+?)\\*\\*/g,'<strong>$1</strong>')
+ .replace(/(?<!\\*)\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)/g,'<em>$1</em>').replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g,'<em>$1</em>').replace(/\\n/g,'<br>');
 }
 function announcementTokens(value,prefix){
  const sample=prefix==='welcome'?{user:'@NewMember',tag:'NewMember#1234',id:'123456789012345678'}:prefix==='goodbye'?{user:'@DepartingMember',tag:'DepartingMember#1234',id:'123456789012345678'}:{user:'@BannedMember',tag:'BannedMember#1234',id:'123456789012345678'};
