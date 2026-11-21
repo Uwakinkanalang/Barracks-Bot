@@ -31,8 +31,15 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
       return null;
     }
 
-    // Server boosters earn double XP from every supported XP source.
-    const awardedXp = member.premiumSince ? xpToAdd * 2 : xpToAdd;
+    // Use only the highest configured role multiplier held by this member.
+    const roleMultipliers = Object.entries(config.roleXpMultipliers || {});
+    const highestRoleMultiplier = roleMultipliers.reduce((highest, [roleId, multiplier]) => {
+      if (!member.roles?.cache?.has(roleId)) return highest;
+      const value = Number(multiplier);
+      return Number.isFinite(value) && value > highest ? value : highest;
+    }, 1);
+    // Server boosters keep their existing double-XP bonus.
+    const awardedXp = xpToAdd * highestRoleMultiplier * (member.premiumSince ? 2 : 1);
     const levelData = await getUserLevelData(client, guild.id, member.user.id);
 
     levelData.xp += awardedXp;
