@@ -681,8 +681,10 @@ export function registerDashboardRoutes(app, bot) {
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     try {
-      const members = await guild.members.fetch();
-      const boosters = members.filter(member => member.premiumSince).map(member => {
+      // Use the member cache only. guild.members.fetch() requests the entire
+      // member list through Gateway Opcode 8 and can hit Discord's identify/member
+      // request rate limits when the dashboard is opened or refreshed.
+      const boosters = guild.members.cache.filter(member => member.premiumSince).map(member => {
         const boostStartedAt = member.premiumSince;
         const estimatedExpiresAt = new Date(boostStartedAt);
         estimatedExpiresAt.setMonth(estimatedExpiresAt.getMonth() + 1);
@@ -693,7 +695,7 @@ export function registerDashboardRoutes(app, bot) {
           estimatedExpiresAt: estimatedExpiresAt.toISOString()
         };
       }).sort((a, b) => new Date(a.estimatedExpiresAt) - new Date(b.estimatedExpiresAt));
-      return res.json({ boosters, total: boosters.length, expiryIsEstimate: true });
+      return res.json({ boosters, total: boosters.length, expiryIsEstimate: true, source: 'member-cache' });
     } catch (error) {
       return res.status(500).json({ error: error?.message || 'Could not load current server boosters.' });
     }
