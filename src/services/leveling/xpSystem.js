@@ -190,6 +190,21 @@ async function awardRoleReward(guild, member, roleId, level, roleRewards = {}) {
   }
 }
 
+function stylizePlainEmbedAuthor(value) {
+  const map = (text, style) => Array.from(text).map((character) => {
+    const code = character.codePointAt(0);
+    if (style === 'bold' && code >= 48 && code <= 57) return String.fromCodePoint(0x1D7CE + code - 48);
+    if (code >= 65 && code <= 90) return String.fromCodePoint((style === 'bold' ? 0x1D400 : style === 'italic' ? 0x1D434 : 0x1D468) + code - 65);
+    if (code >= 97 && code <= 122) return String.fromCodePoint((style === 'bold' ? 0x1D41A : style === 'italic' ? 0x1D44E : 0x1D482) + code - 97);
+    return character;
+  }).join('');
+  return String(value || '')
+    .replace(/\*\*\*(.+?)\*\*\*/g, (_, text) => map(text, 'bolditalic'))
+    .replace(/\*\*(.+?)\*\*/g, (_, text) => map(text, 'bold'))
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, (_, text) => map(text, 'italic'))
+    .replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, (_, text) => map(text, 'italic'));
+}
+
 export async function sendLevelUpAnnouncement(guild, member, levelData, config, previousLevel = levelData.level - 1, bcashRewards = null) {
   try {
     const levelUpChannel = config.levelUpChannel
@@ -268,7 +283,7 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
     const levelUpEmbed = new EmbedBuilder()
       .setColor(/^#[0-9a-fA-F]{6}$/.test(embedSettings.color || '') ? embedSettings.color : '#36393f')
       .setDescription(embedDescription.slice(0, 4096));
-    const authorName = replaceAnnouncementTokens(embedSettings.authorName);
+    const authorName = stylizePlainEmbedAuthor(replaceAnnouncementTokens(embedSettings.authorName));
     const title = replaceAnnouncementTokens(embedSettings.title || '⚔️ LEVEL UP ALERT!');
     const footerText = replaceAnnouncementTokens(embedSettings.footerText);
     if (authorName) levelUpEmbed.setAuthor({ name: authorName });
