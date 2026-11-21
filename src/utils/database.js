@@ -378,6 +378,12 @@ function normalizeWelcomeConfig(raw = {}) {
         footer: "Goodbye from {server}!"
     };
 
+    const banEmbed = base.banEmbed ?? {
+        title: "🔨 Member Banned",
+        description: "",
+        color: getColor("error")
+    };
+
     const roleIds = Array.isArray(base.roleIds) ? base.roleIds : [];
 
     return {
@@ -392,6 +398,7 @@ function normalizeWelcomeConfig(raw = {}) {
         goodbyeChannelId,
         leaveMessage,
         leaveEmbed,
+        banEmbed,
         dmMessage: base.dmMessage ?? "",
         goodbyePing: Boolean(base.goodbyePing),
         roleIds,
