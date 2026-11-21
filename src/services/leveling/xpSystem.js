@@ -230,19 +230,26 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
       .replaceAll('{bcash}', String(extra.bcash ?? ''))
       .replaceAll('{rewardLevel}', String(extra.rewardLevel ?? levelData.level));
     const autoMessages = config.levelUpMessages || {};
-    const messageLines = [
-      replaceAnnouncementTokens(autoMessages.level ?? '**{user}**, you just reached level **{level}**!')
-    ].filter(Boolean);
-    if (rewardRoles.length) {
-      const rankLine = replaceAnnouncementTokens(autoMessages.rank ?? '🎉 Your current highest rank is **{rank}**!');
-      if (rankLine) messageLines.push(rankLine);
-    }
-    for (const reward of announcedBcashRewards) {
-      const rewardLine = replaceAnnouncementTokens(
-        autoMessages.bcash ?? '💰 You received **₱{bcash} Bcash** for reaching level **{level}**!',
-        { bcash: reward.amount.toLocaleString('en-US'), rewardLevel: reward.level }
-      );
-      if (rewardLine) messageLines.push(rewardLine);
+    const defaultMessageTemplate = [
+      '**{user}**, you just reached level **{level}**!',
+      '🎉 Your current highest rank is **{rank}**!',
+      '💰 You received **₱{bcash} Bcash** for reaching level **{rewardLevel}**!'
+    ].join('\\n');
+    const legacyTemplate = [autoMessages.level, autoMessages.rank, autoMessages.bcash].filter(Boolean).join('\\n');
+    const messageTemplate = String(autoMessages.template ?? (legacyTemplate || defaultMessageTemplate));
+    const messageLines = [];
+    for (const line of messageTemplate.split(/\\r?\\n/)) {
+      if (line.includes('{rank}') && !rewardRoles.length) continue;
+      if ((line.includes('{bcash}') || line.includes('{rewardLevel}')) && !announcedBcashRewards.length) continue;
+      if (line.includes('{bcash}') && announcedBcashRewards.length) {
+        for (const reward of announcedBcashRewards) {
+          const rendered = replaceAnnouncementTokens(line, { bcash: reward.amount.toLocaleString('en-US'), rewardLevel: reward.level });
+          if (rendered) messageLines.push(rendered);
+        }
+      } else {
+        const rendered = replaceAnnouncementTokens(line);
+        if (rendered) messageLines.push(rendered);
+      }
     }
     const embedSettings = config.levelUpEmbed || {};
     const embedDescription = replaceAnnouncementTokens(
