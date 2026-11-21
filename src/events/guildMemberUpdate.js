@@ -6,6 +6,7 @@ import { getLevelingConfig } from '../services/leveling/leveling.js';
 import { getNicknamePrefix } from '../commands/Economy/nickname.js';
 import { getAFKKey } from '../utils/database.js';
 import { captureModerationAudit } from '../services/moderationAuditMirror.js';
+import { applyDashboardAutoNick } from '../services/autoNickDashboardService.js';
 
 export default {
   name: Events.GuildMemberUpdate,
@@ -362,6 +363,11 @@ export default {
             `[RANK_NICKNAME] Could not update nickname for ${newMember.user.tag}: ${nicknameError.message}`,
           );
         }
+      }
+
+      if (roleSetChanged && !newMember.user.bot) {
+        try { await applyDashboardAutoNick(newMember, 'role'); }
+        catch (error) { logger.warn(`[AUTO_NICKNAME] Role rule failed for ${newMember.user.tag}: ${error.message}`); }
       }
 
       // One-time wallet rewards for configured role grants.

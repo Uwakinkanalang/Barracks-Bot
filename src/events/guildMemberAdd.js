@@ -8,6 +8,7 @@ import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { getServerCounters, updateCounter } from '../services/serverstatsService.js';
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
+import { applyDashboardAutoNick } from '../services/autoNickDashboardService.js';
 import { processInviteReward } from '../utils/inviteRewards.js';
 
 export default {
@@ -74,6 +75,8 @@ export default {
         if (config?.verification?.enabled || config?.verification?.autoVerify?.enabled) {
             await handleVerification(member, guild, config.verification, member.client);
         }
+
+        try { await applyDashboardAutoNick(member, 'join'); } catch (error) { logger.warn('[AUTO_NICKNAME] Join rule failed:', error); }
 
         try {
             await logEvent({
