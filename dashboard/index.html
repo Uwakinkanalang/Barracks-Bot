@@ -999,8 +999,20 @@ function formatAnnouncementPreview(value){
  .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g,'<em>$1</em>').replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g,'<em>$1</em>').replace(/\n/g,'<br>');
 }
 function announcementTokens(value,prefix){
- const sample=prefix==='welcome'?{user:'@NewMember',tag:'NewMember#1234',id:'123456789012345678'}:prefix==='goodbye'?{user:'@DepartingMember',tag:'DepartingMember#1234',id:'123456789012345678'}:{user:'@BannedMember',tag:'BannedMember#1234',id:'123456789012345678'};
- return String(value||'').replaceAll('{user.avatar}','https://cdn.discordapp.com/embed/avatars/0.png').replaceAll('{user.tag}',sample.tag).replaceAll('{user.id}',sample.id).replaceAll('{user}',sample.user).replaceAll('{server}','Barracks').replaceAll('{server.name}','Barracks');
+ const sample=prefix==='welcome'?{user:'@NewMember',username:'NewMember',tag:'NewMember#1234',id:'123456789012345678'}:prefix==='goodbye'?{user:'@DepartingMember',username:'DepartingMember',tag:'DepartingMember#1234',id:'123456789012345678'}:{user:'@BannedMember',username:'BannedMember',tag:'BannedMember#1234',id:'123456789012345678'};
+ const avatar='https://cdn.discordapp.com/embed/avatars/0.png';
+ const serverIcon='https://cdn.discordapp.com/embed/avatars/1.png';
+ return String(value||'')
+  .replaceAll('{user.avatar}',avatar)
+  .replaceAll('{user.username}',sample.username)
+  .replaceAll('{user.mention}',sample.user)
+  .replaceAll('{user.tag}',sample.tag)
+  .replaceAll('{user.id}',sample.id)
+  .replaceAll('{user}',sample.user)
+  .replaceAll('{server.name}','Barracks')
+  .replaceAll('{server.id}','1137695060096471160')
+  .replaceAll('{server.icon}',serverIcon)
+  .replaceAll('{server}','Barracks');
 }
 function updateAnnouncementPreview(prefix){
  const message=announcementTokens(document.getElementById(prefix+'Message').value,prefix);
