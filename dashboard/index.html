@@ -1248,16 +1248,22 @@ const opening=submenu.hidden;submenu.hidden=!opening;group.classList.toggle('ope
  document.getElementById('autoNickForm').addEventListener('submit',async e=>{e.preventDefault();const button=document.getElementById('autoNickCreate'),status=document.getElementById('autoNickStatus');const payload={nickname:document.getElementById('autoNickName').value.trim(),format:document.getElementById('autoNickFormat').value,type:document.getElementById('autoNickType').value,roleId:document.getElementById('autoNickRole').value,priority:Number(document.getElementById('autoNickPriority').value)};if(!payload.nickname){status.textContent='Enter a nickname format.';return;}if(payload.type==='role'&&!payload.roleId){status.textContent='Choose a role.';return;}button.disabled=true;button.textContent='Creating…';try{const r=await fetch(API_BASE+'/api/dashboard/autonick',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionStorage.getItem('barracks_dashboard_access')},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not create AutoNick rule.');status.textContent='AutoNick rule created.';status.style.color='#c3f36b';document.getElementById('autoNickForm').reset();document.getElementById('autoNickType').dispatchEvent(new Event('change'));await loadAutoNickRules();}catch(err){status.textContent=err.message;status.style.color='#ff9a91';}finally{button.disabled=false;button.textContent='Create';}});
  
 
- // One delegated handler keeps every dedicated sidebar page clickable, including nested dropdown items.
- document.querySelector('.side').addEventListener('click',e=>{
-   const button=e.target.closest('.nav button');
+ // Capture sidebar clicks at document level so every sidebar item works even inside nested dropdowns.
+ document.addEventListener('click',e=>{
+   const button=e.target.closest('aside.side .nav button');
    if(!button)return;
-   const pageById={welcomeNavButton:'welcome',goodbyeNavButton:'goodbye',banNavButton:'ban',boostNavButton:'boost',moderationHomeNavButton:'moderation',autoNickNavButton:'autonick',logsNavButton:'logs',economyNavButton:'economy',gamesNavButton:'games',levelingNavButton:'leveling',rolesChannelsNavButton:'rolesChannels',boostersNavButton:'boosters',createClanNavButton:'clans',barracksClansNavButton:'clanList',ticketsNavButton:'tickets',prefixCommandNavButton:'prefixCommands',slashCommandNavButton:'slashCommands'};
-   let page=pageById[button.id];
-   if(!page&&button.querySelector('.nav-text')?.textContent.trim()==='Overview')page='home';
-   if(!page&&button.querySelector('.nav-text')?.textContent.trim()==='Bot Settings')page='settings';
-   if(page){e.preventDefault();navigate(page);}
- });
+   const id=button.id;
+   const toggles={announcementToggle:['announcementNavGroup','announcementSubmenu'],moderationToggle:['moderationNavGroup','moderationSubmenu'],clanToggle:['clanNavGroup','clanSubmenu'],commandToggle:['commandNavGroup','commandSubmenu']};
+   if(toggles[id]){
+     const [groupId,menuId]=toggles[id],group=document.getElementById(groupId),menu=document.getElementById(menuId);
+     const opening=menu.hidden;menu.hidden=!opening;group.classList.toggle('open',opening);button.setAttribute('aria-expanded',String(opening));
+     e.preventDefault();e.stopImmediatePropagation();return;
+   }
+   const pages={welcomeNavButton:'welcome',goodbyeNavButton:'goodbye',banNavButton:'ban',boostNavButton:'boost',moderationHomeNavButton:'moderation',autoNickNavButton:'autonick',logsNavButton:'logs',economyNavButton:'economy',gamesNavButton:'games',levelingNavButton:'leveling',rolesChannelsNavButton:'rolesChannels',boostersNavButton:'boosters',createClanNavButton:'clans',barracksClansNavButton:'clanList',ticketsNavButton:'tickets',prefixCommandNavButton:'prefixCommands',slashCommandNavButton:'slashCommands'};
+   let page=pages[id];
+   if(!page){const label=button.querySelector('.nav-text')?.textContent.trim();if(label==='Overview')page='home';else if(label==='Bot Settings')page='settings';}
+   if(page){e.preventDefault();e.stopImmediatePropagation();navigate(page);}
+ },true);
  window.addEventListener('popstate',()=>navigate(routeKey(),false));document.addEventListener('DOMContentLoaded',()=>{const initial=routeKey();if(initial!=='home'&&routes[initial])history.replaceState({page:initial},'',routes[initial].path);navigate(initial,false);},{once:true});window.addEventListener('pageshow',event=>{if(event.persisted)navigate(routeKey(),false);});
 })();
 </script>
