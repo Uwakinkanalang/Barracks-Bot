@@ -1254,7 +1254,7 @@ const opening=submenu.hidden;submenu.hidden=!opening;group.classList.toggle('ope
    if(!button)return;
    const pageById={welcomeNavButton:'welcome',goodbyeNavButton:'goodbye',banNavButton:'ban',boostNavButton:'boost',moderationHomeNavButton:'moderation',autoNickNavButton:'autonick',logsNavButton:'logs',economyNavButton:'economy',gamesNavButton:'games',levelingNavButton:'leveling',rolesChannelsNavButton:'rolesChannels',boostersNavButton:'boosters',createClanNavButton:'clans',barracksClansNavButton:'clanList',ticketsNavButton:'tickets',prefixCommandNavButton:'prefixCommands',slashCommandNavButton:'slashCommands'};
    let page=pageById[button.id];
-   if(!page&&button.classList.contains('active')&&button.querySelector('.nav-text')?.textContent.trim()==='Overview')page='home';
+   if(!page&&button.querySelector('.nav-text')?.textContent.trim()==='Overview')page='home';
    if(!page&&button.querySelector('.nav-text')?.textContent.trim()==='Bot Settings')page='settings';
    if(page){e.preventDefault();navigate(page);}
  });
