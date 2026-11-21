@@ -105,7 +105,7 @@ export default {
       const panelEmbed = new EmbedBuilder()
         .setColor(0x5865F2)
         .setTitle('⚔️ BARRACKS CLAN')
-        .setDescription('Create your own squad, join an approved clan, or leave your current clan. Choose your team and stand together, soldier!')
+        .setDescription('Create your own squad for **5,000,000 bCash**, join an approved clan, or leave your current clan. Choose your team and stand together, soldier!')
         .setImage('https://cdn.discordapp.com/attachments/1572883657440366673/1573781600288903338/Barracks_ng_Clan__Lumikha_o_Sumali.png?ex=6b0341d4&is=6b01f054&hm=facef902ae537aa1991ce3213bede46f9959e17e4e9998bae03980b016a160db&')
         .addFields({ name: '📜 Clan Guidelines', value: '• One clan per member.\n• Clan creation requires staff approval.\n• Join requests must be accepted by clan leadership.\n• Clan Leaders must transfer leadership or remove their clan before leaving.' })
         .setFooter({ text: 'Barracks • Clan Registry' });
