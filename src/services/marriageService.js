@@ -547,3 +547,24 @@ export async function processMarriageAnniversaries(client, guildId, now = Date.n
 }
 
 export const MARRIAGE_ANNIVERSARY_REWARD = ANNIVERSARY_REWARD;
+
+/** Reconcile the shared Discord role against durable marriage records. */
+export async function reconcileMarriageRoles(client, guildId) {
+  const data = await getMarriageData(client, guildId);
+  const knownMembers = new Set();
+  const activeMembers = new Set();
+  for (const marriage of Object.values(data.marriages)) {
+    if (!marriage?.member1Id || !marriage?.member2Id) continue;
+    knownMembers.add(marriage.member1Id);
+    knownMembers.add(marriage.member2Id);
+    if (marriage.status === 'married') {
+      activeMembers.add(marriage.member1Id);
+      activeMembers.add(marriage.member2Id);
+    }
+  }
+  const activeIds = [...activeMembers];
+  const inactiveIds = [...knownMembers].filter(id => !activeMembers.has(id));
+  const added = activeIds.length ? await syncMarriageRole(client, guildId, activeIds, true) : { status: 'no_active_members' };
+  const removed = inactiveIds.length ? await syncMarriageRole(client, guildId, inactiveIds, false) : { status: 'no_inactive_members' };
+  return { activeMembers: activeIds.length, inactiveMembers: inactiveIds.length, added, removed };
+}
