@@ -48,6 +48,7 @@ export async function handleMarriagePanelInteraction(interaction, client) {
     const result = await createMarriageProposal(client, guildId, userId, recipientId, {
       isBot: recipient.user.bot,
       validateEligibility: (a, b) => validateMarriageEligibility(client, guildId, a, b),
+      notificationChannelId: interaction.channelId,
     });
     const errors = {
       not_eligible: result.reason || 'Both members need at least 1,000 FP and an active Soulmate relationship.',
@@ -63,15 +64,6 @@ export async function handleMarriagePanelInteraction(interaction, client) {
       database_unavailable: 'Barracks storage is temporarily unavailable. No bCash was charged; please try again later.',
     };
     if (result.status !== 'created') return interaction.reply({ content: errors[result.status] || 'The proposal could not be created.', flags: MessageFlags.Ephemeral });
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('marriage:proposal-accept:' + result.proposal.id).setLabel('Accept').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('marriage:proposal-decline:' + result.proposal.id).setLabel('Decline').setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId('marriage:proposal-cancel:' + result.proposal.id).setLabel('Cancel Proposal').setStyle(ButtonStyle.Secondary),
-    );
-    await interaction.channel.send({
-      content: '<@' + recipientId + '> 💍 You have received a marriage proposal from <@' + userId + '>! The proposer paid **100,000 bCash**. This proposal expires in 7 days.',
-      components: [row],
-    });
     return interaction.reply({ content: '💍 Proposal sent! **100,000 bCash** has been charged. The recipient has been notified.', flags: MessageFlags.Ephemeral });
   }
   if (id.startsWith('marriage:proposal-')) {
@@ -79,6 +71,7 @@ export async function handleMarriagePanelInteraction(interaction, client) {
     if (action === 'proposal-accept') {
       const result = await finalizeMarriageProposal(client, guildId, proposalId, userId, {
         validateEligibility: (a, b) => validateMarriageEligibility(client, guildId, a, b),
+        notificationChannelId: interaction.channelId,
       });
       const messages = {
         not_pending: 'This proposal is no longer pending.',
@@ -149,15 +142,12 @@ export async function handleMarriagePanelInteraction(interaction, client) {
   }
   if (id === 'marriage:divorce-cancel') return interaction.update({ content: 'Divorce cancelled. Your marriage remains active.', components: [] });
   if (id === 'marriage:divorce-confirm') {
-    const result = await divorceMarriage(client, guildId, userId, { confirmed: true });
+    const result = await divorceMarriage(client, guildId, userId, { confirmed: true, notificationChannelId: interaction.channelId });
     if (result.status !== 'divorced') {
       const messages = { not_married: 'You are not currently married.', insufficient_funds: 'You need **100,000 bCash** in your wallet.', payment_failed: 'Payment failed. Your marriage remains active.', database_unavailable: 'Barracks storage is temporarily unavailable. No divorce fee was charged; your marriage remains active.' };
       return interaction.update({ content: messages[result.status] || 'Divorce could not be completed.', components: [] });
     }
     await interaction.update({ content: '💔 Divorce finalized. **100,000 bCash** was deducted. Your 7-day remarriage cooldown has started.', components: [] });
-    await interaction.channel?.send({
-      content: '💔 Marriage ended: <@' + result.initiatorId + '> and <@' + result.spouseId + '> are now divorced. The initiating spouse paid **100,000 bCash**. Both members have a 7-day remarriage cooldown.',
-    }).catch(() => {});
     return;
   }
 }
