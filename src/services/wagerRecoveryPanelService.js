@@ -21,9 +21,11 @@ export async function renderWagerRecoveryPanel(interaction, client, edit = false
   const embed = new EmbedBuilder()
     .setColor(0xD4A017)
     .setTitle('🪖 Barracks — Game Wager Recovery')
-    .setDescription(wagers.length
-      ? `Found **${result.total}** pending wager(s). Select one, then choose a recovery action.\n\nRefund returns the reserved stake. Settle as loss closes the wager with no payout.`
-      : 'No pending wagers were found for this server.')
+    .setDescription(result.status === 'storage_unavailable'
+      ? '⚠️ Durable economy storage is unavailable. Recovery is disabled until the database is healthy.'
+      : wagers.length
+        ? `Found **${result.total}** pending wager(s). Select one, then choose a recovery action.\n\nRefund returns the reserved stake. Settle as loss closes the wager with no payout.`
+        : 'No pending wagers were found for this server.')
     .setFooter({ text: 'Staff only • Every recovery requires a reason and is recorded in the receipt.' });
   if (wagers.length) {
     embed.addFields(wagers.slice(0, 10).map((w) => ({
@@ -50,8 +52,8 @@ export async function renderWagerRecoveryPanel(interaction, client, edit = false
   }
   rows.push(new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('wagerrecovery:refresh').setLabel('Refresh').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('wagerrecovery:refund').setLabel('Refund Stake').setStyle(ButtonStyle.Success).setDisabled(!wagers.length),
-    new ButtonBuilder().setCustomId('wagerrecovery:settle').setLabel('Settle as Loss').setStyle(ButtonStyle.Danger).setDisabled(!wagers.length),
+    new ButtonBuilder().setCustomId('wagerrecovery:refund').setLabel('Refund Stake').setStyle(ButtonStyle.Success).setDisabled(!wagers.length || result.status !== 'ok'),
+    new ButtonBuilder().setCustomId('wagerrecovery:settle').setLabel('Settle as Loss').setStyle(ButtonStyle.Danger).setDisabled(!wagers.length || result.status !== 'ok'),
     new ButtonBuilder().setCustomId('wagerrecovery:audit').setLabel('Recovery Audit').setStyle(ButtonStyle.Primary),
   ));
   const payload = { embeds: [embed], components: rows, ephemeral: true };
