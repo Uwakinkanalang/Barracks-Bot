@@ -864,7 +864,8 @@ export function registerDashboardRoutes(app, bot) {
       const roles = guild.roles.cache.filter(role => role.id !== guild.id && !role.managed)
         .sort((x,y) => y.position - x.position).map(role => ({ id: role.id, name: role.name }));
       return res.json({ config: { birthdayChannelId: config.birthdayChannelId || null,
-        birthdayRoleId: config.birthdayRoleId === undefined ? '1557466630991388744' : config.birthdayRoleId },
+        birthdayRoleId: config.birthdayRoleId === undefined ? '1557466630991388744' : config.birthdayRoleId,
+        birthdayEmbed: config.birthdayEmbed || {} },
         birthdays, channels, roles });
     } catch (error) { return res.status(500).json({ error: error?.message || 'Could not load birthdays.' }); }
   });
@@ -875,7 +876,22 @@ export function registerDashboardRoutes(app, bot) {
     if (channelId) { const channel = guild.channels.cache.get(channelId); if (!channel || !channel.isTextBased?.() || channel.isThread?.()) return res.status(400).json({ error: 'Choose a valid announcement text channel.' }); }
     if (roleId && (!guild.roles.cache.has(roleId) || roleId === guild.id || guild.roles.cache.get(roleId)?.managed)) return res.status(400).json({ error: 'Choose a valid birthday role.' });
     try {
-      const saved = await updateGuildConfig(bot, guild.id, { birthdayChannelId: channelId, birthdayRoleId: roleId });
+      const rawEmbed = req.body?.birthdayEmbed || {};
+      const color = /^#[0-9a-fA-F]{6}$/.test(String(rawEmbed.color || '')) ? String(rawEmbed.color) : '#5865F2';
+      const cleanUrl = value => { const text = String(value || '').trim(); if (!text) return null; try { const url = new URL(text); return ['http:','https:'].includes(url.protocol) ? url.toString() : null; } catch { return null; } };
+      const embed = {
+        title: String(rawEmbed.title || '').trim().slice(0, 256),
+        description: String(rawEmbed.description || '').trim().slice(0, 4096),
+        color,
+        author: String(rawEmbed.author || '').trim().slice(0, 256),
+        footer: String(rawEmbed.footer || '').trim().slice(0, 2048),
+        imageUrl: cleanUrl(rawEmbed.imageUrl),
+        thumbnailUrl: cleanUrl(rawEmbed.thumbnailUrl)
+      };
+      if (rawEmbed.imageUrl && !embed.imageUrl) return res.status(400).json({ error: 'Image URL must be a valid HTTP or HTTPS URL.' });
+      if (rawEmbed.thumbnailUrl && !embed.thumbnailUrl) return res.status(400).json({ error: 'Thumbnail URL must be a valid HTTP or HTTPS URL.' });
+      if (!embed.title && !embed.description) return res.status(400).json({ error: 'Add an embed title or description.' });
+      const saved = await updateGuildConfig(bot, guild.id, { birthdayChannelId: channelId, birthdayRoleId: roleId, birthdayEmbed: embed });
       if (!saved) return res.status(500).json({ error: 'Could not save birthday settings.' });
       return res.json({ ok: true, birthdayChannelId: channelId, birthdayRoleId: roleId });
     } catch (error) { return res.status(500).json({ error: error?.message || 'Could not save birthday settings.' }); }
