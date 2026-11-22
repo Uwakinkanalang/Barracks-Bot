@@ -31,6 +31,8 @@ jobs:
             src/services/friendshipService.js
             src/services/marriagePanelService.js
             src/services/marriageService.js
+            src/utils/postgresDatabase.js
+            src/utils/database/wrapper.js
             src/commands/Economy/daily.js
             src/app.js
             src/web/dashboard.js
@@ -38,5 +40,5 @@ jobs:
           for file in "${files[@]}"; do
             node --check "$file"
           done
-      - name: Run Friendship and Soulmate service tests
+      - name: Run Friendship, Soulmate, and Marriage service tests
         run: node --test tests/socialSystems.test.js
