@@ -131,8 +131,8 @@ function hasActiveMarriage(data, userId) {
 function findPendingProposal(data, proposerId, recipientId) {
   return Object.values(data.proposals).find((proposal) =>
     proposal?.status === 'pending' && Number(proposal.expiresAt) > Date.now() &&
-    proposal.proposerId === proposerId &&
-    proposal.recipientId === recipientId
+    ((proposal.proposerId === proposerId && proposal.recipientId === recipientId) ||
+     (proposal.proposerId === recipientId && proposal.recipientId === proposerId))
   );
 }
 
