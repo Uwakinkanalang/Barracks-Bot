@@ -38,3 +38,5 @@ jobs:
           for file in "${files[@]}"; do
             node --check "$file"
           done
+      - name: Run Friendship and Soulmate service tests
+        run: node --test tests/socialSystems.test.js
