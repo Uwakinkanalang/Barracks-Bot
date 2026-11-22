@@ -120,6 +120,38 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 }
 #dashboardPageContainer{display:block;width:100%;min-width:0;max-width:100%;}
 #dashboardPageContainer>#dashboardHome,#dashboardPageContainer>#routeView{width:100%;min-width:0;max-width:100%;}
+
+/* Tickets page layout */
+.tickets-page{max-width:1320px;margin:0 auto}
+.tickets-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:2px 0 18px;padding:23px 25px;border:1px solid #4b4d55;border-radius:14px;background:linear-gradient(115deg,#393a41,#34353b 68%,#3b3b40)}
+.tickets-eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;color:#c6a969;margin-bottom:7px}
+.tickets-heading h2{font-size:25px;letter-spacing:-.03em;margin:0 0 6px;color:#f4f4f6}
+.tickets-heading p{font-size:13px;line-height:1.55;color:#c0c2ca;margin:0;max-width:680px}
+.tickets-heading-icon{width:56px;height:56px;flex:0 0 56px;display:grid;place-items:center;border-radius:15px;background:#45434a;border:1px solid #5b5961;font-size:25px}
+.tickets-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:15px;align-items:start}
+.tickets-card{padding:21px;min-width:0}
+.tickets-section-head{display:flex;align-items:center;gap:12px;margin-bottom:19px}
+.tickets-section-icon{width:39px;height:39px;flex:0 0 39px;display:grid;place-items:center;border:1px solid #55565f;border-radius:11px;background:#41424a;font-size:18px}
+.tickets-section-head h3{font-size:16px;margin:0 0 3px;color:#f1f1f4}
+.tickets-section-head p{font-size:12px;line-height:1.45;color:#b5b7c0;margin:0}
+.tickets-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px 13px}
+.tickets-field{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:13px;font-weight:700;color:#e7e8ec}
+.tickets-field select,.tickets-field input,.tickets-field textarea{width:100%;min-width:0;border:1px solid #555761;border-radius:9px;background:#2d2e34;color:#f2f3f5;padding:11px 12px;font:inherit;font-size:13px;font-weight:400;outline:none}
+.tickets-field select:focus,.tickets-field input:focus,.tickets-field textarea:focus{border-color:#c5a75f;box-shadow:0 0 0 3px #c5a75f20}
+.tickets-field select[multiple]{min-height:144px;padding:7px}
+.tickets-field textarea{resize:vertical;min-height:132px;line-height:1.55}
+.tickets-field small{font-size:11px;line-height:1.45;font-weight:400;color:#aeb0ba}
+.tickets-message-fields{grid-template-columns:1fr}
+.tickets-save-row{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:20px;padding-top:17px;border-top:1px solid #4a4b53}
+.tickets-save-row>div{min-width:0}
+.tickets-save-row b{font-size:13px;color:#ececf0}
+.tickets-save-row p{font-size:11px;line-height:1.45;color:#aeb0ba;margin:3px 0 0}
+#ticketStatus{display:block;font-size:11px;line-height:1.4;margin-top:6px;color:#c3f36b;overflow-wrap:anywhere}
+.tickets-save-button{flex:0 0 auto;border:1px solid #d2b66f;border-radius:9px;background:#d1b36b;color:#29251d;font-size:13px;font-weight:800;padding:11px 16px}
+.tickets-save-button:hover{filter:brightness(1.07)}
+.tickets-save-button:disabled{opacity:.6;cursor:wait}
+@media(max-width:950px){.tickets-layout{grid-template-columns:1fr}}
+@media(max-width:650px){.tickets-heading{padding:17px}.tickets-heading h2{font-size:22px}.tickets-heading-icon{width:45px;height:45px;flex-basis:45px;font-size:21px}.tickets-card{padding:15px}.tickets-fields{grid-template-columns:1fr}.tickets-save-row{align-items:stretch;flex-direction:column}.tickets-save-button{width:100%}}
 </style>
 <style id="rolesChannelsPolish">
 .rc-page{padding-bottom:30px}.rc-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin:4px 0 22px}.rc-eyebrow{font-size:11px;font-weight:800;letter-spacing:1.6px;color:#c3f36b;margin-bottom:8px}.rc-heading h1{font-size:30px;line-height:1.15;margin:0 0 8px;color:#f3f5f2}.rc-heading p,.rc-card-head p{color:#aeb7b0;margin:0;font-size:14px;line-height:1.55}.rc-refresh{white-space:nowrap;border:1px solid #46534a;background:#202a23;color:#e7eee8;border-radius:9px;padding:10px 14px;cursor:pointer}.rc-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.rc-stat{display:flex;align-items:center;gap:13px;background:#1b241e;border:1px solid #354238;border-radius:12px;padding:15px}.rc-stat-icon{width:40px;height:40px;border-radius:10px;background:#2a382e;display:grid;place-items:center;font-size:19px}.rc-stat small{display:block;color:#aab5ac;font-size:12px;margin-bottom:3px}.rc-stat b{font-size:22px;color:#f4f6f3}.rc-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}.rc-card{min-width:0;padding:20px}.rc-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.rc-card-head h2{font-size:18px;margin:0 0 5px}.rc-search{width:min(100%,190px);background:#111914;border:1px solid #3b4940;border-radius:8px;color:#eef2ee;padding:9px 10px}.rc-list{display:flex;flex-direction:column;gap:7px;margin:16px 0;max-height:440px;overflow:auto;padding-right:3px}.rc-item{display:flex;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #303d34;background:#17201a;border-radius:9px}.rc-swatch{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid #ffffff30}.rc-item-main{min-width:0;flex:1}.rc-item-name{display:block;color:#edf2ed;font-weight:650;font-size:13px;overflow-wrap:anywhere}.rc-item-meta{display:block;color:#849188;font-size:11px;margin-top:3px}.rc-pill{font-size:10px;color:#bdc9bf;border:1px solid #465249;border-radius:20px;padding:3px 7px;white-space:nowrap}.rc-loading,.rc-empty{color:#9ba79e;font-size:13px;padding:12px 2px}.rc-create{border-top:1px solid #344137;padding-top:16px;margin-top:14px}.rc-create h3{font-size:15px;margin:0 0 12px}.rc-create-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:12px}.rc-create-fields label{display:flex;flex-direction:column;gap:7px;color:#cbd4cd;font-size:12px;font-weight:650}.rc-create-fields input:not([type=color]),.rc-create-fields select{width:100%;box-sizing:border-box;background:#111914;border:1px solid #3b4940;border-radius:8px;color:#eef2ee;padding:10px;font:inherit}.rc-color-control{display:flex;align-items:center;gap:10px;background:#111914;border:1px solid #3b4940;border-radius:8px;padding:5px 9px;min-height:30px}.rc-color-control input{width:30px;height:28px;border:0;background:transparent;padding:0;cursor:pointer}.rc-color-control span{font-size:12px;color:#dce5dd;font-family:monospace}.rc-primary{background:#c3f36b;color:#152015;border:0;border-radius:8px;padding:10px 14px;font-weight:750;cursor:pointer}.rc-primary:disabled{opacity:.55;cursor:wait}.rc-status{font-size:12px;color:#c3f36b;min-height:16px;margin:8px 0 0}.rc-channel-filters{display:flex;gap:6px;margin-top:14px}.rc-filter{border:1px solid #3b4940;background:#17201a;color:#b9c4bb;border-radius:20px;padding:6px 11px;font-size:11px;cursor:pointer}.rc-filter.active{background:#33432f;color:#d9f6ad;border-color:#6b8750}.rc-group-title{font-size:11px;color:#9daa9f;font-weight:800;letter-spacing:.8px;padding:10px 2px 3px;text-transform:uppercase}.rc-group-title:first-child{padding-top:0}@media(max-width:850px){.rc-layout{grid-template-columns:1fr}.rc-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.rc-heading{flex-direction:column}.rc-heading h1{font-size:25px}.rc-create-fields{grid-template-columns:1fr}.rc-card{padding:15px}}
@@ -520,16 +552,30 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
  </div><div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap"><button id="activitySave" type="button" style="border:0;border-radius:9px;padding:11px 17px;background:#c3f36b;color:#18210f;font-weight:800">Save activity settings</button><span id="activityStatus" role="status" style="font-size:12px;color:#c0c2ca"></span></div></div>
 </div>
 
-<div id="ticketsPanel" style="display:none;max-width:1200px">
- <div class="card"><h2 style="font-size:16px">🎫 Ticket System Setup</h2><p class="sub">Set the default ticket category, support team, and transcript/log channel. These settings are saved for the ticket workflow.</p>
- <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:14px">
- <label>Ticket category<select id="ticketCategory"><option value="">No category selected</option></select></label>
- <label>Support team roles<select id="ticketSupportRoles" multiple size="6"></select></label>
- <label>Ticket log channel<select id="ticketLogChannel"><option value="">No log channel selected</option></select></label>
- <label>Default ticket channel prefix<input id="ticketPrefix" maxlength="20" value="ticket"></label>
- <label>Welcome title<input id="ticketTitle" maxlength="200" value="Barracks Support Ticket"></label>
- <label>Welcome message<textarea id="ticketMessage" rows="4" maxlength="1800">Thank you for contacting Barracks Support. A staff member will assist you shortly.</textarea></label>
- </div><p class="metric-note">Saving stores the server's ticket setup. It does not delete or move existing channels.</p><div style="display:flex;gap:12px;align-items:center;margin-top:14px"><button id="ticketSave" type="button">Save ticket settings</button><span id="ticketStatus" role="status"></span></div></div>
+<div id="ticketsPanel" class="tickets-page" style="display:none">
+ <div class="tickets-heading">
+  <div><div class="tickets-eyebrow">BARRACKS SUPPORT</div><h2>🎫 Ticket System</h2><p>Set up where support tickets are created, who can handle them, and what members see when they open a ticket.</p></div>
+  <div class="tickets-heading-icon">🎫</div>
+ </div>
+ <div class="tickets-layout">
+  <section class="card tickets-card">
+   <div class="tickets-section-head"><span class="tickets-section-icon">⚙️</span><div><h3>Ticket Routing</h3><p>Choose the Discord channels and staff roles used by your ticket system.</p></div></div>
+   <div class="tickets-fields">
+    <label class="tickets-field">Ticket category<select id="ticketCategory"><option value="">No category selected</option></select><small>New ticket channels will be created under this category.</small></label>
+    <label class="tickets-field">Support team roles<select id="ticketSupportRoles" multiple size="6"></select><small>Select every role allowed to assist with tickets. Use Ctrl or Cmd to select multiple roles.</small></label>
+    <label class="tickets-field">Ticket log channel<select id="ticketLogChannel"><option value="">No log channel selected</option></select><small>Choose where ticket logs and transcripts should be sent.</small></label>
+    <label class="tickets-field">Channel name prefix<input id="ticketPrefix" maxlength="20" value="ticket" placeholder="ticket"><small>Example: ticket-membername</small></label>
+   </div>
+  </section>
+  <section class="card tickets-card">
+   <div class="tickets-section-head"><span class="tickets-section-icon">💬</span><div><h3>Welcome Message</h3><p>Customize the message displayed inside a newly opened ticket.</p></div></div>
+   <div class="tickets-fields tickets-message-fields">
+    <label class="tickets-field">Welcome title<input id="ticketTitle" maxlength="200" value="Barracks Support Ticket" placeholder="Barracks Support Ticket"></label>
+    <label class="tickets-field">Welcome message<textarea id="ticketMessage" rows="5" maxlength="1800">Thank you for contacting Barracks Support. A staff member will assist you shortly.</textarea><small>Keep it clear and let members know what information they should provide.</small></label>
+   </div>
+   <div class="tickets-save-row"><div><b>Ready to save?</b><p>Changes apply to the ticket setup. Existing channels will not be deleted or moved.</p><span id="ticketStatus" role="status" aria-live="polite"></span></div><button id="ticketSave" class="tickets-save-button" type="button">Save ticket settings</button></div>
+  </section>
+ </div>
 </div>
 
 <div id="prefixCommandsPanel" style="display:none;max-width:1200px"><div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 style="font-size:16px;margin:0 0 5px">⌨ Prefix Commands</h2><p class="sub">Manage text commands such as bcash and bmine. These switches do not affect slash commands.</p></div><button class="logout" id="prefixCommandsRefresh" type="button">↻ Refresh</button></div><div id="prefixCommandsSummary" class="notice" style="margin-top:14px">Loading prefix commands…</div></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px"><input id="prefixCommandsSearch" type="search" placeholder="Search prefix commands…" style="flex:1;min-width:220px"><select id="prefixCommandsCategory" style="min-width:190px"><option value="">All categories</option></select></div><div id="prefixCommandsList" style="display:grid;gap:12px"></div><p id="prefixCommandsStatus" role="status" class="metric-note" style="margin-top:14px"></p></div>
