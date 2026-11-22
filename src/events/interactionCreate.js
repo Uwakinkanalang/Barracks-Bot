@@ -381,6 +381,11 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('marriage:')) {
+            const { handleMarriagePanelInteraction } = await import('../services/marriagePanelService.js');
+            await handleMarriagePanelInteraction(interaction, client);
+            return;
+          }
           if (interaction.customId === 'clan:create:continue') {
             const draftKey = `guild:${interaction.guildId}:clan_create_draft:${interaction.user.id}`;
             const draft = await interaction.client.db.get(draftKey, null);
@@ -1237,6 +1242,12 @@ export default {
               customId: interaction.customId,
               handler: 'general'
             }, interactionTraceContext));
+          }
+        } else if (interaction.isUserSelectMenu()) {
+          if (interaction.customId.startsWith('marriage:')) {
+            const { handleMarriagePanelInteraction } = await import('../services/marriagePanelService.js');
+            await handleMarriagePanelInteraction(interaction, client);
+            return;
           }
         } else if (interaction.isStringSelectMenu()) {
           if (interaction.customId.startsWith('bcal:event:')) {
