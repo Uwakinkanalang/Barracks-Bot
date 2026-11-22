@@ -330,9 +330,11 @@ export async function settleEconomyWager(client, guildId, userId, gameId, payout
         const account = accounts[String(userId)];
         account.economyGameTransactions ||= {};
         const receipt = account.economyGameTransactions[receiptId];
-        if (!receipt) throw new Error('No reserved wager exists for this game.');
-        if (receipt.status === 'settled') {
-            return { settled: false, wallet: Number(account.wallet) || 0, payout: receipt.payout };
+        if (!receipt || String(receipt.guildId || '') !== String(guildId)) {
+            throw new Error('No reserved wager exists for this game in this server.');
+        }
+        if (receipt.status !== 'pending') {
+            return { settled: false, status: receipt.status, wallet: Number(account.wallet) || 0, payout: receipt.payout };
         }
         account.wallet = (Number(account.wallet) || 0) + amount;
         receipt.status = 'settled';
