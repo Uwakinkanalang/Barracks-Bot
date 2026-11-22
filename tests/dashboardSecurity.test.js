@@ -127,10 +127,12 @@ test('OAuth state is one-time and cannot be completed without its matching HttpO
     const callbackStart = source.indexOf("app.get('/api/dashboard/oauth/callback'");
     const callbackEnd = source.indexOf("\n  });", callbackStart);
     const callback = source.slice(callbackStart, callbackEnd);
-    const cookieCheck = callback.indexOf("!safeEqual(state, cookieValue(req.headers.cookie))");
+    const cookieCheck = callback.indexOf("const cookieMatches = safeEqual(state, cookieValue(req.headers.cookie))");
+    const clearCookie = callback.indexOf("if (cookieMatches) res.setHeader('Set-Cookie'");
+    const rejectInvalid = callback.indexOf("if (!pending || pending.expiresAt <= Date.now() || !cookieMatches)");
     const consumeState = callback.indexOf("pendingOAuth.delete(state)");
-    assert.ok(cookieCheck !== -1 && consumeState > cookieCheck,
-      'OAuth state must only be consumed after the matching cookie is validated');
+    assert.ok(cookieCheck !== -1 && clearCookie > cookieCheck && rejectInvalid > clearCookie && consumeState > rejectInvalid,
+      'OAuth state and its cookie must only be consumed after the matching cookie is validated');
   } finally {
     for (const key of keys) {
       if (previous[key] === undefined) delete process.env[key];
