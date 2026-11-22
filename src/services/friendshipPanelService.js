@@ -3,7 +3,7 @@ import {
   UserSelectMenuBuilder, MessageFlags,
 } from 'discord.js';
 import {
-  getFriendshipData, getActiveFriends, getFriendshipPoints,
+  getFriendshipData, getActiveFriends, getFriendshipPoints, areFriends,
   sendFriendRequest, resolveFriendRequest, cancelFriendRequest, cancelSoulmateRequest, removeFriend, claimFriendshipDailyBonus,
   createSoulmateRequest, resolveSoulmateRequest, endSoulmate, getActiveSoulmate,
   blockFriendshipMember, unblockFriendshipMember,
@@ -29,11 +29,13 @@ export async function postFriendshipPanel(interaction) {
     new ButtonBuilder().setCustomId('friendship:soulmate').setLabel('Soulmates').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('friendship:leaderboard').setLabel('Leaderboard').setStyle(ButtonStyle.Secondary),
   );
-  const safetyRow = new ActionRowBuilder().addComponents(
+  const toolsRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('friendship:profile').setLabel('Friendship Profile').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('friendship:collectors').setLabel('Top Collectors').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('friendship:block').setLabel('Block Member').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('friendship:unblock').setLabel('Unblock Member').setStyle(ButtonStyle.Secondary),
   );
-  await interaction.channel.send({ embeds: [embed], components: [row, safetyRow] });
+  await interaction.channel.send({ embeds: [embed], components: [row, toolsRow] });
   return interaction.reply({ content: '🫂 Friendship Center posted.', ...ephemeral });
 }
 
@@ -49,6 +51,40 @@ function friendLevel(points) {
 
 export async function handleFriendshipInteraction(interaction, client) {
   const id = interaction.customId, guildId = interaction.guildId, userId = interaction.user.id;
+  if (id === 'friendship:profile') {
+    const row = new ActionRowBuilder().addComponents(new UserSelectMenuBuilder()
+      .setCustomId('friendship:select-profile').setPlaceholder('Select a member to view friendship stats').setMinValues(1).setMaxValues(1));
+    return interaction.reply({ content: 'Choose a member to view your friendship profile with them.', components: [row], ...ephemeral });
+  }
+  if (id === 'friendship:select-profile') {
+    const targetId = interaction.values?.[0];
+    if (targetId === userId) return interaction.reply({ content: 'Choose another member to view a friendship profile.', ...ephemeral });
+    if (!await areFriends(client, guildId, userId, targetId)) return interaction.reply({ content: 'You do not have an active friendship with that member.', ...ephemeral });
+    const data = await getFriendshipData(client, guildId);
+    const pair = data.friendships[[userId, targetId].sort().join(':')];
+    const points = Number(pair?.points) || 0;
+    const embed = new EmbedBuilder().setColor(0xD6A632).setTitle('🫂 Friendship Profile')
+      .setDescription('<@' + userId + '> × <@' + targetId + '>')
+      .addFields(
+        { name: 'Friendship Points', value: points.toLocaleString() + ' FP', inline: true },
+        { name: 'Level', value: friendLevel(points), inline: true },
+        { name: 'Friends Since', value: '<t:' + Math.floor(Number(pair.createdAt || Date.now()) / 1000) + ':D>', inline: true },
+      );
+    return interaction.reply({ embeds: [embed], ...ephemeral });
+  }
+  if (id === 'friendship:collectors') {
+    const data = await getFriendshipData(client, guildId);
+    const totals = new Map();
+    for (const pair of Object.values(data.friendships)) {
+      if (!pair?.active) continue;
+      const points = Math.max(0, Number(pair.points) || 0);
+      totals.set(pair.member1Id, (totals.get(pair.member1Id) || 0) + points);
+      totals.set(pair.member2Id, (totals.get(pair.member2Id) || 0) + points);
+    }
+    const rows = [...totals.entries()].sort((a,b) => b[1] - a[1]).slice(0,10);
+    const description = rows.length ? rows.map(([memberId, points], index) => '**' + (index + 1) + '.** <@' + memberId + '> — **' + points.toLocaleString() + ' FP**').join('\n') : 'No active friendship points have been earned yet.';
+    return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xD6A632).setTitle('🏅 Top Friendship Collectors').setDescription(description)], ...ephemeral });
+  }
   if (id === 'friendship:block') {
     const row = new ActionRowBuilder().addComponents(new UserSelectMenuBuilder()
       .setCustomId('friendship:select-block').setPlaceholder('Select a member to block').setMinValues(1).setMaxValues(1));
