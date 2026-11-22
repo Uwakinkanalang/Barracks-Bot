@@ -15,12 +15,13 @@ async function withGuildLock(guildId, callback) {
   const previous = guildLocks.get(guildId) || Promise.resolve();
   let release;
   const current = new Promise((resolve) => { release = resolve; });
-  guildLocks.set(guildId, previous.then(() => current));
+  const queued = previous.then(() => current);
+  guildLocks.set(guildId, queued);
   await previous;
   try { return await callback(); }
   finally {
     release();
-    if (guildLocks.get(guildId) === current) guildLocks.delete(guildId);
+    if (guildLocks.get(guildId) === queued) guildLocks.delete(guildId);
   }
 }
 
@@ -244,3 +245,58 @@ export async function expireMarriageProposals(client, guildId, now = Date.now())
 
 export const MARRIAGE_PROPOSAL_FEE = PROPOSAL_FEE;
 export const MARRIAGE_PROPOSAL_TTL = PROPOSAL_TTL;
+
+
+/**
+ * Finalize a proposal after the recipient has accepted and eligibility has
+ * been revalidated. Returns the new active marriage record.
+ */
+export async function finalizeMarriageProposal(client, guildId, proposalId, recipientId, options = {}) {
+  return withGuildLock(guildId, async () => {
+    const data = await getMarriageData(client, guildId);
+    const proposal = data.proposals[proposalId];
+    if (!proposal || proposal.status !== 'pending') return { status: 'not_pending' };
+    if (proposal.recipientId !== recipientId) return { status: 'not_authorized' };
+
+    const now = Date.now();
+    if (now >= Number(proposal.expiresAt)) {
+      proposal.status = 'expired';
+      proposal.updatedAt = now;
+      data.history.push({ type: 'proposal', pairKey: pairKey(proposal.proposerId, proposal.recipientId), status: 'expired', updatedAt: now, proposalId });
+      await saveMarriageData(client, guildId, data);
+      return { status: 'expired' };
+    }
+
+    if (typeof options.validateEligibility !== 'function') return { status: 'eligibility_service_unavailable' };
+    const eligibility = await options.validateEligibility(proposal.proposerId, proposal.recipientId);
+    if (!eligibility?.eligible) return { status: 'not_eligible', reason: eligibility?.reason || 'Eligibility requirements are no longer met.' };
+    if (hasActiveMarriage(data, proposal.proposerId) || hasActiveMarriage(data, proposal.recipientId)) {
+      return { status: 'already_married' };
+    }
+
+    const marriageId = `marriage-${now}-${proposal.proposerId}-${proposal.recipientId}`;
+    const marriage = {
+      id: marriageId,
+      member1Id: proposal.proposerId,
+      member2Id: proposal.recipientId,
+      status: 'married',
+      marriedAt: now,
+      proposalId,
+      anniversaryRewards: { [proposal.proposerId]: 0, [proposal.recipientId]: 0 },
+    };
+
+    proposal.status = 'accepted';
+    proposal.updatedAt = now;
+    data.marriages[marriageId] = marriage;
+    data.history.push({
+      type: 'marriage',
+      marriageId,
+      member1Id: proposal.proposerId,
+      member2Id: proposal.recipientId,
+      marriedAt: now,
+      status: 'married',
+    });
+    await saveMarriageData(client, guildId, data);
+    return { status: 'married', marriage };
+  });
+}
