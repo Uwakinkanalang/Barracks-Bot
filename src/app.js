@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
+import { Client, Collection, EmbedBuilder, GatewayIntentBits, Partials } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
 import cron from 'node-cron';
@@ -12,6 +12,7 @@ import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { runLottoDraws } from './services/barracksLottoService.js';
 import { checkBirthdays } from './services/birthdayService.js';
+import { processMarriageAnniversaries } from './services/marriageService.js';
 import { processCalendarReminders, refreshCalendars } from './services/calendarService.js';
 import { checkDonationExpirations } from './services/donationExpiryService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/loaders/commandLoader.js';
@@ -306,6 +307,37 @@ class TitanBot extends Client {
     cron.schedule('0 0 * * *', runSafeTask('birthday_role_sync', () => checkBirthdays(this)), {
       timezone: 'Asia/Manila',
     });
+
+    cron.schedule('5 0 * * *', runSafeTask('marriage_anniversary_rewards', async () => {
+      for (const [guildId, guild] of this.guilds.cache) {
+        try {
+          const payments = await processMarriageAnniversaries(this, guildId);
+          if (!payments.length) continue;
+
+          const guildConfig = await getGuildConfig(this, guildId);
+          const channelId = guildConfig.marriageAnnouncementChannelId;
+          const channel = channelId ? guild.channels.cache.get(channelId) : null;
+
+          if (!channel?.isTextBased?.() || !channel.send) {
+            logger.info(`Marriage anniversary rewards processed for guild ${guildId}; no valid announcement channel configured.`);
+            continue;
+          }
+
+          for (const payment of payments) {
+            const embed = new EmbedBuilder()
+              .setColor(0xE6B84A)
+              .setTitle('💍 Marriage Anniversary!')
+              .setDescription(
+                `Congratulations <@${payment.member1Id}> and <@${payment.member2Id}> on celebrating **${payment.anniversaryNumber} year(s)** of marriage!\\n\\nEach spouse has received **1,000,000 bCash**. Keep marching together, lovebirds!`
+              )
+              .setTimestamp(new Date(payment.paidAt));
+            await channel.send({ content: `<@${payment.member1Id}> <@${payment.member2Id}>`, embeds: [embed] });
+          }
+        } catch (error) {
+          logger.error(`Marriage anniversary processing failed for guild ${guildId}`, error);
+        }
+      }
+    }), { timezone: 'Asia/Manila' });
   }
 
   async updateAllCounters() {
