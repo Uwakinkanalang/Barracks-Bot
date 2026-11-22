@@ -42,7 +42,7 @@ export default {
             const now = Date.now();
 
             const crimeType = interaction.options.getString("type").toLowerCase();
-            const crime = CRIME_TYPES.find(c => c.name.toLowerCase().replace(/\\s+/g, '-') === crimeType);
+            const crime = CRIME_TYPES.find(c => c.name.toLowerCase().replace(/\s+/g, '-') === crimeType);
             if (!crime) {
                 throw createError("Invalid crime type", ErrorTypes.VALIDATION, "Please select a valid crime type.", { crimeType });
             }
