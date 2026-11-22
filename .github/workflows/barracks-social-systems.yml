@@ -45,6 +45,7 @@ jobs:
             src/commands/Economy/coinflip.js
             src/commands/Economy/gamble.js
             src/commands/Economy/slots.js
+            src/commands/Economy/nickname.js
             src/utils/postgresDatabase.js
             src/utils/database/wrapper.js
             src/commands/Economy/daily.js
