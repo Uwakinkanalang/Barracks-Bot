@@ -1284,6 +1284,14 @@ export default {
               }
 
               const [removedClan] = clanList.splice(clanIndex, 1);
+              // Remove the deleted clan role from AutoNick so /autonick list has no stale entry.
+              const autoNickKey = `guild:${interaction.guildId}:autonick_roles`;
+              const autoNickEntries = await interaction.client.db.get(autoNickKey, []);
+              await interaction.client.db.set(
+                autoNickKey,
+                (Array.isArray(autoNickEntries) ? autoNickEntries : [])
+                  .filter(entry => String(entry.roleId) !== String(removedClan.roleId || '')),
+              );
               // Save the registry first so the nickname resolver no longer selects this clan tag.
               await interaction.client.db.set(storageKey, clanList);
 
