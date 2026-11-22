@@ -313,6 +313,11 @@ export async function finalizeMarriageProposal(client, guildId, proposalId, reci
     if (hasActiveMarriage(data, proposal.proposerId) || hasActiveMarriage(data, proposal.recipientId)) {
       return { status: 'already_married' };
     }
+    const cooldownUntil = Math.max(
+      Number(data.divorceCooldowns[proposal.proposerId]) || 0,
+      Number(data.divorceCooldowns[proposal.recipientId]) || 0,
+    );
+    if (now < cooldownUntil) return { status: 'remarriage_cooldown', retryAt: cooldownUntil };
 
     const marriageId = `marriage-${now}-${proposal.proposerId}-${proposal.recipientId}`;
     const marriage = {
