@@ -35,7 +35,7 @@ export async function renderWagerRecoveryPanel(interaction, client, edit = false
   const rows = [];
   if (wagers.length) {
     const menu = new StringSelectMenuBuilder()
-      .setCustomId('wagerrecovery')
+      .setCustomId('wagerrecovery:select')
       .setPlaceholder('Select a pending wager')
       .addOptions(wagers.map((w) => ({
         label: `${w.game.slice(0, 45)} — ${w.amount.toLocaleString()} bCash`.slice(0, 100),
