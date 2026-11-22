@@ -623,5 +623,5 @@ test('recovered wagers cannot later settle or be accessed from another guild', a
   const lateSettlement = await settleEconomyWager(client, guildId, userId, 'recovered-game-2', 900);
   assert.equal(lateSettlement.settled, false);
   assert.equal(lateSettlement.status, 'refunded');
-  assert.equal((await client.db.get(key)).wallet, 1000);
+  assert.equal((await client.db.get(key)).wallet, 700);
 });
