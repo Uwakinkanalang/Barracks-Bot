@@ -176,3 +176,9 @@ test('OAuth state is one-time and cannot be completed without its matching HttpO
     }
   }
 });
+
+
+test('dashboard session pruning is scheduled every six hours with safe task handling', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  assert.match(source, /cron\.schedule\('0 \*\/6 \* \* \*', runSafeTask\('dashboard_session_prune', \(\) => pruneExpiredDashboardSessions\(this\)\)\)/);
+});
