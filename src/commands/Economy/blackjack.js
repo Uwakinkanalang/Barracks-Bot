@@ -9,7 +9,7 @@ import {
     SlashCommandBuilder,
     TextDisplayBuilder,
 } from 'discord.js';
-import { removeMoney, addMoney, getEconomyData } from '../../utils/economy.js';
+import { getEconomyData, startEconomyWager, settleEconomyWager } from '../../utils/economy.js';
 import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHandler.js';
 
 const GAME_TIMEOUT = 2 * 60 * 1000;
@@ -130,7 +130,7 @@ export default {
             );
         }
 
-        await removeMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet');
+        await startEconomyWager(client, interaction.guildId, interaction.user.id, interaction.id, bet);
 
         const deck = createDeck();
         const game = {
@@ -150,11 +150,9 @@ export default {
 
         const settle = async payout => {
             if (game.finished) return;
+            const result = await settleEconomyWager(client, interaction.guildId, interaction.user.id, game.id, payout);
             game.finished = true;
-            if (payout > 0) {
-                await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
-                game.balance += payout;
-            }
+            game.balance = result.wallet;
         };
 
         const initialPlayerBlackjack = isBlackjack(game.player);
@@ -187,7 +185,7 @@ export default {
                 fetchReply: true,
             });
         } catch (error) {
-            if (!game.finished) await addMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet');
+            if (!game.finished) await settleEconomyWager(client, interaction.guildId, interaction.user.id, game.id, bet).catch(() => {});
             throw error;
         }
 
