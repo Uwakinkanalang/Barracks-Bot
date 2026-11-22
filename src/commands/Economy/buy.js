@@ -105,7 +105,7 @@ export default {
             if (item.type === "role" && itemId === "premium_role") {
                 try {
                     await interaction.member.roles.add(role, `Purchased role: ${item.name}`);
-                    successDescription += `\\n\\n**👑 The role ${role.toString()} has been granted to you!**`;
+                    successDescription += `\n\n**👑 The role ${role.toString()} has been granted to you!**`;
                 } catch (roleError) {
                     try {
                         await addMoney(client, guildId, userId, totalCost, 'premium role purchase refund');
@@ -119,9 +119,9 @@ export default {
                         { roleId: PREMIUM_ROLE_ID, originalError: roleError.message });
                 }
             } else if (item.type === "upgrade") {
-                successDescription += `\\n\\n**✨ Your upgrade is now active!**`;
+                successDescription += `\n\n**✨ Your upgrade is now active!**`;
             } else if (item.type === "tool") {
-                successDescription += `\\n\\n**🛠️ ${item.name} added to your inventory!**`;
+                successDescription += `\n\n**🛠️ ${item.name} added to your inventory!**`;
             }
 
             const embed = successEmbed(
