@@ -42,6 +42,7 @@ jobs:
             src/commands/Economy/beg.js
             src/commands/Economy/fish.js
             src/commands/Economy/mine.js
+            src/commands/Economy/coinflip.js
             src/utils/postgresDatabase.js
             src/utils/database/wrapper.js
             src/commands/Economy/daily.js
