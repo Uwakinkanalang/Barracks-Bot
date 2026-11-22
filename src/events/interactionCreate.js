@@ -1031,7 +1031,7 @@ export default {
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_role_hex').setStyle(TextInputStyle.Short).setPlaceholder('#5865F2').setMaxLength(7).setRequired(true)),
                 new LabelBuilder()
                   .setLabel('Clan AutoNick Format')
-                  .setDescription('Use TAG for your clan tag and {username} for the member name. Default: TAG {username}; example: ★ {username}.')
+                  .setDescription('Choose a format: TAG {username}, ★ {username}, or ⚔ {username}. TAG is replaced with your clan tag.')
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_autonick_format').setStyle(TextInputStyle.Short).setPlaceholder('TAG {username}').setValue('TAG {username}').setMaxLength(32).setRequired(true)),
                 new LabelBuilder()
                   .setLabel('Vice Clan Leader')
