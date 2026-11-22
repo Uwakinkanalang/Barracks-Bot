@@ -102,3 +102,36 @@ test('only the intended login bootstrap endpoints bypass dashboard authorization
   assert.deepEqual(bypassMatch.slice(1), ['/login', '/oauth/start', '/oauth/callback']);
   assert.match(source, /app\.post\(['"]\/api\/dashboard\/login['"],\s*\(req, res\) => res\.status\(410\)/);
 });
+
+test('OAuth state is one-time and cannot be completed without its matching HttpOnly cookie', async () => {
+  const keys = ['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'DASHBOARD_OAUTH_REDIRECT_URI', 'DASHBOARD_SESSION_SECRET'];
+  const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  try {
+    process.env.DISCORD_CLIENT_ID = '123456789012345678';
+    process.env.DISCORD_CLIENT_SECRET = 'test-client-secret';
+    process.env.DASHBOARD_OAUTH_REDIRECT_URI = 'https://barracks.example/api/dashboard/oauth/callback';
+    process.env.DASHBOARD_SESSION_SECRET = 'test-session-secret';
+    const start = await fetch(baseUrl + '/api/dashboard/oauth/start', { redirect: 'manual' });
+    assert.equal(start.status, 302);
+    const location = new URL(start.headers.get('location'));
+    const state = location.searchParams.get('state');
+    const cookie = start.headers.get('set-cookie');
+    assert.ok(state);
+    assert.match(cookie, /HttpOnly/);
+    assert.match(cookie, /SameSite=Lax/);
+
+    const missingCookie = await fetch(baseUrl + '/api/dashboard/oauth/callback?state=' + encodeURIComponent(state) + '&code=fake', { redirect: 'manual' });
+    assert.equal(missingCookie.status, 400);
+
+    const replay = await fetch(baseUrl + '/api/dashboard/oauth/callback?state=' + encodeURIComponent(state) + '&code=fake', {
+      headers: { Cookie: cookie.split(';')[0] },
+      redirect: 'manual'
+    });
+    assert.equal(replay.status, 400);
+  } finally {
+    for (const key of keys) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
+  }
+});
