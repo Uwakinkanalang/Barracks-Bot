@@ -23,6 +23,8 @@ This checklist is for a private staging Discord guild before PR #237 is merged o
 - [ ] Verify voice FP only accrues while both non-bot members are actively present and not muted/deafened.
 - [ ] Claim the +5 FP daily pair bonus; verify a second claim on the same Manila calendar day is rejected.
 - [ ] Verify leaderboard and profile views only include active relationships where appropriate.
+- [ ] With two bot processes connected to the same PostgreSQL database, submit simultaneous friend requests for the same pair; verify only one pending request is stored.
+- [ ] With two bot processes, accept/remove/block the same friendship and award FP concurrently; verify no points, request, or block updates are lost and the 30-FP daily pair cap is never exceeded.
 
 ## Soulmates
 
