@@ -178,15 +178,35 @@ export async function setEconomyData(client, guildId, userId, data) {
     }
 }
 
+const economyFallbackLocks = new Map();
+
+async function withEconomyFallbackLock(keys, callback) {
+    const orderedKeys = [...keys].sort();
+    const previous = orderedKeys.map((key) => economyFallbackLocks.get(key) || Promise.resolve());
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    for (const key of orderedKeys) economyFallbackLocks.set(key, gate);
+    await Promise.all(previous);
+    try {
+        return await callback();
+    } finally {
+        release();
+        for (const key of orderedKeys) {
+            if (economyFallbackLocks.get(key) === gate) economyFallbackLocks.delete(key);
+        }
+    }
+}
+
 /**
  * Atomically reads, mutates, and persists one or more economy accounts.
- * All account keys are locked in a stable order to avoid cross-transfer deadlocks.
+ * PostgreSQL uses a database transaction; the in-memory fallback uses per-account
+ * process locks because it is single-process and non-durable by design.
  * The callback must perform only local computation; external side effects belong after commit.
  */
 export async function withEconomyTransaction(client, guildId, userIds, callback) {
     if (typeof callback !== 'function') throw new TypeError('Economy transaction callback is required.');
-    if (!client?.db || typeof client.db.withKeyValueTransaction !== 'function') {
-        throw new Error('Atomic economy transactions are unavailable; no balance was changed.');
+    if (!client?.db || typeof client.db.get !== 'function' || typeof client.db.set !== 'function') {
+        throw new Error('Economy storage is unavailable; no balance was changed.');
     }
 
     const ids = [...new Set((Array.isArray(userIds) ? userIds : [userIds]).filter(Boolean).map(String))];
@@ -203,6 +223,39 @@ export async function withEconomyTransaction(client, guildId, userIds, callback)
             ? Math.max(0, Number(levelData.level))
             : null;
     }));
+
+    const usePostgresTransaction = typeof client.db.withKeyValueTransaction === 'function' &&
+        !client.db.isDegraded?.() && !client.db.useFallback;
+    if (!usePostgresTransaction) {
+        const keys = ids.map((userId) => getEconomyKey(guildId, userId));
+        return withEconomyFallbackLock(keys, async () => {
+            const snapshots = new Map();
+            const accounts = {};
+            for (const userId of ids) {
+                const key = getEconomyKey(guildId, userId);
+                const raw = await client.db.get(key, null);
+                snapshots.set(key, raw === null ? null : structuredClone(raw));
+                const normalized = normalizeEconomyData(raw || {}, defaults);
+                if (levels[userId] !== null) normalized.level = levels[userId];
+                accounts[userId] = normalized;
+            }
+            const result = await callback(accounts);
+            try {
+                for (const userId of ids) {
+                    const key = getEconomyKey(guildId, userId);
+                    const saved = await client.db.set(key, normalizeEconomyData(accounts[userId], defaults));
+                    if (saved === false) throw new Error(`Failed to save economy account for ${userId}.`);
+                }
+            } catch (error) {
+                for (const [key, snapshot] of snapshots) {
+                    if (snapshot === null) await client.db.delete?.(key);
+                    else await client.db.set(key, snapshot);
+                }
+                throw error;
+            }
+            return result;
+        });
+    }
 
     return client.db.withKeyValueTransaction(async (transaction) => {
         const accounts = {};
