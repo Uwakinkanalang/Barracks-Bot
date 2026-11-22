@@ -113,6 +113,7 @@ export default {
         new ButtonBuilder().setCustomId('clan:create').setLabel('Create a Clan').setEmoji('🏰').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId('clan:join:open').setLabel('Join a Clan').setEmoji('🛡️').setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId('clan:leave:open').setLabel('Leave a Clan').setEmoji('🚪').setStyle(ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId('clan:bank:view').setLabel('Check Clan Bank').setEmoji('🏦').setStyle(ButtonStyle.Secondary),
       );
       await panelChannel.send({ embeds: [panelEmbed], components: [panelRow] });
       return interaction.reply({ content: `✅ Clan HQ panel posted in <#${panelChannelId}>.`, flags: MessageFlags.Ephemeral });
