@@ -119,7 +119,18 @@ export function registerDashboardRoutes(app, bot) {
     if (!id || !process.env.DISCORD_CLIENT_SECRET || !callback || !process.env.DASHBOARD_SESSION_SECRET) return res.status(503).send('Discord OAuth is not configured. Set DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DASHBOARD_OAUTH_REDIRECT_URI and DASHBOARD_SESSION_SECRET.');
     const now = Date.now();
     for (const [key, value] of pendingOAuth) if (value.expiresAt <= now) pendingOAuth.delete(key);
-    const ip = req.ip || 'unknown', attempts = (oauthAttempts.get(ip) || []).filter(time => time > now - 15 * 60 * 1000);
+    const ip = req.ip || 'unknown';
+    // Bound memory use from clients rotating source IPs and starting many OAuth attempts.
+    if (!oauthAttempts.has(ip) && oauthAttempts.size >= 5000) {
+      for (const [knownIp, timestamps] of oauthAttempts) {
+        const active = timestamps.filter(time => time > now - 15 * 60 * 1000);
+        if (active.length) oauthAttempts.set(knownIp, active);
+        else oauthAttempts.delete(knownIp);
+      }
+      if (oauthAttempts.size >= 5000) return res.status(503).send('Sign-in is temporarily busy. Try again shortly.');
+    }
+    if (pendingOAuth.size >= 5000) return res.status(503).send('Sign-in is temporarily busy. Try again shortly.');
+    const attempts = (oauthAttempts.get(ip) || []).filter(time => time > now - 15 * 60 * 1000);
     if (attempts.length >= 8) return res.status(429).send('Too many sign-in attempts. Try again later.');
     attempts.push(now); oauthAttempts.set(ip, attempts);
     const state = crypto.randomBytes(32).toString('base64url');
