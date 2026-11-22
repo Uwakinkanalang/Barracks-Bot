@@ -197,6 +197,88 @@ class PostgreSQLDatabase {
         return this.isConnected && this.pool;
     }
 
+    /**
+     * Run atomic operations against temporary key-value records on one
+     * PostgreSQL connection. Marriage and shared economy records currently
+     * live in temp_data, so they can be committed or rolled back together.
+     */
+    async withKeyValueTransaction(callback) {
+        if (!this.isAvailable()) {
+            throw new Error('PostgreSQL is unavailable; transaction was not started.');
+        }
+        if (typeof callback !== 'function') {
+            throw new TypeError('Transaction callback is required.');
+        }
+
+        const connection = await this.pool.connect();
+        try {
+            await connection.query('BEGIN');
+            const lockedKeys = new Set();
+            const lockKey = async (key) => {
+                const canonicalKey = canonicalizeKey(key);
+                const parsedKey = parseKey(canonicalKey);
+                if (parsedKey.type !== 'temp' && !isTempBackedType(parsedKey.type)) {
+                    throw new Error(`Key-value transaction does not support structured key: ${key}`);
+                }
+                if (!lockedKeys.has(canonicalKey)) {
+                    await connection.query(
+                        'SELECT pg_advisory_xact_lock(hashtext($1))',
+                        [canonicalKey],
+                    );
+                    lockedKeys.add(canonicalKey);
+                }
+                return canonicalKey;
+            };
+
+            const transaction = {
+                get: async (key, defaultValue = null) => {
+                    const canonicalKey = await lockKey(key);
+                    const result = await connection.query(
+                        `SELECT value FROM ${pgConfig.tables.temp_data}
+                         WHERE key = $1 AND (expires_at IS NULL OR expires_at > NOW())
+                         FOR UPDATE`,
+                        [canonicalKey],
+                    );
+                    if (result.rows.length > 0) return result.rows[0].value;
+                    for (const legacyKey of getLegacyVariantsForCanonical(canonicalKey)) {
+                        const legacy = await connection.query(
+                            `SELECT value FROM ${pgConfig.tables.temp_data}
+                             WHERE key = $1 AND (expires_at IS NULL OR expires_at > NOW())
+                             FOR UPDATE`,
+                            [legacyKey],
+                        );
+                        if (legacy.rows.length > 0) return legacy.rows[0].value;
+                    }
+                    return defaultValue;
+                },
+                set: async (key, value, ttl = null) => {
+                    const canonicalKey = await lockKey(key);
+                    const expiresAt = ttl ? new Date(Date.now() + ttl * 1000) : null;
+                    await connection.query(
+                        `INSERT INTO ${pgConfig.tables.temp_data} (key, value, expires_at)
+                         VALUES ($1, $2, $3)
+                         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at`,
+                        [canonicalKey, JSON.stringify(value ?? null), expiresAt],
+                    );
+                    return true;
+                },
+            };
+
+            const result = await callback(transaction);
+            await connection.query('COMMIT');
+            return result;
+        } catch (error) {
+            try {
+                await connection.query('ROLLBACK');
+            } catch (rollbackError) {
+                logger.error('PostgreSQL key-value transaction rollback failed:', rollbackError);
+            }
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
+
     getLastFailure() {
         return {
             reason: this.lastFailureReason,
