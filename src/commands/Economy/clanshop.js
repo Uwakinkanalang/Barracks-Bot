@@ -26,18 +26,23 @@ export function buildClanShopPage(items, guildId, page = 0) {
   const pageItems = items.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   const container = new ContainerBuilder()
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '# 🛒 Clan Shop\nWelcome to the **Clan Shop**! Purchase exclusive server roles using your **bCash**.'
+      '# 🛒 BARRACKS CLAN SHOP\n' +
+      'Spend your **bCash** on available clan perks and upgrades. Check the price before purchasing!'
+    ))
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(
+      `## 🎖️ Available Items\n${items.length ? `Browse the items below and press **Buy** to purchase. • ${items.length} item(s) available` : 'No role items are currently listed.'}`
     ));
 
   if (!pageItems.length) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      'No role items are listed yet. The Clan Shop also offers a permanent Clan Member Expansion.'
+      '_Role items will appear here when they are added to the shop._'
     ));
   } else {
     for (const item of pageItems) {
       container.addSectionComponents(new SectionBuilder()
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(
-          `**<@&${item.roleId}>**\n🪙 **${item.price.toLocaleString()} bCash**`
+          `**<@&${item.roleId}>**\n<:barracks_coin:0> **${item.price.toLocaleString()} bCash**`
         ))
         .setButtonAccessory(new ButtonBuilder()
           .setCustomId(`clanShop:buy:${guildId}:${item.roleId}`)
@@ -46,15 +51,24 @@ export function buildClanShopPage(items, guildId, page = 0) {
     }
   }
 
-  container.addSeparatorComponents(new SeparatorBuilder());
-  container.addSectionComponents(new SectionBuilder()
+  container.addSeparatorComponents(new SeparatorBuilder())
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '**👥 Clan Member Expansion**\nIncrease your clan capacity by **10 members per purchase**, up to **200 members**.\n🪙 **1,000,000 bCash per expansion**\nClan Leaders and Vice Clan Leaders can purchase repeatedly until the clan reaches 200 members.'
+      '## 👥 Clan Member Expansion\n' +
+      'Upgrade your clan roster by **10 additional slots** with each purchase.\n\n' +
+      '**Expansion prices**\n' +
+      '• First upgrade: **10 → 20 members — 1,000,000 bCash**\n' +
+      '• Every upgrade after: **+10 slots — 500,000 bCash**\n' +
+      '• Maximum clan capacity: **200 members**\n\n' +
+      '_Only Clan Leaders and Vice Leaders can purchase expansions._'
     ))
-    .setButtonAccessory(new ButtonBuilder()
-      .setCustomId('clanShop:buy:' + guildId + ':member-expansion')
-      .setLabel('Expand Clan')
-      .setStyle(ButtonStyle.Success)));
+    .addSectionComponents(new SectionBuilder()
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent(
+        '**Ready to expand your roster?**\nPress the button to purchase your next +10 slots.'
+      ))
+      .setButtonAccessory(new ButtonBuilder()
+        .setCustomId(`clanShop:buy:${guildId}:member-expansion`)
+        .setLabel('Expand Clan')
+        .setStyle(ButtonStyle.Success)));
 
   if (pageCount > 1) {
     container.addSeparatorComponents(new SeparatorBuilder());
