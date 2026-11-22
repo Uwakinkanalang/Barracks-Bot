@@ -11,19 +11,41 @@ import {
   divorceMarriage, saveMarriageData, processMarriageAnniversaries,
 } from '../src/services/marriageService.js';
 
-function makeClient() {
-  const store = new Map();
-  return {
-    db: {
-      async get(key, fallback = null) {
-        return store.has(key) ? structuredClone(store.get(key)) : fallback;
-      },
-      async set(key, value) {
-        store.set(key, structuredClone(value));
+function addTestTransaction(db, store) {
+  db.withKeyValueTransaction = async (callback) => {
+    const snapshot = new Map([...store.entries()].map(([key, value]) => [key, structuredClone(value)]));
+    const transaction = {
+      get: db.get.bind(db),
+      set: async (key, value) => {
+        const saved = await db.set(key, value);
+        if (saved === false) throw new Error('Test transaction write failed.');
         return true;
       },
+    };
+    try {
+      return await callback(transaction);
+    } catch (error) {
+      store.clear();
+      for (const [key, value] of snapshot) store.set(key, value);
+      throw error;
+    }
+  };
+  return db;
+}
+
+function makeClient() {
+  const store = new Map();
+  const db = {
+    async get(key, fallback = null) {
+      return store.has(key) ? structuredClone(store.get(key)) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, structuredClone(value));
+      return true;
     },
   };
+  addTestTransaction(db, store);
+  return { db };
 }
 
 const guildId = '100000000000000001';
