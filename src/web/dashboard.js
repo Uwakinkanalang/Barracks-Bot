@@ -98,6 +98,11 @@ export function registerDashboardRoutes(app, bot) {
       if (!bot.db?.get || !bot.db?.set || dbStatus?.isDegraded) return res.status(503).json({ error: 'Secure dashboard sessions require the persistent database to be available.' });
       const session = await bot.db.get('dashboard:sessions:' + identity.jti, null);
       if (!session || session.revoked || String(session.userId) !== String(identity.sub) || Number(session.expiresAt) <= Date.now()) return res.status(401).json({ error: 'Dashboard session expired or revoked. Sign in again.' });
+      // Allow an authenticated user to revoke their own session even after losing their Manager Role or leaving the guild.
+      if (req.path === '/logout') {
+        req.dashboardUser = { id: String(identity.sub), username: String(identity.username || 'Discord user') };
+        return next();
+      }
       const verified = await verifyDashboardUser(identity.sub);
       if (!verified.ok) return res.status(verified.status).json({ error: verified.error });
       req.dashboardUser = { id: verified.member.id, username: verified.member.user.username };
