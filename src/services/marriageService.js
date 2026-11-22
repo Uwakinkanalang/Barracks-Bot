@@ -284,58 +284,73 @@ export const MARRIAGE_PROPOSAL_TTL = PROPOSAL_TTL;
  * been revalidated. Returns the new active marriage record.
  */
 export async function finalizeMarriageProposal(client, guildId, proposalId, recipientId, options = {}) {
+  if (!hasAtomicStorage(client)) return { status: 'database_unavailable' };
   return withGuildLock(guildId, async () => {
-    const data = await getMarriageData(client, guildId);
-    const proposal = data.proposals[proposalId];
-    if (!proposal || proposal.status !== 'pending') return { status: 'not_pending' };
-    if (proposal.recipientId !== recipientId) return { status: 'not_authorized' };
+    const result = await client.db.withKeyValueTransaction(async (transaction) => {
+      const transactionClient = { db: transaction };
+      const data = await getMarriageData(transactionClient, guildId);
+      const proposal = data.proposals[proposalId];
+      if (!proposal || proposal.status !== 'pending') return { status: 'not_pending' };
+      if (proposal.recipientId !== recipientId) return { status: 'not_authorized' };
 
-    const now = Date.now();
-    if (now >= Number(proposal.expiresAt)) {
-      proposal.status = 'expired';
+      const now = Date.now();
+      if (now >= Number(proposal.expiresAt)) {
+        proposal.status = 'expired';
+        proposal.updatedAt = now;
+        data.history.push({
+          type: 'proposal',
+          pairKey: pairKey(proposal.proposerId, proposal.recipientId),
+          status: 'expired',
+          updatedAt: now,
+          proposalId,
+        });
+        await saveMarriageData(transactionClient, guildId, data);
+        return { status: 'expired' };
+      }
+
+      if (typeof options.validateEligibility !== 'function') return { status: 'eligibility_service_unavailable' };
+      const eligibility = await options.validateEligibility(proposal.proposerId, proposal.recipientId);
+      if (!eligibility?.eligible) {
+        return { status: 'not_eligible', reason: eligibility?.reason || 'Eligibility requirements are no longer met.' };
+      }
+      if (hasActiveMarriage(data, proposal.proposerId) || hasActiveMarriage(data, proposal.recipientId)) {
+        return { status: 'already_married' };
+      }
+      const cooldownUntil = Math.max(
+        Number(data.divorceCooldowns[proposal.proposerId]) || 0,
+        Number(data.divorceCooldowns[proposal.recipientId]) || 0,
+      );
+      if (now < cooldownUntil) return { status: 'remarriage_cooldown', retryAt: cooldownUntil };
+
+      const marriageId = `marriage-${now}-${proposal.proposerId}-${proposal.recipientId}`;
+      const marriage = {
+        id: marriageId,
+        member1Id: proposal.proposerId,
+        member2Id: proposal.recipientId,
+        status: 'married',
+        marriedAt: now,
+        proposalId,
+        anniversaryRewards: { [proposal.proposerId]: 0, [proposal.recipientId]: 0 },
+      };
+
+      proposal.status = 'accepted';
       proposal.updatedAt = now;
-      data.history.push({ type: 'proposal', pairKey: pairKey(proposal.proposerId, proposal.recipientId), status: 'expired', updatedAt: now, proposalId });
-      await saveMarriageData(client, guildId, data);
-      return { status: 'expired' };
-    }
-
-    if (typeof options.validateEligibility !== 'function') return { status: 'eligibility_service_unavailable' };
-    const eligibility = await options.validateEligibility(proposal.proposerId, proposal.recipientId);
-    if (!eligibility?.eligible) return { status: 'not_eligible', reason: eligibility?.reason || 'Eligibility requirements are no longer met.' };
-    if (hasActiveMarriage(data, proposal.proposerId) || hasActiveMarriage(data, proposal.recipientId)) {
-      return { status: 'already_married' };
-    }
-    const cooldownUntil = Math.max(
-      Number(data.divorceCooldowns[proposal.proposerId]) || 0,
-      Number(data.divorceCooldowns[proposal.recipientId]) || 0,
-    );
-    if (now < cooldownUntil) return { status: 'remarriage_cooldown', retryAt: cooldownUntil };
-
-    const marriageId = `marriage-${now}-${proposal.proposerId}-${proposal.recipientId}`;
-    const marriage = {
-      id: marriageId,
-      member1Id: proposal.proposerId,
-      member2Id: proposal.recipientId,
-      status: 'married',
-      marriedAt: now,
-      proposalId,
-      anniversaryRewards: { [proposal.proposerId]: 0, [proposal.recipientId]: 0 },
-    };
-
-    proposal.status = 'accepted';
-    proposal.updatedAt = now;
-    data.marriages[marriageId] = marriage;
-    data.history.push({
-      type: 'marriage',
-      marriageId,
-      member1Id: proposal.proposerId,
-      member2Id: proposal.recipientId,
-      marriedAt: now,
-      status: 'married',
+      data.marriages[marriageId] = marriage;
+      data.history.push({
+        type: 'marriage',
+        marriageId,
+        member1Id: proposal.proposerId,
+        member2Id: proposal.recipientId,
+        marriedAt: now,
+        status: 'married',
+      });
+      await saveMarriageData(transactionClient, guildId, data);
+      return { status: 'married', marriage };
     });
-    await saveMarriageData(client, guildId, data);
-    const roleSync = await syncMarriageRole(client, guildId, [marriage.member1Id, marriage.member2Id], true);
-    return { status: 'married', marriage, roleSync };
+
+    if (result.status !== 'married') return result;
+    const roleSync = await syncMarriageRole(client, guildId, [result.marriage.member1Id, result.marriage.member2Id], true);
+    return { ...result, roleSync };
   });
 }
 
