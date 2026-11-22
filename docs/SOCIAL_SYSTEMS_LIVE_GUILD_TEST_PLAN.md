@@ -52,6 +52,8 @@ This checklist is for a private staging Discord guild before PR #237 is merged o
 - [ ] Run simultaneous work claims; confirm only one claim succeeds unless an extra-work consumable is legitimately consumed.
 - [ ] Run a robbery while the victim is making another wallet transaction; confirm the final balances reflect both committed operations without lost updates.
 - [ ] Buy a shop item while another wallet transaction is running; confirm the item/inventory and wallet debit remain consistent.
+- [ ] Run concurrent coin flip, gamble, and slot settlements against the same wallet; verify no bet is charged twice and rewards/losses match each committed result.
+- [ ] Use fishing, mining, begging, and crime commands simultaneously with other wallet activity; verify cooldowns, consumables, and rewards are committed together.
 - [ ] In PostgreSQL-unavailable memory fallback mode, repeat same-process wallet actions and verify the in-process account locks serialize them.
 
 ## Database transaction and concurrency checks
