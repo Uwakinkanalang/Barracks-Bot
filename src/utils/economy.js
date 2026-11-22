@@ -196,6 +196,14 @@ export async function withEconomyTransaction(client, guildId, userIds, callback)
         wallet: ECONOMY_CONFIG.startingBalance ?? DEFAULT_ECONOMY_DATA.wallet,
     };
 
+    const levels = {};
+    await Promise.all(ids.map(async (userId) => {
+        const levelData = await client.db.get(getUserLevelKey(guildId, userId), null);
+        levels[userId] = levelData && Number.isFinite(Number(levelData.level))
+            ? Math.max(0, Number(levelData.level))
+            : null;
+    }));
+
     return client.db.withKeyValueTransaction(async (transaction) => {
         const accounts = {};
         const orderedIds = [...ids].sort((a, b) => getEconomyKey(guildId, a).localeCompare(getEconomyKey(guildId, b)));
@@ -203,10 +211,7 @@ export async function withEconomyTransaction(client, guildId, userIds, callback)
             const key = getEconomyKey(guildId, userId);
             const raw = await transaction.get(key, null);
             const normalized = normalizeEconomyData(raw || {}, defaults);
-            const levelData = await transaction.get(getUserLevelKey(guildId, userId), null);
-            if (levelData && Number.isFinite(Number(levelData.level))) {
-                normalized.level = Math.max(0, Number(levelData.level));
-            }
+            if (levels[userId] !== null) normalized.level = levels[userId];
             accounts[userId] = normalized;
         }
 
