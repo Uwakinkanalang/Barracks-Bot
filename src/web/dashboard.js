@@ -1057,6 +1057,15 @@ export function registerDashboardRoutes(app, bot) {
         if (role) await role.delete('Clan and Discord resources deleted from Barracks dashboard');
       }
 
+      // Remove the deleted clan role from AutoNick so /autonick list has no stale entry.
+      const autoNickKey = 'guild:' + guild.id + ':autonick_roles';
+      const autoNickEntries = await getFromDb(autoNickKey, []);
+      await setInDb(
+        autoNickKey,
+        (Array.isArray(autoNickEntries) ? autoNickEntries : [])
+          .filter(entry => String(entry.roleId) !== String(clan.roleId || clan.id)),
+      );
+
       // Remove the clan from both registries. The dashboard loader merges the
       // legacy registry into the current one, so leaving a stale legacy record
       // would make a deleted clan reappear after the next dashboard refresh.
