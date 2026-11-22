@@ -1,7 +1,7 @@
 // economyService.js
 
 import { logger } from '../utils/logger.js';
-import { getEconomyData, setEconomyData, getMaxBankCapacity } from '../utils/economy.js';
+import { getEconomyData, setEconomyData, getMaxBankCapacity, withEconomyTransaction } from '../utils/economy.js';
 import { createError, ErrorTypes } from '../utils/errorHandler.js';
 import { wrapServiceClassMethods } from '../utils/serviceErrorBoundary.js';
 
@@ -100,129 +100,47 @@ class EconomyService {
   }
 
   static async transferMoney(client, guildId, senderId, receiverId, amount) {
-    logger.debug(`[ECONOMY_SERVICE] transferMoney requested`, {
-      senderId,
-      receiverId,
-      amount,
-      guildId
-    });
-
-    if (amount <= 0) {
-      throw createError(
-        "Invalid transfer amount",
-        ErrorTypes.VALIDATION,
-        "Amount must be greater than zero.",
-        { amount, senderId }
-      );
+    logger.debug('[ECONOMY_SERVICE] transferMoney requested', { senderId, receiverId, amount, guildId });
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
+      throw createError('Invalid transfer amount', ErrorTypes.VALIDATION, 'Amount must be a positive whole number.', { amount, senderId });
     }
-
     if (senderId === receiverId) {
-      throw createError(
-        "Cannot pay self",
-        ErrorTypes.VALIDATION,
-        "You cannot pay yourself.",
-        { senderId, receiverId }
-      );
+      throw createError('Cannot pay self', ErrorTypes.VALIDATION, 'You cannot pay yourself.', { senderId, receiverId });
     }
-
     this.validateAmount(amount, { operation: 'transfer', senderId, receiverId });
 
-    const [senderData, receiverData] = await Promise.all([
-      getEconomyData(client, guildId, senderId),
-      getEconomyData(client, guildId, receiverId)
-    ]);
-
-    if (!senderData || !receiverData) {
-      logger.error(`[ECONOMY_SERVICE] Failed to load economy data for transfer`, {
-        senderLoaded: !!senderData,
-        receiverLoaded: !!receiverData
-      });
-      throw createError(
-        "Failed to load economy data",
-        ErrorTypes.DATABASE,
-        "Failed to load economy data. Please try again later.",
-        { senderId, receiverId, guildId }
-      );
-    }
-
-    if (senderData.wallet < amount) {
-      logger.warn(`[ECONOMY_SERVICE] Insufficient funds for transfer`, {
-        senderId,
-        required: amount,
-        available: senderData.wallet
-      });
-      throw createError(
-        "Insufficient funds",
-        ErrorTypes.VALIDATION,
-        `You only have **₱${senderData.wallet.toLocaleString()}** in cash.`,
-        { required: amount, available: senderData.wallet, senderId }
-      );
-    }
-
-    const walletBefore = senderData.wallet;
-    const senderNext = (senderData.wallet || 0) - amount;
-    const receiverNext = (receiverData.wallet || 0) + amount;
-
-    this.assertSafeBalance(senderNext, { operation: 'transfer.sender', senderId, amount });
-    this.assertSafeBalance(receiverNext, { operation: 'transfer.receiver', receiverId, amount });
-
-    senderData.wallet = senderNext;
-    receiverData.wallet = receiverNext;
-
     try {
-      
-      await setEconomyData(client, guildId, senderId, senderData);
-      
-      try {
-        
-        await setEconomyData(client, guildId, receiverId, receiverData);
-      } catch (receiverError) {
-        
-        logger.error(`[ECONOMY_CRITICAL] Failed to credit receiver ${receiverId}. Attempting rollback for sender ${senderId}...`, receiverError);
-        
-        senderData.wallet = walletBefore;
-        try {
-          await setEconomyData(client, guildId, senderId, senderData);
-          logger.info(`[ECONOMY_ROLLBACK] Successfully rolled back sender ${senderId} after receiver credit failure.`);
-        } catch (rollbackError) {
-          logger.error(`[ECONOMY_FATAL] ROLLBACK FAILED for sender ${senderId}! Data is now inconsistent.`, rollbackError);
-          
+      const result = await withEconomyTransaction(client, guildId, [senderId, receiverId], async (accounts) => {
+        const senderData = accounts[senderId];
+        const receiverData = accounts[receiverId];
+        if ((Number(senderData.wallet) || 0) < amount) {
+          throw createError(
+            'Insufficient funds',
+            ErrorTypes.VALIDATION,
+            `You only have **₱${(Number(senderData.wallet) || 0).toLocaleString()}** in cash.`,
+            { required: amount, available: senderData.wallet, senderId }
+          );
         }
-        
-        throw receiverError;
-      }
-
-      logger.info(`[ECONOMY_TRANSACTION] Money transferred`, {
-        type: 'transfer',
-        senderId,
-        receiverId,
-        guildId,
-        amount,
-        senderNewBalance: senderData.wallet,
-        receiverNewBalance: receiverData.wallet,
-        timestamp: new Date().toISOString()
+        const senderNext = (Number(senderData.wallet) || 0) - amount;
+        const receiverNext = (Number(receiverData.wallet) || 0) + amount;
+        this.assertSafeBalance(senderNext, { operation: 'transfer.sender', senderId, amount });
+        this.assertSafeBalance(receiverNext, { operation: 'transfer.receiver', receiverId, amount });
+        senderData.wallet = senderNext;
+        receiverData.wallet = receiverNext;
+        return { senderNewBalance: senderNext, receiverNewBalance: receiverNext };
       });
 
-      return {
-        senderNewBalance: senderData.wallet,
-        receiverNewBalance: receiverData.wallet
-      };
+      logger.info('[ECONOMY_TRANSACTION] Money transferred atomically', {
+        type: 'transfer', senderId, receiverId, guildId, amount,
+        senderNewBalance: result.senderNewBalance,
+        receiverNewBalance: result.receiverNewBalance,
+        timestamp: new Date().toISOString(),
+      });
+      return result;
     } catch (error) {
-      logger.error(`[ECONOMY_SERVICE] Transfer execution failed, DATA MAY BE INCONSISTENT`, error, {
-        senderId,
-        receiverId,
-        amount,
-        guildId,
-        senderBefore: walletBefore,
-        senderAfter: senderData.wallet,
-        receiverAfter: receiverData.wallet
-      });
-      throw createError(
-        "Failed to save transfer",
-        ErrorTypes.DATABASE,
-        "Failed to process transfer. Please try again.",
-        { senderId, receiverId, amount }
-      );
+      if (error?.type === ErrorTypes.VALIDATION || error?.name === 'ValidationError') throw error;
+      logger.error('[ECONOMY_SERVICE] Atomic transfer failed; transaction rolled back.', error, { senderId, receiverId, amount, guildId });
+      throw createError('Failed to save transfer', ErrorTypes.DATABASE, 'Failed to process transfer. Please try again.', { senderId, receiverId, amount });
     }
   }
 
