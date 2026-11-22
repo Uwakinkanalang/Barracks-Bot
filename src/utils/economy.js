@@ -170,8 +170,8 @@ export async function setEconomyData(client, guildId, userId, data) {
 
         const key = getEconomyKey(guildId, userId);
         const normalized = normalizeEconomyData(data, DEFAULT_ECONOMY_DATA);
-        await client.db.set(key, normalized);
-        return true;
+        const saved = await client.db.set(key, normalized);
+        return saved !== false;
     } catch (error) {
         logger.error(`Error saving economy data for user ${userId}`, error);
         return false;
