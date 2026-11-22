@@ -10,7 +10,7 @@ import {
   createMarriageProposal, finalizeMarriageProposal, cancelMarriageProposal, getActiveMarriage,
   divorceMarriage, saveMarriageData, processMarriageAnniversaries, processMarriageNotifications,
 } from '../src/services/marriageService.js';
-import { withEconomyTransaction, startEconomyWager, settleEconomyWager, listPendingEconomyWagers, recoverEconomyWager } from '../src/utils/economy.js';
+import { withEconomyTransaction, startEconomyWager, settleEconomyWager, listPendingEconomyWagers, listRecentEconomyWagerRecoveries, recoverEconomyWager } from '../src/utils/economy.js';
 
 function addTestTransaction(db, store) {
   db.withKeyValueTransaction = async (callback) => {
@@ -580,6 +580,13 @@ test('pending wagers can be listed and recovered exactly once with staff audit d
   const receipt = (await client.db.get(key)).economyGameTransactions['abandoned-game-1'];
   assert.equal(receipt.recovery.actorId, '500000000000000001');
   assert.equal(receipt.recovery.action, 'refund');
+  const audit = await listRecentEconomyWagerRecoveries(client, guildId, 10);
+  assert.equal(audit.status, 'ok');
+  assert.equal(audit.total, 1);
+  assert.equal(audit.recoveries[0].userId, userId);
+  assert.equal(audit.recoveries[0].actorId, '500000000000000001');
+  assert.equal(audit.recoveries[0].reason, 'Game session was abandoned.');
+  assert.equal((await listRecentEconomyWagerRecoveries(client, '100000000000000099')).total, 0);
 });
 
 test('wager recovery rejects missing audit reason and unknown actions', async () => {
