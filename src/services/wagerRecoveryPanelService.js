@@ -72,7 +72,7 @@ export async function handleWagerRecoveryButton(interaction, client, action) {
       .setTitle('📋 Barracks — Recent Wager Recoveries')
       .setDescription(result.recoveries.length
         ? result.recoveries.map((entry) =>
-          `**${entry.action === 'refund' ? 'Refunded' : 'Settled as loss'}** • ${entry.amount.toLocaleString()} bCash\nPlayer: <@${entry.userId}> • Staff: <@${entry.actorId}>\nGame: ${entry.gameId}\nReason: ${entry.reason}\n<t:${Math.floor(entry.recoveredAt / 1000)}:R>`
+          `**${entry.action === 'refund' ? 'Refunded' : 'Settled as loss'}** • ${entry.amount.toLocaleString()} bCash\nPlayer: <@${entry.userId}> • Staff: <@${entry.actorId}>\nGame: ${entry.gameId.slice(0, 60)}\nReason: ${entry.reason.slice(0, 150)}\n<t:${Math.floor(entry.recoveredAt / 1000)}:R>`
         ).join('\n\n')
         : 'No recovery actions have been recorded for this server yet.')
       .setFooter({ text: `Showing up to 10 of ${result.total || 0} recorded actions • Staff only` });
