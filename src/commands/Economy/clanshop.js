@@ -31,7 +31,7 @@ export function buildClanShopPage(items, guildId, page = 0) {
 
   if (!pageItems.length) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      'The Clan Shop is currently empty. The server owner can add roles with `clanshop add @role price`.'
+      'No role items are listed yet. The Clan Shop also offers a permanent Clan Member Expansion.'
     ));
   } else {
     for (const item of pageItems) {
@@ -45,6 +45,16 @@ export function buildClanShopPage(items, guildId, page = 0) {
           .setStyle(ButtonStyle.Success)));
     }
   }
+
+  container.addSeparatorComponents(new SeparatorBuilder());
+  container.addSectionComponents(new SectionBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(
+      '**👥 Clan Member Expansion**\nIncrease your clan capacity from **10 to 20 members**.\n🪙 **1,000,000 bCash**\nOne-time purchase per clan. Only the Clan Leader or Vice Clan Leader can purchase.'
+    ))
+    .setButtonAccessory(new ButtonBuilder()
+      .setCustomId('clanShop:buy:' + guildId + ':member-expansion')
+      .setLabel('Expand Clan')
+      .setStyle(ButtonStyle.Success)));
 
   if (pageCount > 1) {
     container.addSeparatorComponents(new SeparatorBuilder());
