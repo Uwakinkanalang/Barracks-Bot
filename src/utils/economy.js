@@ -346,6 +346,78 @@ export async function settleEconomyWager(client, guildId, userId, gameId, payout
     });
 }
 
+/**
+ * Lists unsettled game wagers for authorized staff recovery workflows.
+ * The caller is responsible for checking staff permissions before exposing this data.
+ */
+export async function listPendingEconomyWagers(client, guildId, limit = 100) {
+    const safeLimit = Math.min(500, Math.max(1, Math.floor(Number(limit) || 100)));
+    const { getEconomyData } = await import('./economy.js').catch(() => ({ getEconomyData: null }));
+    const keys = typeof client?.db?.listKeys === 'function'
+        ? await client.db.listKeys('global:economy:')
+        : null;
+    if (!Array.isArray(keys)) {
+        return { status: 'listing_unavailable', wagers: [] };
+    }
+
+    const wagers = [];
+    for (const key of keys) {
+        const userId = String(key).replace(/^global:economy:/, '');
+        if (!userId || key === userId) continue;
+        const account = await client.db.get(key, null);
+        for (const [gameId, receipt] of Object.entries(account?.economyGameTransactions || {})) {
+            if (receipt?.status !== 'pending') continue;
+            wagers.push({
+                userId, gameId, amount: Number(receipt.amount) || 0,
+                createdAt: Number(receipt.createdAt) || 0,
+                game: String(receipt.game || 'Unknown game'),
+            });
+        }
+    }
+    wagers.sort((a, b) => a.createdAt - b.createdAt);
+    return { status: 'ok', wagers: wagers.slice(0, safeLimit), total: wagers.length };
+}
+
+/**
+ * Resolves an abandoned wager exactly once. Only a refund or a zero-payout
+ * loss settlement is supported: staff must not guess a game result.
+ */
+export async function recoverEconomyWager(client, guildId, userId, gameId, options = {}) {
+    const action = options.action;
+    const actorId = String(options.actorId || '').trim();
+    const reason = String(options.reason || '').trim().slice(0, 500);
+    if (!actorId || !reason || !['refund', 'settle_loss'].includes(action)) {
+        throw new Error('A staff actor, reason, and valid recovery action are required.');
+    }
+
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const account = accounts[String(userId)];
+        account.economyGameTransactions ||= {};
+        const receipt = account.economyGameTransactions[String(gameId)];
+        if (!receipt) return { recovered: false, status: 'not_found' };
+        if (receipt.status !== 'pending') return { recovered: false, status: 'already_resolved', statusNow: receipt.status };
+        const amount = Number(receipt.amount);
+        if (!Number.isSafeInteger(amount) || amount <= 0) {
+            throw new Error('The wager receipt has an invalid reserved amount.');
+        }
+
+        if (action === 'refund') {
+            account.wallet = (Number(account.wallet) || 0) + amount;
+            receipt.payout = amount;
+        } else {
+            receipt.payout = 0;
+        }
+        receipt.status = action === 'refund' ? 'refunded' : 'settled';
+        receipt.settledAt = Date.now();
+        receipt.recovery = { actorId, reason, action, recoveredAt: Date.now() };
+        return {
+            recovered: true, status: receipt.status,
+            userId: String(userId), gameId: String(gameId),
+            amount, wallet: Number(account.wallet) || 0,
+        };
+    });
+}
+
 export async function updateBalance(client, guildId, userId, options = {}) {
     return withEconomyTransaction(client, guildId, userId, async (accounts) => {
         const data = accounts[userId];
