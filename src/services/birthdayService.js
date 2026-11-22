@@ -294,7 +294,7 @@ export async function checkBirthdays(client) {
     try {
       const config = await getGuildConfig(client, guildId);
       const birthdayChannelId = config?.birthdayChannelId;
-      const birthdayRoleId = config?.birthdayRoleId || '1557466630991388744';
+      const birthdayRoleId = config?.birthdayRoleId === undefined ? '1557466630991388744' : config.birthdayRoleId;
       const channel = birthdayChannelId
         ? await guild.channels.fetch(birthdayChannelId).catch(() => null)
         : null;
