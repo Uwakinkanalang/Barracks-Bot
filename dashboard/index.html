@@ -956,6 +956,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 async function loadOverview(){try{const response=await fetch('/api/dashboard/overview',{credentials:'same-origin'});if(response.status===401){location.href='/dashboard';return}if(!response.ok)throw new Error('Could not load server overview');const data=await response.json();document.getElementById('guildName').textContent=data.guildName;document.getElementById('members').textContent=Number(data.memberCount).toLocaleString();document.getElementById('channels').textContent=Number(data.channelCount).toLocaleString();document.getElementById('roles').textContent=Number(data.roleCount).toLocaleString();document.getElementById('commands').textContent=Number(data.commandCount).toLocaleString();document.getElementById('updated').textContent='Updated '+new Date(data.updatedAt).toLocaleTimeString();if(data.guildIcon){const img=document.getElementById('guildIcon');img.src=data.guildIcon;img.hidden=false;document.getElementById('guildFallback').hidden=true}}catch(error){document.getElementById('updated').textContent='Status unavailable';console.error(error)}}loadOverview();setInterval(loadOverview,60000);
 </script>
 
+<style id="loginPageIsolationFix">body.auth-locked .shell{visibility:hidden!important;pointer-events:none!important}#loginScreen{z-index:99999!important}</style>
 <div id="loginScreen" style="position:fixed;inset:0;z-index:10;background:#0b1110;display:none;place-items:center;padding:20px">
   <form id="loginForm" style="width:min(420px,100%);padding:34px;border:1px solid #27372d;border-radius:20px;background:#111a16">
     <div class="brand-mark">B</div><div class="eyebrow" style="margin-top:22px">Barracks · Command Center</div>
@@ -971,8 +972,8 @@ async function loadOverview(){try{const response=await fetch('/api/dashboard/ove
 const API_BASE = 'https://barracks-bot-production.up.railway.app';
 const TOKEN_KEY = 'barracks_dashboard_access';
 const loginScreen = document.getElementById('loginScreen');
-function showLogin(){loginScreen.style.display='grid';}
-function hideLogin(){loginScreen.style.display='none';}
+function showLogin(){document.body.classList.add('auth-locked');loginScreen.style.display='grid';}
+function hideLogin(){loginScreen.style.display='none';document.body.classList.remove('auth-locked');}
 function getToken(){return sessionStorage.getItem(TOKEN_KEY);}
 document.getElementById('loginForm').addEventListener('submit', async (event) => {
   event.preventDefault();
