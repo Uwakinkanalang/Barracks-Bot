@@ -97,7 +97,7 @@ export async function handleWagerRecoverySelect(interaction, client) {
     : null;
   const userId = String(selectedOption?.userId || '');
   const gameId = String(selectedOption?.gameId || '');
-  if (!/^\\d{17,20}$/.test(userId) || !gameId || Date.now() - Number(selectionState?.updatedAt || 0) > 15 * 60 * 1000) {
+  if (!/^\d{17,20}$/.test(userId) || !gameId || Date.now() - Number(selectionState?.updatedAt || 0) > 15 * 60 * 1000) {
     return interaction.reply({ content: 'That selection expired. Refresh the panel and try again.', ephemeral: true });
   }
   const pending = await listPendingEconomyWagers(client, interaction.guildId, 500);
