@@ -87,6 +87,13 @@ class DatabaseWrapper {
         return this.db.list(prefix);
     }
 
+    async withKeyValueTransaction(callback) {
+        if (this.useFallback || this.db !== pgDb || typeof pgDb.withKeyValueTransaction !== 'function') {
+            throw new Error('Atomic PostgreSQL transactions are unavailable.');
+        }
+        return pgDb.withKeyValueTransaction(callback);
+    }
+
     async exists(key) {
         if (this.db.exists) {
             return this.db.exists(key);
