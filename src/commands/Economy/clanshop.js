@@ -118,18 +118,27 @@ export async function handleClanShopPrefixCommand(message, client) {
   const content = message.content.trim();
   if (!/^clanshop(?:\s|$)/i.test(content)) return false;
 
-  if (message.author.id !== message.guild.ownerId) {
-    await message.reply('❌ Only the **server owner** can manage or post the Clan Shop.');
-    return true;
-  }
-
   const panelMatch = content.match(/^clanshop\s+panel$/i);
   if (panelMatch) {
+    const member = message.member || await message.guild.members.fetch(message.author.id).catch(() => null);
+    const canPostPanel = message.author.id === message.guild.ownerId
+      || member?.roles.cache.has('1466364437622423694');
+
+    if (!canPostPanel) {
+      await message.reply('❌ You need the **Black Knights** role to post the Clan Shop panel.');
+      return true;
+    }
+
     const items = await getClanShopItems(client, message.guild.id);
     await message.channel.send({
       components: [buildClanShopPage(items, message.guild.id, 0)],
       flags: MessageFlags.IsComponentsV2,
     });
+    return true;
+  }
+
+  if (message.author.id !== message.guild.ownerId) {
+    await message.reply('❌ Only the **server owner** can manage Clan Shop items.');
     return true;
   }
 
