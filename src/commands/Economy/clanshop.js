@@ -49,7 +49,7 @@ export function buildClanShopPage(items, guildId, page = 0) {
   container.addSeparatorComponents(new SeparatorBuilder());
   container.addSectionComponents(new SectionBuilder()
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '**👥 Clan Member Expansion**\nIncrease your clan capacity from **10 to 20 members**.\n🪙 **1,000,000 bCash**\nOne-time purchase per clan. Only the Clan Leader or Vice Clan Leader can purchase.'
+      '**👥 Clan Member Expansion**\nIncrease your clan capacity by **10 members per purchase**, up to **200 members**.\n🪙 **1,000,000 bCash per expansion**\nClan Leaders and Vice Clan Leaders can purchase repeatedly until the clan reaches 200 members.'
     ))
     .setButtonAccessory(new ButtonBuilder()
       .setCustomId('clanShop:buy:' + guildId + ':member-expansion')
