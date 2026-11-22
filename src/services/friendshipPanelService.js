@@ -115,7 +115,7 @@ export async function handleFriendshipInteraction(interaction, client) {
   if (id === 'friendship:select-daily') {
     const targetId = interaction.values?.[0];
     const result = await claimFriendshipDailyBonus(client, guildId, userId, targetId);
-    const messages = { claimed: '🎖️ Daily friendship bonus claimed: **+' + result.points + ' FP**. Your pair total is **' + result.total + ' FP**.', already_claimed: 'You have already claimed today’s friendship bonus with this member.', not_friends: 'You are not currently friends with that member.' };
+    const messages = { claimed: '🎖️ Daily friendship bonus claimed: **+' + result.points + ' FP**. Your pair total is **' + result.total + ' FP**.', already_claimed: 'You have already claimed today’s friendship bonus with this member.', not_friends: 'You are not currently friends with that member.', blocked: 'Friendship points and daily claims are paused while either member has the other blocked.' };
     return interaction.reply({ content: messages[result.status] || 'Could not claim the friendship bonus.', ...ephemeral });
   }
   if (id === 'friendship:select-remove') {
