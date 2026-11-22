@@ -625,3 +625,29 @@ test('recovered wagers cannot later settle or be accessed from another guild', a
   assert.equal(lateSettlement.status, 'refunded');
   assert.equal((await client.db.get(key)).wallet, 700);
 });
+
+
+test('wager recovery and audit fail closed without durable transactions', async () => {
+  const store = new Map();
+  const client = { db: {
+    async get(key, fallback = null) { return store.has(key) ? structuredClone(store.get(key)) : fallback; },
+    async set(key, value) { store.set(key, structuredClone(value)); return true; },
+    async list(prefix) { return [...store.keys()].filter((key) => key.startsWith(prefix)); },
+  } };
+  const userId = '400000000000000006';
+  await client.db.set('global:economy:' + userId, {
+    wallet: 500, bank: 0, inventory: {}, cooldowns: {},
+    economyGameTransactions: {
+      'unavailable-game': { amount: 100, status: 'pending', guildId, createdAt: Date.now() },
+    },
+  });
+  assert.equal((await listPendingEconomyWagers(client, guildId)).status, 'storage_unavailable');
+  assert.equal((await listRecentEconomyWagerRecoveries(client, guildId)).status, 'storage_unavailable');
+  await assert.rejects(
+    recoverEconomyWager(client, guildId, userId, 'unavailable-game', {
+      action: 'refund', actorId: '500000000000000001', reason: 'Storage safety check.',
+    }),
+    /Durable economy storage is unavailable/,
+  );
+  assert.equal((await client.db.get('global:economy:' + userId)).wallet, 500);
+});
