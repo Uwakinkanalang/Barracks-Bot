@@ -10,7 +10,7 @@ import {
   createMarriageProposal, finalizeMarriageProposal, cancelMarriageProposal, getActiveMarriage,
   divorceMarriage, saveMarriageData, processMarriageAnniversaries, processMarriageNotifications,
 } from '../src/services/marriageService.js';
-import { withEconomyTransaction, startEconomyWager, settleEconomyWager } from '../src/utils/economy.js';
+import { withEconomyTransaction, startEconomyWager, settleEconomyWager, listPendingEconomyWagers, recoverEconomyWager } from '../src/utils/economy.js';
 
 function addTestTransaction(db, store) {
   db.withKeyValueTransaction = async (callback) => {
@@ -41,6 +41,9 @@ function makeClient() {
     async set(key, value) {
       store.set(key, structuredClone(value));
       return true;
+    },
+    async list(prefix) {
+      return [...store.keys()].filter((key) => key.startsWith(prefix));
     },
   };
   addTestTransaction(db, store);
@@ -543,4 +546,47 @@ test('economy game wagers reserve funds and settle exactly once', async () => {
   assert.equal(duplicate.settled, false);
   assert.equal(duplicate.wallet, 1200);
   assert.equal((await client.db.get(key)).wallet, 1200);
+});
+
+
+test('pending wagers can be listed and recovered exactly once with staff audit details', async () => {
+  const client = makeClient();
+  const userId = '400000000000000004';
+  const key = 'global:economy:' + userId;
+  await client.db.set(key, { wallet: 800, bank: 0, inventory: {}, cooldowns: {} });
+  await startEconomyWager(client, guildId, userId, 'abandoned-game-1', 200);
+
+  const pending = await listPendingEconomyWagers(client, guildId);
+  assert.equal(pending.status, 'ok');
+  assert.equal(pending.total, 1);
+  assert.equal(pending.wagers[0].userId, userId);
+  assert.equal(pending.wagers[0].gameId, 'abandoned-game-1');
+  assert.equal(pending.wagers[0].amount, 200);
+
+  const refunded = await recoverEconomyWager(client, guildId, userId, 'abandoned-game-1', {
+    action: 'refund', actorId: '500000000000000001', reason: 'Game session was abandoned.',
+  });
+  assert.equal(refunded.recovered, true);
+  assert.equal(refunded.status, 'refunded');
+  assert.equal((await client.db.get(key)).wallet, 800);
+
+  const duplicate = await recoverEconomyWager(client, guildId, userId, 'abandoned-game-1', {
+    action: 'refund', actorId: '500000000000000001', reason: 'Duplicate recovery attempt.',
+  });
+  assert.equal(duplicate.recovered, false);
+  assert.equal(duplicate.status, 'already_resolved');
+  assert.equal((await client.db.get(key)).wallet, 800);
+  const receipt = (await client.db.get(key)).economyGameTransactions['abandoned-game-1'];
+  assert.equal(receipt.recovery.actorId, '500000000000000001');
+  assert.equal(receipt.recovery.action, 'refund');
+});
+
+test('wager recovery rejects missing audit reason and unknown actions', async () => {
+  const client = makeClient();
+  await assert.rejects(
+    recoverEconomyWager(client, guildId, memberA, 'missing-game', {
+      action: 'refund', actorId: '500000000000000001', reason: '',
+    }),
+    /staff actor, reason, and valid recovery action are required/,
+  );
 });
