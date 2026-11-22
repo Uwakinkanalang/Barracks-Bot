@@ -62,7 +62,10 @@ export async function saveMarriageData(client, guildId, data) {
     throw new Error('Marriage database is unavailable.');
   }
 
-  await client.db.set(getMarriageKey(guildId), normalizeMarriageData(data));
+  const saved = await client.db.set(getMarriageKey(guildId), normalizeMarriageData(data));
+  if (saved === false) {
+    throw new Error('Marriage data could not be saved to persistent storage.');
+  }
   return true;
 }
 
