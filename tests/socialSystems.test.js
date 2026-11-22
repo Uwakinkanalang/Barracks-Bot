@@ -17,9 +17,7 @@ function addTestTransaction(db, store) {
     const transaction = {
       get: db.get.bind(db),
       set: async (key, value) => {
-        const saved = await db.set(key, value);
-        if (saved === false) throw new Error('Test transaction write failed.');
-        return true;
+        return db.set(key, value);
       },
     };
     try {
@@ -151,6 +149,7 @@ test('marriage proposal fee, acceptance, divorce fee, and remarriage cooldown', 
       async set(key, value) { store.set(key, structuredClone(value)); return true; },
     },
   };
+  addTestTransaction(client.db, store);
   store.set('global:economy:' + memberA, { wallet: 200000, bank: 0 });
   const eligible = async () => ({ eligible: true, points: 1000 });
   const proposal = await createMarriageProposal(client, guildId, memberA, memberB, {
@@ -256,6 +255,7 @@ test('yearly marriage anniversary rewards are paid once per spouse and anniversa
       async set(key, value) { store.set(key, structuredClone(value)); return true; },
     },
   };
+  addTestTransaction(client.db, store);
   const spouseA = '200000000000000003';
   const spouseB = '200000000000000004';
   store.set('global:economy:' + spouseA, { wallet: 0, bank: 0 });
@@ -344,6 +344,7 @@ test('failed marriage-record persistence rolls back a successful proposal fee wr
       },
     },
   };
+  addTestTransaction(client.db, store);
   const economyKey = 'global:economy:' + memberA;
   store.set(economyKey, { wallet: 250000, bank: 0 });
   const eligible = async () => ({ eligible: true, points: 1000 });
@@ -376,6 +377,7 @@ test('proposal aborts cleanly when the wallet debit write fails', async () => {
       },
     },
   };
+  addTestTransaction(client.db, store);
 
   const proposal = await createMarriageProposal(client, guildId, memberA, memberB, {
     validateEligibility: async () => ({ eligible: true, points: 1000 }),
@@ -404,6 +406,7 @@ test('failed divorce-record persistence restores the initiator wallet and keeps 
       },
     },
   };
+  addTestTransaction(client.db, store);
   const economyKey = 'global:economy:' + memberA;
   store.set(economyKey, { wallet: 250000, bank: 0 });
   await saveMarriageData(client, guildId, {
