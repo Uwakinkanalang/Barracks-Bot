@@ -193,6 +193,10 @@ export const botConfig = {
       single: { capacity: 1000000, priceTiers: [{ through: 20, price: 300000 }, { through: 40, price: 500000 }, { through: 50, price: 1000000 }] },
     },
 
+    // Daily reward role bonuses for Barracks.
+    boosterRoleId: "1325060414752428136",
+    vipRoleId: "1353727024392441970",
+
     // Daily reward amount.
     dailyAmount: 5000,
 
