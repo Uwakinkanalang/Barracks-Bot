@@ -87,7 +87,7 @@ export default {
                 fetchReply: true,
             });
         } catch (error) {
-            await settleEconomyWager(client, interaction.guildId, game.userId, game.id, bet);
+            await settleEconomyWager(client, interaction.guildId, game.userId, game.id, bet).catch(() => {});
             throw error;
         }
 
@@ -138,6 +138,16 @@ export default {
                     components: [buildChoiceButtons(game, true)],
                 });
             } else {
+                try {
+                    await settleEconomyWager(client, interaction.guildId, game.userId, game.id, 0);
+                } catch (error) {
+                    await message.edit({
+                        embeds: [buildTalpakEmbed(game, '⚠️ Your loss is recorded, but settlement needs staff review.', 0xE74C3C, '⚠️ TALPAK — SETTLEMENT PENDING')],
+                        components: [buildChoiceButtons(game, true)],
+                    }).catch(() => {});
+                    collector.stop('settlement_pending');
+                    return;
+                }
                 await message.edit({
                     embeds: [buildTalpakEmbed(
                         game,
@@ -155,7 +165,12 @@ export default {
         collector.on('end', async (_collected, reason) => {
             if (reason === 'round_finished' || game.finished) return;
             game.finished = true;
-            await settleEconomyWager(client, interaction.guildId, game.userId, game.id, bet);
+            try {
+                await settleEconomyWager(client, interaction.guildId, game.userId, game.id, bet);
+            } catch (error) {
+                await message.edit({ embeds: [buildTalpakEmbed(game, '⚠️ Your refund is pending staff review. Please do not start another round yet.', 0xE74C3C, '⚠️ TALPAK — REFUND PENDING')], components: [buildChoiceButtons(game, true)] }).catch(() => {});
+                return;
+            }
             await message.edit({
                 embeds: [buildTalpakEmbed(game, '⏰ No pick was made in time. Your bet has been refunded.', 0x808080)],
                 components: [buildChoiceButtons(game, true)],
