@@ -57,6 +57,17 @@ test('OAuth callback rejects an invalid or expired state before contacting Disco
   assert.match(await response.text(), /Sign-in expired or invalid/);
 });
 
+test('web server applies baseline browser security headers', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  for (const header of [
+    "X-Content-Type-Options', 'nosniff",
+    "X-Frame-Options', 'DENY",
+    "Referrer-Policy', 'strict-origin-when-cross-origin",
+    "Permissions-Policy', 'camera=(), microphone=(), geolocation=()",
+    "Strict-Transport-Security', 'max-age=31536000; includeSubDomains"
+  ]) assert.ok(source.includes(header), 'missing security header: ' + header);
+});
+
 test('dashboard frontend offers Discord OAuth and contains no password form', async () => {
   const html = await readFile(new URL('../public/dashboard/index.html', import.meta.url), 'utf8');
   assert.match(html, /Continue with Discord/);
