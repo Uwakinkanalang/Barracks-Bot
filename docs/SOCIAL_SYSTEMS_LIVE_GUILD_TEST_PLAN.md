@@ -4,7 +4,7 @@ This checklist is for a private staging Discord guild before PR #237 is merged o
 
 ## Safety setup
 
-- [ ] Use a staging guild and test accounts; do not test fees or rewards with production member wallets.
+- [ ] Use a private test guild and test accounts if performing Discord smoke tests. A separate Railway staging environment is optional; never test fees or rewards with production member wallets.
 - [ ] Back up the PostgreSQL database before testing.
 - [ ] Confirm the bot is connected to PostgreSQL and not degraded in-memory mode.
 - [ ] Configure the exact shared role name `💍B-Married` and the anniversary announcement channel in the dashboard.
@@ -56,7 +56,11 @@ This checklist is for a private staging Discord guild before PR #237 is merged o
 - [ ] Buy a shop item while another wallet transaction is running; confirm the item/inventory and wallet debit remain consistent.
 - [ ] Run concurrent coin flip, gamble, and slot settlements against the same wallet; verify no bet is charged twice and rewards/losses match each committed result.
 - [ ] Run concurrent Blackjack, Mines, Roulette, Higher-Lower, Talpak, and two-player RPS wagers; verify each wager is reserved once and every win, loss, tie, timeout, and cancelled round settles exactly once.
-- [ ] Restart the bot during an active game and inspect pending wager receipts; verify no automatic duplicate payout/refund occurs and staff can reconcile any abandoned pending receipt.
+- [ ] Restart the bot during an active game and inspect pending wager receipts; verify no automatic duplicate payout/refund occurs.
+- [ ] Open `/wagerrecovery` with a Manage Server account; verify pending wagers are listed only for the current guild and unavailable/degraded storage disables recovery.
+- [ ] Select a pending wager and test both staff actions using a disposable test account: refund the reserved stake, or settle as loss with zero payout. Require a reason for every action.
+- [ ] Verify a second recovery attempt is rejected, a late game settlement cannot pay a recovered wager, and the Recovery Audit records player, staff actor, amount, action, reason, and time.
+- [ ] Verify a member without Manage Server cannot open or use the recovery panel.
 - [ ] Use fishing, mining, begging, and crime commands simultaneously with other wallet activity; verify cooldowns, consumables, and rewards are committed together.
 - [ ] In PostgreSQL-unavailable memory fallback mode, repeat same-process wallet actions and verify the in-process account locks serialize them.
 
@@ -81,9 +85,10 @@ This checklist is for a private staging Discord guild before PR #237 is merged o
 
 ## Release gate
 
-- [ ] All applicable checks above pass in staging.
-- [ ] No unresolved critical/high-severity defects remain.
-- [ ] Latest GitHub Actions workflows pass on the final PR head.
+- [ ] Automated CI, syntax, service, migration, and Docker checks pass on the final PR head.
+- [ ] Review the optional private test-guild smoke checks above before enabling relationship/economy features for members.
+- [ ] Actual multi-process PostgreSQL concurrency and live Discord role/notification behavior remain unverified without runtime testing; do not describe them as passed.
+- [ ] No unresolved critical/high-severity defects remain, and dependency audit findings are reviewed.
 - [ ] Production backup and rollback plan are ready.
 - [ ] A maintainer explicitly approves merge and production deployment.
 
