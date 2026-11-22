@@ -558,6 +558,7 @@ test('pending wagers can be listed and recovered exactly once with staff audit d
 
   const pending = await listPendingEconomyWagers(client, guildId);
   assert.equal(pending.status, 'ok');
+  assert.equal((await listPendingEconomyWagers(client, 'another-guild')).total, 0);
   assert.equal(pending.total, 1);
   assert.equal(pending.wagers[0].userId, userId);
   assert.equal(pending.wagers[0].gameId, 'abandoned-game-1');
