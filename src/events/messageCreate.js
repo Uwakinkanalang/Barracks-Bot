@@ -17,6 +17,7 @@ import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
 import { getItems as getBShopItems, getColorItems as getBShopColorItems, getBoosterColorItems as getBShopBoosterColorItems, buildShopPage as buildBShopPage, buildColorShopPage as buildBShopColorPage, buildBoosterColorShopPage as buildBShopBoosterColorPage } from '../commands/Economy/roleshop.js';
 import { handleClanShopPrefixCommand } from '../commands/Economy/clanshop.js';
+import { awardFriendshipPoints } from '../services/friendshipService.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
@@ -26,12 +27,31 @@ import {
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
+const recentChatters = new Map();
+const FRIENDSHIP_CHAT_WINDOW_MS = 10 * 60 * 1000;
 
 export default {
   name: Events.MessageCreate,
   async execute(message, client) {
     try {
       if (message.author.bot || !message.guild) return;
+
+      const meaningfulText = message.content.trim();
+      if (meaningfulText.length >= 8 && !meaningfulText.startsWith('!') && !meaningfulText.startsWith('b!')) {
+        const now = Date.now();
+        const previous = recentChatters.get(message.channelId);
+        if (previous && previous.userId !== message.author.id && now - previous.at <= FRIENDSHIP_CHAT_WINDOW_MS) {
+          await awardFriendshipPoints(client, message.guild.id, previous.userId, message.author.id, 1, {
+            activityKey: `chat:${message.id}`, now,
+          }).catch(error => logger.debug('Friendship chat points skipped:', error.message));
+        }
+        recentChatters.set(message.channelId, { userId: message.author.id, at: now });
+        if (recentChatters.size > 5000) {
+          for (const [channelId, entry] of recentChatters) {
+            if (now - entry.at > FRIENDSHIP_CHAT_WINDOW_MS) recentChatters.delete(channelId);
+          }
+        }
+      }
 
       logger.debug(`Message received from ${message.author.tag}: ${message.content}`);
 
