@@ -7,7 +7,7 @@ import {
     SlashCommandBuilder,
     TextDisplayBuilder,
 } from 'discord.js';
-import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
+import { getEconomyData, startEconomyWager, settleEconomyWager } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
 const BOARD_SIZE = 9;
@@ -136,7 +136,7 @@ export default {
             );
         }
 
-        await removeMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet');
+        await startEconomyWager(client, interaction.guildId, interaction.user.id, interaction.id, bet);
 
         const minePositions = new Set();
         while (minePositions.size < mineCount) {
@@ -154,11 +154,17 @@ export default {
             finished: false,
         };
 
-        const message = await interaction.reply({
-            flags: MessageFlags.IsComponentsV2,
-            components: [buildGameContainer(game)],
-            fetchReply: true,
-        });
+        let message;
+        try {
+            message = await interaction.reply({
+                flags: MessageFlags.IsComponentsV2,
+                components: [buildGameContainer(game)],
+                fetchReply: true,
+            });
+        } catch (error) {
+            await settleEconomyWager(client, interaction.guildId, interaction.user.id, game.id, bet).catch(() => {});
+            throw error;
+        }
 
         const collector = message.createMessageComponentCollector({
             time: COLLECTOR_TIME,
@@ -181,7 +187,7 @@ export default {
 
                 game.finished = true;
                 const payout = game.currentPayout;
-                await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
+                await settleEconomyWager(client, interaction.guildId, interaction.user.id, game.id, payout);
                 collector.stop('cashed_out');
 
                 return button.update({
@@ -195,6 +201,7 @@ export default {
             }
 
             if (game.mines.has(index)) {
+                await settleEconomyWager(client, interaction.guildId, interaction.user.id, game.id, 0);
                 game.finished = true;
                 collector.stop('mine_hit');
                 return button.update({
@@ -208,7 +215,7 @@ export default {
             if (game.revealed.size === BOARD_SIZE - mineCount) {
                 game.finished = true;
                 const payout = game.currentPayout;
-                await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
+                await settleEconomyWager(client, interaction.guildId, interaction.user.id, game.id, payout);
                 collector.stop('board_cleared');
                 return button.update({
                     components: [buildGameContainer(game, 'Board cleared!', `All safe tiles found! You received **₱${payout.toLocaleString()}**.`, true)],
@@ -225,17 +232,13 @@ export default {
 
             game.finished = true;
             try {
-                if (game.revealed.size > 0 && game.currentPayout > 0) {
-                    await addMoney(client, interaction.guildId, interaction.user.id, game.currentPayout, 'wallet');
-                }
+                const refund = game.revealed.size > 0 && game.currentPayout > 0 ? game.currentPayout : bet;
+                await settleEconomyWager(client, interaction.guildId, interaction.user.id, game.id, refund);
                 await message.edit({
                     components: [buildGameContainer(game, 'Round expired.', game.revealed.size > 0
                         ? `Your current cash-out of **₱${game.currentPayout.toLocaleString()}** was returned to your wallet.`
                         : 'Your bet was returned because no tile was selected.', true)],
                 });
-                if (game.revealed.size === 0) {
-                    await addMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet');
-                }
             } catch (error) {
                 console.error('[MINES] Failed to settle expired game:', error);
             }
