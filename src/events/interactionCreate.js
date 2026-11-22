@@ -381,6 +381,11 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('friendship:')) {
+            const { handleFriendshipInteraction } = await import('../services/friendshipPanelService.js');
+            await handleFriendshipInteraction(interaction, client);
+            return;
+          }
           if (interaction.customId.startsWith('marriage:')) {
             const { handleMarriagePanelInteraction } = await import('../services/marriagePanelService.js');
             await handleMarriagePanelInteraction(interaction, client);
@@ -1244,6 +1249,11 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isUserSelectMenu()) {
+          if (interaction.customId.startsWith('friendship:')) {
+            const { handleFriendshipInteraction } = await import('../services/friendshipPanelService.js');
+            await handleFriendshipInteraction(interaction, client);
+            return;
+          }
           if (interaction.customId.startsWith('marriage:')) {
             const { handleMarriagePanelInteraction } = await import('../services/marriagePanelService.js');
             await handleMarriagePanelInteraction(interaction, client);
