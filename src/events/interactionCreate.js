@@ -71,7 +71,7 @@ async function applyHighestPriorityAutoNick(member) {
   if (active) {
     await client.db.set(stateKey, { originalNickname: base, savedAt: state?.savedAt || Date.now() });
     const template = typeof active.format === 'string' && active.format.includes('{username}') ? active.format : `${active.prefix.trim()} {username}`;
-    desired = template.replace(/\\bTAG\\b/gi, String(active.tag || '')).replace(/\\{username\\}/gi, base).replace(/\\s+/g, ' ').trim().slice(0, 32);
+    desired = template.replace(/\bTAG\b/gi, String(active.tag || '')).replace(/\{username\}/gi, base).replace(/\s+/g, ' ').trim().slice(0, 32);
   } else if (state) {
     desired = base || null;
     await client.db.delete(stateKey).catch(() => {});
