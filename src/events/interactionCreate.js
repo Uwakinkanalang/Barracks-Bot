@@ -381,6 +381,12 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('wagerrecovery:')) {
+            const { handleWagerRecoveryButton } = await import('../services/wagerRecoveryPanelService.js');
+            const [, action] = interaction.customId.split(':');
+            await handleWagerRecoveryButton(interaction, client, action);
+            return;
+          }
           if (interaction.customId.startsWith('friendship:')) {
             const { handleFriendshipInteraction } = await import('../services/friendshipPanelService.js');
             await handleFriendshipInteraction(interaction, client);
@@ -1260,6 +1266,11 @@ export default {
             return;
           }
         } else if (interaction.isStringSelectMenu()) {
+          if (interaction.customId === 'wagerrecovery:select') {
+            const { handleWagerRecoverySelect } = await import('../services/wagerRecoveryPanelService.js');
+            await handleWagerRecoverySelect(interaction, client);
+            return;
+          }
           if (interaction.customId.startsWith('bcal:event:')) {
             const [, , guildId] = interaction.customId.split(':');
             if (!interaction.guild || interaction.guildId !== guildId) {
@@ -1373,6 +1384,11 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isModalSubmit()) {
+          if (interaction.customId.startsWith('wagerrecovery:reason:')) {
+            const { handleWagerRecoveryModal } = await import('../services/wagerRecoveryPanelService.js');
+            await handleWagerRecoveryModal(interaction, client);
+            return;
+          }
           if (interaction.customId === 'clan:create:step1') {
             const name = interaction.fields.getTextInputValue('clan_name').trim();
             const rawTagInput = interaction.fields.getTextInputValue('clan_tag').trim();
