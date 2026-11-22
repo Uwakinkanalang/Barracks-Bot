@@ -4,7 +4,7 @@ import {
 } from 'discord.js';
 import {
   getFriendshipData, getActiveFriends, getFriendshipPoints,
-  sendFriendRequest, resolveFriendRequest, cancelFriendRequest, removeFriend,
+  sendFriendRequest, resolveFriendRequest, cancelFriendRequest, removeFriend, claimFriendshipDailyBonus,
   createSoulmateRequest, resolveSoulmateRequest, endSoulmate, getActiveSoulmate,
 } from './friendshipService.js';
 
@@ -79,13 +79,25 @@ export async function handleFriendshipInteraction(interaction, client) {
       const points = await getFriendshipPoints(client, guildId, userId, friend.friendId);
       return '<@' + friend.friendId + '> — **' + points.toLocaleString() + ' FP** (' + friendLevel(points) + ')';
     }));
-    const row = new ActionRowBuilder().addComponents(new UserSelectMenuBuilder().setCustomId('friendship:select-remove').setPlaceholder('Select a friend to remove').setMinValues(1).setMaxValues(1));
-    return interaction.reply({ content: '**Your Friends**\n' + lines.join('\n') + '\n\nUse the selector below to remove a friend. Re-adding them restores their history.', components: [row], ...ephemeral });
+    const removeRow = new ActionRowBuilder().addComponents(new UserSelectMenuBuilder().setCustomId('friendship:select-remove').setPlaceholder('Select a friend to remove').setMinValues(1).setMaxValues(1));
+    const dailyRow = new ActionRowBuilder().addComponents(new UserSelectMenuBuilder().setCustomId('friendship:select-daily').setPlaceholder('Claim +5 daily FP with a friend').setMinValues(1).setMaxValues(1));
+    return interaction.reply({ content: '**Your Friends**\n' + lines.join('\n') + '\n\nChoose a friend below to claim the pair daily bonus (+5 FP) or remove them. Re-adding a removed friend restores their history.', components: [dailyRow, removeRow], ...ephemeral });
+  }
+  if (id === 'friendship:select-daily') {
+    const targetId = interaction.values?.[0];
+    const result = await claimFriendshipDailyBonus(client, guildId, userId, targetId);
+    const messages = { claimed: '🎖️ Daily friendship bonus claimed: **+' + result.points + ' FP**. Your pair total is **' + result.total + ' FP**.', already_claimed: 'You have already claimed today’s friendship bonus with this member.', not_friends: 'You are not currently friends with that member.' };
+    return interaction.reply({ content: messages[result.status] || 'Could not claim the friendship bonus.', ...ephemeral });
   }
   if (id === 'friendship:select-remove') {
     const targetId = interaction.values?.[0];
     const result = await removeFriend(client, guildId, userId, targetId);
     return interaction.reply({ content: result.status === 'removed' ? 'Friend removed. Your Friendship Points and history are saved.' : 'That member is not in your active friends list.', ...ephemeral });
+  }
+  if (id.startsWith('friendship:cancel:')) {
+    const requestId = id.slice('friendship:cancel:'.length);
+    const result = await cancelFriendRequest(client, guildId, requestId, userId);
+    return interaction.reply({ content: result.status === 'cancelled' ? 'Friend request cancelled.' : 'This request can no longer be cancelled.', ...ephemeral });
   }
   if (id === 'friendship:requests') {
     const data = await getFriendshipData(client, guildId);
@@ -95,9 +107,12 @@ export async function handleFriendshipInteraction(interaction, client) {
       '**Incoming**',
       ...(incoming.slice(0, 10).map(r => '• <@' + r.senderId + '> — expires <t:' + Math.floor(r.expiresAt / 1000) + ':R>')),
       '**Outgoing**',
-      ...(outgoing.slice(0, 10).map(r => '• <@' + r.recipientId + '> — expires <t:' + Math.floor(r.expiresAt / 1000) + ':R>')),
+      ...(outgoing.slice(0, 5).map(r => '• <@' + r.recipientId + '> — expires <t:' + Math.floor(r.expiresAt / 1000) + ':R>')),
     ].join('\n');
-    return interaction.reply({ content: text, ...ephemeral });
+    const cancelRow = outgoing.length ? new ActionRowBuilder().addComponents(
+      ...outgoing.slice(0, 5).map(r => new ButtonBuilder().setCustomId('friendship:cancel:' + r.id).setLabel('Cancel → ' + String(r.recipientId).slice(-4)).setStyle(ButtonStyle.Secondary))
+    ) : null;
+    return interaction.reply({ content: text, components: cancelRow ? [cancelRow] : [], ...ephemeral });
   }
   if (id === 'friendship:soulmate') {
     const soulmate = await getActiveSoulmate(client, guildId, userId);
