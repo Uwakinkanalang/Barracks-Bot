@@ -671,7 +671,7 @@ export function registerDashboardRoutes(app, bot) {
       }
       if (action === 'warn') {
         const dm = await target.send('You have received a warning in **' + guild.name + '**. Reason: ' + cleanReason).then(() => true).catch(() => false);
-        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, details: dm ? 'DM delivered' : 'DM could not be delivered' });
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, actorId: req.dashboardUser?.id, moderator: req.dashboardUser?.username || 'Discord manager', details: dm ? 'DM delivered' : 'DM could not be delivered' });
         return res.json({ ok: true, message: dm ? 'Warning delivered by DM.' : 'Could not DM the member (their DMs may be closed).' });
       }
       return res.status(400).json({ error: 'Unknown moderation action.' });
