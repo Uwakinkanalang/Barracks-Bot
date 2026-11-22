@@ -30,6 +30,7 @@ function createAccessToken(secret, user) {
     exp: Math.floor(Date.now() / 1000) + 60 * 60,
     scope: 'barracks-dashboard',
     sub: String(user.id),
+    jti: String(user.sessionId || ''),
     username: String(user.username || 'Discord user').slice(0, 80)
   })).toString('base64url');
   return `${payload}.${sign(payload, secret)}`;
@@ -76,10 +77,10 @@ export function registerDashboardRoutes(app, bot) {
     if (!guild) return { ok: false, status: 503, error: 'Barracks server is not available.' };
     const config = await getGuildConfig(bot, guild.id);
     const managerRoleIds = Array.isArray(config.managerRoleIds) ? config.managerRoleIds.map(String) : [];
-    if (!managerRoleIds.length) return { ok: false, status: 403, error: 'Dashboard access is disabled until an owner configures at least one Manager Role.' };
     const member = await guild.members.fetch({ user: String(userId), force: true }).catch(() => null);
     if (!member) return { ok: false, status: 403, error: 'You must be a current member of Barracks to access this dashboard.' };
-    if (!managerRoleIds.some(roleId => member.roles.cache.has(roleId))) return { ok: false, status: 403, error: 'You do not have a configured Barracks Manager Role.' };
+    // The guild owner is the permanent recovery administrator and can configure the first Manager Role.
+    if (member.id !== guild.ownerId && (!managerRoleIds.length || !managerRoleIds.some(roleId => member.roles.cache.has(roleId)))) return { ok: false, status: 403, error: managerRoleIds.length ? 'You do not have a configured Barracks Manager Role.' : 'Dashboard access is disabled until the server owner configures at least one Manager Role.' };
     return { ok: true, member, guild };
   };
 
@@ -91,8 +92,12 @@ export function registerDashboardRoutes(app, bot) {
     const payload = authorization.slice(7).split('.')[0];
     let identity;
     try { identity = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')); } catch { return res.status(401).json({ error: 'Unauthorized' }); }
-    if (!/^\d{17,20}$/.test(String(identity.sub || ''))) return res.status(401).json({ error: 'Discord identity missing from session.' });
+    if (!/^\d{17,20}$/.test(String(identity.sub || '')) || !/^[A-Za-z0-9_-]{20,80}$/.test(String(identity.jti || ''))) return res.status(401).json({ error: 'Discord identity or session ID missing.' });
     try {
+      const dbStatus = bot.db?.getStatus?.();
+      if (!bot.db?.get || !bot.db?.set || dbStatus?.isDegraded) return res.status(503).json({ error: 'Secure dashboard sessions require the persistent database to be available.' });
+      const session = await bot.db.get('dashboard:sessions:' + identity.jti, null);
+      if (!session || session.revoked || String(session.userId) !== String(identity.sub) || Number(session.expiresAt) <= Date.now()) return res.status(401).json({ error: 'Dashboard session expired or revoked. Sign in again.' });
       const verified = await verifyDashboardUser(identity.sub);
       if (!verified.ok) return res.status(verified.status).json({ error: verified.error });
       req.dashboardUser = { id: verified.member.id, username: verified.member.user.username };
@@ -142,14 +147,32 @@ export function registerDashboardRoutes(app, bot) {
       const verified = await verifyDashboardUser(user.id);
       if (!verified.ok) return res.status(verified.status).send(verified.error);
       const secret = process.env.DASHBOARD_SESSION_SECRET;
-      const accessToken = createAccessToken(secret, { id: user.id, username: user.username });
+      const sessionId = crypto.randomBytes(32).toString('base64url');
+      const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
+      const dbStatus = bot.db?.getStatus?.();
+      if (!bot.db?.set || dbStatus?.isDegraded) return res.status(503).send('Secure dashboard sessions require the persistent database. Please try again later.');
+      await bot.db.set('dashboard:sessions:' + sessionId, { userId: String(user.id), createdAt: Date.now(), expiresAt, revoked: false });
+      const accessToken = createAccessToken(secret, { id: user.id, username: user.username, sessionId });
       return res.redirect(frontendUrl() + '#access_token=' + encodeURIComponent(accessToken));
     } catch (error) {
       return res.status(401).send('Discord sign-in failed or you do not have dashboard access. Return to Barracks and try again.');
     }
   });
 
-  app.post('/api/dashboard/logout', (req, res) => res.json({ ok: true }));
+  app.post('/api/dashboard/logout', async (req, res) => {
+    try {
+      const authorization = req.get('authorization') || '';
+      const token = authorization.slice(7);
+      const payload = token.split('.')[0];
+      const identity = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+      if (identity.jti) {
+        const key = 'dashboard:sessions:' + identity.jti;
+        const session = await bot.db.get(key, null);
+        if (session && String(session.userId) === String(req.dashboardUser?.id)) await bot.db.set(key, { ...session, revoked: true, revokedAt: Date.now() });
+      }
+      return res.json({ ok: true });
+    } catch { return res.status(500).json({ error: 'Could not revoke dashboard session.' }); }
+  });
 
   app.get('/api/dashboard/commands', async (req, res) => {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
@@ -622,7 +645,7 @@ export function registerDashboardRoutes(app, bot) {
         if (!me.permissions.has('KickMembers')) return res.status(403).json({ error: 'Bot needs Kick Members permission.' });
         if (!target.kickable) return res.status(403).json({ error: 'The bot cannot kick this member.' });
         await target.kick(cleanReason);
-        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason });
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, actorId: req.dashboardUser?.id, moderator: req.dashboardUser?.username || 'Discord manager' });
         return res.json({ ok: true, message: 'Member kicked successfully.' });
       }
       if (action === 'timeout') {
