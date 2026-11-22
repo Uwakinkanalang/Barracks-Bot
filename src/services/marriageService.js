@@ -438,92 +438,102 @@ function getAnniversaryDate(marriedAt, yearNumber) {
  * Intended to be called by a scheduled guild job; returns payments for announcements.
  */
 export async function processMarriageAnniversaries(client, guildId, now = Date.now()) {
-  if (!hasDurableStorage(client)) return [];
+  if (!hasAtomicStorage(client)) return [];
   return withGuildLock(guildId, async () => {
-    const data = await getMarriageData(client, guildId);
-    const payments = [];
-
-    for (const marriage of Object.values(data.marriages)) {
-      if (marriage?.status !== 'married' || !marriage.member1Id || !marriage.member2Id) continue;
-      const marriedAt = Number(marriage.marriedAt);
-      if (!Number.isFinite(marriedAt) || marriedAt <= 0) continue;
-
-      let anniversaryNumber = 1;
-      while (getAnniversaryDate(marriedAt, anniversaryNumber) <= now) {
-        const claimKey = `${marriage.id}:${anniversaryNumber}`;
-        if (!data.anniversaryClaims[claimKey]) {
-          const memberIds = [marriage.member1Id, marriage.member2Id];
-          const receipts = [];
-          let paymentFailed = false;
-
-          // The wallet record is the idempotency source for each spouse. If the
-          // marriage metadata save fails after a payment, the next run can safely
-          // detect that spouse's receipt and pay only the remaining spouse.
-          for (const userId of memberIds) {
-            const { getEconomyData, setEconomyData } = await import('../utils/economy.js');
-            const economy = await getEconomyData(client, guildId, userId);
-            if (!economy) { paymentFailed = true; break; }
-            economy.anniversaryTransactions ||= {};
-            const existingReceipt = economy.anniversaryTransactions[claimKey];
-            if (existingReceipt) {
-              receipts.push({ userId, paidAt: Number(existingReceipt.paidAt) || now });
-              continue;
-            }
-
-            const paidAt = Date.now();
-            economy.wallet = (Number(economy.wallet) || 0) + ANNIVERSARY_REWARD;
-            economy.anniversaryTransactions[claimKey] = {
-              type: 'marriage_anniversary',
-              marriageId: marriage.id,
-              anniversaryNumber,
-              amount: ANNIVERSARY_REWARD,
-              paidAt,
-            };
-            if (!await setEconomyData(client, guildId, userId, economy)) {
-              paymentFailed = true;
-              break;
-            }
-            receipts.push({ userId, paidAt });
-          }
-
-          if (paymentFailed || receipts.length !== memberIds.length) break;
-
-          const paidAt = Math.max(...receipts.map(receipt => receipt.paidAt));
-          data.anniversaryClaims[claimKey] = {
-            marriageId: marriage.id,
-            anniversaryNumber,
-            paidAt,
-            amountPerSpouse: ANNIVERSARY_REWARD,
-            member1Id: marriage.member1Id,
-            member2Id: marriage.member2Id,
-          };
-          marriage.anniversaryRewards ||= {};
-          marriage.anniversaryRewards[marriage.member1Id] =
-            (Number(marriage.anniversaryRewards[marriage.member1Id]) || 0) + ANNIVERSARY_REWARD;
-          marriage.anniversaryRewards[marriage.member2Id] =
-            (Number(marriage.anniversaryRewards[marriage.member2Id]) || 0) + ANNIVERSARY_REWARD;
-          payments.push({
-            marriageId: marriage.id,
-            anniversaryNumber,
-            member1Id: marriage.member1Id,
-            member2Id: marriage.member2Id,
-            amountPerSpouse: ANNIVERSARY_REWARD,
-            paidAt,
-          });
-          await saveMarriageData(client, guildId, data);
-        }
-        anniversaryNumber += 1;
+    const { getEconomyData, getEconomyKey } = await import('../utils/economy.js');
+    const snapshot = await getMarriageData(client, guildId);
+    const fallbackAccounts = {};
+    const memberIds = new Set();
+    for (const marriage of Object.values(snapshot.marriages)) {
+      if (marriage?.status === 'married') {
+        if (marriage.member1Id) memberIds.add(marriage.member1Id);
+        if (marriage.member2Id) memberIds.add(marriage.member2Id);
       }
     }
+    await Promise.all([...memberIds].map(async (userId) => {
+      fallbackAccounts[userId] = await getEconomyData(client, guildId, userId);
+    }));
 
-    if (payments.length) await saveMarriageData(client, guildId, data);
-    return payments;
+    return client.db.withKeyValueTransaction(async (transaction) => {
+      const transactionClient = { db: transaction };
+      const data = await getMarriageData(transactionClient, guildId);
+      const payments = [];
+      let changed = false;
+
+      for (const marriage of Object.values(data.marriages)) {
+        if (marriage?.status !== 'married' || !marriage.member1Id || !marriage.member2Id) continue;
+        const marriedAt = Number(marriage.marriedAt);
+        if (!Number.isFinite(marriedAt) || marriedAt <= 0) continue;
+
+        let anniversaryNumber = 1;
+        while (getAnniversaryDate(marriedAt, anniversaryNumber) <= now) {
+          const claimKey = `${marriage.id}:${anniversaryNumber}`;
+          if (!data.anniversaryClaims[claimKey]) {
+            const memberIdsForClaim = [marriage.member1Id, marriage.member2Id];
+            const receipts = [];
+            for (const userId of memberIdsForClaim) {
+              const economyKey = getEconomyKey(guildId, userId);
+              const fallback = fallbackAccounts[userId] || { wallet: 0, bank: 0 };
+              const economy = await transaction.get(economyKey, fallback);
+              economy.anniversaryTransactions ||= {};
+              const existingReceipt = economy.anniversaryTransactions[claimKey];
+              if (existingReceipt) {
+                receipts.push({ userId, paidAt: Number(existingReceipt.paidAt) || now });
+                continue;
+              }
+
+              const paidAt = Date.now();
+              economy.wallet = (Number(economy.wallet) || 0) + ANNIVERSARY_REWARD;
+              economy.anniversaryTransactions[claimKey] = {
+                type: 'marriage_anniversary',
+                marriageId: marriage.id,
+                anniversaryNumber,
+                amount: ANNIVERSARY_REWARD,
+                paidAt,
+              };
+              if (await transaction.set(economyKey, economy) === false) {
+                throw new Error(`Anniversary reward could not be saved for member ${userId}.`);
+              }
+              receipts.push({ userId, paidAt });
+            }
+
+            if (receipts.length !== memberIdsForClaim.length) {
+              throw new Error('Anniversary reward transaction is incomplete.');
+            }
+            const paidAt = Math.max(...receipts.map((receipt) => receipt.paidAt));
+            data.anniversaryClaims[claimKey] = {
+              marriageId: marriage.id,
+              anniversaryNumber,
+              paidAt,
+              amountPerSpouse: ANNIVERSARY_REWARD,
+              member1Id: marriage.member1Id,
+              member2Id: marriage.member2Id,
+            };
+            marriage.anniversaryRewards ||= {};
+            marriage.anniversaryRewards[marriage.member1Id] =
+              (Number(marriage.anniversaryRewards[marriage.member1Id]) || 0) + ANNIVERSARY_REWARD;
+            marriage.anniversaryRewards[marriage.member2Id] =
+              (Number(marriage.anniversaryRewards[marriage.member2Id]) || 0) + ANNIVERSARY_REWARD;
+            payments.push({
+              marriageId: marriage.id,
+              anniversaryNumber,
+              member1Id: marriage.member1Id,
+              member2Id: marriage.member2Id,
+              amountPerSpouse: ANNIVERSARY_REWARD,
+              paidAt,
+            });
+            changed = true;
+          }
+          anniversaryNumber += 1;
+        }
+      }
+
+      if (changed) await saveMarriageData(transactionClient, guildId, data);
+      return payments;
+    });
   });
 }
 
-export const MARRIAGE_ANNIVERSARY_REWARD = ANNIVERSARY_REWARD;
-
-/** Reconcile the shared Discord role against durable marriage records. */
 export async function reconcileMarriageRoles(client, guildId) {
   const data = await getMarriageData(client, guildId);
   const knownMembers = new Set();
