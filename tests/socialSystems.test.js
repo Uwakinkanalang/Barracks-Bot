@@ -599,6 +599,10 @@ test('recovered wagers cannot later settle or be accessed from another guild', a
   const key = 'global:economy:' + userId;
   await client.db.set(key, { wallet: 700, bank: 0, inventory: {}, cooldowns: {} });
   await startEconomyWager(client, guildId, userId, 'recovered-game-2', 300);
+  await assert.rejects(
+    startEconomyWager(client, 'another-guild', userId, 'recovered-game-2', 300),
+    /Game receipt ID is already used by another server/,
+  );
 
   await assert.rejects(
     settleEconomyWager(client, 'another-guild', userId, 'recovered-game-2', 900),
