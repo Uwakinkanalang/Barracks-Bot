@@ -65,6 +65,12 @@ export default {
             let bonusMessage = `\n🎖️ **Level Bonus (Level ${memberLevel}):** +₱${levelBonus.toLocaleString()}`;
             let hasPremiumRole = false;
 
+            const activeMarriage = await getActiveMarriage(client, guildId, userId);
+            if (activeMarriage) {
+                earned += 5000;
+                bonusMessage += `\\n💍 **Marriage Bonus:** +₱5,000`;
+            }
+
             if (
                 PREMIUM_ROLE_ID &&
                 interaction.member &&
