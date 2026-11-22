@@ -74,12 +74,12 @@ export async function saveMarriageData(client, guildId, data) {
   return true;
 }
 
-function queueMarriageNotification(data, { id, channelId, content, components = [] }) {
+function queueMarriageNotification(data, { id, channelId, content, components = [], embeds = [] }) {
   if (!channelId || !id) return;
   data.notifications ||= {};
   data.notifications[id] ||= {
     id, channelId, content, components,
-    embeds: arguments[0]?.embeds || [],
+    embeds,
     status: 'pending', attempts: 0, createdAt: Date.now(), nextAttemptAt: Date.now(),
   };
 }
