@@ -66,7 +66,7 @@ export async function sendFriendRequest(client, guildId, senderId, recipientId, 
     const data = await getFriendshipData(client, guildId);
     const pair = pairKey(senderId, recipientId);
     if (isActiveFriend(data.friendships[pair], senderId, recipientId)) return { status: 'already_friends' };
-    if (Object.values(data.requests).some(r => r?.status === 'pending' &&
+    if (Object.values(data.requests).some(r => r?.kind !== 'soulmate' && r?.status === 'pending' &&
       ((r.senderId === senderId && r.recipientId === recipientId) ||
        (r.senderId === recipientId && r.recipientId === senderId)))) return { status: 'duplicate_pending' };
     const id = `fr-${Date.now()}-${senderId}-${recipientId}`;
@@ -81,7 +81,7 @@ export async function resolveFriendRequest(client, guildId, requestId, recipient
   return locked(guildId, async () => {
     const data = await getFriendshipData(client, guildId);
     const req = data.requests[requestId];
-    if (!req || req.status !== 'pending') return { status: 'not_pending' };
+    if (!req || req.kind === 'soulmate' || req.status !== 'pending') return { status: 'not_pending' };
     if (req.recipientId !== recipientId) return { status: 'not_authorized' };
     const now = Date.now();
     if (now >= Number(req.expiresAt)) {
