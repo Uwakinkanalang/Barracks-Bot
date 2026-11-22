@@ -738,11 +738,11 @@ export default {
                 return;
               }
               const nextLimit = Math.min(200, currentLimit + 10);
-              const price = 1000000;
+              const price = currentLimit === 10 ? 1000000 : 500000;
               const economy = await getEconomyData(interaction.client, guildId, interaction.user.id);
               const wallet = Number(economy?.wallet) || 0;
               if (wallet < price) {
-                await interaction.editReply('The Clan Member Expansion costs 1,000,000 bCash. Your wallet has ' + wallet.toLocaleString() + ' bCash.');
+                await interaction.editReply('This expansion costs ' + price.toLocaleString() + ' bCash. Your wallet has ' + wallet.toLocaleString() + ' bCash.');
                 return;
               }
               const paid = await removeMoney(interaction.client, guildId, interaction.user.id, price, 'wallet');
@@ -755,7 +755,7 @@ export default {
               clan.memberExpansionPurchasedBy = interaction.user.id;
               await interaction.client.db.set(clanKey, clanList);
               const updated = await getEconomyData(interaction.client, guildId, interaction.user.id);
-              await interaction.editReply('Clan **' + clan.name + ' [' + clan.tag + ']** has been expanded!\nNew capacity: **' + nextLimit + ' members** (including leadership).\nPaid: **1,000,000 bCash**\nRemaining wallet: **' + (Number(updated?.wallet) || 0).toLocaleString() + ' bCash**.');
+              await interaction.editReply('Clan **' + clan.name + ' [' + clan.tag + ']** has been expanded!\nNew capacity: **' + nextLimit + ' members** (including leadership).\nPaid: **' + price.toLocaleString() + ' bCash**\nRemaining wallet: **' + (Number(updated?.wallet) || 0).toLocaleString() + ' bCash**.');
               return;
             }
             const items = await getClanShopItems(interaction.client, guildId);
