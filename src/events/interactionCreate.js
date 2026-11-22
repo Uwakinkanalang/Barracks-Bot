@@ -381,6 +381,57 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('clan:leader:')) {
+            const action = interaction.customId.split(':')[2];
+            const clans = await interaction.client.db.get(`guild:${interaction.guildId}:clans`, []);
+            const clan = (Array.isArray(clans) ? clans : []).find(entry =>
+              entry.status === 'approved' &&
+              [String(entry.leaderId || ''), String(entry.viceLeaderId || '')].includes(interaction.user.id)
+            );
+            if (!clan) {
+              await interaction.reply({ content: 'This panel is for the Clan Leader and Vice Clan Leader of an approved clan only.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const { EmbedBuilder } = await import('discord.js');
+            const color = /^#?[0-9a-fA-F]{6}$/.test(String(clan.roleHex || '')) ? Number.parseInt(String(clan.roleHex).replace('#', ''), 16) : 0xD4A017;
+            let embed;
+            if (action === 'members') {
+              const members = Array.isArray(clan.memberIds) ? clan.memberIds : [];
+              embed = new EmbedBuilder().setColor(color).setTitle(`👥 ${clan.name} [${clan.tag}] — Roster`)
+                .setDescription([`👑 **Clan Leader:** <@${clan.leaderId}>`, `🛡️ **Vice Clan Leader:** <@${clan.viceLeaderId || '0'}>`, ...members.map(id => `• <@${id}>`)].join('\n'))
+                .setFooter({ text: `Total members: ${members.length + 2} • Barracks` });
+            } else if (action === 'bank') {
+              const balance = Math.max(0, Number(clan.bankBalance) || 0);
+              embed = new EmbedBuilder().setColor(color).setTitle(`🏦 ${clan.name} [${clan.tag}] — Clan Bank`)
+                .setDescription(`**Available Clan Funds**\n₱${balance.toLocaleString()}\n\nThis is your clan's shared treasury.`)
+                .setFooter({ text: 'Barracks • Clan Treasury' });
+            } else if (action === 'transactions') {
+              const transactions = (Array.isArray(clan.bankTransactions) ? clan.bankTransactions : []).slice(-10).reverse();
+              const lines = transactions.map(tx => `${tx.type === 'deposit' ? '📥' : '📤'} **₱${Number(tx.amount || 0).toLocaleString()}** — ${tx.type} by <@${tx.userId}> • ${tx.createdAt ? new Date(tx.createdAt).toLocaleString() : 'Unknown date'}`);
+              embed = new EmbedBuilder().setColor(color).setTitle(`📜 ${clan.name} — Bank Transactions`)
+                .setDescription(lines.length ? lines.join('\n') : 'No transactions recorded yet.')
+                .setFooter({ text: 'Showing the latest 10 transactions' });
+            } else if (action === 'requests') {
+              const pending = (Array.isArray(clan.joinRequests) ? clan.joinRequests : []).filter(request => request.status === 'pending');
+              embed = new EmbedBuilder().setColor(color).setTitle(`📨 ${clan.name} — Join Requests`)
+                .setDescription(pending.length ? pending.map(request => `• <@${request.userId}> — submitted ${request.createdAt ? new Date(request.createdAt).toLocaleString() : 'date unavailable'}`).join('\n') : 'There are no pending join requests. Accept or decline applications from the request messages sent to leadership DMs.')
+                .setFooter({ text: `Pending applications: ${pending.length}` });
+            } else if (action === 'settings') {
+              embed = new EmbedBuilder().setColor(color).setTitle(`⚙️ ${clan.name} [${clan.tag}] — Clan Details`)
+                .setDescription(clan.description || 'No clan description has been set.')
+                .addFields(
+                  { name: 'Clan Leader', value: `<@${clan.leaderId}>`, inline: true },
+                  { name: 'Vice Clan Leader', value: clan.viceLeaderId ? `<@${clan.viceLeaderId}>` : 'Not assigned', inline: true },
+                  { name: 'Roster Size', value: String((Array.isArray(clan.memberIds) ? clan.memberIds.length : 0) + 2), inline: true },
+                  { name: 'Clan Rules', value: clan.rules || 'No clan rules have been added.' }
+                );
+            } else {
+              await interaction.reply({ content: 'That panel action is not available.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            return;
+          }
           if (interaction.customId === 'clan:bank:view') {
             const clans = await interaction.client.db.get(`guild:${interaction.guildId}:clans`, []);
             const clan = (Array.isArray(clans) ? clans : []).find(entry =>
