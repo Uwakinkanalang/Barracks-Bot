@@ -28,7 +28,7 @@ export default {
                 ? Math.floor(Math.random() * (MAX_WIN - MIN_WIN + 1)) + MIN_WIN
                 : 0;
 
-            const begResult = await withEconomyTransaction(client, guildId, userId, async (accounts) => {
+            await withEconomyTransaction(client, guildId, userId, async (accounts) => {
                 const userData = accounts[userId];
                 const lastBeg = Number(userData.lastBeg) || 0;
                 const remainingTime = lastBeg + COOLDOWN - now;
@@ -42,9 +42,8 @@ export default {
                 }
                 if (success) userData.wallet = (Number(userData.wallet) || 0) + amountWon;
                 userData.lastBeg = now;
-                return { userData: structuredClone(userData), newCash: userData.wallet, amountWon };
+                return true;
             });
-            const { userData, newCash } = begResult;
 
             let replyEmbed;
             if (success) {
