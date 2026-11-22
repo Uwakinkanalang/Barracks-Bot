@@ -11,7 +11,10 @@ export function buildMemberAnnouncementEmbed(settings = {}, data = {}, defaults 
   const thumbnailUrl = resolve(settings.thumbnailUrl || defaults.thumbnailUrl || '');
   const imageUrl = resolve(settings.imageUrl || defaults.imageUrl || '');
   // Older welcome configurations store footer text under `footer`; newer dashboard settings use `footerText`.
-  const footerText = resolve(settings.footerText ?? settings.footer);
+  const fallbackFooterText = data.guild?.memberCount != null
+    ? `We already have ${Number(data.guild.memberCount).toLocaleString('en-US')} members`
+    : 'We already have our members';
+  const footerText = resolve(settings.footerText ?? settings.footer) || fallbackFooterText;
   if (authorName) embed.setAuthor({ name: authorName.slice(0, 256) });
   if (title) embed.setTitle(title.slice(0, 256));
   if (description) embed.setDescription(description.slice(0, 4096));
@@ -19,7 +22,8 @@ export function buildMemberAnnouncementEmbed(settings = {}, data = {}, defaults 
   if (imageUrl) embed.setImage(imageUrl);
   if (footerText) {
     const footer = { text: footerText.slice(0, 2048) };
-    if (settings.footerIconUrl) footer.iconURL = resolve(settings.footerIconUrl);
+    const footerIconUrl = settings.footerIconUrl || 'https://cdn.discordapp.com/emojis/1573225271983738930.png?size=64&quality=lossless';
+    footer.iconURL = resolve(footerIconUrl);
     embed.setFooter(footer);
   }
   return embed;
