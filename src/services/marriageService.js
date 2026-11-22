@@ -159,6 +159,11 @@ export async function createMarriageProposal(client, guildId, proposerId, recipi
     if (hasActiveMarriage(data, proposerId) || hasActiveMarriage(data, recipientId)) {
       return { status: 'already_married' };
     }
+    const proposerCooldown = Number(data.divorceCooldowns[proposerId]) || 0;
+    const recipientCooldown = Number(data.divorceCooldowns[recipientId]) || 0;
+    if (now < proposerCooldown || now < recipientCooldown) {
+      return { status: 'remarriage_cooldown', retryAt: Math.max(proposerCooldown, recipientCooldown) };
+    }
     if (findPendingProposal(data, proposerId, recipientId)) {
       return { status: 'duplicate_pending' };
     }
