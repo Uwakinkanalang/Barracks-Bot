@@ -1634,8 +1634,8 @@ export default {
               await interaction.reply({ content: 'Role Hex must be a valid six-digit color code, such as **#5865F2**.', flags: MessageFlags.Ephemeral });
               return;
             }
-            if (!autoNickFormat || !autoNickFormat.includes('{username}') || autoNickFormat.length > 32) {
-              await interaction.reply({ content: 'Clan AutoNick Format must include {username} and be 32 characters or fewer. Use TAG for the clan tag.', flags: MessageFlags.Ephemeral });
+            if (!['TAG {username}', '★ {username}', '⚔ {username}'].includes(autoNickFormat)) {
+              await interaction.reply({ content: 'Choose one of the available Clan AutoNick formats: TAG {username}, ★ {username}, or ⚔ {username}.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!viceLeaderId || viceLeaderId === interaction.user.id) {
