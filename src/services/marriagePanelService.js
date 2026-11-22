@@ -88,6 +88,7 @@ export async function handleMarriagePanelInteraction(interaction, client) {
         not_eligible: result.reason || 'The 1,000 FP and active Soulmate requirements are no longer met.',
         already_married: 'One of you is already married.',
         remarriage_cooldown: 'One of you is still on the 7-day remarriage cooldown.',
+        database_unavailable: 'Barracks storage is temporarily unavailable. No marriage was created; please try again later.',
       };
       if (result.status !== 'married') return interaction.reply({ content: messages[result.status] || 'The proposal could not be accepted.', flags: MessageFlags.Ephemeral });
       await interaction.update({ content: '💍 <@' + result.marriage.member1Id + '> and <@' + result.marriage.member2Id + '> are now married in Barracks!', components: [] });
