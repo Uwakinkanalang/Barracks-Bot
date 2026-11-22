@@ -3,7 +3,7 @@ import {
   getMarriageData, getActiveMarriage, divorceMarriage,
   createMarriageProposal, resolveMarriageProposal, finalizeMarriageProposal, cancelMarriageProposal,
 } from './marriageService.js';
-import { validateMarriageEligibility } from './friendshipService.js';
+import { validateMarriageEligibility, getFriendshipPoints } from './friendshipService.js';
 
 const fmtDuration = ms => {
   const d = Math.max(0, Math.floor(ms / 86400000));
@@ -86,6 +86,7 @@ export async function handleMarriagePanelInteraction(interaction, client) {
         eligibility_service_unavailable: 'Eligibility checks are unavailable.',
         not_eligible: result.reason || 'The 1,000 FP and active Soulmate requirements are no longer met.',
         already_married: 'One of you is already married.',
+        remarriage_cooldown: 'One of you is still on the 7-day remarriage cooldown.',
       };
       if (result.status !== 'married') return interaction.reply({ content: messages[result.status] || 'The proposal could not be accepted.', flags: MessageFlags.Ephemeral });
       await interaction.update({ content: '💍 <@' + result.marriage.member1Id + '> and <@' + result.marriage.member2Id + '> are now married in Barracks!', components: [] });
@@ -106,11 +107,13 @@ export async function handleMarriagePanelInteraction(interaction, client) {
   if (id === 'marriage:me') {
     const m = await getActiveMarriage(client, guildId, userId);
     if (!m) return interaction.reply({ content: 'You are not currently married in Barracks.', flags: MessageFlags.Ephemeral });
+    const couplePoints = await getFriendshipPoints(client, guildId, userId, m.spouseId);
     const embed = new EmbedBuilder().setColor(0xE6B84A).setTitle('💍 Your Marriage').setDescription('You are married to <@' + m.spouseId + '>.')
       .addFields(
         { name: 'Wedding Date', value: '<t:' + Math.floor(m.marriedAt / 1000) + ':D>', inline: true },
         { name: 'Duration', value: fmtDuration(Date.now() - Number(m.marriedAt)), inline: true },
-        { name: 'Anniversary Rewards', value: '₱' + (Number(m.anniversaryRewards?.[userId]) || 0).toLocaleString(), inline: true },
+        { name: 'Couple FP', value: couplePoints.toLocaleString() + ' FP', inline: true },
+        { name: 'Your Anniversary Rewards', value: '₱' + (Number(m.anniversaryRewards?.[userId]) || 0).toLocaleString(), inline: true },
       );
     return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }
