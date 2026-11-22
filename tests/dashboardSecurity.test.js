@@ -89,3 +89,16 @@ test('OAuth state cookie uses HttpOnly and SameSite protections', async () => {
   assert.match(source, /barracks_oauth_state=.*HttpOnly; SameSite=Lax; Path=\/api\/dashboard\/oauth\/callback; Max-Age=600/);
   assert.match(source, /process\.env\.NODE_ENV === 'production' \? '; Secure' : ''/);
 });
+
+test('only the intended login bootstrap endpoints bypass dashboard authorization', async () => {
+  const source = await readFile(new URL('../src/web/dashboard.js', import.meta.url), 'utf8');
+  const middlewareStart = source.indexOf("app.use('/api/dashboard'");
+  assert.notEqual(middlewareStart, -1);
+  const middlewareEnd = source.indexOf("\n  });", middlewareStart);
+  assert.notEqual(middlewareEnd, -1);
+  const middleware = source.slice(middlewareStart, middlewareEnd);
+  const bypassMatch = middleware.match(/if \(req\.path === ['"]([^'"]+)['"] \|\| req\.path === ['"]([^'"]+)['"] \|\| req\.path === ['"]([^'"]+)['"]\) return next\(\)/);
+  assert.ok(bypassMatch, 'the authorization bypass list must remain explicit and reviewable');
+  assert.deepEqual(bypassMatch.slice(1), ['/login', '/oauth/start', '/oauth/callback']);
+  assert.match(source, /app\.post\(['"]\/api\/dashboard\/login['"],\s*\(req, res\) => res\.status\(410\)/);
+});
