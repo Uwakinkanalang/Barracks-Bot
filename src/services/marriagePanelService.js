@@ -145,6 +145,10 @@ export async function handleMarriagePanelInteraction(interaction, client) {
       const messages = { not_married: 'You are not currently married.', insufficient_funds: 'You need **100,000 bCash** in your wallet.', payment_failed: 'Payment failed. Your marriage remains active.' };
       return interaction.update({ content: messages[result.status] || 'Divorce could not be completed.', components: [] });
     }
-    return interaction.update({ content: '💔 Divorce finalized. **100,000 bCash** was deducted. Your 7-day remarriage cooldown has started.', components: [] });
+    await interaction.update({ content: '💔 Divorce finalized. **100,000 bCash** was deducted. Your 7-day remarriage cooldown has started.', components: [] });
+    await interaction.channel?.send({
+      content: '💔 Marriage ended: <@' + result.initiatorId + '> and <@' + result.spouseId + '> are now divorced. The initiating spouse paid **100,000 bCash**. Both members have a 7-day remarriage cooldown.',
+    }).catch(() => {});
+    return;
   }
 }
