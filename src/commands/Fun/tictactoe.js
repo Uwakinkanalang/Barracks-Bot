@@ -193,7 +193,7 @@ export default {
         const winnerId = result === 'X' ? game.playerX : game.playerO;
         await settle(result);
         await recordClanBattleGame(
-          game.client, game.guildId, 'tictactoe', game.playerX, game.playerO, winnerId
+          game.client, game.guildId, 'tictactoe', game.playerX, game.playerO, winnerId, game.id
         ).catch(() => {});
         return updateBoard(button, `🏆 **<@${winnerId}> wins the match!** ${game.bet > 0 ? `They receive **₱${(game.bet * 2).toLocaleString()}**!` : ''}`, true);
       }
