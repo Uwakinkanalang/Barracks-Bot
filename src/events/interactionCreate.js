@@ -1605,11 +1605,11 @@ export default {
             const name = interaction.fields.getTextInputValue('clan_name').trim();
             const rawTagInput = interaction.fields.getTextInputValue('clan_tag').trim();
             const roleHexInput = interaction.fields.getTextInputValue('clan_role_hex').trim();
-            const autoNickFormat = 'TAG ⚔ ★ {username}';
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
             const tagLength = Array.from(rawTagInput).length;
             const validTag = tagLength >= 1 && tagLength <= 6 && /^[\p{L}\p{N}\p{S}\p{P}\p{M}]+$/u.test(rawTagInput);
             const tag = validTag ? rawTagInput.toUpperCase() : null;
+            const autoNickFormat = `${tag} {username}`;
             const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
             const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
             const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\d{17,20})>?$/)?.[1];
