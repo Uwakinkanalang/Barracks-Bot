@@ -77,9 +77,6 @@ body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;borde
 </section>
 </main>
 </div>
-<script>
-async function loadOverview(){try{const response=await fetch('/api/dashboard/overview',{credentials:'same-origin'});if(response.status===401){location.href='/dashboard';return}if(!response.ok)throw new Error('Could not load server overview');const data=await response.json();document.getElementById('guildName').textContent=data.guildName;document.getElementById('members').textContent=Number(data.memberCount).toLocaleString();document.getElementById('channels').textContent=Number(data.channelCount).toLocaleString();document.getElementById('roles').textContent=Number(data.roleCount).toLocaleString();document.getElementById('commands').textContent=Number(data.commandCount).toLocaleString();document.getElementById('updated').textContent='Updated '+new Date(data.updatedAt).toLocaleTimeString();if(data.guildIcon){const img=document.getElementById('guildIcon');img.src=data.guildIcon;img.hidden=false;document.getElementById('guildFallback').hidden=true}}catch(error){document.getElementById('updated').textContent='Status unavailable';console.error(error)}}loadOverview();setInterval(loadOverview,60000);
-</script>
 
 <div id="loginScreen" style="position:fixed;inset:0;z-index:10;background:#0b1110;display:none;place-items:center;padding:20px">
   <div style="width:min(420px,100%);padding:34px;border:1px solid #27372d;border-radius:20px;background:#111a16">
