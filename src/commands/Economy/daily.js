@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { withEconomyTransaction } from '../../utils/economy.js';
 import { getUserLevelData } from '../../services/leveling/leveling.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { formatDuration } from '../../utils/embeds.js';
@@ -31,77 +31,54 @@ export default {
 
             logger.debug(`[ECONOMY] Daily claimed started for ${userId}`, { userId, guildId });
 
-            const userData = await getEconomyData(client, guildId, userId);
-            
-            if (!userData) {
-                throw createError(
-                    "Failed to load economy data for daily",
-                    ErrorTypes.DATABASE,
-                    "Failed to load your economy data. Please try again later.",
-                    { userId, guildId }
-                );
-            }
-            
-            const lastDaily = userData.lastDaily || 0;
-
-            if (now < lastDaily + DAILY_COOLDOWN) {
-                const timeRemaining = lastDaily + DAILY_COOLDOWN - now;
-                throw createError(
-                    "Daily cooldown active",
-                    ErrorTypes.RATE_LIMIT,
-                    `You need to wait before claiming daily again. Try again in **${formatDuration(timeRemaining)}**.`,
-                    { timeRemaining, cooldownType: 'daily' }
-                );
-            }
-
             const guildConfig = await getGuildConfig(client, guildId);
             const PREMIUM_ROLE_ID = guildConfig.premiumRoleId;
-
             const levelData = await getUserLevelData(client, guildId, userId);
             const memberLevel = Math.max(0, Number(levelData?.level) || 0);
             const levelBonus = memberLevel * DAILY_LEVEL_BONUS;
-
-            let earned = DAILY_AMOUNT + levelBonus;
-            let bonusMessage = `\n🎖️ **Level Bonus (Level ${memberLevel}):** +₱${levelBonus.toLocaleString()}`;
-            let hasPremiumRole = false;
-
             const activeMarriage = await getActiveMarriage(client, guildId, userId);
-            if (activeMarriage) {
-                earned += 5000;
-                bonusMessage += `\n💍 **Marriage Bonus:** +₱5,000`;
-            }
-
-            if (
+            const hasPremiumRole = Boolean(
                 PREMIUM_ROLE_ID &&
                 interaction.member &&
                 interaction.member.roles.cache.has(PREMIUM_ROLE_ID)
-            ) {
-                const bonusAmount = Math.floor(
-                    earned * PREMIUM_BONUS_PERCENTAGE,
-                );
-                earned += bonusAmount;
-                bonusMessage += `\n✨ **Premium Bonus:** +₱${bonusAmount.toLocaleString()}`;
-                hasPremiumRole = true;
-            }
+            );
 
-            userData.wallet = (userData.wallet || 0) + earned;
-            userData.lastDaily = now;
+            const claim = await withEconomyTransaction(client, guildId, userId, async (accounts) => {
+                const userData = accounts[userId];
+                const lastDaily = Number(userData.lastDaily) || 0;
+                if (now < lastDaily + DAILY_COOLDOWN) {
+                    const timeRemaining = lastDaily + DAILY_COOLDOWN - now;
+                    throw createError(
+                        "Daily cooldown active",
+                        ErrorTypes.RATE_LIMIT,
+                        `You need to wait before claiming daily again. Try again in **${formatDuration(timeRemaining)}**.`,
+                        { timeRemaining, cooldownType: 'daily' }
+                    );
+                }
 
-            const saved = await setEconomyData(client, guildId, userId, userData);
-            if (!saved) {
-                throw createError(
-                    "Failed to save daily reward",
-                    ErrorTypes.DATABASE,
-                    "Your daily reward could not be saved. Please try again later.",
-                    { userId, guildId }
-                );
-            }
+                let earned = DAILY_AMOUNT + levelBonus;
+                let bonusMessage = `\\n🎖️ **Level Bonus (Level ${memberLevel}):** +₱${levelBonus.toLocaleString()}`;
+                if (activeMarriage) {
+                    earned += 5000;
+                    bonusMessage += `\\n💍 **Marriage Bonus:** +₱5,000`;
+                }
+                if (hasPremiumRole) {
+                    const bonusAmount = Math.floor(earned * PREMIUM_BONUS_PERCENTAGE);
+                    earned += bonusAmount;
+                    bonusMessage += `\\n✨ **Premium Bonus:** +₱${bonusAmount.toLocaleString()}`;
+                }
+
+                userData.wallet = (Number(userData.wallet) || 0) + earned;
+                userData.lastDaily = now;
+                return { earned, newWallet: userData.wallet, bonusMessage };
+            });
+            const { earned, newWallet, bonusMessage } = claim;
 
             logger.info(`[ECONOMY_TRANSACTION] Daily claimed`, {
                 userId,
                 guildId,
                 amount: earned,
-                newWallet: userData.wallet,
+                newWallet,
                 hasPremium: hasPremiumRole,
                 timestamp: new Date().toISOString()
             });
@@ -112,7 +89,7 @@ export default {
             )
                 .addFields({
                     name: "New Cash Balance",
-                    value: `₱${userData.wallet.toLocaleString()}`,
+                    value: `₱${newWallet.toLocaleString()}`,
                     inline: true,
                 })
                 .setFooter({
