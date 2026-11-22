@@ -335,3 +335,72 @@ test('failed marriage-record persistence rolls back a successful proposal fee wr
   const marriageData = await client.db.get('guild:' + guildId + ':marriage_system');
   assert.equal(marriageData, null);
 });
+
+
+test('proposal aborts cleanly when the wallet debit write fails', async () => {
+  const store = new Map();
+  const economyKey = 'global:economy:' + memberA;
+  store.set(economyKey, { wallet: 250000, bank: 0 });
+  const client = {
+    db: {
+      isAvailable() { return true; },
+      async get(key, fallback = null) {
+        return store.has(key) ? structuredClone(store.get(key)) : fallback;
+      },
+      async set(key, value) {
+        if (key === economyKey) return false;
+        store.set(key, structuredClone(value));
+        return true;
+      },
+    },
+  };
+
+  const proposal = await createMarriageProposal(client, guildId, memberA, memberB, {
+    validateEligibility: async () => ({ eligible: true, points: 1000 }),
+  });
+  assert.equal(proposal.status, 'payment_failed');
+  assert.equal((await client.db.get(economyKey)).wallet, 250000);
+  assert.equal(await client.db.get('guild:' + guildId + ':marriage_system'), null);
+});
+
+test('failed divorce-record persistence restores the initiator wallet and keeps marriage active', async () => {
+  const store = new Map();
+  let failMarriageWrite = false;
+  const client = {
+    db: {
+      isAvailable() { return true; },
+      async get(key, fallback = null) {
+        return store.has(key) ? structuredClone(store.get(key)) : fallback;
+      },
+      async set(key, value) {
+        if (key.endsWith(':marriage_system') && failMarriageWrite) {
+          failMarriageWrite = false;
+          return false;
+        }
+        store.set(key, structuredClone(value));
+        return true;
+      },
+    },
+  };
+  const economyKey = 'global:economy:' + memberA;
+  store.set(economyKey, { wallet: 250000, bank: 0 });
+  await saveMarriageData(client, guildId, {
+    proposals: {}, history: [], transactions: {}, anniversaryClaims: {},
+    divorceCooldowns: {},
+    marriages: {
+      'divorce-rollback-test': {
+        id: 'divorce-rollback-test', member1Id: memberA, member2Id: memberB,
+        status: 'married', marriedAt: Date.now() - DAY,
+      },
+    },
+  });
+
+  failMarriageWrite = true;
+  await assert.rejects(
+    divorceMarriage(client, guildId, memberA, { confirmed: true }),
+    /Marriage data could not be saved/,
+  );
+  assert.equal((await client.db.get(economyKey)).wallet, 250000);
+  const marriageData = await client.db.get('guild:' + guildId + ':marriage_system');
+  assert.equal(marriageData.marriages['divorce-rollback-test'].status, 'married');
+});
