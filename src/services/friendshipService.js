@@ -27,6 +27,7 @@ function normalize(raw) {
     soulmates: raw?.soulmates && typeof raw.soulmates === 'object' ? raw.soulmates : {},
     history: Array.isArray(raw?.history) ? raw.history : [],
     soulmateCooldowns: raw?.soulmateCooldowns && typeof raw.soulmateCooldowns === 'object' ? raw.soulmateCooldowns : {},
+    blocks: raw?.blocks && typeof raw.blocks === 'object' ? raw.blocks : {},
   };
 }
 const pairKey = (a, b) => [String(a), String(b)].sort().join(':');
@@ -65,6 +66,7 @@ export async function sendFriendRequest(client, guildId, senderId, recipientId, 
   return locked(guildId, async () => {
     const data = await getFriendshipData(client, guildId);
     const pair = pairKey(senderId, recipientId);
+    if (data.blocks[senderId]?.includes(recipientId) || data.blocks[recipientId]?.includes(senderId)) return { status: 'blocked' };
     if (isActiveFriend(data.friendships[pair], senderId, recipientId)) return { status: 'already_friends' };
     if (Object.values(data.requests).some(r => r?.kind !== 'soulmate' && r?.status === 'pending' &&
       ((r.senderId === senderId && r.recipientId === recipientId) ||
@@ -178,6 +180,7 @@ export async function createSoulmateRequest(client, guildId, senderId, recipient
   if (options.isBot) return { status: 'bot_target' };
   return locked(guildId, async () => {
     const data = await getFriendshipData(client, guildId), now = Date.now(), id = pairKey(senderId, recipientId);
+    if (data.blocks[senderId]?.includes(recipientId) || data.blocks[recipientId]?.includes(senderId)) return { status: 'blocked' };
     const points = Number(data.friendships[id]?.points) || 0;
     if (!isActiveFriend(data.friendships[id], senderId, recipientId)) return { status: 'not_friends' };
     if (points < 800) return { status: 'insufficient_points', points, required: 800 };
@@ -202,6 +205,8 @@ export async function resolveSoulmateRequest(client, guildId, requestId, recipie
     if (decision === 'declined') { req.status = 'declined'; req.updatedAt = now; await save(client, guildId, data); return { status: 'declined' }; }
     const id = pairKey(req.senderId, req.recipientId), pair = data.friendships[id];
     if (!isActiveFriend(pair, req.senderId, req.recipientId) || Number(pair.points) < 800) return { status: 'not_eligible' };
+    if ([req.senderId, req.recipientId].some(memberId => now < (Number(data.soulmateCooldowns[memberId]) || 0))) return { status: 'cooldown' };
+    if (data.blocks[req.senderId]?.includes(req.recipientId) || data.blocks[req.recipientId]?.includes(req.senderId)) return { status: 'blocked' };
     if (Object.values(data.soulmates).some(s => s?.status === 'active' && (s.member1Id === req.senderId || s.member2Id === req.senderId || s.member1Id === req.recipientId || s.member2Id === req.recipientId))) return { status: 'already_soulmates' };
     const soulmateId = `soulmate-${now}-${req.senderId}-${req.recipientId}`;
     const soulmate = { id: soulmateId, member1Id: req.senderId, member2Id: req.recipientId, status: 'active', startedAt: now };
@@ -227,3 +232,23 @@ export async function endSoulmate(client, guildId, userId) {
 export const FRIENDSHIP_DAILY_CAP = DAILY_PAIR_CAP;
 export const FRIENDSHIP_REQUEST_TTL = REQUEST_TTL;
 export const SOULMATE_COOLDOWN_MS = SOULMATE_COOLDOWN;
+
+export async function blockFriendshipMember(client, guildId, userId, blockedId) {
+  if (!userId || !blockedId || userId === blockedId) return { status: 'invalid_target' };
+  return locked(guildId, async () => {
+    const data = await getFriendshipData(client, guildId);
+    const list = new Set(Array.isArray(data.blocks[userId]) ? data.blocks[userId] : []);
+    list.add(blockedId);
+    data.blocks[userId] = [...list];
+    await save(client, guildId, data);
+    return { status: 'blocked' };
+  });
+}
+export async function unblockFriendshipMember(client, guildId, userId, blockedId) {
+  return locked(guildId, async () => {
+    const data = await getFriendshipData(client, guildId);
+    data.blocks[userId] = (Array.isArray(data.blocks[userId]) ? data.blocks[userId] : []).filter(id => id !== blockedId);
+    await save(client, guildId, data);
+    return { status: 'unblocked' };
+  });
+}
