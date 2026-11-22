@@ -1010,9 +1010,13 @@ export function registerDashboardRoutes(app, bot) {
         // Restore the pre-clan nickname saved by the AutoNick system.
         const stateKey = 'guild:' + guild.id + ':autonick_member:' + member.id;
         const nicknameState = await getFromDb(stateKey, null);
-        const originalName = typeof nicknameState?.originalNickname === 'string'
+        const savedOrCurrentName = typeof nicknameState?.originalNickname === 'string'
           ? nicknameState.originalNickname
           : (member.nickname || member.user.globalName || member.user.username);
+        const clanTagPrefix = String(clan.tag || '') + ' ';
+        const originalName = savedOrCurrentName.startsWith(clanTagPrefix)
+          ? savedOrCurrentName.slice(clanTagPrefix.length).trim()
+          : savedOrCurrentName;
         const autoNickEntries = await getFromDb('guild:' + guild.id + ':autonick_roles', []);
         const remainingRules = (Array.isArray(autoNickEntries) ? autoNickEntries : [])
           .filter(entry => String(entry.roleId) !== String(role?.id || clan.roleId || clan.id));
