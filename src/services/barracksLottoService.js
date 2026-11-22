@@ -4,13 +4,21 @@ import { getEconomyData, setEconomyData } from '../utils/economy.js';
 
 export const LOTTO_PRICE = 20000;
 export const LOTTO_STARTING_JACKPOT = 1000000;
-const DRAW_INTERVAL = 24 * 60 * 60 * 1000;
+const LOTTO_DRAW_HOUR = 20; // 8:00 PM Philippines time
+const LOTTO_SCHEDULE_VERSION = 2;
+
+function getNextLottoDrawAt(now = Date.now()) {
+  const manilaNow = new Date(now + 8 * 60 * 60 * 1000);
+  let nextManila = Date.UTC(manilaNow.getUTCFullYear(), manilaNow.getUTCMonth(), manilaNow.getUTCDate(), LOTTO_DRAW_HOUR, 0, 0, 0);
+  if (nextManila <= manilaNow.getTime()) nextManila += 24 * 60 * 60 * 1000;
+  return nextManila - 8 * 60 * 60 * 1000;
+}
 const LOTTO_ANNOUNCEMENT_CHANNEL_ID = '1573015325174268015';
 const keyFor = guildId => `guild:${guildId}:barracksLotto`;
 const locks = new Set();
 
 function freshState() {
-  return { tickets: [], jackpot: LOTTO_STARTING_JACKPOT, jackpotBaseInitialized: true, nextDrawAt: Date.now() + DRAW_INTERVAL, totalDraws: 0, winners: [], panel: null, houseTotal: 0 };
+  return { tickets: [], jackpot: LOTTO_STARTING_JACKPOT, jackpotBaseInitialized: true, nextDrawAt: getNextLottoDrawAt(), drawScheduleVersion: LOTTO_SCHEDULE_VERSION, totalDraws: 0, winners: [], panel: null, houseTotal: 0 };
 }
 
 export function buildLottoPanel(state) {
@@ -31,7 +39,7 @@ export function buildLottoPanel(state) {
       { name: '💰 Current Jackpot', value: `₱${Number(state.jackpot || 0).toLocaleString()} bCash`, inline: true },
       { name: '🎫 Ticket Cost', value: `₱${LOTTO_PRICE.toLocaleString()} bCash`, inline: true },
       { name: '🎟️ Total Entries', value: String(state.tickets?.length || 0), inline: true },
-      { name: '⏰ Next Draw', value: `${hours}h ${minutes}m`, inline: true },
+      { name: '⏰ Next Draw', value: `**8:00 PM PHT**\n${hours}h ${minutes}m remaining`, inline: true },
     )
     .setTimestamp();
   if (bannerUrl) embed.setImage(bannerUrl);
@@ -47,11 +55,18 @@ export function buildLottoPanel(state) {
 export async function getLottoState(client, guildId) {
   const stored = await client.db.get(keyFor(guildId), null);
   if (!stored) return freshState();
+  let changed = false;
   if (!stored.jackpotBaseInitialized) {
     stored.jackpot = (Number(stored.jackpot) || 0) + LOTTO_STARTING_JACKPOT;
     stored.jackpotBaseInitialized = true;
-    await client.db.set(keyFor(guildId), stored);
+    changed = true;
   }
+  if (stored.drawScheduleVersion !== LOTTO_SCHEDULE_VERSION) {
+    stored.nextDrawAt = getNextLottoDrawAt();
+    stored.drawScheduleVersion = LOTTO_SCHEDULE_VERSION;
+    changed = true;
+  }
+  if (changed) await client.db.set(keyFor(guildId), stored);
   return stored;
 }
 async function save(client, guildId, state) {
@@ -82,7 +97,7 @@ async function settleDraw(client, guildId, state) {
   state.tickets = [];
   state.jackpot = LOTTO_STARTING_JACKPOT;
   state.jackpotBaseInitialized = true;
-  state.nextDrawAt = Date.now() + DRAW_INTERVAL;
+  state.nextDrawAt = getNextLottoDrawAt();
   await save(client, guildId, state);
 
   // Announce the result in the dedicated Barracks Lotto announcement channel.
@@ -156,7 +171,7 @@ export async function handleLottoButton(interaction, client) {
       const lines = (state.winners || []).map((winner, index) => winner.winnerId ? `**${index + 1}.** <@!${winner.winnerId}> — ₱${Number(winner.prize).toLocaleString()} (${winner.entries} entries)` : `**${index + 1}.** No winner — no entries were submitted.`);
       await interaction.reply({ content: lines.length ? `🏆 **Previous Barracks Lotto Winners**\n${lines.join('\n')}` : 'No previous winners yet, soldier.', ephemeral: true });
     } else if (action === 'info') {
-      await interaction.reply({ content: `🎟️ **Barracks Lotto Rules**\n• Each ticket costs **₱${LOTTO_PRICE.toLocaleString()} bCash**.\n• Click Enter Lotto to buy one ticket.\n• You may enter multiple times.\n• Draw happens every 24 hours.\n• 90% of ticket sales goes into the jackpot; 10% is retained by the house.\n• The winner is selected randomly and paid automatically to their wallet.\n• Entries are final and non-refundable.`, ephemeral: true });
+      await interaction.reply({ content: `🎟️ **Barracks Lotto Rules**\n• Each ticket costs **₱${LOTTO_PRICE.toLocaleString()} bCash**.\n• Click Enter Lotto to buy one ticket.\n• You may enter multiple times.\n• Draw happens daily at **8:00 PM Philippines Time (PHT)**.\n• 90% of ticket sales goes into the jackpot; 10% is retained by the house.\n• The winner is selected randomly and paid automatically to their wallet.\n• Entries are final and non-refundable.`, ephemeral: true });
     }
     return true;
   } catch (error) {
@@ -168,7 +183,7 @@ export async function handleLottoButton(interaction, client) {
 }
 export async function createLottoPanel(message, client) {
   const state = await getLottoState(client, message.guild.id);
-  if (Date.now() >= Number(state.nextDrawAt || 0)) state.nextDrawAt = Date.now() + DRAW_INTERVAL;
+  if (Date.now() >= Number(state.nextDrawAt || 0)) state.nextDrawAt = getNextLottoDrawAt();
   const posted = await message.channel.send(buildLottoPanel(state));
   state.panel = { channelId: posted.channelId, messageId: posted.id };
   await save(client, message.guild.id, state);
