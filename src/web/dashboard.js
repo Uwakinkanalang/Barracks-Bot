@@ -6,6 +6,7 @@ import { getEconomyData, setEconomyData, getMaxBankCapacity } from '../utils/eco
 import { getLevelingConfig, saveLevelingConfig } from '../services/leveling/leveling.js';
 import { getCountingGameConfig, saveCountingGameConfig } from '../services/countingGameService.js';
 import { getCommandAccessSnapshot, disableCommand, enableCommand, isProtectedCommand, isCommandEnabledInConfig } from '../services/commandAccessService.js';
+import { getAllBirthdays } from '../services/birthdayService.js';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
@@ -844,6 +845,41 @@ export function registerDashboardRoutes(app, bot) {
   app.get('/api/dashboard/tickets',async(req,res)=>{const secret=process.env.DASHBOARD_SESSION_SECRET;if(!secret||!validAccessToken(req,secret))return res.status(401).json({error:'Unauthorized'});const guild=bot.guilds.cache.get(DASHBOARD_GUILD_ID);if(!guild)return res.status(503).json({error:'Barracks server is not available.'});const config=await bot.db.get('guild:'+guild.id+':tickets:dashboard-config',{});return res.json({config,roles:guild.roles.cache.filter(x=>x.id!==guild.id&&!x.managed).map(x=>({id:x.id,name:x.name})),channels:guild.channels.cache.map(x=>({id:x.id,name:x.name,type:x.type===4?'category':x.isVoiceBased?.()?'voice':'text'}))});});
   app.put('/api/dashboard/tickets',async(req,res)=>{const secret=process.env.DASHBOARD_SESSION_SECRET;if(!secret||!validAccessToken(req,secret))return res.status(401).json({error:'Unauthorized'});const guild=bot.guilds.cache.get(DASHBOARD_GUILD_ID);if(!guild)return res.status(503).json({error:'Barracks server is not available.'});const b=req.body||{};const prefix=String(b.prefix||'ticket').trim().toLowerCase().replace(/[^a-z0-9-]/g,'-').slice(0,20);if(!prefix||!String(b.title||'').trim()||String(b.title).length>200||String(b.message||'').length>1800)return res.status(400).json({error:'Check ticket prefix, title, and message.'});if(b.categoryId&&guild.channels.cache.get(String(b.categoryId))?.type!==4)return res.status(400).json({error:'Choose a valid category.'});if(b.logChannelId&&!guild.channels.cache.get(String(b.logChannelId))?.isTextBased?.())return res.status(400).json({error:'Choose a valid text log channel.'});if((b.supportRoleIds||[]).some(id=>!guild.roles.cache.has(String(id))))return res.status(400).json({error:'One or more support roles are invalid.'});try{await bot.db.set('guild:'+guild.id+':tickets:dashboard-config',{categoryId:b.categoryId||null,logChannelId:b.logChannelId||null,supportRoleIds:[...(b.supportRoleIds||[])],prefix,title:String(b.title).trim(),message:String(b.message||'').trim()});return res.json({ok:true});}catch(e){return res.status(500).json({error:e.message||'Could not save ticket settings.'});}});
 
+
+  app.get('/api/dashboard/birthdays', async (req, res) => {
+    const guild = requireDashboardGuild(req, res); if (!guild) return;
+    try {
+      const config = await getGuildConfig(bot, guild.id);
+      const entries = await getAllBirthdays(bot, guild.id);
+      const ids = entries.map(entry => entry.userId);
+      const members = ids.length ? await guild.members.fetch({ user: ids }).catch(() => null) : null;
+      const birthdays = entries.filter(entry => !members || members.has(entry.userId)).map(entry => {
+        const member = members?.get(entry.userId);
+        return { userId: entry.userId, username: member?.user?.username || member?.displayName || 'Unknown member',
+          displayName: member?.displayName || member?.user?.username || 'Unknown member',
+          month: entry.month, day: entry.day, monthName: entry.monthName, year: entry.year ?? null };
+      });
+      const channels = guild.channels.cache.filter(channel => channel.isTextBased?.() && !channel.isThread?.())
+        .map(channel => ({ id: channel.id, name: channel.name })).sort((x,y) => x.name.localeCompare(y.name));
+      const roles = guild.roles.cache.filter(role => role.id !== guild.id && !role.managed)
+        .sort((x,y) => y.position - x.position).map(role => ({ id: role.id, name: role.name }));
+      return res.json({ config: { birthdayChannelId: config.birthdayChannelId || null,
+        birthdayRoleId: config.birthdayRoleId === undefined ? '1557466630991388744' : config.birthdayRoleId },
+        birthdays, channels, roles });
+    } catch (error) { return res.status(500).json({ error: error?.message || 'Could not load birthdays.' }); }
+  });
+  app.put('/api/dashboard/birthdays', async (req, res) => {
+    const guild = requireDashboardGuild(req, res); if (!guild) return;
+    const channelId = req.body?.birthdayChannelId ? String(req.body.birthdayChannelId) : null;
+    const roleId = req.body?.birthdayRoleId ? String(req.body.birthdayRoleId) : null;
+    if (channelId) { const channel = guild.channels.cache.get(channelId); if (!channel || !channel.isTextBased?.() || channel.isThread?.()) return res.status(400).json({ error: 'Choose a valid announcement text channel.' }); }
+    if (roleId && (!guild.roles.cache.has(roleId) || roleId === guild.id || guild.roles.cache.get(roleId)?.managed)) return res.status(400).json({ error: 'Choose a valid birthday role.' });
+    try {
+      const saved = await updateGuildConfig(bot, guild.id, { birthdayChannelId: channelId, birthdayRoleId: roleId });
+      if (!saved) return res.status(500).json({ error: 'Could not save birthday settings.' });
+      return res.json({ ok: true, birthdayChannelId: channelId, birthdayRoleId: roleId });
+    } catch (error) { return res.status(500).json({ error: error?.message || 'Could not save birthday settings.' }); }
+  });
 
   // Keep dashboard-created clans in the same registry used by Discord clan commands.
   const clanStorageKey = guildId => 'guild:' + guildId + ':clans';
