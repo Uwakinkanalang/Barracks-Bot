@@ -27,7 +27,7 @@ async function withGuildLock(guildId, callback) {
 
 function normalizeMarriageData(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return { proposals: {}, marriages: {}, history: [], transactions: {}, anniversaryClaims: {} };
+    return { proposals: {}, marriages: {}, history: [], transactions: {}, anniversaryClaims: {}, divorceCooldowns: {} };
   }
 
   return {
@@ -37,6 +37,8 @@ function normalizeMarriageData(value) {
     transactions: value.transactions && typeof value.transactions === 'object' ? value.transactions : {},
     anniversaryClaims: value.anniversaryClaims && typeof value.anniversaryClaims === 'object'
       ? value.anniversaryClaims : {},
+    divorceCooldowns: value.divorceCooldowns && typeof value.divorceCooldowns === 'object'
+      ? value.divorceCooldowns : {},
   };
 }
 
@@ -300,3 +302,97 @@ export async function finalizeMarriageProposal(client, guildId, proposalId, reci
     return { status: 'married', marriage };
   });
 }
+
+
+const DIVORCE_FEE = 100000;
+const DIVORCE_COOLDOWN = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Finalize divorce after an explicit confirmation from the initiating spouse.
+ * The initiator pays 100,000 bCash; both members receive a 7-day remarriage cooldown.
+ */
+export async function divorceMarriage(client, guildId, initiatorId, options = {}) {
+  if (options.confirmed !== true) return { status: 'confirmation_required', fee: DIVORCE_FEE };
+
+  return withGuildLock(guildId, async () => {
+    const data = await getMarriageData(client, guildId);
+    const marriage = Object.values(data.marriages).find((record) =>
+      record?.status === 'married' &&
+      (record.member1Id === initiatorId || record.member2Id === initiatorId)
+    );
+
+    if (!marriage) return { status: 'not_married' };
+
+    const spouseId = marriage.member1Id === initiatorId
+      ? marriage.member2Id
+      : marriage.member1Id;
+
+    const { getEconomyData, setEconomyData } = await import('../utils/economy.js');
+    const economy = await getEconomyData(client, guildId, initiatorId);
+    if (!economy || Number(economy.wallet) < DIVORCE_FEE) {
+      return { status: 'insufficient_funds', required: DIVORCE_FEE };
+    }
+
+    const now = Date.now();
+    const previousWallet = Number(economy.wallet);
+    economy.wallet = previousWallet - DIVORCE_FEE;
+    const paid = await setEconomyData(client, guildId, initiatorId, economy);
+    if (!paid) return { status: 'payment_failed' };
+
+    try {
+      marriage.status = 'divorced';
+      marriage.divorcedAt = now;
+      marriage.divorceInitiatedBy = initiatorId;
+      marriage.divorceFee = DIVORCE_FEE;
+      marriage.durationMs = Math.max(0, now - Number(marriage.marriedAt || now));
+
+      data.divorceCooldowns[initiatorId] = now + DIVORCE_COOLDOWN;
+      data.divorceCooldowns[spouseId] = now + DIVORCE_COOLDOWN;
+      data.transactions[`divorce-${marriage.id}-${now}`] = {
+        type: 'divorce_fee',
+        userId: initiatorId,
+        spouseId,
+        marriageId: marriage.id,
+        amount: DIVORCE_FEE,
+        createdAt: now,
+      };
+      data.history.push({
+        type: 'divorce',
+        marriageId: marriage.id,
+        member1Id: marriage.member1Id,
+        member2Id: marriage.member2Id,
+        initiatedBy: initiatorId,
+        divorcedAt: now,
+        durationMs: marriage.durationMs,
+        fee: DIVORCE_FEE,
+      });
+      await saveMarriageData(client, guildId, data);
+    } catch (error) {
+      economy.wallet = previousWallet;
+      await setEconomyData(client, guildId, initiatorId, economy);
+      throw error;
+    }
+
+    return {
+      status: 'divorced',
+      marriage,
+      initiatorId,
+      spouseId,
+      fee: DIVORCE_FEE,
+      cooldownUntil: now + DIVORCE_COOLDOWN,
+    };
+  });
+}
+
+export async function getMarriageCooldown(client, guildId, userId) {
+  const data = await getMarriageData(client, guildId);
+  const cooldownUntil = Number(data.divorceCooldowns[userId]) || 0;
+  return {
+    onCooldown: Date.now() < cooldownUntil,
+    cooldownUntil,
+    remaining: Math.max(0, cooldownUntil - Date.now()),
+  };
+}
+
+export const MARRIAGE_DIVORCE_FEE = DIVORCE_FEE;
+export const MARRIAGE_DIVORCE_COOLDOWN = DIVORCE_COOLDOWN;
