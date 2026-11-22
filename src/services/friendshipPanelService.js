@@ -130,18 +130,41 @@ export async function handleFriendshipInteraction(interaction, client) {
   }
   if (id === 'friendship:requests') {
     const data = await getFriendshipData(client, guildId);
-    const incoming = Object.values(data.requests).filter(r => r?.kind !== 'soulmate' && r?.status === 'pending' && r.recipientId === userId);
-    const outgoing = Object.values(data.requests).filter(r => r?.kind !== 'soulmate' && r?.status === 'pending' && r.senderId === userId);
+    const now = Date.now();
+    const pending = Object.values(data.requests).filter(r => r?.status === 'pending' && Number(r.expiresAt) > now);
+    const incoming = pending.filter(r => r?.kind !== 'soulmate' && r.recipientId === userId);
+    const outgoing = pending.filter(r => r?.kind !== 'soulmate' && r.senderId === userId);
+    const soulmateIncoming = pending.filter(r => r?.kind === 'soulmate' && r.recipientId === userId);
+    const soulmateOutgoing = pending.filter(r => r?.kind === 'soulmate' && r.senderId === userId);
     const text = [
-      '**Incoming**',
-      ...(incoming.slice(0, 10).map(r => '• <@' + r.senderId + '> — expires <t:' + Math.floor(r.expiresAt / 1000) + ':R>')),
-      '**Outgoing**',
+      '**Friendship Requests — Incoming**',
+      ...(incoming.slice(0, 5).map(r => '• <@' + r.senderId + '> — expires <t:' + Math.floor(r.expiresAt / 1000) + ':R>')),
+      '**Friendship Requests — Outgoing**',
       ...(outgoing.slice(0, 5).map(r => '• <@' + r.recipientId + '> — expires <t:' + Math.floor(r.expiresAt / 1000) + ':R>')),
+      '**Soulmate Requests — Incoming**',
+      ...(soulmateIncoming.slice(0, 5).map(r => '• <@' + r.senderId + '> — expires <t:' + Math.floor(r.expiresAt / 1000) + ':R>')),
+      '**Soulmate Requests — Outgoing**',
+      ...(soulmateOutgoing.slice(0, 5).map(r => '• <@' + r.recipientId + '> — expires <t:' + Math.floor(r.expiresAt / 1000) + ':R>')),
     ].join('\n');
-    const cancelRow = outgoing.length ? new ActionRowBuilder().addComponents(
-      ...outgoing.slice(0, 5).map(r => new ButtonBuilder().setCustomId('friendship:cancel:' + r.id).setLabel('Cancel → ' + String(r.recipientId).slice(-4)).setStyle(ButtonStyle.Secondary))
-    ) : null;
-    return interaction.reply({ content: text, components: cancelRow ? [cancelRow] : [], ...ephemeral });
+    const components = [];
+    for (const req of incoming.slice(0, 5)) {
+      components.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('friendship:accept:' + req.id).setLabel('Accept Friend').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('friendship:decline:' + req.id).setLabel('Decline').setStyle(ButtonStyle.Danger),
+      ));
+    }
+    for (const req of soulmateIncoming.slice(0, 5 - components.length)) {
+      components.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('friendship:soulmate-accept:' + req.id).setLabel('Accept Soulmate').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('friendship:soulmate-decline:' + req.id).setLabel('Decline').setStyle(ButtonStyle.Danger),
+      ));
+    }
+    if (outgoing.length) {
+      components.push(new ActionRowBuilder().addComponents(
+        ...outgoing.slice(0, 5).map(r => new ButtonBuilder().setCustomId('friendship:cancel:' + r.id).setLabel('Cancel → ' + String(r.recipientId).slice(-4)).setStyle(ButtonStyle.Secondary))
+      ));
+    }
+    return interaction.reply({ content: text, components, ...ephemeral });
   }
   if (id === 'friendship:soulmate') {
     const soulmate = await getActiveSoulmate(client, guildId, userId);
