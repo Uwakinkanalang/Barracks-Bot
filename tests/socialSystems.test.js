@@ -591,3 +591,26 @@ test('wager recovery rejects missing audit reason and unknown actions', async ()
     /staff actor, reason, and valid recovery action are required/,
   );
 });
+
+
+test('recovered wagers cannot later settle or be accessed from another guild', async () => {
+  const client = makeClient();
+  const userId = '400000000000000005';
+  const key = 'global:economy:' + userId;
+  await client.db.set(key, { wallet: 700, bank: 0, inventory: {}, cooldowns: {} });
+  await startEconomyWager(client, guildId, userId, 'recovered-game-2', 300);
+
+  await assert.rejects(
+    settleEconomyWager(client, 'another-guild', userId, 'recovered-game-2', 900),
+    /No reserved wager exists for this game in this server/,
+  );
+  const recovery = await recoverEconomyWager(client, guildId, userId, 'recovered-game-2', {
+    action: 'refund', actorId: '500000000000000001', reason: 'Abandoned game after restart.',
+  });
+  assert.equal(recovery.recovered, true);
+
+  const lateSettlement = await settleEconomyWager(client, guildId, userId, 'recovered-game-2', 900);
+  assert.equal(lateSettlement.settled, false);
+  assert.equal(lateSettlement.status, 'refunded');
+  assert.equal((await client.db.get(key)).wallet, 1000);
+});
