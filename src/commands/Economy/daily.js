@@ -87,7 +87,15 @@ export default {
             userData.wallet = (userData.wallet || 0) + earned;
             userData.lastDaily = now;
 
-            await setEconomyData(client, guildId, userId, userData);
+            const saved = await setEconomyData(client, guildId, userId, userData);
+            if (!saved) {
+                throw createError(
+                    "Failed to save daily reward",
+                    ErrorTypes.DATABASE,
+                    "Your daily reward could not be saved. Please try again later.",
+                    { userId, guildId }
+                );
+            }
 
             logger.info(`[ECONOMY_TRANSACTION] Daily claimed`, {
                 userId,
