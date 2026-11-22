@@ -374,46 +374,30 @@ export function formatShopItem(item, index) {
 export const addMoney = wrapServiceBoundary(async function addMoney(client, guildId, userId, amount, type = 'wallet') {
     const validAmount = validateNumber(amount, 'amount');
     if (validAmount === null || validAmount <= 0) {
-        throw createError(
-            'Invalid amount',
-            ErrorTypes.VALIDATION,
-            'Amount must be a positive number.',
-            { guildId, userId, amount, operation: 'addMoney' }
-        );
+        throw createError('Invalid amount', ErrorTypes.VALIDATION, 'Amount must be a positive number.', { guildId, userId, amount, operation: 'addMoney' });
     }
-
     if (type !== 'wallet' && type !== 'bank') {
-        throw createError(
-            'Invalid money type',
-            ErrorTypes.VALIDATION,
-            'Type must be "wallet" or "bank".',
-            { guildId, userId, type, operation: 'addMoney' }
-        );
+        throw createError('Invalid money type', ErrorTypes.VALIDATION, 'Type must be "wallet" or "bank".', { guildId, userId, type, operation: 'addMoney' });
     }
 
-    const userData = await getEconomyData(client, guildId, userId);
-
-    if (type === 'bank') {
-        const maxBank = getMaxBankCapacity(userData);
-        if ((userData.bank || 0) + validAmount > maxBank) {
-            throw createError(
-                'Bank capacity exceeded',
-                ErrorTypes.VALIDATION,
-                `Bank capacity exceeded. Current: ${userData.bank || 0}, Max: ${maxBank}.`,
-                { guildId, userId, current: userData.bank || 0, max: maxBank, operation: 'addMoney' }
-            );
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const userData = accounts[userId];
+        if (type === 'bank') {
+            const maxBank = getMaxBankCapacity(userData);
+            if ((userData.bank || 0) + validAmount > maxBank) {
+                throw createError('Bank capacity exceeded', ErrorTypes.VALIDATION,
+                    `Bank capacity exceeded. Current: ${userData.bank || 0}, Max: ${maxBank}.`,
+                    { guildId, userId, current: userData.bank || 0, max: maxBank, operation: 'addMoney' });
+            }
+            userData.bank = (userData.bank || 0) + validAmount;
+        } else {
+            userData.wallet = (userData.wallet || 0) + validAmount;
         }
-        userData.bank = (userData.bank || 0) + validAmount;
-    } else {
-        userData.wallet = (userData.wallet || 0) + validAmount;
-    }
-
-    await setEconomyData(client, guildId, userId, userData);
-
-    return {
-        newBalance: type === 'bank' ? userData.bank : userData.wallet,
-        ...(type === 'bank' ? { maxBank: getMaxBankCapacity(userData) } : {}),
-    };
+        return {
+            newBalance: type === 'bank' ? userData.bank : userData.wallet,
+            ...(type === 'bank' ? { maxBank: getMaxBankCapacity(userData) } : {}),
+        };
+    });
 }, {
     service: 'economy',
     operation: 'addMoney',
@@ -423,52 +407,27 @@ export const addMoney = wrapServiceBoundary(async function addMoney(client, guil
 export const removeMoney = wrapServiceBoundary(async function removeMoney(client, guildId, userId, amount, type = 'wallet') {
     const validAmount = validateNumber(amount, 'amount');
     if (validAmount === null || validAmount <= 0) {
-        throw createError(
-            'Invalid amount',
-            ErrorTypes.VALIDATION,
-            'Amount must be a positive number.',
-            { guildId, userId, amount, operation: 'removeMoney' }
-        );
+        throw createError('Invalid amount', ErrorTypes.VALIDATION, 'Amount must be a positive number.', { guildId, userId, amount, operation: 'removeMoney' });
     }
-
     if (type !== 'wallet' && type !== 'bank') {
-        throw createError(
-            'Invalid money type',
-            ErrorTypes.VALIDATION,
-            'Type must be "wallet" or "bank".',
-            { guildId, userId, type, operation: 'removeMoney' }
-        );
+        throw createError('Invalid money type', ErrorTypes.VALIDATION, 'Type must be "wallet" or "bank".', { guildId, userId, type, operation: 'removeMoney' });
     }
 
-    const userData = await getEconomyData(client, guildId, userId);
-
-    if (type === 'bank') {
-        if ((userData.bank || 0) < validAmount) {
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const userData = accounts[userId];
+        const current = Number(userData[type]) || 0;
+        if (current < validAmount) {
+            const label = type === 'bank' ? 'bank' : 'wallet';
             throw createError(
-                'Insufficient bank funds',
+                type === 'bank' ? 'Insufficient bank funds' : 'Insufficient wallet funds',
                 ErrorTypes.VALIDATION,
-                `Insufficient funds in bank. You have ${userData.bank || 0}, need ${validAmount}.`,
-                { guildId, userId, current: userData.bank || 0, required: validAmount, operation: 'removeMoney' }
+                `Insufficient funds in ${label}. You have ${current}, need ${validAmount}.`,
+                { guildId, userId, current, required: validAmount, operation: 'removeMoney' }
             );
         }
-        userData.bank = (userData.bank || 0) - validAmount;
-    } else {
-        if ((userData.wallet || 0) < validAmount) {
-            throw createError(
-                'Insufficient wallet funds',
-                ErrorTypes.VALIDATION,
-                `Insufficient funds in wallet. You have ${userData.wallet || 0}, need ${validAmount}.`,
-                { guildId, userId, current: userData.wallet || 0, required: validAmount, operation: 'removeMoney' }
-            );
-        }
-        userData.wallet = (userData.wallet || 0) - validAmount;
-    }
-
-    await setEconomyData(client, guildId, userId, userData);
-
-    return {
-        newBalance: type === 'bank' ? userData.bank : userData.wallet,
-    };
+        userData[type] = current - validAmount;
+        return { newBalance: userData[type] };
+    });
 }, {
     service: 'economy',
     operation: 'removeMoney',
