@@ -19,6 +19,12 @@ export default {
     )
     .addSubcommand(subcommand =>
       subcommand
+        .setName('memberpanel')
+        .setDescription('Post the separate panel for approved clan members')
+        .addChannelOption(option => option.setName('channel').setDescription('Channel where the Member Panel will be posted').addChannelTypes(ChannelType.GuildText).setRequired(true))
+    )
+    .addSubcommand(subcommand =>
+      subcommand
         .setName('setapproverole')
         .setDescription('Set the role allowed to approve or reject clan registrations')
         .addRoleOption(option =>
@@ -155,6 +161,35 @@ export default {
       );
       await channel.send({ embeds: [panelEmbed], components: [row1, row2] });
       return interaction.reply({ content: `✅ Clan Leader Panel posted in <#${channel.id}>. Only your approved clan's Leader and Vice Leader can use it.`, flags: MessageFlags.Ephemeral });
+    }
+
+    if (subcommand === 'memberpanel') {
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+        return interaction.reply({ content: 'You need the **Manage Server** permission to post the Clan Member Panel.', flags: MessageFlags.Ephemeral });
+      }
+      const channel = interaction.options.getChannel('channel', true);
+      if (!channel.isTextBased() || !channel.send) {
+        return interaction.reply({ content: 'Choose a text channel where the bot can send messages.', flags: MessageFlags.Ephemeral });
+      }
+      const panelEmbed = new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setTitle('🛡️ BARRACKS • CLAN MEMBER PANEL')
+        .setDescription('Your squad information hub. Members of an approved clan can use these buttons to check their clan details, roster, shared bank balance, and rules.')
+        .addFields(
+          { name: '🏰 Clan Details', value: 'View your clan information.', inline: true },
+          { name: '👥 Clan Members', value: 'See who is in your squad.', inline: true },
+          { name: '🏦 Clan Bank', value: 'Check your clan’s shared funds.', inline: true },
+          { name: '📜 Clan Rules', value: 'Review the rules of your squad.', inline: true }
+        )
+        .setFooter({ text: 'Barracks • Member Command Post' });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('clan:member:details').setLabel('Clan Details').setEmoji('🏰').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('clan:member:members').setLabel('Members').setEmoji('👥').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('clan:member:bank').setLabel('Clan Bank').setEmoji('🏦').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('clan:member:rules').setLabel('Clan Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary)
+      );
+      await channel.send({ embeds: [panelEmbed], components: [row] });
+      return interaction.reply({ content: `✅ Clan Member Panel posted in <#${channel.id}>. Any member of an approved clan can use it.`, flags: MessageFlags.Ephemeral });
     }
 
     if (subcommand === 'leave') {
