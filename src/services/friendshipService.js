@@ -247,6 +247,21 @@ export async function endSoulmate(client, guildId, userId) {
     return { status: 'ended', soulmate, cooldownUntil: now + SOULMATE_COOLDOWN };
   });
 }
+export async function expireFriendshipRequests(client, guildId, now = Date.now()) {
+  return locked(guildId, async () => {
+    const data = await getFriendshipData(client, guildId);
+    const expired = [];
+    for (const request of Object.values(data.requests)) {
+      if (request?.status !== 'pending' || Number(request.expiresAt) > now) continue;
+      request.status = 'expired';
+      request.updatedAt = now;
+      expired.push(request.id);
+    }
+    if (expired.length) await save(client, guildId, data);
+    return expired.length;
+  });
+}
+
 export const FRIENDSHIP_DAILY_CAP = DAILY_PAIR_CAP;
 export const FRIENDSHIP_REQUEST_TTL = REQUEST_TTL;
 export const SOULMATE_COOLDOWN_MS = SOULMATE_COOLDOWN;
