@@ -7,6 +7,13 @@ const DAY = 24 * 60 * 60 * 1000;
 const REQUEST_TTL = 7 * DAY;
 const SOULMATE_COOLDOWN = 7 * DAY;
 const DAILY_PAIR_CAP = 30;
+const manilaDayKey = timestamp => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date(timestamp));
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+};
 const locks = new Map();
 
 async function locked(guildId, fn) {
@@ -135,7 +142,7 @@ export async function awardFriendshipPoints(client, guildId, a, b, amount, optio
     const data = await getFriendshipData(client, guildId), id = pairKey(a, b), pair = data.friendships[id];
     if (!isActiveFriend(pair, a, b)) return { status: 'not_friends' };
     if (data.blocks[a]?.includes(b) || data.blocks[b]?.includes(a)) return { status: 'blocked' };
-    const now = Number(options.now) || Date.now(), day = new Date(now).toISOString().slice(0, 10);
+    const now = Number(options.now) || Date.now(), day = manilaDayKey(now);
     pair.activity ||= {};
     const activity = pair.activity[day] ||= { points: 0, keys: [] };
     activity.keys ||= [];
@@ -156,7 +163,7 @@ export async function claimFriendshipDailyBonus(client, guildId, a, b, now = Dat
     if (!isActiveFriend(pair, a, b)) return { status: 'not_friends' };
     if (data.blocks[a]?.includes(b) || data.blocks[b]?.includes(a)) return { status: 'blocked' };
     pair.dailyClaims ||= {};
-    const day = new Date(now).toISOString().slice(0, 10);
+    const day = manilaDayKey(now);
     if (pair.dailyClaims[day]) return { status: 'already_claimed' };
     const activity = pair.activity?.[day] || { points: 0 };
     const granted = Math.min(5, Math.max(0, DAILY_PAIR_CAP - (Number(activity.points) || 0)));
