@@ -1,8 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { successEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { getUserLevelData } from '../../services/leveling/leveling.js';
-import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { formatDuration } from '../../utils/embeds.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
@@ -10,102 +9,145 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { botConfig } from '../../config/bot.js';
 
 const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
-const DAILY_AMOUNT = botConfig.economy?.dailyAmount ?? 1000;
+const STREAK_GRACE_PERIOD = DAILY_COOLDOWN * 2;
+const DAILY_AMOUNT = botConfig.economy?.dailyAmount ?? 5000;
 const DAILY_LEVEL_BONUS = botConfig.economy?.dailyLevelBonus ?? 100;
-const PREMIUM_BONUS_PERCENTAGE = 0.1;
+
+const STREAK_REWARDS = [
+    { day: 1, reward: 100 },
+    { day: 2, reward: 200 },
+    { day: 3, reward: 500 },
+    { day: 4, reward: 700 },
+    { day: 5, reward: 1000 },
+    { day: 6, reward: 1500 },
+    { day: 7, reward: 2000 },
+    { day: 14, reward: 3000 },
+    { day: 30, reward: 5000 },
+    { day: 60, reward: 7500 },
+    { day: 100, reward: 10000 },
+];
+
+function getStreakReward(streak) {
+    return STREAK_REWARDS.reduce(
+        (reward, milestone) => streak >= milestone.day ? milestone.reward : reward,
+        0,
+    );
+}
+
+function getNextStreakMilestone(streak) {
+    return STREAK_REWARDS.find((milestone) => milestone.day > streak) || null;
+}
 
 export default {
     prefixOnly: true,
     data: new SlashCommandBuilder()
         .setName('daily')
-        .setDescription('Claim your daily cash reward'),
+        .setDescription('Claim your daily bCash reward'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
-            
-            const userId = interaction.user.id;
-            const guildId = interaction.guildId;
-            const now = Date.now();
 
-            logger.debug(`[ECONOMY] Daily claimed started for ${userId}`, { userId, guildId });
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+        const now = Date.now();
 
-            const userData = await getEconomyData(client, guildId, userId);
-            
-            if (!userData) {
-                throw createError(
-                    "Failed to load economy data for daily",
-                    ErrorTypes.DATABASE,
-                    "Failed to load your economy data. Please try again later.",
-                    { userId, guildId }
-                );
-            }
-            
-            const lastDaily = userData.lastDaily || 0;
+        logger.debug(`[ECONOMY] Daily claim started for ${userId}`, { userId, guildId });
 
-            if (now < lastDaily + DAILY_COOLDOWN) {
-                const timeRemaining = lastDaily + DAILY_COOLDOWN - now;
-                throw createError(
-                    "Daily cooldown active",
-                    ErrorTypes.RATE_LIMIT,
-                    `You need to wait before claiming daily again. Try again in **${formatDuration(timeRemaining)}**.`,
-                    { timeRemaining, cooldownType: 'daily' }
-                );
-            }
+        const userData = await getEconomyData(client, guildId, userId);
+        if (!userData) {
+            throw createError(
+                'Failed to load economy data for daily',
+                ErrorTypes.DATABASE,
+                'Failed to load your economy data. Please try again later.',
+                { userId, guildId },
+            );
+        }
 
-            const guildConfig = await getGuildConfig(client, guildId);
-            const PREMIUM_ROLE_ID = guildConfig.premiumRoleId;
+        const lastDaily = Number(userData.lastDaily) || 0;
+        if (now < lastDaily + DAILY_COOLDOWN) {
+            const timeRemaining = lastDaily + DAILY_COOLDOWN - now;
+            throw createError(
+                'Daily cooldown active',
+                ErrorTypes.RATE_LIMIT,
+                `You need to wait before claiming daily again. Try again in **${formatDuration(timeRemaining)}**.`,
+                { timeRemaining, cooldownType: 'daily' },
+            );
+        }
 
-            const levelData = await getUserLevelData(client, guildId, userId);
-            const memberLevel = Math.max(0, Number(levelData?.level) || 0);
-            const levelBonus = memberLevel * DAILY_LEVEL_BONUS;
+        const previousStreak = Math.max(0, Number(userData.dailyStreak) || 0);
+        const elapsedSinceLastClaim = lastDaily > 0 ? now - lastDaily : 0;
+        const dailyStreak = lastDaily === 0 || elapsedSinceLastClaim > STREAK_GRACE_PERIOD
+            ? 1
+            : previousStreak + 1;
+        const streakBonus = getStreakReward(dailyStreak);
 
-            let earned = DAILY_AMOUNT + levelBonus;
-            let bonusMessage = `\n🎖️ **Level Bonus (Level ${memberLevel}):** +₱${levelBonus.toLocaleString()}`;
-            let hasPremiumRole = false;
+        const levelData = await getUserLevelData(client, guildId, userId);
+        const memberLevel = Math.max(0, Number(levelData?.level) || 0);
+        const baseSalary = DAILY_AMOUNT + (memberLevel * DAILY_LEVEL_BONUS);
 
-            if (
-                PREMIUM_ROLE_ID &&
-                interaction.member &&
-                interaction.member.roles.cache.has(PREMIUM_ROLE_ID)
-            ) {
-                const bonusAmount = Math.floor(
-                    earned * PREMIUM_BONUS_PERCENTAGE,
-                );
-                earned += bonusAmount;
-                bonusMessage += `\n✨ **Premium Bonus:** +₱${bonusAmount.toLocaleString()}`;
-                hasPremiumRole = true;
-            }
+        const boosterRoleId = botConfig.economy?.boosterRoleId;
+        const vipRoleId = botConfig.economy?.vipRoleId;
+        const memberRoles = interaction.member?.roles?.cache;
+        const hasVipRole = Boolean(vipRoleId && memberRoles?.has(vipRoleId));
+        const hasBoosterRole = Boolean(boosterRoleId && memberRoles?.has(boosterRoleId));
 
-            userData.wallet = (userData.wallet || 0) + earned;
-            userData.lastDaily = now;
+        // VIP takes priority. Role bonuses never stack.
+        const roleBonusRate = hasVipRole ? 0.30 : hasBoosterRole ? 0.20 : 0;
+        const roleBonus = Math.floor(baseSalary * roleBonusRate);
+        const earned = baseSalary + roleBonus + streakBonus;
 
-            await setEconomyData(client, guildId, userId, userData);
+        userData.wallet = (userData.wallet || 0) + earned;
+        userData.lastDaily = now;
+        userData.dailyStreak = dailyStreak;
 
-            logger.info(`[ECONOMY_TRANSACTION] Daily claimed`, {
-                userId,
-                guildId,
-                amount: earned,
-                newWallet: userData.wallet,
-                hasPremium: hasPremiumRole,
-                timestamp: new Date().toISOString()
+        const saved = await setEconomyData(client, guildId, userId, userData);
+        if (!saved) {
+            throw createError(
+                'Failed to save daily reward',
+                ErrorTypes.DATABASE,
+                'Your daily reward could not be saved. Please try again later.',
+                { userId, guildId },
+            );
+        }
+
+        const nextMilestone = getNextStreakMilestone(dailyStreak);
+        const bonusLines = [
+            `\n🎖️ **Level Bonus (Level ${memberLevel}):** +${(memberLevel * DAILY_LEVEL_BONUS).toLocaleString()} bCash`,
+            roleBonusRate > 0
+                ? `\n${hasVipRole ? '💎 **VIP Bonus (+30%)**' : '🚀 **Booster Bonus (+20%)**'}: +${roleBonus.toLocaleString()} bCash`
+                : null,
+            `\n🔥 **Daily Streak (Day ${dailyStreak}):** +${streakBonus.toLocaleString()} bCash`,
+            nextMilestone
+                ? `\n🎯 **Next Milestone:** Day ${nextMilestone.day} — ${nextMilestone.reward.toLocaleString()} bCash streak bonus`
+                : '\n🏆 **Maximum streak reward reached!**',
+        ].filter(Boolean).join('');
+
+        logger.info('[ECONOMY_TRANSACTION] Daily claimed', {
+            userId,
+            guildId,
+            amount: earned,
+            baseSalary,
+            roleBonus,
+            streakBonus,
+            dailyStreak,
+            newWallet: userData.wallet,
+            timestamp: new Date().toISOString(),
+        });
+
+        const embed = successEmbed(
+            '✅ Daily Claimed!',
+            `You received **${earned.toLocaleString()} bCash**!${bonusLines}`,
+        )
+            .addFields({
+                name: 'New bCash Balance',
+                value: `${userData.wallet.toLocaleString()} bCash`,
+                inline: true,
+            })
+            .setFooter({
+                text: 'Next claim in 24 hours. Keep your streak alive!',
             });
 
-            const embed = successEmbed(
-                "✅ Daily Claimed!",
-                `You have claimed your daily **₱${earned.toLocaleString()}**!${bonusMessage}`
-            )
-                .addFields({
-                    name: "New Cash Balance",
-                    value: `₱${userData.wallet.toLocaleString()}`,
-                    inline: true,
-                })
-                .setFooter({
-                    text: hasPremiumRole
-                        ? `Next claim in 24 hours. (Premium Active)`
-                        : `Next claim in 24 hours.`,
-                });
-
-            await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
-    }, { command: 'daily' })
+        await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+    }, { command: 'daily' }),
 };
