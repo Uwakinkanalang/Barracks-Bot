@@ -281,6 +281,71 @@ export async function withEconomyTransaction(client, guildId, userIds, callback)
     });
 }
 
+/**
+ * Reserve a wager once and record a durable pending receipt on the player's account.
+ * The receipt makes later payout/refund settlement idempotent across retries.
+ */
+export async function startEconomyWager(client, guildId, userId, gameId, amount) {
+    const wager = Number(amount);
+    const receiptId = String(gameId || '').trim();
+    if (!receiptId || !Number.isSafeInteger(wager) || wager <= 0) {
+        throw new Error('A valid game ID and positive whole-number wager are required.');
+    }
+
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const account = accounts[String(userId)];
+        account.economyGameTransactions ||= {};
+        const existing = account.economyGameTransactions[receiptId];
+        if (existing) {
+            if (existing.amount !== wager) throw new Error('Game receipt already exists with a different wager.');
+            return { started: false, status: existing.status, wallet: Number(account.wallet) || 0 };
+        }
+        const wallet = Math.max(0, Number(account.wallet) || 0);
+        if (wallet < wager) throw new Error('Insufficient bCash for this wager.');
+        account.wallet = wallet - wager;
+        account.economyGameTransactions[receiptId] = {
+            amount: wager,
+            payout: 0,
+            status: 'pending',
+            createdAt: Date.now(),
+        };
+        return { started: true, status: 'pending', wallet: account.wallet };
+    });
+}
+
+/**
+ * Settle a previously reserved wager exactly once. payout is the total amount
+ * returned to the wallet (0 for loss, bet for refund/tie, or winnings payout).
+ */
+export async function settleEconomyWager(client, guildId, userId, gameId, payout) {
+    const receiptId = String(gameId || '').trim();
+    const amount = Number(payout);
+    if (!receiptId || !Number.isSafeInteger(amount) || amount < 0) {
+        throw new Error('A valid game ID and non-negative whole-number payout are required.');
+    }
+
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const account = accounts[String(userId)];
+        account.economyGameTransactions ||= {};
+        const receipt = account.economyGameTransactions[receiptId];
+        if (!receipt) throw new Error('No reserved wager exists for this game.');
+        if (receipt.status === 'settled') {
+            return { settled: false, wallet: Number(account.wallet) || 0, payout: receipt.payout };
+        }
+        account.wallet = (Number(account.wallet) || 0) + amount;
+        receipt.status = 'settled';
+        receipt.payout = amount;
+        receipt.settledAt = Date.now();
+        const entries = Object.entries(account.economyGameTransactions);
+        if (entries.length > 200) {
+            for (const [key, value] of entries.sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0)).slice(0, entries.length - 200)) {
+                if (value.status === 'settled') delete account.economyGameTransactions[key];
+            }
+        }
+        return { settled: true, wallet: account.wallet, payout: amount };
+    });
+}
+
 export async function updateBalance(client, guildId, userId, options = {}) {
     return withEconomyTransaction(client, guildId, userId, async (accounts) => {
         const data = accounts[userId];
