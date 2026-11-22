@@ -20,7 +20,8 @@ async function locked(client, guildId, fn) {
   // PostgreSQL advisory locking serializes relationship mutations across every
   // bot process. The in-process queue remains the safe fallback for test and
   // explicitly degraded in-memory environments.
-  if (typeof client?.db?.withKeyValueTransaction === 'function') {
+  if (typeof client?.db?.withKeyValueTransaction === 'function' &&
+    (typeof client.db.isAvailable !== 'function' || client.db.isAvailable())) {
     return client.db.withKeyValueTransaction(async (transaction) => {
       // Acquire the guild relationship key lock before reading the snapshot.
       await transaction.get(keyFor(guildId), null);
