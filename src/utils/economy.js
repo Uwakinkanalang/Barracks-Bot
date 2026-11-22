@@ -476,13 +476,14 @@ export async function recoverEconomyWager(client, guildId, userId, gameId, optio
         receipt.settledAt = Date.now();
         const recoveredAt = Date.now();
         receipt.recovery = { actorId, reason, action, recoveredAt };
-        account.economyWagerRecoveryAudit ||= [];
-        account.economyWagerRecoveryAudit.push({
+        const previousAudit = Array.isArray(account.economyWagerRecoveryAudit)
+            ? account.economyWagerRecoveryAudit
+            : [];
+        // Keep the newest 100 records in the persisted account independently of wager receipts.
+        account.economyWagerRecoveryAudit = previousAudit.concat({
             gameId: String(gameId), guildId: String(guildId), amount,
             action, actorId, reason, recoveredAt, status: receipt.status,
-        });
-        // Bounded independent audit history survives game-receipt pruning.
-        account.economyWagerRecoveryAudit = account.economyWagerRecoveryAudit.slice(-100);
+        }).slice(-100);
         return {
             recovered: true, status: receipt.status,
             userId: String(userId), gameId: String(gameId),
