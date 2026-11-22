@@ -1006,6 +1006,34 @@ export function registerDashboardRoutes(app, bot) {
           if (!member.manageable) throw new Error('Cannot remove the clan role from ' + member.user.tag + '. Move the bot role above that member and retry.');
           await member.roles.remove(role, 'Clan deleted from Barracks dashboard');
         }
+
+        // Restore the pre-clan nickname saved by the AutoNick system.
+        const stateKey = 'guild:' + guild.id + ':autonick_member:' + member.id;
+        const nicknameState = await getFromDb(stateKey, null);
+        const originalName = typeof nicknameState?.originalNickname === 'string'
+          ? nicknameState.originalNickname
+          : (member.nickname || member.user.globalName || member.user.username);
+        const autoNickEntries = await getFromDb('guild:' + guild.id + ':autonick_roles', []);
+        const remainingRules = (Array.isArray(autoNickEntries) ? autoNickEntries : [])
+          .filter(entry => String(entry.roleId) !== String(role?.id || clan.roleId || clan.id));
+        const activeRule = remainingRules
+          .filter(entry => member.roles.cache.has(String(entry.roleId)))
+          .sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0))[0];
+        let restoredName = originalName;
+        if (activeRule) {
+          const template = typeof activeRule.format === 'string' && activeRule.format.includes('{username}')
+            ? activeRule.format
+            : `${String(activeRule.prefix || '').trim()} {username}`;
+          restoredName = template
+            .replace(/\bTAG\b/gi, String(activeRule.tag || ''))
+            .replace(/\{username\}/gi, originalName)
+            .replace(/\s+/g, ' ')
+            .trim();
+        }
+        if (member.nickname !== restoredName) {
+          await member.setNickname(restoredName.slice(0, 32) || null, 'Restore nickname after clan deletion');
+        }
+        await setInDb(stateKey, null);
       }
 
       for (const channel of [...channels, ...(category ? [category] : [])]) {
