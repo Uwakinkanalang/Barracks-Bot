@@ -11,6 +11,12 @@ const PROPOSAL_TTL = 7 * 24 * 60 * 60 * 1000;
 const REPROPOSAL_COOLDOWN = 7 * 24 * 60 * 60 * 1000;
 const guildLocks = new Map();
 
+// Fee and reward transactions must never run against the in-memory fallback.
+// A fallback write can look successful but is lost when the bot restarts.
+function hasDurableStorage(client) {
+  return typeof client?.db?.isAvailable !== 'function' || client.db.isAvailable();
+}
+
 async function withGuildLock(guildId, callback) {
   const previous = guildLocks.get(guildId) || Promise.resolve();
   let release;
@@ -149,6 +155,7 @@ export async function createMarriageProposal(client, guildId, proposerId, recipi
   if (typeof options.validateEligibility !== 'function') {
     return { status: 'eligibility_service_unavailable' };
   }
+  if (!hasDurableStorage(client)) return { status: 'database_unavailable' };
 
   return withGuildLock(guildId, async () => {
     const eligibility = await options.validateEligibility(proposerId, recipientId);
@@ -357,6 +364,7 @@ const DIVORCE_COOLDOWN = 7 * 24 * 60 * 60 * 1000;
  */
 export async function divorceMarriage(client, guildId, initiatorId, options = {}) {
   if (options.confirmed !== true) return { status: 'confirmation_required', fee: DIVORCE_FEE };
+  if (!hasDurableStorage(client)) return { status: 'database_unavailable' };
 
   return withGuildLock(guildId, async () => {
     const data = await getMarriageData(client, guildId);
@@ -464,6 +472,7 @@ function getAnniversaryDate(marriedAt, yearNumber) {
  * Intended to be called by a scheduled guild job; returns payments for announcements.
  */
 export async function processMarriageAnniversaries(client, guildId, now = Date.now()) {
+  if (!hasDurableStorage(client)) return [];
   return withGuildLock(guildId, async () => {
     const data = await getMarriageData(client, guildId);
     const payments = [];
