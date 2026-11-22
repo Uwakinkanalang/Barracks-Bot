@@ -12,7 +12,7 @@ import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { runLottoDraws } from './services/barracksLottoService.js';
 import { checkBirthdays } from './services/birthdayService.js';
-import { processMarriageAnniversaries, reconcileMarriageRoles, expireMarriageProposals } from './services/marriageService.js';
+import { processMarriageAnniversaries, processMarriageNotifications, reconcileMarriageRoles, expireMarriageProposals } from './services/marriageService.js';
 import { expireFriendshipRequests } from './services/friendshipService.js';
 import { processCalendarReminders, refreshCalendars } from './services/calendarService.js';
 import { checkDonationExpirations } from './services/donationExpiryService.js';
@@ -331,35 +331,25 @@ class TitanBot extends Client {
     }), { timezone: 'Asia/Manila' });
 
     cron.schedule('5 0 * * *', runSafeTask('marriage_anniversary_rewards', async () => {
-      for (const [guildId, guild] of this.guilds.cache) {
+      for (const [guildId] of this.guilds.cache) {
         try {
-          const payments = await processMarriageAnniversaries(this, guildId);
-          if (!payments.length) continue;
-
-          const guildConfig = await getGuildConfig(this, guildId);
-          const channelId = guildConfig.marriageAnnouncementChannelId;
-          const channel = channelId ? guild.channels.cache.get(channelId) : null;
-
-          if (!channel?.isTextBased?.() || !channel.send) {
-            logger.info(`Marriage anniversary rewards processed for guild ${guildId}; no valid announcement channel configured.`);
-            continue;
-          }
-
-          for (const payment of payments) {
-            const embed = new EmbedBuilder()
-              .setColor(0xE6B84A)
-              .setTitle('💍 Marriage Anniversary!')
-              .setDescription(
-                `Congratulations <@${payment.member1Id}> and <@${payment.member2Id}> on celebrating **${payment.anniversaryNumber} year(s)** of marriage!\n\nEach spouse has received **1,000,000 bCash**. Keep marching together, lovebirds!`
-              )
-              .setTimestamp(new Date(payment.paidAt));
-            await channel.send({ content: `<@${payment.member1Id}> <@${payment.member2Id}>`, embeds: [embed] });
-          }
+          await processMarriageAnniversaries(this, guildId);
         } catch (error) {
           logger.error(`Marriage anniversary processing failed for guild ${guildId}`, error);
         }
       }
     }), { timezone: 'Asia/Manila' });
+
+    cron.schedule('* * * * *', runSafeTask('marriage_notification_outbox', async () => {
+      for (const [guildId] of this.guilds.cache) {
+        try {
+          await processMarriageNotifications(this, guildId);
+        } catch (error) {
+          logger.error(`Marriage notification delivery failed for guild ${guildId}`, error);
+        }
+      }
+    }), { timezone: 'Asia/Manila' });
+
   }
 
   async updateAllCounters() {
