@@ -31,7 +31,6 @@ export async function pruneExpiredDashboardSessions(bot) {
 
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
-const loginAttempts = new Map();
 const BOOSTER_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
 const boosterMemberSnapshots = new Map();
 
@@ -73,17 +72,6 @@ function validAccessToken(req, secret) {
   }
 }
 
-function allowLoginAttempt(ip) {
-  const now = Date.now();
-  const recent = (loginAttempts.get(ip) || []).filter(time => time > now - 15 * 60 * 1000);
-  if (recent.length >= 8) {
-    loginAttempts.set(ip, recent);
-    return false;
-  }
-  recent.push(now);
-  loginAttempts.set(ip, recent);
-  return true;
-}
 
 export function registerDashboardRoutes(app, bot) {
   const oauthAttempts = new Map();
