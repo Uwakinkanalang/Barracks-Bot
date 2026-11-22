@@ -178,31 +178,66 @@ export async function setEconomyData(client, guildId, userId, data) {
     }
 }
 
-export async function updateBalance(client, guildId, userId, options = {}) {
-    const data = await getEconomyData(client, guildId, userId);
-    
-    if (options.wallet !== undefined) {
-        data.wallet = Math.max(0, (data.wallet || 0) + options.wallet);
+/**
+ * Atomically reads, mutates, and persists one or more economy accounts.
+ * All account keys are locked in a stable order to avoid cross-transfer deadlocks.
+ * The callback must perform only local computation; external side effects belong after commit.
+ */
+export async function withEconomyTransaction(client, guildId, userIds, callback) {
+    if (typeof callback !== 'function') throw new TypeError('Economy transaction callback is required.');
+    if (!client?.db || typeof client.db.withKeyValueTransaction !== 'function') {
+        throw new Error('Atomic economy transactions are unavailable; no balance was changed.');
     }
-    
-    if (options.bank !== undefined) {
-        const maxBank = getMaxBankCapacity(data);
-        data.bank = Math.min(Math.max(0, (data.bank || 0) + options.bank), maxBank);
-    }
-    
-    if (options.xp !== undefined) {
-        data.xp = Math.max(0, (data.xp || 0) + options.xp);
-        
-        const xpNeeded = Math.floor(5 * Math.pow(data.level || 1, 2) + 50 * (data.level || 1) + 100);
-        if (data.xp >= xpNeeded) {
-            data.xp -= xpNeeded;
-            data.level = (data.level || 1) + 1;
-            data.leveledUp = true;
+
+    const ids = [...new Set((Array.isArray(userIds) ? userIds : [userIds]).filter(Boolean).map(String))];
+    if (!ids.length) throw new Error('At least one economy account is required.');
+    const defaults = {
+        ...DEFAULT_ECONOMY_DATA,
+        wallet: ECONOMY_CONFIG.startingBalance ?? DEFAULT_ECONOMY_DATA.wallet,
+    };
+
+    return client.db.withKeyValueTransaction(async (transaction) => {
+        const accounts = {};
+        const orderedIds = [...ids].sort((a, b) => getEconomyKey(guildId, a).localeCompare(getEconomyKey(guildId, b)));
+        for (const userId of orderedIds) {
+            const key = getEconomyKey(guildId, userId);
+            const raw = await transaction.get(key, null);
+            const normalized = normalizeEconomyData(raw || {}, defaults);
+            const levelData = await transaction.get(getUserLevelKey(guildId, userId), null);
+            if (levelData && Number.isFinite(Number(levelData.level))) {
+                normalized.level = Math.max(0, Number(levelData.level));
+            }
+            accounts[userId] = normalized;
         }
-    }
-    
-    await setEconomyData(client, guildId, userId, data);
-    return data;
+
+        const result = await callback(accounts);
+        for (const userId of orderedIds) {
+            const saved = await transaction.set(getEconomyKey(guildId, userId), normalizeEconomyData(accounts[userId], defaults));
+            if (saved === false) throw new Error(`Failed to save economy account for ${userId}.`);
+        }
+        return result;
+    });
+}
+
+export async function updateBalance(client, guildId, userId, options = {}) {
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const data = accounts[userId];
+        if (options.wallet !== undefined) data.wallet = Math.max(0, (Number(data.wallet) || 0) + options.wallet);
+        if (options.bank !== undefined) {
+            const maxBank = getMaxBankCapacity(data);
+            data.bank = Math.min(Math.max(0, (Number(data.bank) || 0) + options.bank), maxBank);
+        }
+        if (options.xp !== undefined) {
+            data.xp = Math.max(0, (Number(data.xp) || 0) + options.xp);
+            const xpNeeded = Math.floor(5 * Math.pow(data.level || 1, 2) + 50 * (data.level || 1) + 100);
+            if (data.xp >= xpNeeded) {
+                data.xp -= xpNeeded;
+                data.level = (data.level || 1) + 1;
+                data.leveledUp = true;
+            }
+        }
+        return structuredClone(data);
+    });
 }
 
 export function checkCooldown(userData, action) {
