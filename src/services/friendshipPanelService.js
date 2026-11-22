@@ -4,7 +4,7 @@ import {
 } from 'discord.js';
 import {
   getFriendshipData, getActiveFriends, getFriendshipPoints,
-  sendFriendRequest, resolveFriendRequest, cancelFriendRequest, removeFriend, claimFriendshipDailyBonus,
+  sendFriendRequest, resolveFriendRequest, cancelFriendRequest, cancelSoulmateRequest, removeFriend, claimFriendshipDailyBonus,
   createSoulmateRequest, resolveSoulmateRequest, endSoulmate, getActiveSoulmate,
   blockFriendshipMember, unblockFriendshipMember,
 } from './friendshipService.js';
@@ -128,6 +128,11 @@ export async function handleFriendshipInteraction(interaction, client) {
     const result = await cancelFriendRequest(client, guildId, requestId, userId);
     return interaction.reply({ content: result.status === 'cancelled' ? 'Friend request cancelled.' : 'This request can no longer be cancelled.', ...ephemeral });
   }
+  if (id.startsWith('friendship:soulmate-cancel:')) {
+    const requestId = id.slice('friendship:soulmate-cancel:'.length);
+    const result = await cancelSoulmateRequest(client, guildId, requestId, userId);
+    return interaction.reply({ content: result.status === 'cancelled' ? 'Soulmate request cancelled.' : 'This request can no longer be cancelled.', ...ephemeral });
+  }
   if (id === 'friendship:requests') {
     const data = await getFriendshipData(client, guildId);
     const now = Date.now();
@@ -147,21 +152,25 @@ export async function handleFriendshipInteraction(interaction, client) {
       ...(soulmateOutgoing.slice(0, 5).map(r => '• <@' + r.recipientId + '> — expires <t:' + Math.floor(r.expiresAt / 1000) + ':R>')),
     ].join('\n');
     const components = [];
-    for (const req of incoming.slice(0, 5)) {
+    for (const req of incoming.slice(0, 2)) {
       components.push(new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('friendship:accept:' + req.id).setLabel('Accept Friend').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId('friendship:decline:' + req.id).setLabel('Decline').setStyle(ButtonStyle.Danger),
       ));
     }
-    for (const req of soulmateIncoming.slice(0, 5 - components.length)) {
+    for (const req of soulmateIncoming.slice(0, 2)) {
       components.push(new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('friendship:soulmate-accept:' + req.id).setLabel('Accept Soulmate').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId('friendship:soulmate-decline:' + req.id).setLabel('Decline').setStyle(ButtonStyle.Danger),
       ));
     }
-    if (outgoing.length) {
+    const outgoingAll = [...outgoing.map(r => ({ ...r, requestKind: 'friendship' })), ...soulmateOutgoing.map(r => ({ ...r, requestKind: 'soulmate' }))];
+    if (outgoingAll.length) {
       components.push(new ActionRowBuilder().addComponents(
-        ...outgoing.slice(0, 5).map(r => new ButtonBuilder().setCustomId('friendship:cancel:' + r.id).setLabel('Cancel → ' + String(r.recipientId).slice(-4)).setStyle(ButtonStyle.Secondary))
+        ...outgoingAll.slice(0, 5).map(r => new ButtonBuilder()
+          .setCustomId((r.requestKind === 'soulmate' ? 'friendship:soulmate-cancel:' : 'friendship:cancel:') + r.id)
+          .setLabel((r.requestKind === 'soulmate' ? 'Cancel SM ' : 'Cancel ') + String(r.recipientId).slice(-4))
+          .setStyle(ButtonStyle.Secondary))
       ));
     }
     return interaction.reply({ content: text, components, ...ephemeral });
