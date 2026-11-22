@@ -37,9 +37,9 @@ The frontend stores the dashboard bearer token in `sessionStorage`. This is safe
 
 OAuth start attempts are limited in process memory and reset on restart; they are not shared across replicas. Keep the service to one application replica until shared rate limiting is introduced. Do not trust forwarded IP headers unless proxy trust is explicitly configured.
 
-### Low — expired session record cleanup — outstanding
+### Low — expired session record cleanup — implemented in branch
 
-Sessions expire after 12 hours and are rejected after expiry, but a scheduled pruning job for expired records is still recommended.
+A scheduled job runs every six hours and removes expired `dashboard:sessions:` records from the persistent database. The cleanup skips safely when the database is unavailable or degraded. Expired sessions are also rejected on every protected request, so the scheduled job is storage housekeeping rather than an authentication control.
 
 ## Implementation and acceptance checklist
 
@@ -52,7 +52,7 @@ Sessions expire after 12 hours and are rejected after expiry, but a scheduled pr
 7. The frontend is hosted on GitHub Pages and calls the Railway API over HTTPS. The frontend/API migration must be deployed together.
 8. Before production: configure `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DASHBOARD_OAUTH_REDIRECT_URI`, `DASHBOARD_SESSION_SECRET`, and `DASHBOARD_FRONTEND_URL` in Railway; add the exact callback URL in the Discord Developer Portal; verify `CORS_ORIGIN`; and run end-to-end OAuth, role-loss, and logout tests against staging.
 9. Expand automated route-level tests for invalid state/PKCE, expired/revoked sessions, no Manager Roles, role removal, guild departure, owner bootstrap, spoofed actor IDs, and protected endpoints.
-10. Move to an HttpOnly cookie-backed session, introduce shared rate limiting, and add expired-session pruning before scaling beyond one application instance.
+10. Move to an HttpOnly cookie-backed session with CSRF protection and introduce shared rate limiting before scaling beyond one application instance. The six-hour expired-session pruning job is implemented; verify it against staging database data before production.
 
 ## Deployment gate
 
