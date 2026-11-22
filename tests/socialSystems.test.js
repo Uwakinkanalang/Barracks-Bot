@@ -148,7 +148,9 @@ test('yearly marriage anniversary rewards are paid once per spouse and anniversa
   const spouseB = '200000000000000004';
   store.set('global:economy:' + spouseA, { wallet: 0, bank: 0 });
   store.set('global:economy:' + spouseB, { wallet: 0, bank: 0 });
-  const marriedAt = Date.now() - 2 * 366 * DAY;
+  const weddingDate = new Date();
+  weddingDate.setUTCFullYear(weddingDate.getUTCFullYear() - 2);
+  const marriedAt = weddingDate.getTime();
   await saveMarriageData(client, guildId, {
     proposals: {}, history: [], transactions: {}, anniversaryClaims: {}, divorceCooldowns: {},
     marriages: {
