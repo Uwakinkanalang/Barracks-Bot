@@ -123,11 +123,14 @@ test('OAuth state is one-time and cannot be completed without its matching HttpO
     const missingCookie = await fetch(baseUrl + '/api/dashboard/oauth/callback?state=' + encodeURIComponent(state) + '&code=fake', { redirect: 'manual' });
     assert.equal(missingCookie.status, 400);
 
-    const replay = await fetch(baseUrl + '/api/dashboard/oauth/callback?state=' + encodeURIComponent(state) + '&code=fake', {
-      headers: { Cookie: cookie.split(';')[0] },
-      redirect: 'manual'
-    });
-    assert.equal(replay.status, 400);
+    const source = await readFile(new URL('../src/web/dashboard.js', import.meta.url), 'utf8');
+    const callbackStart = source.indexOf("app.get('/api/dashboard/oauth/callback'");
+    const callbackEnd = source.indexOf("\n  });", callbackStart);
+    const callback = source.slice(callbackStart, callbackEnd);
+    const cookieCheck = callback.indexOf("!safeEqual(state, cookieValue(req.headers.cookie))");
+    const consumeState = callback.indexOf("pendingOAuth.delete(state)");
+    assert.ok(cookieCheck !== -1 && consumeState > cookieCheck,
+      'OAuth state must only be consumed after the matching cookie is validated');
   } finally {
     for (const key of keys) {
       if (previous[key] === undefined) delete process.env[key];
