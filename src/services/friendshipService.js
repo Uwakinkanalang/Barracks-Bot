@@ -134,6 +134,7 @@ export async function awardFriendshipPoints(client, guildId, a, b, amount, optio
   return locked(guildId, async () => {
     const data = await getFriendshipData(client, guildId), id = pairKey(a, b), pair = data.friendships[id];
     if (!isActiveFriend(pair, a, b)) return { status: 'not_friends' };
+    if (data.blocks[a]?.includes(b) || data.blocks[b]?.includes(a)) return { status: 'blocked' };
     const now = Number(options.now) || Date.now(), day = new Date(now).toISOString().slice(0, 10);
     pair.activity ||= {};
     const activity = pair.activity[day] ||= { points: 0, keys: [] };
@@ -153,6 +154,7 @@ export async function claimFriendshipDailyBonus(client, guildId, a, b, now = Dat
   return locked(guildId, async () => {
     const data = await getFriendshipData(client, guildId), id = pairKey(a, b), pair = data.friendships[id];
     if (!isActiveFriend(pair, a, b)) return { status: 'not_friends' };
+    if (data.blocks[a]?.includes(b) || data.blocks[b]?.includes(a)) return { status: 'blocked' };
     pair.dailyClaims ||= {};
     const day = new Date(now).toISOString().slice(0, 10);
     if (pair.dailyClaims[day]) return { status: 'already_claimed' };
