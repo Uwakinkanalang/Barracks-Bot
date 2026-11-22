@@ -79,6 +79,7 @@ function queueMarriageNotification(data, { id, channelId, content, components = 
   data.notifications ||= {};
   data.notifications[id] ||= {
     id, channelId, content, components,
+    embeds: arguments[0]?.embeds || [],
     status: 'pending', attempts: 0, createdAt: Date.now(), nextAttemptAt: Date.now(),
   };
 }
@@ -122,7 +123,7 @@ export async function processMarriageNotifications(client, guildId, now = Date.n
     if (!channel?.isTextBased?.() || typeof channel.send !== 'function') {
       throw new Error('Notification channel is unavailable or not text-based.');
     }
-    await channel.send({ content: claimed.content, components: claimed.components || [] });
+    await channel.send({ content: claimed.content, components: claimed.components || [], embeds: claimed.embeds || [] });
     await client.db.withKeyValueTransaction(async (transaction) => {
       const transactionClient = { db: transaction };
       const data = await getMarriageData(transactionClient, guildId);
@@ -564,6 +565,7 @@ export async function processMarriageAnniversaries(client, guildId, now = Date.n
   if (!hasAtomicStorage(client)) return [];
   return withGuildLock(guildId, async () => {
     const { getEconomyData, getEconomyKey } = await import('../utils/economy.js');
+    const notificationChannelId = await getMarriageNotificationChannel(client, guildId);
     const snapshot = await getMarriageData(client, guildId);
     const fallbackAccounts = {};
     const memberIds = new Set();
@@ -637,13 +639,19 @@ export async function processMarriageAnniversaries(client, guildId, now = Date.n
               (Number(marriage.anniversaryRewards[marriage.member1Id]) || 0) + ANNIVERSARY_REWARD;
             marriage.anniversaryRewards[marriage.member2Id] =
               (Number(marriage.anniversaryRewards[marriage.member2Id]) || 0) + ANNIVERSARY_REWARD;
-            payments.push({
+            const payment = {
               marriageId: marriage.id,
               anniversaryNumber,
               member1Id: marriage.member1Id,
               member2Id: marriage.member2Id,
               amountPerSpouse: ANNIVERSARY_REWARD,
               paidAt,
+            };
+            payments.push(payment);
+            queueMarriageNotification(data, {
+              id: `marriage-anniversary:${claimKey}`,
+              channelId: notificationChannelId,
+              content: `💍 Congratulations <@${marriage.member1Id}> and <@${marriage.member2Id}> on celebrating **${anniversaryNumber} year(s)** of marriage! Each spouse has received **1,000,000 bCash**. Keep marching together, lovebirds!`,
             });
             changed = true;
           }
