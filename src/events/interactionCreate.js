@@ -1310,6 +1310,19 @@ export default {
                     });
                   }
 
+                  const nicknameStateKey = `guild:${interaction.guildId}:autonick_member:${userId}`;
+                  const nicknameState = await interaction.client.db.get(nicknameStateKey, null);
+                  const currentName = typeof nicknameState?.originalNickname === 'string'
+                    ? nicknameState.originalNickname
+                    : (clanMember.nickname ?? clanMember.user.globalName ?? clanMember.user.username);
+                  const clanTagPrefix = `${removedClan.tag} `;
+                  const restoredBaseName = currentName.startsWith(clanTagPrefix)
+                    ? currentName.slice(clanTagPrefix.length).trim()
+                    : currentName;
+                  await interaction.client.db.set(nicknameStateKey, {
+                    originalNickname: restoredBaseName,
+                    savedAt: nicknameState?.savedAt || Date.now(),
+                  });
                   await applyHighestPriorityAutoNick(clanMember).catch(error => {
                     logger.warn(`Failed to restore nickname for member ${userId} after clan deletion: ${error.message}`);
                   });
