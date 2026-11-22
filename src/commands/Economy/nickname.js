@@ -9,7 +9,7 @@ import {
     MessageFlags,
 } from 'discord.js';
 import { SlashCommandBuilder } from 'discord.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { getEconomyData, removeMoney } from '../../utils/economy.js';
 
 const NICKNAME_CHANGE_PRICE = 300000;
 
@@ -170,18 +170,20 @@ export default {
                     return;
                 }
 
-                userData.wallet -= NICKNAME_CHANGE_PRICE;
-                const saved = await setEconomyData(client, interaction.guildId, submitted.user.id, userData);
-                if (!saved) {
+                let payment;
+                try {
+                    payment = await removeMoney(client, interaction.guildId, submitted.user.id, NICKNAME_CHANGE_PRICE, 'wallet');
+                } catch (paymentError) {
+                    await member.setNickname(member.nickname || null, 'Reverted nickname because bCash payment failed').catch(() => {});
                     await submitted.reply({
-                        content: 'Your nickname was changed, but the payment could not be saved. Please contact a server administrator.',
+                        content: '❌ Your bCash payment could not be completed, so your previous nickname was restored.',
                         flags: [MessageFlags.Ephemeral],
                     });
                     return;
                 }
 
                 await submitted.reply({
-                    content: `✅ Your server nickname has been changed to **${newNickname}**.\n💸 **Amount Paid:** ₱${NICKNAME_CHANGE_PRICE.toLocaleString()} bCash\n💰 **Remaining Balance:** ₱${userData.wallet.toLocaleString()}`,
+                    content: `✅ Your server nickname has been changed to **${newNickname}**.\n💸 **Amount Paid:** ₱${NICKNAME_CHANGE_PRICE.toLocaleString()} bCash\n💰 **Remaining Balance:** ₱${payment.newBalance.toLocaleString()}`,
                     flags: [MessageFlags.Ephemeral],
                 });
             } catch (error) {
