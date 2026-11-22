@@ -27,7 +27,7 @@ function sign(value, secret) {
 
 function createAccessToken(secret, user) {
   const payload = Buffer.from(JSON.stringify({
-    exp: Math.floor(Date.now() / 1000) + 60 * 60,
+    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
     scope: 'barracks-dashboard',
     sub: String(user.id),
     jti: String(user.sessionId || ''),
