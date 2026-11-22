@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
-import { registerDashboardRoutes } from '../src/web/dashboard.js';
+import { registerDashboardRoutes, pruneExpiredDashboardSessions } from '../src/web/dashboard.js';
 
 const app = express();
 app.use(express.json());
@@ -18,6 +18,31 @@ await once(server, 'listening');
 const address = server.address();
 const baseUrl = `http://127.0.0.1:${address.port}`;
 after(() => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())));
+
+test('expired dashboard sessions are pruned without deleting active sessions', async () => {
+  const records = new Map([
+    ['dashboard:sessions:expired', { userId: '1', expiresAt: Date.now() - 1000, revoked: false }],
+    ['dashboard:sessions:active', { userId: '2', expiresAt: Date.now() + 60_000, revoked: false }]
+  ]);
+  const fakeBot = { db: {
+    getStatus: () => ({ isDegraded: false, isAvailable: true }),
+    list: async prefix => [...records.keys()].filter(key => key.startsWith(prefix)),
+    get: async (key, fallback) => records.has(key) ? records.get(key) : fallback,
+    delete: async key => records.delete(key)
+  } };
+  const result = await pruneExpiredDashboardSessions(fakeBot);
+  assert.deepEqual(result, { skipped: false, deleted: 1 });
+  assert.equal(records.has('dashboard:sessions:expired'), false);
+  assert.equal(records.has('dashboard:sessions:active'), true);
+});
+
+test('dashboard session pruning skips degraded database storage', async () => {
+  const result = await pruneExpiredDashboardSessions({ db: {
+    getStatus: () => ({ isDegraded: true, isAvailable: false }),
+    list: async () => { throw new Error('must not scan degraded storage'); }
+  } });
+  assert.deepEqual(result, { skipped: true, deleted: 0 });
+});
 
 test('dashboard APIs reject requests without an authenticated Discord session', async () => {
   for (const path of ['/api/dashboard/settings', '/api/dashboard/overview', '/api/dashboard/moderation/logs', '/api/dashboard/logout']) {
