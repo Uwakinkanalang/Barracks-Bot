@@ -68,7 +68,7 @@ export async function sendFriendRequest(client, guildId, senderId, recipientId, 
     const pair = pairKey(senderId, recipientId);
     if (data.blocks[senderId]?.includes(recipientId) || data.blocks[recipientId]?.includes(senderId)) return { status: 'blocked' };
     if (isActiveFriend(data.friendships[pair], senderId, recipientId)) return { status: 'already_friends' };
-    if (Object.values(data.requests).some(r => r?.kind !== 'soulmate' && r?.status === 'pending' &&
+    if (Object.values(data.requests).some(r => r?.kind !== 'soulmate' && r?.status === 'pending' && Number(r.expiresAt) > Date.now() &&
       ((r.senderId === senderId && r.recipientId === recipientId) ||
        (r.senderId === recipientId && r.recipientId === senderId)))) return { status: 'duplicate_pending' };
     const id = `fr-${Date.now()}-${senderId}-${recipientId}`;
@@ -187,7 +187,7 @@ export async function createSoulmateRequest(client, guildId, senderId, recipient
     if (points < 800) return { status: 'insufficient_points', points, required: 800 };
     if (Object.values(data.soulmates).some(s => s?.status === 'active' && (s.member1Id === senderId || s.member2Id === senderId || s.member1Id === recipientId || s.member2Id === recipientId))) return { status: 'already_soulmates' };
     if ([senderId, recipientId].some(userId => now < (Number(data.soulmateCooldowns[userId]) || 0))) return { status: 'cooldown' };
-    if (Object.values(data.requests).some(r => r?.kind === 'soulmate' && r.status === 'pending' &&
+    if (Object.values(data.requests).some(r => r?.kind === 'soulmate' && r.status === 'pending' && Number(r.expiresAt) > now &&
       ((r.senderId === senderId && r.recipientId === recipientId) || (r.senderId === recipientId && r.recipientId === senderId)))) return { status: 'duplicate_pending' };
     const requestId = `sm-${now}-${senderId}-${recipientId}`;
     const request = { id: requestId, kind: 'soulmate', senderId, recipientId, status: 'pending', createdAt: now, expiresAt: now + REQUEST_TTL };
