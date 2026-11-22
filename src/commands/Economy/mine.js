@@ -50,10 +50,10 @@ export default {
                 let multiplierMessage = "";
                 if (hasDiamondPickaxe > 0) {
                     finalEarned = Math.floor(baseEarned * DIAMOND_PICKAXE_MULTIPLIER);
-                    multiplierMessage = `\\n💎 **Diamond Pickaxe Bonus: +100%**`;
+                    multiplierMessage = `\n💎 **Diamond Pickaxe Bonus: +100%**`;
                 } else if (hasPickaxe > 0) {
                     finalEarned = Math.floor(baseEarned * PICKAXE_MULTIPLIER);
-                    multiplierMessage = `\\n⛏️ **Pickaxe Bonus: +20%**`;
+                    multiplierMessage = `\n⛏️ **Pickaxe Bonus: +20%**`;
                 }
                 userData.wallet = (Number(userData.wallet) || 0) + finalEarned;
                 userData.lastMine = now;
