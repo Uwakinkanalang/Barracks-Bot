@@ -83,6 +83,16 @@ function queueMarriageNotification(data, { id, channelId, content, components = 
   };
 }
 
+async function getMarriageNotificationChannel(client, guildId, fallback = null) {
+  try {
+    const { getGuildConfig } = await import('./config/guildConfig.js');
+    const config = await getGuildConfig(client, guildId);
+    return config.marriageAnnouncementChannelId || fallback || null;
+  } catch {
+    return fallback || null;
+  }
+}
+
 export async function processMarriageNotifications(client, guildId, now = Date.now()) {
   if (!hasAtomicStorage(client)) return { processed: 0, status: 'database_unavailable' };
   const snapshot = await getMarriageData(client, guildId);
@@ -235,6 +245,7 @@ export async function createMarriageProposal(client, guildId, proposerId, recipi
 
     const { getEconomyData, getEconomyKey } = await import('../utils/economy.js');
     const fallbackEconomy = await getEconomyData(client, guildId, proposerId);
+    const notificationChannelId = await getMarriageNotificationChannel(client, guildId, options.notificationChannelId);
     return client.db.withKeyValueTransaction(async (transaction) => {
       const transactionClient = { db: transaction };
       const data = await getMarriageData(transactionClient, guildId);
@@ -272,6 +283,22 @@ export async function createMarriageProposal(client, guildId, proposerId, recipi
       data.transactions[proposalId] = {
         type: 'proposal_fee', userId: proposerId, amount: PROPOSAL_FEE, createdAt: now,
       };
+      const acceptId = `marriage:proposal-accept:${proposalId}`;
+      const declineId = `marriage:proposal-decline:${proposalId}`;
+      const cancelId = `marriage:proposal-cancel:${proposalId}`;
+      queueMarriageNotification(data, {
+        id: `proposal-sent:${proposalId}`,
+        channelId: notificationChannelId,
+        content: `<@${recipientId}> 💍 You have received a marriage proposal from <@${proposerId}>! The proposer paid **100,000 bCash**. This proposal expires in 7 days.`,
+        components: [{
+          type: 1,
+          components: [
+            { type: 2, style: 3, label: 'Accept', custom_id: acceptId },
+            { type: 2, style: 4, label: 'Decline', custom_id: declineId },
+            { type: 2, style: 2, label: 'Cancel Proposal', custom_id: cancelId },
+          ],
+        }],
+      });
       await saveMarriageData(transactionClient, guildId, data);
       return { status: 'created', proposal };
     });
@@ -354,6 +381,7 @@ export const MARRIAGE_PROPOSAL_TTL = PROPOSAL_TTL;
  */
 export async function finalizeMarriageProposal(client, guildId, proposalId, recipientId, options = {}) {
   if (!hasAtomicStorage(client)) return { status: 'database_unavailable' };
+  const notificationChannelId = await getMarriageNotificationChannel(client, guildId, options.notificationChannelId);
   return withGuildLock(guildId, async () => {
     const result = await client.db.withKeyValueTransaction(async (transaction) => {
       const transactionClient = { db: transaction };
@@ -413,6 +441,11 @@ export async function finalizeMarriageProposal(client, guildId, proposalId, reci
         marriedAt: now,
         status: 'married',
       });
+      queueMarriageNotification(data, {
+        id: `marriage-accepted:${marriageId}`,
+        channelId: notificationChannelId,
+        content: `💍 <@${marriage.member1Id}> and <@${marriage.member2Id}> are now married in Barracks!`,
+      });
       await saveMarriageData(transactionClient, guildId, data);
       return { status: 'married', marriage };
     });
@@ -438,6 +471,7 @@ export async function divorceMarriage(client, guildId, initiatorId, options = {}
   return withGuildLock(guildId, async () => {
     const { getEconomyData, getEconomyKey } = await import('../utils/economy.js');
     const fallbackEconomy = await getEconomyData(client, guildId, initiatorId);
+    const notificationChannelId = await getMarriageNotificationChannel(client, guildId, options.notificationChannelId);
     const result = await client.db.withKeyValueTransaction(async (transaction) => {
       const transactionClient = { db: transaction };
       const data = await getMarriageData(transactionClient, guildId);
@@ -474,6 +508,11 @@ export async function divorceMarriage(client, guildId, initiatorId, options = {}
         member1Id: marriage.member1Id, member2Id: marriage.member2Id,
         initiatedBy: initiatorId, divorcedAt: now,
         durationMs: marriage.durationMs, fee: DIVORCE_FEE,
+      });
+      queueMarriageNotification(data, {
+        id: `marriage-divorced:${marriage.id}:${now}`,
+        channelId: notificationChannelId,
+        content: `💔 Marriage ended: <@${initiatorId}> and <@${spouseId}> are now divorced. The initiating spouse paid **100,000 bCash**. Both members have a 7-day remarriage cooldown.`,
       });
       await saveMarriageData(transactionClient, guildId, data);
       return { status: 'divorced', marriage, spouseId, now };
