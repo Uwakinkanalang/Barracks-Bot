@@ -10,7 +10,7 @@ import {
   createMarriageProposal, finalizeMarriageProposal, cancelMarriageProposal, getActiveMarriage,
   divorceMarriage, saveMarriageData, processMarriageAnniversaries, processMarriageNotifications,
 } from '../src/services/marriageService.js';
-import { withEconomyTransaction } from '../src/utils/economy.js';
+import { withEconomyTransaction, startEconomyWager, settleEconomyWager } from '../src/utils/economy.js';
 
 function addTestTransaction(db, store) {
   db.withKeyValueTransaction = async (callback) => {
@@ -520,4 +520,27 @@ test('memory fallback serializes same-account economy updates', async () => {
   })));
 
   assert.equal((await client.db.get(key)).wallet, 2);
+});
+
+
+test('economy game wagers reserve funds and settle exactly once', async () => {
+  const client = makeClient();
+  const userId = '400000000000000003';
+  const key = 'global:economy:' + userId;
+  await client.db.set(key, { wallet: 1000, bank: 0, inventory: {}, cooldowns: {} });
+
+  const started = await startEconomyWager(client, guildId, userId, 'game-1', 200);
+  assert.equal(started.started, true);
+  assert.equal(started.wallet, 800);
+  assert.equal((await startEconomyWager(client, guildId, userId, 'game-1', 200)).started, false);
+  assert.equal((await client.db.get(key)).wallet, 800);
+
+  const settled = await settleEconomyWager(client, guildId, userId, 'game-1', 400);
+  assert.equal(settled.settled, true);
+  assert.equal(settled.wallet, 1200);
+
+  const duplicate = await settleEconomyWager(client, guildId, userId, 'game-1', 400);
+  assert.equal(duplicate.settled, false);
+  assert.equal(duplicate.wallet, 1200);
+  assert.equal((await client.db.get(key)).wallet, 1200);
 });
