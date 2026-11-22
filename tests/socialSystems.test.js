@@ -8,7 +8,7 @@ import {
 } from '../src/services/friendshipService.js';
 import {
   createMarriageProposal, finalizeMarriageProposal, cancelMarriageProposal, getActiveMarriage,
-  divorceMarriage, saveMarriageData, processMarriageAnniversaries,
+  divorceMarriage, saveMarriageData, processMarriageAnniversaries, processMarriageNotifications,
 } from '../src/services/marriageService.js';
 
 function addTestTransaction(db, store) {
@@ -428,4 +428,50 @@ test('failed divorce-record persistence restores the initiator wallet and keeps 
   assert.equal((await client.db.get(economyKey)).wallet, 250000);
   const marriageData = await client.db.get('guild:' + guildId + ':marriage_system');
   assert.equal(marriageData.marriages['divorce-rollback-test'].status, 'married');
+});
+
+
+test('marriage notification outbox retries failures and marks successful delivery', async () => {
+  const client = makeClient();
+  const sent = [];
+  let shouldFail = true;
+  client.channels = {
+    async fetch(channelId) {
+      return {
+        id: channelId,
+        isTextBased: () => true,
+        async send(payload) {
+          if (shouldFail) throw new Error('Discord temporarily unavailable');
+          sent.push(payload);
+          return { id: 'message-1' };
+        },
+      };
+    },
+  };
+  await saveMarriageData(client, guildId, {
+    proposals: {}, marriages: {}, history: [], transactions: {},
+    anniversaryClaims: {}, divorceCooldowns: {},
+    notifications: {
+      'notice-1': {
+        id: 'notice-1', channelId: '300000000000000001',
+        content: 'A Barracks marriage notice.',
+        components: [], status: 'pending', attempts: 0,
+        createdAt: 100, nextAttemptAt: 100,
+      },
+    },
+  });
+
+  const failed = await processMarriageNotifications(client, guildId, 100);
+  assert.equal(failed.status, 'retry_scheduled');
+  let data = await client.db.get('guild:' + guildId + ':marriage_system');
+  assert.equal(data.notifications['notice-1'].status, 'pending');
+  assert.equal(data.notifications['notice-1'].attempts, 1);
+  assert.ok(data.notifications['notice-1'].nextAttemptAt > 100);
+
+  shouldFail = false;
+  const delivered = await processMarriageNotifications(client, guildId, Date.now() + 2 * 60 * 60 * 1000);
+  assert.equal(delivered.status, 'delivered');
+  assert.equal(sent.length, 1);
+  data = await client.db.get('guild:' + guildId + ':marriage_system');
+  assert.equal(data.notifications['notice-1'].status, 'delivered');
 });
