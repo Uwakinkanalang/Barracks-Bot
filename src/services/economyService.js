@@ -1,7 +1,7 @@
 // economyService.js
 
 import { logger } from '../utils/logger.js';
-import { getEconomyData, setEconomyData, getMaxBankCapacity, withEconomyTransaction } from '../utils/economy.js';
+import { getMaxBankCapacity, withEconomyTransaction } from '../utils/economy.js';
 import { createError, ErrorTypes } from '../utils/errorHandler.js';
 import { wrapServiceClassMethods } from '../utils/serviceErrorBoundary.js';
 
