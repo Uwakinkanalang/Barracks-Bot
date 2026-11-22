@@ -396,3 +396,97 @@ export async function getMarriageCooldown(client, guildId, userId) {
 
 export const MARRIAGE_DIVORCE_FEE = DIVORCE_FEE;
 export const MARRIAGE_DIVORCE_COOLDOWN = DIVORCE_COOLDOWN;
+
+
+const ANNIVERSARY_REWARD = 1000000;
+
+function getAnniversaryDate(marriedAt, yearNumber) {
+  const date = new Date(Number(marriedAt));
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  date.setUTCDate(1);
+  date.setUTCFullYear(date.getUTCFullYear() + yearNumber);
+  date.setUTCMonth(month);
+  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), month + 1, 0)).getUTCDate();
+  date.setUTCDate(Math.min(day, lastDay));
+  return date.getTime();
+}
+
+/**
+ * Pays each completed yearly anniversary once.
+ * Intended to be called by a scheduled guild job; returns payments for announcements.
+ */
+export async function processMarriageAnniversaries(client, guildId, now = Date.now()) {
+  return withGuildLock(guildId, async () => {
+    const data = await getMarriageData(client, guildId);
+    const payments = [];
+
+    for (const marriage of Object.values(data.marriages)) {
+      if (marriage?.status !== 'married' || !marriage.member1Id || !marriage.member2Id) continue;
+      const marriedAt = Number(marriage.marriedAt);
+      if (!Number.isFinite(marriedAt) || marriedAt <= 0) continue;
+
+      let anniversaryNumber = 1;
+      while (getAnniversaryDate(marriedAt, anniversaryNumber) <= now) {
+        const claimKey = `${marriage.id}:${anniversaryNumber}`;
+        if (!data.anniversaryClaims[claimKey]) {
+          const memberIds = [marriage.member1Id, marriage.member2Id];
+          const snapshots = [];
+          let paymentFailed = false;
+
+          for (const userId of memberIds) {
+            const { getEconomyData, setEconomyData } = await import('../utils/economy.js');
+            const economy = await getEconomyData(client, guildId, userId);
+            if (!economy) { paymentFailed = true; break; }
+            snapshots.push({ userId, economy: { ...economy }, previousWallet: Number(economy.wallet) || 0 });
+            economy.wallet = (Number(economy.wallet) || 0) + ANNIVERSARY_REWARD;
+            if (!await setEconomyData(client, guildId, userId, economy)) {
+              paymentFailed = true;
+              break;
+            }
+          }
+
+          if (paymentFailed) {
+            for (const snapshot of snapshots) {
+              const { setEconomyData } = await import('../utils/economy.js');
+              await setEconomyData(client, guildId, snapshot.userId, {
+                ...snapshot.economy,
+                wallet: snapshot.previousWallet,
+              });
+            }
+            break;
+          }
+
+          const paidAt = Date.now();
+          data.anniversaryClaims[claimKey] = {
+            marriageId: marriage.id,
+            anniversaryNumber,
+            paidAt,
+            amountPerSpouse: ANNIVERSARY_REWARD,
+            member1Id: marriage.member1Id,
+            member2Id: marriage.member2Id,
+          };
+          marriage.anniversaryRewards ||= {};
+          marriage.anniversaryRewards[marriage.member1Id] =
+            (Number(marriage.anniversaryRewards[marriage.member1Id]) || 0) + ANNIVERSARY_REWARD;
+          marriage.anniversaryRewards[marriage.member2Id] =
+            (Number(marriage.anniversaryRewards[marriage.member2Id]) || 0) + ANNIVERSARY_REWARD;
+          payments.push({
+            marriageId: marriage.id,
+            anniversaryNumber,
+            member1Id: marriage.member1Id,
+            member2Id: marriage.member2Id,
+            amountPerSpouse: ANNIVERSARY_REWARD,
+            paidAt,
+          });
+        }
+        anniversaryNumber += 1;
+      }
+    }
+
+    if (payments.length) await saveMarriageData(client, guildId, data);
+    return payments;
+  });
+}
+
+export const MARRIAGE_ANNIVERSARY_REWARD = ANNIVERSARY_REWARD;
