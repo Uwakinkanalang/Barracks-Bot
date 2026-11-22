@@ -1056,7 +1056,7 @@ export function registerDashboardRoutes(app, bot) {
     const rules = String(req.body?.rules || '').trim();
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
-    if (!autoNickFormat.includes('{username}') || autoNickFormat.length > 32) return res.status(400).json({ error: 'Clan AutoNick Format must include {username} and be 32 characters or fewer. Use TAG for the clan tag.' });
+    if (!['TAG {username}', '★ {username}', '⚔ {username}'].includes(autoNickFormat)) return res.status(400).json({ error: 'Choose TAG {username}, ★ {username}, or ⚔ {username} as the Clan AutoNick format.' });
     if (!roleHex) return res.status(400).json({ error: 'Role Hex Code must be a valid six-digit color, such as #5865F2.' });
     if (!/^\\d{17,20}$/.test(leaderId) || !/^\\d{17,20}$/.test(viceLeaderId) || leaderId === viceLeaderId) return res.status(400).json({ error: 'Enter valid, different Discord IDs for the clan leader and vice clan leader.' });
     if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
