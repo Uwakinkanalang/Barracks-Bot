@@ -157,10 +157,18 @@ class TitanBot extends Client {
       const now = Date.now();
       const windowStart = now - windowMs;
       
-      if (!requestCounts.has(ip)) {
-        requestCounts.set(ip, []);
+      if (!requestCounts.has(ip) && requestCounts.size >= 5000) {
+        for (const [knownIp, timestamps] of requestCounts) {
+          const active = timestamps.filter(time => time > windowStart);
+          if (active.length) requestCounts.set(knownIp, active);
+          else requestCounts.delete(knownIp);
+        }
+        if (requestCounts.size >= 5000) {
+          return res.status(503).json({ error: 'API is temporarily busy. Try again shortly.' });
+        }
       }
-      
+      if (!requestCounts.has(ip)) requestCounts.set(ip, []);
+
       const times = requestCounts.get(ip).filter(t => t > windowStart);
       
       if (times.length >= maxRequests) {
