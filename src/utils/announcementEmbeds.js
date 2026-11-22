@@ -10,7 +10,8 @@ export function buildMemberAnnouncementEmbed(settings = {}, data = {}, defaults 
   const description = resolve(settings.description);
   const thumbnailUrl = resolve(settings.thumbnailUrl || defaults.thumbnailUrl || '');
   const imageUrl = resolve(settings.imageUrl || defaults.imageUrl || '');
-  const footerText = resolve(settings.footerText);
+  // Older welcome configurations store footer text under `footer`; newer dashboard settings use `footerText`.
+  const footerText = resolve(settings.footerText ?? settings.footer);
   if (authorName) embed.setAuthor({ name: authorName.slice(0, 256) });
   if (title) embed.setTitle(title.slice(0, 256));
   if (description) embed.setDescription(description.slice(0, 4096));
