@@ -10,6 +10,7 @@ import {
   createMarriageProposal, finalizeMarriageProposal, cancelMarriageProposal, getActiveMarriage,
   divorceMarriage, saveMarriageData, processMarriageAnniversaries, processMarriageNotifications,
 } from '../src/services/marriageService.js';
+import { withEconomyTransaction } from '../src/utils/economy.js';
 
 function addTestTransaction(db, store) {
   db.withKeyValueTransaction = async (callback) => {
@@ -474,4 +475,32 @@ test('marriage notification outbox retries failures and marks successful deliver
   assert.equal(sent.length, 1);
   data = await client.db.get('guild:' + guildId + ':marriage_system');
   assert.equal(data.notifications['notice-1'].status, 'delivered');
+});
+
+
+test('economy account transactions preserve concurrent marriage wallet updates', async () => {
+  const client = makeClient();
+  const userId = '400000000000000001';
+  const economyKey = 'global:economy:' + userId;
+  const starting = {
+    wallet: 200000, bank: 0, lastDaily: 0,
+    inventory: {}, cooldowns: {}, upgrades: {},
+  };
+  await client.db.set(economyKey, starting);
+
+  const result = await withEconomyTransaction(client, guildId, userId, async (accounts) => {
+    accounts[userId].wallet -= 100000;
+    return accounts[userId].wallet;
+  });
+  assert.equal(result, 100000);
+  assert.equal((await client.db.get(economyKey)).wallet, 100000);
+
+  await assert.rejects(
+    withEconomyTransaction(client, guildId, userId, async (accounts) => {
+      accounts[userId].wallet -= 1000000;
+      throw new Error('simulated operation failure');
+    }),
+    /simulated operation failure/,
+  );
+  assert.equal((await client.db.get(economyKey)).wallet, 100000);
 });
