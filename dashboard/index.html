@@ -594,7 +594,8 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
    <label class="birthdays-field">Birthday role<select id="birthdayRole"><option value="">Disabled — do not assign a role</option></select><small>The role is added on the member's birthday and removed during the next daily birthday check.</small></label>
    <div class="birthdays-save-row"><div><b>Save birthday settings</b><p>Changes are used by the automatic daily birthday check.</p><span id="birthdaySettingsStatus" role="status" aria-live="polite"></span></div><button id="birthdaySettingsSave" type="button">Save settings</button></div>
   </section>
-  <section class="card birthdays-card birthday-embed-builder" style="grid-column:1 / -1">
+ </div>
+ <section class="card birthdays-card birthday-embed-builder">
    <div class="birthdays-section-head"><span class="birthdays-section-icon">📝</span><div><h3>Birthday Announcement Embed Builder</h3><p>Customize the automatic birthday announcement posted in your selected channel.</p></div></div>
    <div class="birthday-builder-grid">
     <div class="birthday-builder-fields">
@@ -610,8 +611,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
     </div>
     <div class="birthday-preview-wrap"><div class="birthday-preview-label">LIVE PREVIEW</div><div class="birthday-discord-preview"><div class="birthday-preview-embed" id="birthdayEmbedPreview"><div class="birthday-preview-author" id="birthdayPreviewAuthor"></div><div class="birthday-preview-title" id="birthdayPreviewTitle">🎂 Happy Birthday!</div><div class="birthday-preview-description" id="birthdayPreviewDescription">Today we're celebrating <span class="birthday-preview-mention">@Member</span>! Wishing you a wonderful day! 🎉</div><img id="birthdayPreviewThumbnail" class="birthday-preview-thumbnail" alt="" hidden><img id="birthdayPreviewImage" class="birthday-preview-image" alt="" hidden><div class="birthday-preview-footer" id="birthdayPreviewFooter">Barracks • Birthday Celebration</div></div></div><p class="birthday-preview-note">Preview uses sample member data. Actual mentions are filled in automatically when birthdays are announced.</p></div>
    </div>
-  </section>
- </div>
+ </section>
  <section class="card birthdays-members-card"><div class="birthdays-list-head"><div class="birthdays-section-head"><span class="birthdays-section-icon">📅</span><div><h3>Member Birthdays</h3><p>All registered birthdays in Barracks, sorted by month and day.</p></div></div><div class="birthdays-list-tools"><input id="birthdayMemberSearch" type="search" placeholder="Search members…" aria-label="Search birthday members"><button id="birthdayListRefresh" type="button">↻ Refresh</button></div></div>
   <div class="birthdays-list-summary" id="birthdayListSummary">Loading member birthdays…</div><div class="birthdays-table-wrap"><table class="birthdays-table"><thead><tr><th>Member</th><th>Birthday</th><th>Year</th></tr></thead><tbody id="birthdayMembersList"><tr><td colspan="3">Loading birthdays…</td></tr></tbody></table></div>
  </section>
