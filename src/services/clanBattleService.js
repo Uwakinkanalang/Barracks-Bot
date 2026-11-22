@@ -37,7 +37,7 @@ export async function saveClanBattleState(client, guildId, state) {
   await client.db.set(STORAGE_KEY(guildId), state);
 }
 
-export async function recordClanBattleGame(client, guildId, gameName, playerOneId, playerTwoId, winnerId) {
+export async function recordClanBattleGame(client, guildId, gameName, playerOneId, playerTwoId, winnerId, matchId = null) {
   const game = String(gameName || '').toLowerCase();
   if (!ACTIVE_GAMES.has(game) || !winnerId) return { recorded: false, reason: 'unsupported-game' };
 
@@ -61,7 +61,7 @@ export async function recordClanBattleGame(client, guildId, gameName, playerOneI
     : String(winnerId) === String(playerTwoId) ? clanTwo : null;
   if (!winnerClan) return { recorded: false, reason: 'invalid-winner' };
 
-  const matchKey = `${game}:${[String(playerOneId), String(playerTwoId)].sort().join(':')}`;
+  const matchKey = `${game}:${String(matchId || [String(playerOneId), String(playerTwoId)].sort().join(':'))}`;
   battle.recordedMatches = Array.isArray(battle.recordedMatches) ? battle.recordedMatches : [];
   if (battle.recordedMatches.includes(matchKey)) return { recorded: false, reason: 'duplicate-match' };
 
