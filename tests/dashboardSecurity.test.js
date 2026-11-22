@@ -20,8 +20,8 @@ const baseUrl = `http://127.0.0.1:${address.port}`;
 after(() => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())));
 
 test('dashboard APIs reject requests without an authenticated Discord session', async () => {
-  for (const path of ['/api/dashboard/settings', '/api/dashboard/overview', '/api/dashboard/moderation/logs']) {
-    const response = await fetch(baseUrl + path);
+  for (const path of ['/api/dashboard/settings', '/api/dashboard/overview', '/api/dashboard/moderation/logs', '/api/dashboard/logout']) {
+    const response = await fetch(baseUrl + path, { method: path.endsWith('/logout') ? 'POST' : 'GET' });
     assert.equal(response.status, 401, path + ' must reject unauthenticated requests');
   }
 });
@@ -33,6 +33,28 @@ test('legacy shared-password login is permanently retired', async () => {
     body: JSON.stringify({ password: 'not-a-real-password' })
   });
   assert.equal(response.status, 410);
+});
+
+test('OAuth start fails closed when required server configuration is missing', async () => {
+  const keys = ['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'DASHBOARD_OAUTH_REDIRECT_URI', 'DASHBOARD_SESSION_SECRET'];
+  const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  try {
+    for (const key of keys) delete process.env[key];
+    const response = await fetch(baseUrl + '/api/dashboard/oauth/start', { redirect: 'manual' });
+    assert.equal(response.status, 503);
+    assert.match(await response.text(), /Discord OAuth is not configured/);
+  } finally {
+    for (const key of keys) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
+  }
+});
+
+test('OAuth callback rejects an invalid or expired state before contacting Discord', async () => {
+  const response = await fetch(baseUrl + '/api/dashboard/oauth/callback?state=invalid&code=fake', { redirect: 'manual' });
+  assert.equal(response.status, 400);
+  assert.match(await response.text(), /Sign-in expired or invalid/);
 });
 
 test('dashboard frontend offers Discord OAuth and contains no password form', async () => {
