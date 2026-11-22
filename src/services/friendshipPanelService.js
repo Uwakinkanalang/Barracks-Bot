@@ -55,7 +55,7 @@ export async function handleFriendshipInteraction(interaction, client) {
     if (!target || target.user.bot) return interaction.reply({ content: 'Choose a valid member. Bots cannot be friends.', ...ephemeral });
     const result = await sendFriendRequest(client, guildId, userId, targetId, { isBot: target.user.bot });
     if (result.status !== 'created') {
-      const messages = { invalid_target: 'You cannot add yourself.', bot_target: 'Bots cannot be added.', already_friends: 'You are already friends.', duplicate_pending: 'A request is already pending between you.' };
+      const messages = { invalid_target: 'You cannot add yourself.', bot_target: 'Bots cannot be added.', already_friends: 'You are already friends.', duplicate_pending: 'A request is already pending between you.', blocked: 'A friendship request cannot be sent because one of you has blocked the other.' };
       return interaction.reply({ content: messages[result.status] || 'Could not send the request.', ...ephemeral });
     }
     const row = new ActionRowBuilder().addComponents(
@@ -114,7 +114,7 @@ export async function handleFriendshipInteraction(interaction, client) {
     const target = await interaction.guild?.members.fetch(targetId).catch(() => null);
     if (!target || target.user.bot) return interaction.reply({ content: 'Choose a valid member. Bots cannot be Soulmates.', ...ephemeral });
     const result = await createSoulmateRequest(client, guildId, userId, targetId, { isBot: target.user.bot });
-    const messages = { not_friends: 'You must be friends first.', insufficient_points: 'You need at least 800 FP together.', already_soulmates: 'One of you already has an active Soulmate.', cooldown: 'One of you is still on the 7-day Soulmate cooldown.', duplicate_pending: 'A Soulmate request is already pending.' };
+    const messages = { not_friends: 'You must be friends first.', insufficient_points: 'You need at least 800 FP together.', already_soulmates: 'One of you already has an active Soulmate.', cooldown: 'One of you is still on the 7-day Soulmate cooldown.', duplicate_pending: 'A Soulmate request is already pending.', blocked: 'A Soulmate request cannot be sent because one of you has blocked the other.' };
     if (result.status !== 'created') return interaction.reply({ content: messages[result.status] || 'Could not send a Soulmate request.', ...ephemeral });
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('friendship:soulmate-accept:' + result.request.id).setLabel('Accept').setStyle(ButtonStyle.Success),
@@ -127,7 +127,7 @@ export async function handleFriendshipInteraction(interaction, client) {
     const accepted = id.startsWith('friendship:soulmate-accept:');
     const requestId = id.slice(accepted ? 'friendship:soulmate-accept:'.length : 'friendship:soulmate-decline:'.length);
     const result = await resolveSoulmateRequest(client, guildId, requestId, userId, accepted ? 'accepted' : 'declined');
-    const messages = { accepted: '💞 You are now Soulmates!', declined: 'Soulmate request declined.', not_pending: 'This request is no longer pending.', not_authorized: 'Only the recipient can respond.', expired: 'This request has expired.', not_eligible: 'The 800 FP friendship requirement is no longer met.', already_soulmates: 'One of you already has an active Soulmate.' };
+    const messages = { accepted: '💞 You are now Soulmates!', declined: 'Soulmate request declined.', not_pending: 'This request is no longer pending.', not_authorized: 'Only the recipient can respond.', expired: 'This request has expired.', not_eligible: 'The 800 FP friendship requirement is no longer met.', already_soulmates: 'One of you already has an active Soulmate.', cooldown: 'One of you is still on the 7-day Soulmate cooldown.', blocked: 'One of you has blocked the other.' };
     if (result.status === 'accepted' || result.status === 'declined') return interaction.update({ content: messages[result.status], components: [] });
     return interaction.reply({ content: messages[result.status] || 'Could not process this request.', ...ephemeral });
   }
