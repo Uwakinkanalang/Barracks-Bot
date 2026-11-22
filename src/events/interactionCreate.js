@@ -1030,10 +1030,6 @@ export default {
                   .setDescription('Six-digit color code, for example #5865F2.')
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_role_hex').setStyle(TextInputStyle.Short).setPlaceholder('#5865F2').setMaxLength(7).setRequired(true)),
                 new LabelBuilder()
-                  .setLabel('Clan AutoNick Format')
-                  .setDescription('Choose a format: TAG {username}, ★ {username}, or ⚔ {username}. TAG is replaced with your clan tag.')
-                  .setTextInputComponent(new TextInputBuilder().setCustomId('clan_autonick_format').setStyle(TextInputStyle.Short).setPlaceholder('TAG {username}').setValue('TAG {username}').setMaxLength(32).setRequired(true)),
-                new LabelBuilder()
                   .setLabel('Vice Clan Leader')
                   .setDescription('Mention the member or enter their Discord user ID.')
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_vice_leader').setStyle(TextInputStyle.Short).setMaxLength(25).setRequired(true))
@@ -1609,7 +1605,7 @@ export default {
             const name = interaction.fields.getTextInputValue('clan_name').trim();
             const rawTagInput = interaction.fields.getTextInputValue('clan_tag').trim();
             const roleHexInput = interaction.fields.getTextInputValue('clan_role_hex').trim();
-            const autoNickFormat = interaction.fields.getTextInputValue('clan_autonick_format').trim();
+            const autoNickFormat = 'TAG ⚔ ★ {username}';
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
             const tagLength = Array.from(rawTagInput).length;
             const validTag = tagLength >= 1 && tagLength <= 6 && /^[\p{L}\p{N}\p{S}\p{P}\p{M}]+$/u.test(rawTagInput);
@@ -1632,10 +1628,6 @@ export default {
             }
             if (!roleHex) {
               await interaction.reply({ content: 'Role Hex must be a valid six-digit color code, such as **#5865F2**.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            if (!['TAG {username}', '★ {username}', '⚔ {username}'].includes(autoNickFormat)) {
-              await interaction.reply({ content: 'Choose one of the available Clan AutoNick formats: TAG {username}, ★ {username}, or ⚔ {username}.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!viceLeaderId || viceLeaderId === interaction.user.id) {
