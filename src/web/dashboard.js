@@ -1071,6 +1071,7 @@ export function registerDashboardRoutes(app, bot) {
     const rules = String(req.body?.rules || '').trim();
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
+    const autoNickFormat = `${tag} {username}`;
     const fixedAutoNickFormat = 'TAG ⚔ ★ {username}';
     if (!roleHex) return res.status(400).json({ error: 'Role Hex Code must be a valid six-digit color, such as #5865F2.' });
     if (!/^\\d{17,20}$/.test(leaderId) || !/^\\d{17,20}$/.test(viceLeaderId) || leaderId === viceLeaderId) return res.status(400).json({ error: 'Enter valid, different Discord IDs for the clan leader and vice clan leader.' });
@@ -1156,14 +1157,12 @@ export function registerDashboardRoutes(app, bot) {
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     const name = String(req.body?.name || '').trim(), tag = String(req.body?.tag || '').trim().toUpperCase();
-    const autoNickFormat = 'TAG ⚔ ★ {username}';
     const leaderId = String(req.body?.leaderId || '').trim(), viceLeaderId = String(req.body?.viceLeaderId || '').trim(), description = String(req.body?.description || '').trim();
     const roleHexInput = String(req.body?.roleHex || '').trim();
     const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
     const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
-    if (!['TAG {username}', '★ {username}', '⚔ {username}'].includes(autoNickFormat)) return res.status(400).json({ error: 'Choose TAG {username}, ★ {username}, or ⚔ {username} as the Clan AutoNick format.' });
     if (!/^\d{17,20}$/.test(leaderId)) return res.status(400).json({ error: 'Enter a valid Discord user ID for the clan leader.' });
     if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
     const me = guild.members.me;
