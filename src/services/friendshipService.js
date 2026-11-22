@@ -16,14 +16,25 @@ const manilaDayKey = timestamp => {
 };
 const locks = new Map();
 
-async function locked(guildId, fn) {
+async function locked(client, guildId, fn) {
+  // PostgreSQL advisory locking serializes relationship mutations across every
+  // bot process. The in-process queue remains the safe fallback for test and
+  // explicitly degraded in-memory environments.
+  if (typeof client?.db?.withKeyValueTransaction === 'function') {
+    return client.db.withKeyValueTransaction(async (transaction) => {
+      // Acquire the guild relationship key lock before reading the snapshot.
+      await transaction.get(keyFor(guildId), null);
+      return fn({ db: transaction });
+    });
+  }
+
   const prior = locks.get(guildId) || Promise.resolve();
   let release;
   const current = new Promise(resolve => { release = resolve; });
   const queued = prior.then(() => current);
   locks.set(guildId, queued);
   await prior;
-  try { return await fn(); }
+  try { return await fn(client); }
   finally { release(); if (locks.get(guildId) === queued) locks.delete(guildId); }
 }
 
@@ -70,8 +81,8 @@ export async function getActiveFriends(client, guildId, userId) {
 export async function sendFriendRequest(client, guildId, senderId, recipientId, options = {}) {
   if (!senderId || !recipientId || senderId === recipientId) return { status: 'invalid_target' };
   if (options.isBot) return { status: 'bot_target' };
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId);
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId);
     const pair = pairKey(senderId, recipientId);
     if (data.blocks[senderId]?.includes(recipientId) || data.blocks[recipientId]?.includes(senderId)) return { status: 'blocked' };
     if (isActiveFriend(data.friendships[pair], senderId, recipientId)) return { status: 'already_friends' };
@@ -81,20 +92,20 @@ export async function sendFriendRequest(client, guildId, senderId, recipientId, 
     const id = `fr-${Date.now()}-${senderId}-${recipientId}`;
     const request = { id, senderId, recipientId, status: 'pending', createdAt: Date.now(), expiresAt: Date.now() + REQUEST_TTL };
     data.requests[id] = request;
-    await save(client, guildId, data);
+    await save(transactionClient, guildId, data);
     return { status: 'created', request };
   });
 }
 export async function resolveFriendRequest(client, guildId, requestId, recipientId, decision) {
   if (!['accepted', 'declined'].includes(decision)) return { status: 'invalid_decision' };
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId);
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId);
     const req = data.requests[requestId];
     if (!req || req.kind === 'soulmate' || req.status !== 'pending') return { status: 'not_pending' };
     if (req.recipientId !== recipientId) return { status: 'not_authorized' };
     const now = Date.now();
     if (now >= Number(req.expiresAt)) {
-      req.status = 'expired'; req.updatedAt = now; await save(client, guildId, data);
+      req.status = 'expired'; req.updatedAt = now; await save(transactionClient, guildId, data);
       return { status: 'expired' };
     }
     if (decision === 'accepted' && (
@@ -110,27 +121,27 @@ export async function resolveFriendRequest(client, guildId, requestId, recipient
         : { member1Id: req.senderId, member2Id: req.recipientId, points: 0, active: true, createdAt: now, dailyClaims: {}, activity: {} };
       data.history.push({ type: 'friendship', action: previous ? 'restored' : 'created', pairKey: id, at: now });
     }
-    await save(client, guildId, data);
+    await save(transactionClient, guildId, data);
     return { status: decision, request: req, friendship: decision === 'accepted' ? data.friendships[pairKey(req.senderId, req.recipientId)] : null };
   });
 }
 export async function cancelFriendRequest(client, guildId, requestId, senderId) {
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId), req = data.requests[requestId];
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId), req = data.requests[requestId];
     if (!req || req.status !== 'pending') return { status: 'not_pending' };
     if (req.senderId !== senderId) return { status: 'not_authorized' };
-    req.status = 'cancelled'; req.updatedAt = Date.now(); await save(client, guildId, data);
+    req.status = 'cancelled'; req.updatedAt = Date.now(); await save(transactionClient, guildId, data);
     return { status: 'cancelled' };
   });
 }
 export async function removeFriend(client, guildId, userId, friendId) {
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId), id = pairKey(userId, friendId);
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId), id = pairKey(userId, friendId);
     const pair = data.friendships[id];
     if (!isActiveFriend(pair, userId, friendId)) return { status: 'not_friends' };
     pair.active = false; pair.removedAt = Date.now(); pair.removedBy = userId;
     data.history.push({ type: 'friendship', action: 'removed', pairKey: id, at: pair.removedAt, by: userId });
-    await save(client, guildId, data);
+    await save(transactionClient, guildId, data);
     return { status: 'removed', friendship: pair };
   });
 }
@@ -138,8 +149,8 @@ export async function removeFriend(client, guildId, userId, friendId) {
 /** Award chat/voice FP with a caller-supplied unique activity key for deduplication. */
 export async function awardFriendshipPoints(client, guildId, a, b, amount, options = {}) {
   if (!Number.isInteger(amount) || amount <= 0 || !a || !b || a === b) return { status: 'invalid_award' };
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId), id = pairKey(a, b), pair = data.friendships[id];
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId), id = pairKey(a, b), pair = data.friendships[id];
     if (!isActiveFriend(pair, a, b)) return { status: 'not_friends' };
     if (data.blocks[a]?.includes(b) || data.blocks[b]?.includes(a)) return { status: 'blocked' };
     const now = Number(options.now) || Date.now(), day = manilaDayKey(now);
@@ -153,13 +164,13 @@ export async function awardFriendshipPoints(client, guildId, a, b, amount, optio
     activity.points += granted;
     if (options.activityKey) activity.keys.push(String(options.activityKey));
     if (activity.keys.length > 500) activity.keys = activity.keys.slice(-500);
-    await save(client, guildId, data);
+    await save(transactionClient, guildId, data);
     return { status: 'awarded', points: granted, total: pair.points, remainingToday: DAILY_PAIR_CAP - activity.points };
   });
 }
 export async function claimFriendshipDailyBonus(client, guildId, a, b, now = Date.now()) {
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId), id = pairKey(a, b), pair = data.friendships[id];
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId), id = pairKey(a, b), pair = data.friendships[id];
     if (!isActiveFriend(pair, a, b)) return { status: 'not_friends' };
     if (data.blocks[a]?.includes(b) || data.blocks[b]?.includes(a)) return { status: 'blocked' };
     pair.dailyClaims ||= {};
@@ -171,7 +182,7 @@ export async function claimFriendshipDailyBonus(client, guildId, a, b, now = Dat
     pair.activity ||= {}; pair.activity[day] ||= { points: 0, keys: [] };
     pair.activity[day].points += granted;
     pair.dailyClaims[day] = now;
-    await save(client, guildId, data);
+    await save(transactionClient, guildId, data);
     return { status: 'claimed', points: granted, total: pair.points };
   });
 }
@@ -192,8 +203,8 @@ export async function validateMarriageEligibility(client, guildId, a, b) {
 export async function createSoulmateRequest(client, guildId, senderId, recipientId, options = {}) {
   if (!senderId || !recipientId || senderId === recipientId) return { status: 'invalid_target' };
   if (options.isBot) return { status: 'bot_target' };
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId), now = Date.now(), id = pairKey(senderId, recipientId);
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId), now = Date.now(), id = pairKey(senderId, recipientId);
     if (data.blocks[senderId]?.includes(recipientId) || data.blocks[recipientId]?.includes(senderId)) return { status: 'blocked' };
     const points = Number(data.friendships[id]?.points) || 0;
     if (!isActiveFriend(data.friendships[id], senderId, recipientId)) return { status: 'not_friends' };
@@ -204,19 +215,19 @@ export async function createSoulmateRequest(client, guildId, senderId, recipient
       ((r.senderId === senderId && r.recipientId === recipientId) || (r.senderId === recipientId && r.recipientId === senderId)))) return { status: 'duplicate_pending' };
     const requestId = `sm-${now}-${senderId}-${recipientId}`;
     const request = { id: requestId, kind: 'soulmate', senderId, recipientId, status: 'pending', createdAt: now, expiresAt: now + REQUEST_TTL };
-    data.requests[requestId] = request; await save(client, guildId, data);
+    data.requests[requestId] = request; await save(transactionClient, guildId, data);
     return { status: 'created', request };
   });
 }
 export async function resolveSoulmateRequest(client, guildId, requestId, recipientId, decision) {
   if (!['accepted', 'declined'].includes(decision)) return { status: 'invalid_decision' };
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId), req = data.requests[requestId];
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId), req = data.requests[requestId];
     if (!req || req.kind !== 'soulmate' || req.status !== 'pending') return { status: 'not_pending' };
     if (req.recipientId !== recipientId) return { status: 'not_authorized' };
     const now = Date.now();
-    if (now >= Number(req.expiresAt)) { req.status = 'expired'; req.updatedAt = now; await save(client, guildId, data); return { status: 'expired' }; }
-    if (decision === 'declined') { req.status = 'declined'; req.updatedAt = now; await save(client, guildId, data); return { status: 'declined' }; }
+    if (now >= Number(req.expiresAt)) { req.status = 'expired'; req.updatedAt = now; await save(transactionClient, guildId, data); return { status: 'expired' }; }
+    if (decision === 'declined') { req.status = 'declined'; req.updatedAt = now; await save(transactionClient, guildId, data); return { status: 'declined' }; }
     const id = pairKey(req.senderId, req.recipientId), pair = data.friendships[id];
     if (!isActiveFriend(pair, req.senderId, req.recipientId) || Number(pair.points) < 800) return { status: 'not_eligible' };
     if ([req.senderId, req.recipientId].some(memberId => now < (Number(data.soulmateCooldowns[memberId]) || 0))) return { status: 'cooldown' };
@@ -226,37 +237,37 @@ export async function resolveSoulmateRequest(client, guildId, requestId, recipie
     const soulmate = { id: soulmateId, member1Id: req.senderId, member2Id: req.recipientId, status: 'active', startedAt: now };
     data.soulmates[soulmateId] = soulmate; req.status = 'accepted'; req.updatedAt = now;
     data.history.push({ type: 'soulmate', action: 'started', soulmateId, at: now });
-    await save(client, guildId, data);
+    await save(transactionClient, guildId, data);
     return { status: 'accepted', soulmate };
   });
 }
 export async function cancelSoulmateRequest(client, guildId, requestId, senderId) {
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId), req = data.requests[requestId];
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId), req = data.requests[requestId];
     if (!req || req.kind !== 'soulmate' || req.status !== 'pending') return { status: 'not_pending' };
     if (req.senderId !== senderId) return { status: 'not_authorized' };
     req.status = 'cancelled'; req.updatedAt = Date.now();
-    await save(client, guildId, data);
+    await save(transactionClient, guildId, data);
     return { status: 'cancelled' };
   });
 }
 
 export async function endSoulmate(client, guildId, userId) {
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId), soulmate = Object.values(data.soulmates).find(s => s?.status === 'active' && (s.member1Id === userId || s.member2Id === userId));
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId), soulmate = Object.values(data.soulmates).find(s => s?.status === 'active' && (s.member1Id === userId || s.member2Id === userId));
     if (!soulmate) return { status: 'not_soulmates' };
     const now = Date.now(), other = soulmate.member1Id === userId ? soulmate.member2Id : soulmate.member1Id;
     soulmate.status = 'ended'; soulmate.endedAt = now; soulmate.endedBy = userId;
     data.soulmateCooldowns[userId] = now + SOULMATE_COOLDOWN;
     data.soulmateCooldowns[other] = now + SOULMATE_COOLDOWN;
     data.history.push({ type: 'soulmate', action: 'ended', soulmateId: soulmate.id, at: now, by: userId });
-    await save(client, guildId, data);
+    await save(transactionClient, guildId, data);
     return { status: 'ended', soulmate, cooldownUntil: now + SOULMATE_COOLDOWN };
   });
 }
 export async function expireFriendshipRequests(client, guildId, now = Date.now()) {
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId);
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId);
     const expired = [];
     for (const request of Object.values(data.requests)) {
       if (request?.status !== 'pending' || Number(request.expiresAt) > now) continue;
@@ -264,7 +275,7 @@ export async function expireFriendshipRequests(client, guildId, now = Date.now()
       request.updatedAt = now;
       expired.push(request.id);
     }
-    if (expired.length) await save(client, guildId, data);
+    if (expired.length) await save(transactionClient, guildId, data);
     return expired.length;
   });
 }
@@ -275,20 +286,20 @@ export const SOULMATE_COOLDOWN_MS = SOULMATE_COOLDOWN;
 
 export async function blockFriendshipMember(client, guildId, userId, blockedId) {
   if (!userId || !blockedId || userId === blockedId) return { status: 'invalid_target' };
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId);
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId);
     const list = new Set(Array.isArray(data.blocks[userId]) ? data.blocks[userId] : []);
     list.add(blockedId);
     data.blocks[userId] = [...list];
-    await save(client, guildId, data);
+    await save(transactionClient, guildId, data);
     return { status: 'blocked' };
   });
 }
 export async function unblockFriendshipMember(client, guildId, userId, blockedId) {
-  return locked(guildId, async () => {
-    const data = await getFriendshipData(client, guildId);
+  return locked(client, guildId, async (transactionClient) => {
+    const data = await getFriendshipData(transactionClient, guildId);
     data.blocks[userId] = (Array.isArray(data.blocks[userId]) ? data.blocks[userId] : []).filter(id => id !== blockedId);
-    await save(client, guildId, data);
+    await save(transactionClient, guildId, data);
     return { status: 'unblocked' };
   });
 }
