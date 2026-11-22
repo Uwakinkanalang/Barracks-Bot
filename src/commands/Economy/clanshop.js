@@ -29,16 +29,12 @@ export function buildClanShopPage(items, guildId, page = 0) {
       '# 🛒 BARRACKS CLAN SHOP\n' +
       'Spend your **bCash** on available clan perks and upgrades. Check the price before purchasing!'
     ))
-    .addSeparatorComponents(new SeparatorBuilder())
-    .addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      `## 🎖️ Available Items\n${items.length ? `Browse the items below and press **Buy** to purchase. • ${items.length} item(s) available` : 'No role items are currently listed.'}`
-    ));
+    .addSeparatorComponents(new SeparatorBuilder());
 
-  if (!pageItems.length) {
+  if (pageItems.length) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '_Role items will appear here when they are added to the shop._'
+      `## 🎖️ Available Items\nBrowse the items below and press **Buy** to purchase. • ${items.length} item(s) available`
     ));
-  } else {
     for (const item of pageItems) {
       container.addSectionComponents(new SectionBuilder()
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(
