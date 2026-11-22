@@ -34,13 +34,17 @@ export async function renderWagerRecoveryPanel(interaction, client, edit = false
   }
   const rows = [];
   if (wagers.length) {
+    await client.db.set(stateKey(interaction.guildId, interaction.user.id), {
+      options: wagers.map(({ userId, gameId }) => ({ userId, gameId })),
+      updatedAt: Date.now(),
+    });
     const menu = new StringSelectMenuBuilder()
       .setCustomId('wagerrecovery:select')
       .setPlaceholder('Select a pending wager')
       .addOptions(wagers.map((w) => ({
         label: `${w.game.slice(0, 45)} — ${w.amount.toLocaleString()} bCash`.slice(0, 100),
         description: `Player ${w.userId}`.slice(0, 100),
-        value: `${w.userId}.${w.gameId}`.slice(0, 100),
+        value: `w${wagers.indexOf(w)}`,
       })));
     rows.push(new ActionRowBuilder().addComponents(menu));
   }
@@ -72,13 +76,20 @@ export async function handleWagerRecoveryButton(interaction, client, action) {
 
 export async function handleWagerRecoverySelect(interaction, client) {
   if (!canManageWagerRecovery(interaction)) return interaction.reply({ content: '⛔ Manage Server permission is required.', ephemeral: true });
-  const [userId, ...gameParts] = String(interaction.values?.[0] || '').split('.');
-  const gameId = gameParts.join('.');
-  if (!/^\d{17,20}$/.test(userId) || !gameId) return interaction.reply({ content: 'Invalid wager selection. Refresh the panel.', ephemeral: true });
+  const selectionState = await client.db.get(stateKey(interaction.guildId, interaction.user.id), null);
+  const selectedIndex = Number(String(interaction.values?.[0] || '').replace(/^w/, ''));
+  const selectedOption = Number.isInteger(selectedIndex) && selectedIndex >= 0
+    ? selectionState?.options?.[selectedIndex]
+    : null;
+  const userId = String(selectedOption?.userId || '');
+  const gameId = String(selectedOption?.gameId || '');
+  if (!/^\\d{17,20}$/.test(userId) || !gameId || Date.now() - Number(selectionState?.updatedAt || 0) > 15 * 60 * 1000) {
+    return interaction.reply({ content: 'That selection expired. Refresh the panel and try again.', ephemeral: true });
+  }
   const pending = await listPendingEconomyWagers(client, interaction.guildId, 500);
   const match = pending.wagers.find((w) => w.userId === userId && w.gameId === gameId);
   if (!match) return interaction.reply({ content: 'That wager is no longer pending. Refresh the panel.', ephemeral: true });
-  await client.db.set(stateKey(interaction.guildId, interaction.user.id), { userId, gameId, selectedAt: Date.now() });
+  await client.db.set(stateKey(interaction.guildId, interaction.user.id), { ...selectionState, userId, gameId, selectedAt: Date.now() });
   return interaction.reply({ content: `Selected **${match.game}** for <@${userId}> — **${match.amount.toLocaleString()} bCash**. Choose Refund Stake or Settle as Loss on the panel.`, ephemeral: true });
 }
 
