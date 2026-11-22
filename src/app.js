@@ -22,7 +22,7 @@ import { initializeMusic } from './services/music/riffySetup.js';
 import { shutdownMusic } from './services/music/playerHandler.js';
 import pkg from '../package.json' with { type: 'json' };
 import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
-import { registerDashboardRoutes } from './web/dashboard.js';
+import { registerDashboardRoutes, pruneExpiredDashboardSessions } from './web/dashboard.js';
 
 class TitanBot extends Client {
   constructor() {
@@ -325,6 +325,7 @@ class TitanBot extends Client {
       timezone: 'Asia/Manila',
     });
 
+    cron.schedule('0 */6 * * *', runSafeTask('dashboard_session_prune', () => pruneExpiredDashboardSessions(this)));
     cron.schedule('*/15 * * * *', runSafeTask('social_request_expiry', async () => {
       for (const [guildId] of this.guilds.cache) {
         try {
