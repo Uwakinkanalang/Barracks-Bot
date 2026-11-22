@@ -95,12 +95,16 @@ export async function handleMarriagePanelInteraction(interaction, client) {
     if (action === 'proposal-decline') {
       const result = await resolveMarriageProposal(client, guildId, proposalId, userId, 'declined');
       const messages = { declined: 'Proposal declined. The proposer will not receive a refund.', not_pending: 'This proposal is no longer pending.', not_authorized: 'Only the recipient can decline this proposal.', expired: 'This proposal has expired.' };
-      return interaction.update({ content: messages[result.status] || 'Could not decline this proposal.', components: [] });
+      if (result.status === 'declined' || result.status === 'expired') {
+        return interaction.update({ content: messages[result.status], components: [] });
+      }
+      return interaction.reply({ content: messages[result.status] || 'Could not decline this proposal.', flags: MessageFlags.Ephemeral });
     }
     if (action === 'proposal-cancel') {
       const result = await cancelMarriageProposal(client, guildId, proposalId, userId);
       const messages = { cancelled: 'Proposal cancelled. The proposal fee is not refunded.', not_pending: 'This proposal is no longer pending.', not_authorized: 'Only the proposer can cancel this proposal.' };
-      return interaction.update({ content: messages[result.status] || 'Could not cancel this proposal.', components: [] });
+      if (result.status === 'cancelled') return interaction.update({ content: messages.cancelled, components: [] });
+      return interaction.reply({ content: messages[result.status] || 'Could not cancel this proposal.', flags: MessageFlags.Ephemeral });
     }
   }
 
