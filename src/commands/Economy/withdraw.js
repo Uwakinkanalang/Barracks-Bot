@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { getEconomyData, setEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
+import { getEconomyData } from '../../utils/economy.js';
+import EconomyService from '../../services/economyService.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -81,10 +82,7 @@ export default {
                 );
             }
 
-            userData.wallet += withdrawAmount;
-            userData.bank -= withdrawAmount;
-
-            await setEconomyData(client, guildId, userId, userData);
+            const updatedData = await EconomyService.withdrawFromBank(client, guildId, userId, withdrawAmount);
 
             const embed = successEmbed(
                 'Withdrawal Successful',
@@ -93,12 +91,12 @@ export default {
                 .addFields(
                     {
                         name: "New Cash Balance",
-                        value: `₱${userData.wallet.toLocaleString()}`,
+                        value: `₱${updatedData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
                         name: "New Bank Balance",
-                        value: `₱${userData.bank.toLocaleString()}`,
+                        value: `₱${updatedData.bank.toLocaleString()}`,
                         inline: true,
                     },
                 );
