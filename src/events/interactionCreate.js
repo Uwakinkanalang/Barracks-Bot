@@ -381,6 +381,28 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId === 'clan:bank:view') {
+            const clans = await interaction.client.db.get(`guild:${interaction.guildId}:clans`, []);
+            const clan = (Array.isArray(clans) ? clans : []).find(entry =>
+              entry.status === 'approved' &&
+              [String(entry.leaderId || ''), String(entry.viceLeaderId || ''), ...(Array.isArray(entry.memberIds) ? entry.memberIds.map(String) : [])].includes(interaction.user.id)
+            );
+            if (!clan) {
+              await interaction.reply({ content: 'You must be a member of an approved clan to view its bank.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const { EmbedBuilder } = await import('discord.js');
+            const balance = Math.max(0, Number(clan.bankBalance) || 0);
+            const color = /^#?[0-9a-fA-F]{6}$/.test(String(clan.roleHex || '')) ? Number.parseInt(String(clan.roleHex).replace('#', ''), 16) : 0x5865F2;
+            const embed = new EmbedBuilder()
+              .setColor(color)
+              .setTitle(`🏦 ${clan.name} [${clan.tag}] — Clan Bank`)
+              .setDescription(`**Available Clan Funds**\\n₱${balance.toLocaleString()}\\n\\nThis is your clan's shared treasury. Only the Clan Leader and Vice Clan Leader can deposit or withdraw funds.`)
+              .setFooter({ text: 'Barracks • Clan Treasury' })
+              .setTimestamp();
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            return;
+          }
           if (interaction.customId === 'clan:create:continue') {
             const draftKey = `guild:${interaction.guildId}:clan_create_draft:${interaction.user.id}`;
             const draft = await interaction.client.db.get(draftKey, null);
