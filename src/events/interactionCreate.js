@@ -70,7 +70,8 @@ async function applyHighestPriorityAutoNick(member) {
   let desired;
   if (active) {
     await client.db.set(stateKey, { originalNickname: base, savedAt: state?.savedAt || Date.now() });
-    desired = `${active.prefix.trim()} ${base}`.slice(0, 32);
+    const template = typeof active.format === 'string' && active.format.includes('{username}') ? active.format : `${active.prefix.trim()} {username}`;
+    desired = template.replace(/\\bTAG\\b/gi, String(active.tag || '')).replace(/\\{username\\}/gi, base).replace(/\\s+/g, ' ').trim().slice(0, 32);
   } else if (state) {
     desired = base || null;
     await client.db.delete(stateKey).catch(() => {});
@@ -93,19 +94,14 @@ async function applyHighestPriorityAutoNick(member) {
   }
 }
 
-async function registerClanAutoNick(client, guildId, roleId, tag) {
+async function registerClanAutoNick(client, guildId, roleId, tag, format = 'TAG {username}') {
   const key = `guild:${guildId}:autonick_roles`;
   const stored = await client.db.get(key, []);
-  const entries = Array.isArray(stored)
-    ? stored.filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
-    : [];
+  const entries = Array.isArray(stored) ? stored.filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string') : [];
+  const safeFormat = String(format || 'TAG {username}').trim().slice(0, 32);
   const existing = entries.find(entry => entry.roleId === roleId);
-  if (existing) {
-    existing.prefix = `${tag}|`;
-    existing.priority = 1000;
-  } else {
-    entries.push({ roleId, prefix: `${tag}|`, priority: 1000 });
-  }
+  if (existing) Object.assign(existing, { prefix: '', format: safeFormat, tag: String(tag), priority: 1000 });
+  else entries.push({ roleId, prefix: '', format: safeFormat, tag: String(tag), priority: 1000 });
   entries.sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
   await client.db.set(key, entries);
 }
@@ -1034,6 +1030,10 @@ export default {
                   .setDescription('Six-digit color code, for example #5865F2.')
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_role_hex').setStyle(TextInputStyle.Short).setPlaceholder('#5865F2').setMaxLength(7).setRequired(true)),
                 new LabelBuilder()
+                  .setLabel('Clan AutoNick Format')
+                  .setDescription('Use TAG for your clan tag and {username} for the member name. Default: TAG {username}; example: ★ {username}.')
+                  .setTextInputComponent(new TextInputBuilder().setCustomId('clan_autonick_format').setStyle(TextInputStyle.Short).setPlaceholder('TAG {username}').setValue('TAG {username}').setMaxLength(32).setRequired(true)),
+                new LabelBuilder()
                   .setLabel('Clan Description')
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_description').setStyle(TextInputStyle.Paragraph).setMaxLength(500).setRequired(true)),
                 new LabelBuilder()
@@ -1173,7 +1173,7 @@ export default {
                   });
                 }
 
-                await registerClanAutoNick(interaction.client, interaction.guildId, clanRole.id, reviewedClan.tag);
+                await registerClanAutoNick(interaction.client, interaction.guildId, clanRole.id, reviewedClan.tag, reviewedClan.autoNickFormat || 'TAG {username}');
                 reviewedClan.roleId = clanRole.id;
                 reviewedClan.status = 'approved';
                 reviewedClan.reviewedBy = interaction.user.id;
@@ -1612,6 +1612,7 @@ export default {
             const name = interaction.fields.getTextInputValue('clan_name').trim();
             const rawTagInput = interaction.fields.getTextInputValue('clan_tag').trim();
             const roleHexInput = interaction.fields.getTextInputValue('clan_role_hex').trim();
+            const autoNickFormat = interaction.fields.getTextInputValue('clan_autonick_format').trim();
             const description = interaction.fields.getTextInputValue('clan_description').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
             const tagLength = Array.from(rawTagInput).length;
@@ -1637,6 +1638,10 @@ export default {
               await interaction.reply({ content: 'Role Hex must be a valid six-digit color code, such as **#5865F2**.', flags: MessageFlags.Ephemeral });
               return;
             }
+            if (!autoNickFormat || !autoNickFormat.includes('{username}') || autoNickFormat.length > 32) {
+              await interaction.reply({ content: 'Clan AutoNick Format must include {username} and be 32 characters or fewer. Use TAG for the clan tag.', flags: MessageFlags.Ephemeral });
+              return;
+            }
             if (!viceLeaderId || viceLeaderId === interaction.user.id) {
               await interaction.reply({ content: 'Please mention a different server member as your Vice Clan Leader, or enter their user ID.', flags: MessageFlags.Ephemeral });
               return;
@@ -1660,7 +1665,7 @@ export default {
               return;
             }
             await interaction.client.db.set(`guild:${interaction.guildId}:clan_create_draft:${interaction.user.id}`, {
-              name, tag, roleHex, description, viceLeaderId, createdAt: Date.now()
+              name, tag, roleHex, autoNickFormat, description, viceLeaderId, createdAt: Date.now()
             });
             const { ModalBuilder, LabelBuilder, TextInputBuilder, TextInputStyle, FileUploadBuilder } = await import('discord.js');
             const secondModal = new ModalBuilder()
@@ -1688,7 +1693,7 @@ export default {
               await interaction.reply({ content: 'Your clan creation session expired. Please open the Create a Clan panel again.', flags: MessageFlags.Ephemeral });
               return;
             }
-            const { name, tag, roleHex, description, viceLeaderId } = draft;
+            const { name, tag, roleHex, autoNickFormat = 'TAG {username}', description, viceLeaderId } = draft;
             const clanRules = interaction.fields.getTextInputValue('clan_rules').trim();
             if (!clanRules) {
               await interaction.reply({ content: 'Please enter your Clan Rules.', flags: MessageFlags.Ephemeral });
@@ -1746,6 +1751,7 @@ export default {
               viceLeaderId,
               memberIds: [],
               roleHex,
+              autoNickFormat,
               status: 'pending',
               creationFeePaid: clanCreationFee,
               logoMessageId: null,
