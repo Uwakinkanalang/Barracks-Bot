@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, StringSelectMenuBuilder, PermissionFlagsBits } from 'discord.js';
-import { listPendingEconomyWagers, recoverEconomyWager } from '../utils/economy.js';
+import { listPendingEconomyWagers, listRecentEconomyWagerRecoveries, recoverEconomyWager } from '../utils/economy.js';
 
 export function canManageWagerRecovery(interaction) {
   const permissions = interaction.memberPermissions;
@@ -52,6 +52,7 @@ export async function renderWagerRecoveryPanel(interaction, client, edit = false
     new ButtonBuilder().setCustomId('wagerrecovery:refresh').setLabel('Refresh').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('wagerrecovery:refund').setLabel('Refund Stake').setStyle(ButtonStyle.Success).setDisabled(!wagers.length),
     new ButtonBuilder().setCustomId('wagerrecovery:settle').setLabel('Settle as Loss').setStyle(ButtonStyle.Danger).setDisabled(!wagers.length),
+    new ButtonBuilder().setCustomId('wagerrecovery:audit').setLabel('Recovery Audit').setStyle(ButtonStyle.Primary),
   ));
   const payload = { embeds: [embed], components: rows, ephemeral: true };
   if (edit) return interaction.editReply(payload);
@@ -63,6 +64,19 @@ export async function handleWagerRecoveryButton(interaction, client, action) {
   if (action === 'refresh') {
     await interaction.deferUpdate();
     return renderWagerRecoveryPanel(interaction, client, true);
+  }
+  if (action === 'audit') {
+    const result = await listRecentEconomyWagerRecoveries(client, interaction.guildId, 10);
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle('📋 Barracks — Recent Wager Recoveries')
+      .setDescription(result.recoveries.length
+        ? result.recoveries.map((entry) =>
+          `**${entry.action === 'refund' ? 'Refunded' : 'Settled as loss'}** • ${entry.amount.toLocaleString()} bCash\nPlayer: <@${entry.userId}> • Staff: <@${entry.actorId}>\nGame: ${entry.gameId}\nReason: ${entry.reason}\n<t:${Math.floor(entry.recoveredAt / 1000)}:R>`
+        ).join('\n\n')
+        : 'No recovery actions have been recorded for this server yet.')
+      .setFooter({ text: `Showing up to 10 of ${result.total || 0} recorded actions • Staff only` });
+    return interaction.reply({ embeds: [embed], ephemeral: true });
   }
   if (!['refund', 'settle'].includes(action)) return;
   const selected = await client.db.get(stateKey(interaction.guildId, interaction.user.id), null);
