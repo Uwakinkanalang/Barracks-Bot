@@ -70,7 +70,7 @@ export default {
                 return { wallet: userData.wallet, finalEarned, hasFishingRod };
             });
             const { wallet: newWallet, finalEarned, hasFishingRod } = fishing;
-            const multiplierMessage = hasFishingRod > 0 ? `\\n🎣 **Fishing Rod Bonus: +50%**` : "";
+            const multiplierMessage = hasFishingRod > 0 ? `\n🎣 **Fishing Rod Bonus: +50%**` : "";
             const rarityColors = {
                 common: '#95A5A6', uncommon: '#2ECC71', rare: '#3498DB',
                 epic: '#9B59B6', legendary: '#F1C40F'
