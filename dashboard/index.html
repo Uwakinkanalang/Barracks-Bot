@@ -1500,8 +1500,10 @@ async function loadBirthdaysPanel(){
 }
 function renderBirthdayMembers(){
  const rows=window.barracksBirthdayRows||[],q=(document.getElementById('birthdayMemberSearch')?.value||'').trim().toLowerCase(),body=document.getElementById('birthdayMembersList');
- const filtered=rows.filter(item=>(item.displayName+' '+item.username).toLowerCase().includes(q));
- document.getElementById('birthdayListSummary').textContent=filtered.length+' of '+rows.length+' registered member birthday'+(rows.length===1?'':'s');
+ const today=new Date();today.setHours(0,0,0,0);
+ const nextBirthday=item=>{const month=Number(item.month),day=Number(item.day);if(!Number.isInteger(month)||!Number.isInteger(day)||month<1||month>12||day<1||day>31)return Number.MAX_SAFE_INTEGER;let next=new Date(today.getFullYear(),month-1,day);if(next.getMonth()!==month-1||next.getDate()!==day)return Number.MAX_SAFE_INTEGER;if(next<today){next=new Date(today.getFullYear()+1,month-1,day);if(next.getMonth()!==month-1||next.getDate()!==day)return Number.MAX_SAFE_INTEGER;}return next.getTime();};
+ const filtered=rows.filter(item=>(item.displayName+' '+item.username).toLowerCase().includes(q)).sort((a,b)=>nextBirthday(a)-nextBirthday(b)||String(a.displayName).localeCompare(String(b.displayName)));
+ document.getElementById('birthdayListSummary').textContent=filtered.length+' of '+rows.length+' registered member birthday'+(rows.length===1?'':'s')+' · nearest upcoming first';
  if(!filtered.length){body.innerHTML='<tr><td colspan="3" class="birthdays-empty">'+(rows.length?'No members match your search.':'No birthdays have been registered yet. Members can use /birthday set to add theirs.')+'</td></tr>';return;}
  body.innerHTML='';
  filtered.forEach(item=>{const tr=document.createElement('tr'),name=document.createElement('td'),date=document.createElement('td'),year=document.createElement('td');name.textContent=item.displayName;date.textContent=item.monthName+' '+item.day;year.textContent=item.year??'—';tr.append(name,date,year);body.append(tr);});
