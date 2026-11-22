@@ -202,8 +202,6 @@ export async function createMarriageProposal(client, guildId, proposerId, recipi
         createdAt: now,
       };
       await saveMarriageData(client, guildId, data);
-      const roleSync = await syncMarriageRole(client, guildId, [marriage.member1Id, marriage.member2Id], false);
-      marriage.roleSync = roleSync;
     } catch (error) {
       economy.wallet = Number(economy.wallet) + PROPOSAL_FEE;
       await setEconomyData(client, guildId, proposerId, economy);
@@ -409,6 +407,8 @@ export async function divorceMarriage(client, guildId, initiatorId, options = {}
       throw error;
     }
 
+    const roleSync = await syncMarriageRole(client, guildId, [marriage.member1Id, marriage.member2Id], false);
+
     return {
       status: 'divorced',
       marriage,
@@ -416,6 +416,7 @@ export async function divorceMarriage(client, guildId, initiatorId, options = {}
       spouseId,
       fee: DIVORCE_FEE,
       cooldownUntil: now + DIVORCE_COOLDOWN,
+      roleSync,
     };
   });
 }
