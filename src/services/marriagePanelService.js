@@ -64,7 +64,7 @@ export async function handleMarriagePanelInteraction(interaction, client) {
       database_unavailable: 'Barracks storage is temporarily unavailable. No bCash was charged; please try again later.',
     };
     if (result.status !== 'created') return interaction.reply({ content: errors[result.status] || 'The proposal could not be created.', flags: MessageFlags.Ephemeral });
-    return interaction.reply({ content: '💍 Proposal sent! **100,000 bCash** has been charged. The recipient has been notified.', flags: MessageFlags.Ephemeral });
+    return interaction.reply({ content: '💍 Proposal sent! **100,000 bCash** has been charged. The recipient notification is queued for delivery.', flags: MessageFlags.Ephemeral });
   }
   if (id.startsWith('marriage:proposal-')) {
     const [, action, proposalId] = id.split(':');
