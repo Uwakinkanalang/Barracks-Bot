@@ -6,7 +6,6 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import { getEconomyData, addMoney, removeMoney } from '../../utils/economy.js';
-import { recordClanBattleGame } from '../../services/clanBattleService.js';
 
 const GAME_TIMEOUT = 2 * 60 * 1000;
 const PICK_OPTIONS = {
@@ -283,9 +282,6 @@ export default {
           game.escrowed = false;
         }
         collector.stop('finished');
-        await recordClanBattleGame(
-          interaction.client, interaction.guildId, 'rps', game.challengerId, game.opponentId, result.winnerId, gameId
-        ).catch(() => {});
         await message.edit({
           embeds: [resultEmbed],
           components: [buildPickButtons(gameId, true)],
