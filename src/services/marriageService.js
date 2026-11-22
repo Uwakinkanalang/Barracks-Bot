@@ -197,7 +197,7 @@ export async function createMarriageProposal(client, guildId, proposerId, recipi
         status: 'pending', createdAt: now, expiresAt: now + PROPOSAL_TTL,
       };
       economy.wallet = Number(economy.wallet) - PROPOSAL_FEE;
-      if (await transaction.set(economyKey, economy) === false) throw new Error('Proposal fee could not be saved.');
+      if (await transaction.set(economyKey, economy) === false) return { status: 'payment_failed' };
 
       data.proposals[proposalId] = proposal;
       data.transactions[proposalId] = {
@@ -372,7 +372,7 @@ export async function divorceMarriage(client, guildId, initiatorId, options = {}
 
       const now = Date.now();
       economy.wallet = Number(economy.wallet) - DIVORCE_FEE;
-      if (await transaction.set(economyKey, economy) === false) throw new Error('Divorce fee could not be saved.');
+      if (await transaction.set(economyKey, economy) === false) return { status: 'payment_failed' };
 
       marriage.status = 'divorced';
       marriage.divorcedAt = now;
