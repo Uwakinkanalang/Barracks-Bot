@@ -49,6 +49,7 @@ function normalizeMarriageData(value) {
       ? value.anniversaryClaims : {},
     divorceCooldowns: value.divorceCooldowns && typeof value.divorceCooldowns === 'object'
       ? value.divorceCooldowns : {},
+    notifications: value.notifications && typeof value.notifications === 'object' ? value.notifications : {},
   };
 }
 
@@ -71,6 +72,74 @@ export async function saveMarriageData(client, guildId, data) {
     throw new Error('Marriage data could not be saved to persistent storage.');
   }
   return true;
+}
+
+function queueMarriageNotification(data, { id, channelId, content, components = [] }) {
+  if (!channelId || !id) return;
+  data.notifications ||= {};
+  data.notifications[id] ||= {
+    id, channelId, content, components,
+    status: 'pending', attempts: 0, createdAt: Date.now(), nextAttemptAt: Date.now(),
+  };
+}
+
+export async function processMarriageNotifications(client, guildId, now = Date.now()) {
+  if (!hasAtomicStorage(client)) return { processed: 0, status: 'database_unavailable' };
+  const snapshot = await getMarriageData(client, guildId);
+  const candidate = Object.values(snapshot.notifications)
+    .filter((item) => item?.status !== 'delivered' &&
+      Number(item?.nextAttemptAt || 0) <= now &&
+      (item?.status !== 'processing' || now - Number(item.processingAt || 0) > 5 * 60 * 1000))
+    .sort((a, b) => Number(a.createdAt) - Number(b.createdAt))[0];
+  if (!candidate) return { processed: 0, status: 'idle' };
+
+  const claimed = await client.db.withKeyValueTransaction(async (transaction) => {
+    const transactionClient = { db: transaction };
+    const data = await getMarriageData(transactionClient, guildId);
+    const item = data.notifications[candidate.id];
+    if (!item || item.status === 'delivered' || Number(item.nextAttemptAt || 0) > now ||
+      (item.status === 'processing' && now - Number(item.processingAt || 0) <= 5 * 60 * 1000)) return null;
+    item.status = 'processing';
+    item.processingAt = now;
+    item.attempts = (Number(item.attempts) || 0) + 1;
+    await saveMarriageData(transactionClient, guildId, data);
+    return item;
+  });
+  if (!claimed) return { processed: 0, status: 'claimed_elsewhere' };
+
+  try {
+    const channel = await client.channels.fetch(claimed.channelId);
+    if (!channel?.isTextBased?.() || typeof channel.send !== 'function') {
+      throw new Error('Notification channel is unavailable or not text-based.');
+    }
+    await channel.send({ content: claimed.content, components: claimed.components || [] });
+    await client.db.withKeyValueTransaction(async (transaction) => {
+      const transactionClient = { db: transaction };
+      const data = await getMarriageData(transactionClient, guildId);
+      const item = data.notifications[claimed.id];
+      if (item) {
+        item.status = 'delivered';
+        item.deliveredAt = Date.now();
+        delete item.processingAt;
+        await saveMarriageData(transactionClient, guildId, data);
+      }
+    });
+    return { processed: 1, status: 'delivered', id: claimed.id };
+  } catch (error) {
+    await client.db.withKeyValueTransaction(async (transaction) => {
+      const transactionClient = { db: transaction };
+      const data = await getMarriageData(transactionClient, guildId);
+      const item = data.notifications[claimed.id];
+      if (item && item.status !== 'delivered') {
+        item.status = 'pending';
+        item.lastError = String(error?.message || error).slice(0, 500);
+        item.nextAttemptAt = Date.now() + Math.min(60 * 60 * 1000, 30 * 1000 * (2 ** Math.min(item.attempts, 7)));
+        delete item.processingAt;
+        await saveMarriageData(transactionClient, guildId, data);
+      }
+    });
+    return { processed: 1, status: 'retry_scheduled', id: claimed.id };
+  }
 }
 
 /**
