@@ -210,6 +210,8 @@ export function registerDashboardRoutes(app, bot) {
         language: typeof guildConfig.dashboardLanguage === 'string' ? guildConfig.dashboardLanguage : 'en',
         timezone: typeof guildConfig.timezone === 'string' ? guildConfig.timezone : 'Asia/Manila',
         managerRoleIds: Array.isArray(guildConfig.managerRoleIds) ? guildConfig.managerRoleIds : [],
+        marriedRoleId: guildConfig.marriedRoleId || null,
+        marriageAnnouncementChannelId: guildConfig.marriageAnnouncementChannelId || null,
         roles
       });
     } catch (error) {
@@ -241,6 +243,19 @@ export function registerDashboardRoutes(app, bot) {
       catch { return res.status(400).json({ error: 'Choose a valid timezone.' }); }
       updates.timezone = body.timezone;
     }
+    if (body.marriedRoleId !== undefined) {
+      const id = body.marriedRoleId === '' || body.marriedRoleId === null ? null : String(body.marriedRoleId);
+      if (id && (!/^\\d{17,20}$/.test(id) || !guild.roles.cache.has(id) || guild.roles.cache.get(id)?.name !== '💍B-Married'))
+        return res.status(400).json({ error: 'Select the Discord role named 💍B-Married.' });
+      updates.marriedRoleId = id;
+    }
+    if (body.marriageAnnouncementChannelId !== undefined) {
+      const id = body.marriageAnnouncementChannelId === '' || body.marriageAnnouncementChannelId === null ? null : String(body.marriageAnnouncementChannelId);
+      const channel = id ? guild.channels.cache.get(id) : null;
+      if (id && (!/^\\d{17,20}$/.test(id) || !channel?.isTextBased?.() || channel.isThread?.()))
+        return res.status(400).json({ error: 'Select a valid text channel for marriage announcements.' });
+      updates.marriageAnnouncementChannelId = id;
+    }
     if (body.managerRoleIds !== undefined) {
       if (!Array.isArray(body.managerRoleIds) || body.managerRoleIds.length > 100)
         return res.status(400).json({ error: 'Manager roles must be a list of up to 100 roles.' });
@@ -258,7 +273,9 @@ export function registerDashboardRoutes(app, bot) {
         prefix: verified.prefix,
         language: verified.dashboardLanguage || 'en',
         timezone: verified.timezone || 'Asia/Manila',
-        managerRoleIds: Array.isArray(verified.managerRoleIds) ? verified.managerRoleIds : []
+        managerRoleIds: Array.isArray(verified.managerRoleIds) ? verified.managerRoleIds : [],
+        marriedRoleId: verified.marriedRoleId || null,
+        marriageAnnouncementChannelId: verified.marriageAnnouncementChannelId || null
       });
     } catch (error) {
       return res.status(500).json({ error: error?.message || 'Could not save server settings.' });
