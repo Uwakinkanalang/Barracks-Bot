@@ -504,3 +504,20 @@ test('economy account transactions preserve concurrent marriage wallet updates',
   );
   assert.equal((await client.db.get(economyKey)).wallet, 100000);
 });
+
+
+test('memory fallback serializes same-account economy updates', async () => {
+  const client = makeClient();
+  client.db.isDegraded = () => true;
+  const userId = '400000000000000002';
+  const key = 'global:economy:' + userId;
+  await client.db.set(key, { wallet: 0, bank: 0, inventory: {}, cooldowns: {} });
+
+  await Promise.all([1, 2].map(() => withEconomyTransaction(client, guildId, userId, async (accounts) => {
+    const current = Number(accounts[userId].wallet) || 0;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    accounts[userId].wallet = current + 1;
+  })));
+
+  assert.equal((await client.db.get(key)).wallet, 2);
+});
