@@ -44,6 +44,16 @@ This checklist is for a private staging Discord guild before PR #237 is merged o
 - [ ] Confirm divorce; verify only the initiator pays 100,000 bCash, both lose the married role, both receive the seven-day cooldown, and history remains.
 - [ ] Verify insufficient wallet funds prevent divorce without changing the marriage.
 
+## Economy wallet transaction checks
+
+- [ ] Run two simultaneous `/pay` transfers from the same sender; confirm the wallet never goes negative and both account balances reconcile.
+- [ ] Run a marriage proposal fee deduction at the same time as a daily claim; confirm neither wallet update overwrites the other.
+- [ ] Run simultaneous deposit and withdrawal attempts; confirm wallet + bank totals remain consistent and bank capacity is never exceeded.
+- [ ] Run simultaneous work claims; confirm only one claim succeeds unless an extra-work consumable is legitimately consumed.
+- [ ] Run a robbery while the victim is making another wallet transaction; confirm the final balances reflect both committed operations without lost updates.
+- [ ] Buy a shop item while another wallet transaction is running; confirm the item/inventory and wallet debit remain consistent.
+- [ ] In PostgreSQL-unavailable memory fallback mode, repeat same-process wallet actions and verify the in-process account locks serialize them.
+
 ## Database transaction and concurrency checks
 
 - [ ] Confirm the bot reports PostgreSQL as available; marriage fees and anniversary processing must refuse to run without atomic transaction support.
