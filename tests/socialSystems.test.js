@@ -155,6 +155,35 @@ test('marriage proposal fee, acceptance, divorce fee, and remarriage cooldown', 
   assert.equal(blockedRemarriage.status, 'remarriage_cooldown');
 });
 
+test('concurrent marriage proposals cannot double-charge or create duplicates', async () => {
+  const client = makeClient();
+  await client.db.set('global:economy:' + memberA, { wallet: 250000, bank: 0 });
+  const eligible = async () => ({ eligible: true, points: 1000 });
+  const results = await Promise.all([
+    createMarriageProposal(client, guildId, memberA, memberB, { validateEligibility: eligible }),
+    createMarriageProposal(client, guildId, memberA, memberB, { validateEligibility: eligible }),
+  ]);
+  assert.equal(results.filter(result => result.status === 'created').length, 1);
+  assert.equal(results.filter(result => result.status === 'duplicate_pending').length, 1);
+  assert.equal((await client.db.get('global:economy:' + memberA)).wallet, 150000);
+});
+
+test('concurrent acceptance can finalize a marriage only once', async () => {
+  const client = makeClient();
+  await client.db.set('global:economy:' + memberA, { wallet: 200000, bank: 0 });
+  const eligible = async () => ({ eligible: true, points: 1000 });
+  const proposal = await createMarriageProposal(client, guildId, memberA, memberB, {
+    validateEligibility: eligible,
+  });
+  const results = await Promise.all([
+    finalizeMarriageProposal(client, guildId, proposal.proposal.id, memberB, { validateEligibility: eligible }),
+    finalizeMarriageProposal(client, guildId, proposal.proposal.id, memberB, { validateEligibility: eligible }),
+  ]);
+  assert.equal(results.filter(result => result.status === 'married').length, 1);
+  assert.equal(results.filter(result => result.status === 'not_pending').length, 1);
+  assert.equal((await getActiveMarriage(client, guildId, memberA)).spouseId, memberB);
+});
+
 test('yearly marriage anniversary rewards are paid once per spouse and anniversary', async () => {
   const store = new Map();
   const client = {
