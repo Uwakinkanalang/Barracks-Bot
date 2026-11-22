@@ -8,7 +8,7 @@ import {
 } from '../src/services/friendshipService.js';
 import {
   createMarriageProposal, finalizeMarriageProposal, getActiveMarriage,
-  divorceMarriage, getMarriageData, saveMarriageData, processMarriageAnniversaries,
+  divorceMarriage, saveMarriageData, processMarriageAnniversaries,
 } from '../src/services/marriageService.js';
 
 function makeClient() {
