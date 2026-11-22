@@ -48,6 +48,11 @@ jobs:
             src/commands/Economy/nickname.js
             src/commands/Economy/bhl.js
             src/commands/Economy/talpak.js
+            src/commands/Economy/blackjack.js
+            src/commands/Economy/mines.js
+            src/commands/Economy/roulette.js
+            src/commands/Economy/rps.js
+            src/commands/Economy/slut.js
             src/utils/postgresDatabase.js
             src/utils/database/wrapper.js
             src/commands/Economy/daily.js
