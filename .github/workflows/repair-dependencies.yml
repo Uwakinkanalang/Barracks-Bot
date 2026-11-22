@@ -1,4 +1,5 @@
 name: Repair dependency lockfile
+# Lockfile repair is verified in CI; retain this workflow for repeatable dependency refreshes.
 
 on:
   workflow_dispatch:
