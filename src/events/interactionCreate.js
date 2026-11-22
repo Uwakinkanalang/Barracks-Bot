@@ -732,11 +732,12 @@ export default {
                 await interaction.editReply('Only the Clan Leader or Vice Clan Leader of an approved clan can purchase a member expansion.');
                 return;
               }
-              const currentLimit = Math.max(10, Number(clan.maxMembers) || 10);
-              if (currentLimit >= 20) {
-                await interaction.editReply('Your clan already has the maximum expanded capacity of ' + currentLimit + ' members.');
+              const currentLimit = Math.min(200, Math.max(10, Number(clan.maxMembers) || 10));
+              if (currentLimit >= 200) {
+                await interaction.editReply('Your clan has reached the maximum capacity of 200 members.');
                 return;
               }
+              const nextLimit = Math.min(200, currentLimit + 10);
               const price = 1000000;
               const economy = await getEconomyData(interaction.client, guildId, interaction.user.id);
               const wallet = Number(economy?.wallet) || 0;
@@ -749,12 +750,12 @@ export default {
                 await interaction.editReply('The payment could not be processed. No clan expansion was applied.');
                 return;
               }
-              clan.maxMembers = 20;
+              clan.maxMembers = nextLimit;
               clan.memberExpansionPurchasedAt = Date.now();
               clan.memberExpansionPurchasedBy = interaction.user.id;
               await interaction.client.db.set(clanKey, clanList);
               const updated = await getEconomyData(interaction.client, guildId, interaction.user.id);
-              await interaction.editReply('Clan **' + clan.name + ' [' + clan.tag + ']** has been expanded!\nNew capacity: **20 members** (including leadership).\nPaid: **1,000,000 bCash**\nRemaining wallet: **' + (Number(updated?.wallet) || 0).toLocaleString() + ' bCash**.');
+              await interaction.editReply('Clan **' + clan.name + ' [' + clan.tag + ']** has been expanded!\nNew capacity: **' + nextLimit + ' members** (including leadership).\nPaid: **1,000,000 bCash**\nRemaining wallet: **' + (Number(updated?.wallet) || 0).toLocaleString() + ' bCash**.');
               return;
             }
             const items = await getClanShopItems(interaction.client, guildId);
@@ -1090,7 +1091,7 @@ export default {
               const currentMembers = Array.isArray(clan.memberIds) ? clan.memberIds : [];
               const clanCapacity = Math.max(10, Number(clan.maxMembers) || 10);
               if (currentMembers.length + 2 >= clanCapacity) {
-                await interaction.reply({ content: 'This clan has reached its current capacity of ' + clanCapacity + ' members (including leadership). Purchase the Clan Member Expansion in the Clan Shop to increase it to 20.', flags: MessageFlags.Ephemeral });
+                await interaction.reply({ content: 'This clan has reached its current capacity of ' + clanCapacity + ' members (including leadership). Purchase another Clan Member Expansion in the Clan Shop to add 10 more slots, up to 200.', flags: MessageFlags.Ephemeral });
                 return;
               }
               const role = await guild.roles.fetch(clan.roleId).catch(() => null);
@@ -1575,7 +1576,7 @@ export default {
                 return;
               }
               if (members.length + 2 >= Math.max(10, Number(clan.maxMembers) || 10)) {
-                await interaction.reply({ content: 'Your clan has reached its current capacity of ' + Math.max(10, Number(clan.maxMembers) || 10) + ' members (including leadership). Purchase the Clan Member Expansion in the Clan Shop to increase it to 20.', flags: MessageFlags.Ephemeral });
+                await interaction.reply({ content: 'Your clan has reached its current capacity of ' + Math.max(10, Number(clan.maxMembers) || 10) + ' members (including leadership). Purchase another Clan Member Expansion in the Clan Shop to add 10 more slots, up to 200.', flags: MessageFlags.Ephemeral });
                 return;
               }
               if (clan.roleId) {
