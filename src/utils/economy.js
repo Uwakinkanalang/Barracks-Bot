@@ -352,9 +352,8 @@ export async function settleEconomyWager(client, guildId, userId, gameId, payout
  */
 export async function listPendingEconomyWagers(client, guildId, limit = 100) {
     const safeLimit = Math.min(500, Math.max(1, Math.floor(Number(limit) || 100)));
-    const { getEconomyData } = await import('./economy.js').catch(() => ({ getEconomyData: null }));
-    const keys = typeof client?.db?.listKeys === 'function'
-        ? await client.db.listKeys('global:economy:')
+    const keys = typeof client?.db?.list === 'function'
+        ? await client.db.list('global:economy:')
         : null;
     if (!Array.isArray(keys)) {
         return { status: 'listing_unavailable', wagers: [] };
