@@ -6,6 +6,23 @@
  */
 
 const getMarriageKey = (guildId) => `guild:${guildId}:marriage_system`;
+const PROPOSAL_FEE = 100000;
+const PROPOSAL_TTL = 7 * 24 * 60 * 60 * 1000;
+const REPROPOSAL_COOLDOWN = 7 * 24 * 60 * 60 * 1000;
+const guildLocks = new Map();
+
+async function withGuildLock(guildId, callback) {
+  const previous = guildLocks.get(guildId) || Promise.resolve();
+  let release;
+  const current = new Promise((resolve) => { release = resolve; });
+  guildLocks.set(guildId, previous.then(() => current));
+  await previous;
+  try { return await callback(); }
+  finally {
+    release();
+    if (guildLocks.get(guildId) === current) guildLocks.delete(guildId);
+  }
+}
 
 function normalizeMarriageData(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -62,3 +79,168 @@ export async function getActiveMarriage(client, guildId, userId) {
 
   return null;
 }
+
+
+function pairKey(firstId, secondId) {
+  return [String(firstId), String(secondId)].sort().join(':');
+}
+
+function hasActiveMarriage(data, userId) {
+  return Object.values(data.marriages).some((record) =>
+    record?.status === 'married' &&
+    (record.member1Id === userId || record.member2Id === userId)
+  );
+}
+
+function findPendingProposal(data, proposerId, recipientId) {
+  return Object.values(data.proposals).find((proposal) =>
+    proposal?.status === 'pending' &&
+    proposal.proposerId === proposerId &&
+    proposal.recipientId === recipientId
+  );
+}
+
+/**
+ * Create a proposal and charge the proposer 100,000 bCash.
+ * Eligibility (1,000 FP + active Soulmate status) is deliberately required
+ * from the caller until the Friendship/Soulmate services are integrated.
+ */
+export async function createMarriageProposal(client, guildId, proposerId, recipientId, options = {}) {
+  if (!proposerId || !recipientId || proposerId === recipientId) {
+    return { status: 'invalid_target' };
+  }
+  if (options.isBot) return { status: 'bot_target' };
+  if (typeof options.validateEligibility !== 'function') {
+    return { status: 'eligibility_service_unavailable' };
+  }
+
+  return withGuildLock(guildId, async () => {
+    const eligibility = await options.validateEligibility(proposerId, recipientId);
+    if (!eligibility?.eligible) return { status: 'not_eligible', reason: eligibility?.reason || 'Eligibility requirements not met.' };
+
+    const data = await getMarriageData(client, guildId);
+    const now = Date.now();
+    if (hasActiveMarriage(data, proposerId) || hasActiveMarriage(data, recipientId)) {
+      return { status: 'already_married' };
+    }
+    if (findPendingProposal(data, proposerId, recipientId)) {
+      return { status: 'duplicate_pending' };
+    }
+
+    const pair = pairKey(proposerId, recipientId);
+    const previous = data.history
+      .filter((item) => item.type === 'proposal' && item.pairKey === pair &&
+        ['declined', 'expired'].includes(item.status))
+      .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0))[0];
+    if (previous && now < Number(previous.updatedAt || 0) + REPROPOSAL_COOLDOWN) {
+      return { status: 'proposal_cooldown', retryAt: Number(previous.updatedAt) + REPROPOSAL_COOLDOWN };
+    }
+
+    const { getEconomyData, setEconomyData } = await import('../utils/economy.js');
+    const economy = await getEconomyData(client, guildId, proposerId);
+    if (!economy || Number(economy.wallet) < PROPOSAL_FEE) {
+      return { status: 'insufficient_funds', required: PROPOSAL_FEE };
+    }
+
+    const proposalId = `mp-${now}-${proposerId}-${recipientId}`;
+    const proposal = {
+      id: proposalId,
+      proposerId,
+      recipientId,
+      fee: PROPOSAL_FEE,
+      status: 'pending',
+      createdAt: now,
+      expiresAt: now + PROPOSAL_TTL,
+    };
+
+    economy.wallet = Number(economy.wallet) - PROPOSAL_FEE;
+    const savedEconomy = await setEconomyData(client, guildId, proposerId, economy);
+    if (!savedEconomy) return { status: 'payment_failed' };
+
+    try {
+      data.proposals[proposalId] = proposal;
+      data.transactions[proposalId] = {
+        type: 'proposal_fee',
+        userId: proposerId,
+        amount: PROPOSAL_FEE,
+        createdAt: now,
+      };
+      await saveMarriageData(client, guildId, data);
+    } catch (error) {
+      economy.wallet = Number(economy.wallet) + PROPOSAL_FEE;
+      await setEconomyData(client, guildId, proposerId, economy);
+      throw error;
+    }
+
+    return { status: 'created', proposal };
+  });
+}
+
+export async function cancelMarriageProposal(client, guildId, proposalId, userId) {
+  return withGuildLock(guildId, async () => {
+    const data = await getMarriageData(client, guildId);
+    const proposal = data.proposals[proposalId];
+    if (!proposal || proposal.status !== 'pending') return { status: 'not_pending' };
+    if (proposal.proposerId !== userId) return { status: 'not_authorized' };
+
+    proposal.status = 'cancelled';
+    proposal.updatedAt = Date.now();
+    await saveMarriageData(client, guildId, data);
+    return { status: 'cancelled', proposal };
+  });
+}
+
+export async function resolveMarriageProposal(client, guildId, proposalId, recipientId, decision, options = {}) {
+  if (!['accepted', 'declined'].includes(decision)) return { status: 'invalid_decision' };
+
+  return withGuildLock(guildId, async () => {
+    const data = await getMarriageData(client, guildId);
+    const proposal = data.proposals[proposalId];
+    if (!proposal || proposal.status !== 'pending') return { status: 'not_pending' };
+    if (proposal.recipientId !== recipientId) return { status: 'not_authorized' };
+
+    const now = Date.now();
+    if (now >= Number(proposal.expiresAt)) {
+      proposal.status = 'expired';
+      proposal.updatedAt = now;
+      data.history.push({ type: 'proposal', pairKey: pairKey(proposal.proposerId, proposal.recipientId), status: 'expired', updatedAt: now, proposalId });
+      await saveMarriageData(client, guildId, data);
+      return { status: 'expired' };
+    }
+
+    if (decision === 'accepted') {
+      if (typeof options.validateEligibility !== 'function') return { status: 'eligibility_service_unavailable' };
+      const eligibility = await options.validateEligibility(proposal.proposerId, proposal.recipientId);
+      if (!eligibility?.eligible) return { status: 'not_eligible', reason: eligibility?.reason || 'Eligibility requirements are no longer met.' };
+      if (hasActiveMarriage(data, proposal.proposerId) || hasActiveMarriage(data, proposal.recipientId)) {
+        return { status: 'already_married' };
+      }
+      return { status: 'ready_to_finalize', proposal };
+    }
+
+    proposal.status = 'declined';
+    proposal.updatedAt = now;
+    data.history.push({ type: 'proposal', pairKey: pairKey(proposal.proposerId, proposal.recipientId), status: 'declined', updatedAt: now, proposalId });
+    await saveMarriageData(client, guildId, data);
+    return { status: 'declined', proposal };
+  });
+}
+
+export async function expireMarriageProposals(client, guildId, now = Date.now()) {
+  return withGuildLock(guildId, async () => {
+    const data = await getMarriageData(client, guildId);
+    const expired = [];
+    for (const proposal of Object.values(data.proposals)) {
+      if (proposal?.status !== 'pending' || now < Number(proposal.expiresAt)) continue;
+      proposal.status = 'expired';
+      proposal.updatedAt = now;
+      expired.push(proposal);
+      data.history.push({ type: 'proposal', pairKey: pairKey(proposal.proposerId, proposal.recipientId), status: 'expired', updatedAt: now, proposalId: proposal.id });
+    }
+    if (expired.length) await saveMarriageData(client, guildId, data);
+    return expired;
+  });
+}
+
+export const MARRIAGE_PROPOSAL_FEE = PROPOSAL_FEE;
+export const MARRIAGE_PROPOSAL_TTL = PROPOSAL_TTL;
