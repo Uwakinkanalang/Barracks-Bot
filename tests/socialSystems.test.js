@@ -301,3 +301,37 @@ test('marriage fees and anniversary rewards fail closed when PostgreSQL is degra
   assert.equal(anniversaryPayments.length, 0);
   assert.equal((await client.db.get(economyKey)).wallet, 250000);
 });
+
+
+test('failed marriage-record persistence rolls back a successful proposal fee write', async () => {
+  const store = new Map();
+  let failMarriageWrite = true;
+  const client = {
+    db: {
+      isAvailable() { return true; },
+      async get(key, fallback = null) {
+        return store.has(key) ? structuredClone(store.get(key)) : fallback;
+      },
+      async set(key, value) {
+        if (key.endsWith(':marriage_system') && failMarriageWrite) {
+          failMarriageWrite = false;
+          return false;
+        }
+        store.set(key, structuredClone(value));
+        return true;
+      },
+    },
+  };
+  const economyKey = 'global:economy:' + memberA;
+  store.set(economyKey, { wallet: 250000, bank: 0 });
+  const eligible = async () => ({ eligible: true, points: 1000 });
+
+  await assert.rejects(
+    createMarriageProposal(client, guildId, memberA, memberB, { validateEligibility: eligible }),
+    /Marriage data could not be saved/,
+  );
+  const wallet = await client.db.get(economyKey);
+  assert.equal(wallet.wallet, 250000);
+  const marriageData = await client.db.get('guild:' + guildId + ':marriage_system');
+  assert.equal(marriageData, null);
+});
