@@ -307,6 +307,8 @@ export async function startEconomyWager(client, guildId, userId, gameId, amount)
             amount: wager,
             payout: 0,
             status: 'pending',
+            guildId: String(guildId),
+            gameId: receiptId,
             createdAt: Date.now(),
         };
         return { started: true, status: 'pending', wallet: account.wallet };
@@ -365,7 +367,7 @@ export async function listPendingEconomyWagers(client, guildId, limit = 100) {
         if (!userId || key === userId) continue;
         const account = await client.db.get(key, null);
         for (const [gameId, receipt] of Object.entries(account?.economyGameTransactions || {})) {
-            if (receipt?.status !== 'pending') continue;
+            if (receipt?.status !== 'pending' || String(receipt.guildId || '') !== String(guildId)) continue;
             wagers.push({
                 userId, gameId, amount: Number(receipt.amount) || 0,
                 createdAt: Number(receipt.createdAt) || 0,
@@ -393,7 +395,7 @@ export async function recoverEconomyWager(client, guildId, userId, gameId, optio
         const account = accounts[String(userId)];
         account.economyGameTransactions ||= {};
         const receipt = account.economyGameTransactions[String(gameId)];
-        if (!receipt) return { recovered: false, status: 'not_found' };
+        if (!receipt || String(receipt.guildId || '') !== String(guildId)) return { recovered: false, status: 'not_found' };
         if (receipt.status !== 'pending') return { recovered: false, status: 'already_resolved', statusNow: receipt.status };
         const amount = Number(receipt.amount);
         if (!Number.isSafeInteger(amount) || amount <= 0) {
