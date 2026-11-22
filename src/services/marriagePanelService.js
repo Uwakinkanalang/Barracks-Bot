@@ -1,5 +1,9 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, UserSelectMenuBuilder, MessageFlags } from 'discord.js';
-import { getMarriageData, getActiveMarriage, divorceMarriage } from './marriageService.js';
+import {
+  getMarriageData, getActiveMarriage, divorceMarriage,
+  createMarriageProposal, resolveMarriageProposal, finalizeMarriageProposal, cancelMarriageProposal,
+} from './marriageService.js';
+import { validateMarriageEligibility } from './friendshipService.js';
 
 const fmtDuration = ms => {
   const d = Math.max(0, Math.floor(ms / 86400000));
@@ -37,7 +41,67 @@ export async function handleMarriagePanelInteraction(interaction, client) {
     const row = new ActionRowBuilder().addComponents(new UserSelectMenuBuilder().setCustomId('marriage:select-propose').setPlaceholder('Select your Soulmate').setMinValues(1).setMaxValues(1));
     return interaction.reply({ content: 'Select your intended spouse. Both members must have **1,000 FP** and active Soulmate status. Proposal fee: **100,000 bCash**.', components: [row], flags: MessageFlags.Ephemeral });
   }
-  if (id === 'marriage:select-propose') return interaction.reply({ content: 'Proposal sending is not enabled yet. Friendship and Soulmate eligibility checks are not connected, so **no bCash has been charged**.', flags: MessageFlags.Ephemeral });
+  if (id === 'marriage:select-propose') {
+    const recipientId = interaction.values?.[0];
+    const recipient = await interaction.guild?.members.fetch(recipientId).catch(() => null);
+    if (!recipient || recipient.user.bot) return interaction.reply({ content: 'Choose a valid Barracks member. Bots cannot receive proposals.', flags: MessageFlags.Ephemeral });
+    const result = await createMarriageProposal(client, guildId, userId, recipientId, {
+      isBot: recipient.user.bot,
+      validateEligibility: (a, b) => validateMarriageEligibility(client, guildId, a, b),
+    });
+    const errors = {
+      not_eligible: result.reason || 'Both members need at least 1,000 FP and an active Soulmate relationship.',
+      eligibility_service_unavailable: 'Eligibility checks are unavailable. No bCash was charged.',
+      insufficient_funds: 'You need **100,000 bCash** in your wallet.',
+      already_married: 'One of you is already married.',
+      duplicate_pending: 'You already have a pending proposal to this member.',
+      proposal_cooldown: 'You must wait before proposing to this member again.',
+      remarriage_cooldown: 'One of you is still on the 7-day remarriage cooldown.',
+      invalid_target: 'You cannot propose to yourself.',
+      bot_target: 'Bots cannot receive marriage proposals.',
+      payment_failed: 'Payment failed. No proposal was created.',
+    };
+    if (result.status !== 'created') return interaction.reply({ content: errors[result.status] || 'The proposal could not be created.', flags: MessageFlags.Ephemeral });
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('marriage:proposal-accept:' + result.proposal.id).setLabel('Accept').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('marriage:proposal-decline:' + result.proposal.id).setLabel('Decline').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('marriage:proposal-cancel:' + result.proposal.id).setLabel('Cancel Proposal').setStyle(ButtonStyle.Secondary),
+    );
+    await interaction.channel.send({
+      content: '<@' + recipientId + '> 💍 You have received a marriage proposal from <@' + userId + '>! The proposer paid **100,000 bCash**. This proposal expires in 7 days.',
+      components: [row],
+    });
+    return interaction.reply({ content: '💍 Proposal sent! **100,000 bCash** has been charged. The recipient has been notified.', flags: MessageFlags.Ephemeral });
+  }
+  if (id.startsWith('marriage:proposal-')) {
+    const [, action, proposalId] = id.split(':');
+    if (action === 'proposal-accept') {
+      const result = await finalizeMarriageProposal(client, guildId, proposalId, userId, {
+        validateEligibility: (a, b) => validateMarriageEligibility(client, guildId, a, b),
+      });
+      const messages = {
+        not_pending: 'This proposal is no longer pending.',
+        not_authorized: 'Only the recipient can accept this proposal.',
+        expired: 'This proposal has expired.',
+        eligibility_service_unavailable: 'Eligibility checks are unavailable.',
+        not_eligible: result.reason || 'The 1,000 FP and active Soulmate requirements are no longer met.',
+        already_married: 'One of you is already married.',
+      };
+      if (result.status !== 'married') return interaction.reply({ content: messages[result.status] || 'The proposal could not be accepted.', flags: MessageFlags.Ephemeral });
+      await interaction.update({ content: '💍 <@' + result.marriage.member1Id + '> and <@' + result.marriage.member2Id + '> are now married in Barracks!', components: [] });
+      return;
+    }
+    if (action === 'proposal-decline') {
+      const result = await resolveMarriageProposal(client, guildId, proposalId, userId, 'declined');
+      const messages = { declined: 'Proposal declined. The proposer will not receive a refund.', not_pending: 'This proposal is no longer pending.', not_authorized: 'Only the recipient can decline this proposal.', expired: 'This proposal has expired.' };
+      return interaction.update({ content: messages[result.status] || 'Could not decline this proposal.', components: [] });
+    }
+    if (action === 'proposal-cancel') {
+      const result = await cancelMarriageProposal(client, guildId, proposalId, userId);
+      const messages = { cancelled: 'Proposal cancelled. The proposal fee is not refunded.', not_pending: 'This proposal is no longer pending.', not_authorized: 'Only the proposer can cancel this proposal.' };
+      return interaction.update({ content: messages[result.status] || 'Could not cancel this proposal.', components: [] });
+    }
+  }
 
   if (id === 'marriage:me') {
     const m = await getActiveMarriage(client, guildId, userId);
