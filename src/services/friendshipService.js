@@ -221,6 +221,17 @@ export async function resolveSoulmateRequest(client, guildId, requestId, recipie
     return { status: 'accepted', soulmate };
   });
 }
+export async function cancelSoulmateRequest(client, guildId, requestId, senderId) {
+  return locked(guildId, async () => {
+    const data = await getFriendshipData(client, guildId), req = data.requests[requestId];
+    if (!req || req.kind !== 'soulmate' || req.status !== 'pending') return { status: 'not_pending' };
+    if (req.senderId !== senderId) return { status: 'not_authorized' };
+    req.status = 'cancelled'; req.updatedAt = Date.now();
+    await save(client, guildId, data);
+    return { status: 'cancelled' };
+  });
+}
+
 export async function endSoulmate(client, guildId, userId) {
   return locked(guildId, async () => {
     const data = await getFriendshipData(client, guildId), soulmate = Object.values(data.soulmates).find(s => s?.status === 'active' && (s.member1Id === userId || s.member2Id === userId));
