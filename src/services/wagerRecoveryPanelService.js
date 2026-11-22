@@ -111,7 +111,9 @@ export async function handleWagerRecoveryModal(interaction, client) {
   if (!canManageWagerRecovery(interaction)) return interaction.reply({ content: '⛔ Manage Server permission is required.', ephemeral: true });
   const action = interaction.customId.split(':')[2];
   const selected = await client.db.get(stateKey(interaction.guildId, interaction.user.id), null);
-  if (!selected || !['refund', 'settle'].includes(action)) return interaction.reply({ content: 'Your selection expired. Refresh the recovery panel and select the wager again.', ephemeral: true });
+  if (!selected || !['refund', 'settle'].includes(action) || Date.now() - Number(selected.selectedAt || 0) > 15 * 60 * 1000) {
+    return interaction.reply({ content: 'Your selection expired. Refresh the recovery panel and select the wager again.', ephemeral: true });
+  }
   await interaction.deferReply({ ephemeral: true });
   try {
     const result = await recoverEconomyWager(client, interaction.guildId, selected.userId, selected.gameId, {
