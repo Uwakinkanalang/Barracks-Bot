@@ -353,17 +353,26 @@ export async function checkBirthdays(client) {
 
           if (!alreadyAnnounced) {
             const mentions = birthdayMembers.map(member => member.toString());
-            const plural = birthdayMembers.length > 1;
+            const birthdayEmbed = config?.birthdayEmbed || {};
+            const defaultDescription = birthdayMembers.length > 1
+              ? `Today we're celebrating ${mentions.join(', ')}! Wishing you all a wonderful day filled with happiness and good memories. 🎉`
+              : `Today we're celebrating ${mentions[0]}! Wishing you a wonderful day filled with happiness and good memories. 🎉`;
+            const description = String(birthdayEmbed.description || defaultDescription)
+              .replaceAll('{members}', mentions.join(', '))
+              .replaceAll('{count}', String(birthdayMembers.length))
+              .replaceAll('{server}', guild.name);
+            const color = /^#[0-9a-fA-F]{6}$/.test(String(birthdayEmbed.color || ''))
+              ? Number.parseInt(String(birthdayEmbed.color).slice(1), 16)
+              : 0x5865F2;
             const embed = new EmbedBuilder()
-              .setColor(0x5865F2)
-              .setTitle('🎂 Happy Birthday!')
-              .setDescription(
-                plural
-                  ? `Today we're celebrating ${mentions.join(', ')}! Wishing you all a wonderful day filled with happiness and good memories. 🎉`
-                  : `Today we're celebrating ${mentions[0]}! Wishing you a wonderful day filled with happiness and good memories. 🎉`
-              )
-              .setFooter({ text: 'Barracks • Birthday Celebration' })
-              .setTimestamp();
+              .setColor(color)
+              .setTitle(String(birthdayEmbed.title || '🎂 Happy Birthday!'))
+              .setDescription(description);
+            if (birthdayEmbed.author) embed.setAuthor({ name: String(birthdayEmbed.author).slice(0, 256) });
+            if (birthdayEmbed.footer) embed.setFooter({ text: String(birthdayEmbed.footer).slice(0, 2048) });
+            if (birthdayEmbed.imageUrl) embed.setImage(birthdayEmbed.imageUrl);
+            if (birthdayEmbed.thumbnailUrl) embed.setThumbnail(birthdayEmbed.thumbnailUrl);
+            embed.setTimestamp();
 
             await channel.send({
               embeds: [embed],
