@@ -900,17 +900,14 @@ export function registerDashboardRoutes(app, bot) {
   // Keep dashboard-created clans in the same registry used by Discord clan commands.
   const clanStorageKey = guildId => 'guild:' + guildId + ':clans';
   const legacyClanStorageKey = guildId => 'dashboard:clans:' + guildId;
-  const registerClanAutoNick = async (guild, role, tag) => {
+  const registerClanAutoNick = async (guild, role, tag, format = 'TAG {username}') => {
     const key = 'guild:' + guild.id + ':autonick_roles';
     const stored = await getFromDb(key, []);
     const entries = Array.isArray(stored) ? stored.filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string') : [];
+    const safeFormat = String(format || 'TAG {username}').trim().slice(0, 32);
     const existing = entries.find(entry => entry.roleId === role.id);
-    if (existing) {
-      existing.prefix = String(tag) + '|';
-      existing.priority = 1000;
-    } else {
-      entries.push({ roleId: role.id, prefix: String(tag) + '|', priority: 1000 });
-    }
+    if (existing) Object.assign(existing, { prefix: '', format: safeFormat, tag: String(tag), priority: 1000 });
+    else entries.push({ roleId: role.id, prefix: '', format: safeFormat, tag: String(tag), priority: 1000 });
     entries.sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
     await setInDb(key, entries);
   };
@@ -1059,6 +1056,7 @@ export function registerDashboardRoutes(app, bot) {
     const rules = String(req.body?.rules || '').trim();
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
+    if (!autoNickFormat.includes('{username}') || autoNickFormat.length > 32) return res.status(400).json({ error: 'Clan AutoNick Format must include {username} and be 32 characters or fewer. Use TAG for the clan tag.' });
     if (!roleHex) return res.status(400).json({ error: 'Role Hex Code must be a valid six-digit color, such as #5865F2.' });
     if (!/^\\d{17,20}$/.test(leaderId) || !/^\\d{17,20}$/.test(viceLeaderId) || leaderId === viceLeaderId) return res.status(400).json({ error: 'Enter valid, different Discord IDs for the clan leader and vice clan leader.' });
     if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
@@ -1143,6 +1141,7 @@ export function registerDashboardRoutes(app, bot) {
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     const name = String(req.body?.name || '').trim(), tag = String(req.body?.tag || '').trim().toUpperCase();
+    const autoNickFormat = String(req.body?.autoNickFormat || 'TAG {username}').trim();
     const leaderId = String(req.body?.leaderId || '').trim(), viceLeaderId = String(req.body?.viceLeaderId || '').trim(), description = String(req.body?.description || '').trim();
     const roleHexInput = String(req.body?.roleHex || '').trim();
     const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
@@ -1169,7 +1168,7 @@ export function registerDashboardRoutes(app, bot) {
     let role = null, category = null, textChannel = null, voiceChannel = null;
     try {
       role = await guild.roles.create({ name: tag + ' ' + name, color: roleHex, hoist: true, mentionable: false, reason: 'Clan created from Barracks dashboard' });
-      await registerClanAutoNick(guild, role, tag);
+      await registerClanAutoNick(guild, role, tag, autoNickFormat);
       const levelsRole = await guild.roles.fetch('1564159581825933353').catch(() => null);
       if (levelsRole && role.editable) {
         await role.setPosition(levelsRole.position + 1, {
@@ -1188,7 +1187,7 @@ export function registerDashboardRoutes(app, bot) {
       voiceChannel = await guild.channels.create({ name: (tag + '-' + name + '-vc').toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 100), type: 2, parent: category.id, permissionOverwrites: overwrites, reason: 'Private clan voice channel created from Barracks dashboard' });
       await leader.roles.add(role, 'Assigned as clan leader by Barracks dashboard');
       if (viceLeader) await viceLeader.roles.add(role, 'Assigned as vice clan leader by Barracks dashboard');
-      const record = { id: role.id, name, tag, roleHex, description, leaderId: leader.id, leaderName: leader.displayName, viceLeaderId: viceLeader?.id || '', viceLeaderName: viceLeader?.displayName || '', roleId: role.id, categoryId: category.id, textChannelId: textChannel.id, voiceChannelId: voiceChannel.id, status: 'approved', memberIds: [], joinRequests: [], createdAt: new Date().toISOString(), source: 'dashboard' };
+      const record = { id: role.id, name, tag, roleHex, autoNickFormat, description, leaderId: leader.id, leaderName: leader.displayName, viceLeaderId: viceLeader?.id || '', viceLeaderName: viceLeader?.displayName || '', roleId: role.id, categoryId: category.id, textChannelId: textChannel.id, voiceChannelId: voiceChannel.id, status: 'approved', memberIds: [], joinRequests: [], createdAt: new Date().toISOString(), source: 'dashboard' };
       await setInDb(clanStorageKey(guild.id), [...clans, record]);
       return res.json({ ok: true, clan: record });
     } catch (error) {
