@@ -410,13 +410,24 @@ export async function listRecentEconomyWagerRecoveries(client, guildId, limit = 
     const recoveries = [];
     for (const key of keys) {
         const userId = String(key).replace(/^global:economy:/, '');
-        if (!/^\d{17,20}$/.test(userId)) continue;
+        if (!/^\\d{17,20}$/.test(userId)) continue;
         const account = await client.db.get(key, null);
+        const storedAudit = Array.isArray(account?.economyWagerRecoveryAudit)
+            ? account.economyWagerRecoveryAudit
+            : [];
+        const seen = new Set();
+        for (const entry of storedAudit) {
+            if (String(entry.guildId || '') !== String(guildId)) continue;
+            seen.add(String(entry.gameId));
+            recoveries.push({ ...entry, userId });
+        }
+        // Include older receipts for backward compatibility.
         for (const [gameId, receipt] of Object.entries(account?.economyGameTransactions || {})) {
             const audit = receipt?.recovery;
-            if (!audit || String(receipt.guildId || '') !== String(guildId)) continue;
+            if (!audit || seen.has(String(gameId)) || String(receipt.guildId || '') !== String(guildId)) continue;
             recoveries.push({
-                userId, gameId, amount: Number(receipt.amount) || 0,
+                userId, gameId, guildId: String(receipt.guildId),
+                amount: Number(receipt.amount) || 0,
                 action: String(audit.action || 'unknown'),
                 actorId: String(audit.actorId || ''),
                 reason: String(audit.reason || ''),
@@ -463,7 +474,15 @@ export async function recoverEconomyWager(client, guildId, userId, gameId, optio
         }
         receipt.status = action === 'refund' ? 'refunded' : 'settled';
         receipt.settledAt = Date.now();
-        receipt.recovery = { actorId, reason, action, recoveredAt: Date.now() };
+        const recoveredAt = Date.now();
+        receipt.recovery = { actorId, reason, action, recoveredAt };
+        account.economyWagerRecoveryAudit ||= [];
+        account.economyWagerRecoveryAudit.push({
+            gameId: String(gameId), guildId: String(guildId), amount,
+            action, actorId, reason, recoveredAt, status: receipt.status,
+        });
+        // Bounded independent audit history survives game-receipt pruning.
+        account.economyWagerRecoveryAudit = account.economyWagerRecoveryAudit.slice(-100);
         return {
             recovered: true, status: receipt.status,
             userId: String(userId), gameId: String(gameId),
