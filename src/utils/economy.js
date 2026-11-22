@@ -297,6 +297,9 @@ export async function startEconomyWager(client, guildId, userId, gameId, amount)
         account.economyGameTransactions ||= {};
         const existing = account.economyGameTransactions[receiptId];
         if (existing) {
+            if (String(existing.guildId || '') !== String(guildId)) {
+                throw new Error('Game receipt ID is already used by another server.');
+            }
             if (existing.amount !== wager) throw new Error('Game receipt already exists with a different wager.');
             return { started: false, status: existing.status, wallet: Number(account.wallet) || 0 };
         }
