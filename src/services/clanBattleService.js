@@ -1,10 +1,11 @@
 const STORAGE_KEY = guildId => `guild:${guildId}:clan_battles`;
-const ACTIVE_GAMES = new Set(['tictactoe']);
-export const CLAN_BATTLE_GAME_POINTS = Object.freeze({ tictactoe: 10 });
+const ACTIVE_GAMES = new Set(['tictactoe', 'rps']);
+export const CLAN_BATTLE_GAME_POINTS = Object.freeze({ tictactoe: 10, rps: 10 });
 
 function normalizeClan(clan) {
   return {
     ...clan,
+    id: String(clan.id || clan.roleId || clan.tag || clan.name || ''),
     memberIds: Array.isArray(clan.memberIds) ? clan.memberIds.map(String) : [],
     leaderId: String(clan.leaderId || ''),
     viceLeaderId: String(clan.viceLeaderId || ''),
