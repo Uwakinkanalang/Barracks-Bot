@@ -35,6 +35,7 @@ jobs:
             src/utils/economy.js
             src/commands/Economy/deposit.js
             src/commands/Economy/withdraw.js
+            src/commands/Economy/work.js
             src/utils/postgresDatabase.js
             src/utils/database/wrapper.js
             src/commands/Economy/daily.js
