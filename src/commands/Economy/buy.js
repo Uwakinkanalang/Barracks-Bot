@@ -108,7 +108,7 @@ export default {
                     successDescription += `\n\n**👑 The role ${role.toString()} has been granted to you!**`;
                 } catch (roleError) {
                     try {
-                        await addMoney(client, guildId, userId, totalCost, 'premium role purchase refund');
+                        await addMoney(client, guildId, userId, totalCost);
                     } catch (refundError) {
                         throw createError("Role assignment and refund failed", ErrorTypes.DATABASE,
                             "The role could not be granted and the automatic refund failed. Please contact staff with your purchase details.",
