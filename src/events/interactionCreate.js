@@ -432,6 +432,48 @@ export default {
             await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
             return;
           }
+          if (interaction.customId.startsWith('clan:member:')) {
+            const action = interaction.customId.split(':')[2];
+            const clans = await interaction.client.db.get(`guild:${interaction.guildId}:clans`, []);
+            const clan = (Array.isArray(clans) ? clans : []).find(entry =>
+              entry.status === 'approved' &&
+              [String(entry.leaderId || ''), String(entry.viceLeaderId || ''), ...(Array.isArray(entry.memberIds) ? entry.memberIds.map(String) : [])].includes(interaction.user.id)
+            );
+            if (!clan) {
+              await interaction.reply({ content: 'You must be a member of an approved clan to use the Clan Member Panel.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const { EmbedBuilder } = await import('discord.js');
+            const color = /^#?[0-9a-fA-F]{6}$/.test(String(clan.roleHex || '')) ? Number.parseInt(String(clan.roleHex).replace('#', ''), 16) : 0x5865F2;
+            const members = Array.isArray(clan.memberIds) ? clan.memberIds : [];
+            let embed;
+            if (action === 'details') {
+              embed = new EmbedBuilder().setColor(color).setTitle(`🏰 ${clan.name} [${clan.tag}] — Clan Details`)
+                .setDescription(clan.description || 'No clan description has been set.')
+                .addFields(
+                  { name: '👑 Clan Leader', value: `<@${clan.leaderId}>`, inline: true },
+                  { name: '🛡️ Vice Clan Leader', value: clan.viceLeaderId ? `<@${clan.viceLeaderId}>` : 'Not assigned', inline: true },
+                  { name: '👥 Roster Size', value: String(members.length + 2), inline: true }
+                );
+            } else if (action === 'members') {
+              embed = new EmbedBuilder().setColor(color).setTitle(`👥 ${clan.name} [${clan.tag}] — Members`)
+                .setDescription([`👑 **Clan Leader:** <@${clan.leaderId}>`, `🛡️ **Vice Clan Leader:** ${clan.viceLeaderId ? `<@${clan.viceLeaderId}>` : 'Not assigned'}`, ...members.map(id => `• <@${id}>`)].join('\n'))
+                .setFooter({ text: `Total roster: ${members.length + 2} • Barracks` });
+            } else if (action === 'bank') {
+              const balance = Math.max(0, Number(clan.bankBalance) || 0);
+              embed = new EmbedBuilder().setColor(color).setTitle(`🏦 ${clan.name} [${clan.tag}] — Clan Bank`)
+                .setDescription(`**Available Clan Funds**\n₱${balance.toLocaleString()}\n\nThis is your clan's shared treasury. Only the Clan Leader and Vice Clan Leader can deposit or withdraw funds.`)
+                .setFooter({ text: 'Barracks • Clan Treasury' });
+            } else if (action === 'rules') {
+              embed = new EmbedBuilder().setColor(color).setTitle(`📜 ${clan.name} [${clan.tag}] — Clan Rules`)
+                .setDescription(clan.rules || 'No clan rules have been added.');
+            } else {
+              await interaction.reply({ content: 'That panel action is not available.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            return;
+          }
           if (interaction.customId === 'clan:bank:view') {
             const clans = await interaction.client.db.get(`guild:${interaction.guildId}:clans`, []);
             const clan = (Array.isArray(clans) ? clans : []).find(entry =>
