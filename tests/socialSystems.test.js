@@ -261,3 +261,43 @@ test('yearly marriage anniversary rewards are paid once per spouse and anniversa
   assert.equal((await client.db.get('global:economy:' + spouseA)).wallet, 2000000);
   assert.equal((await client.db.get('global:economy:' + spouseB)).wallet, 2000000);
 });
+
+
+test('marriage fees and anniversary rewards fail closed when PostgreSQL is degraded', async () => {
+  const store = new Map();
+  const client = {
+    db: {
+      isAvailable() { return false; },
+      async get(key, fallback = null) { return store.has(key) ? structuredClone(store.get(key)) : fallback; },
+      async set(key, value) { store.set(key, structuredClone(value)); return true; },
+    },
+  };
+  const economyKey = 'global:economy:' + memberA;
+  store.set(economyKey, { wallet: 250000, bank: 0 });
+  const eligible = async () => ({ eligible: true, points: 1000 });
+
+  const proposal = await createMarriageProposal(client, guildId, memberA, memberB, {
+    validateEligibility: eligible,
+  });
+  assert.equal(proposal.status, 'database_unavailable');
+  assert.equal((await client.db.get(economyKey)).wallet, 250000);
+
+  await saveMarriageData(client, guildId, {
+    proposals: {}, history: [], transactions: {}, anniversaryClaims: {},
+    divorceCooldowns: {},
+    marriages: {
+      'degraded-test': {
+        id: 'degraded-test', member1Id: memberA, member2Id: memberB,
+        status: 'married', marriedAt: Date.now() - (370 * DAY),
+        anniversaryRewards: { [memberA]: 0, [memberB]: 0 },
+      },
+    },
+  });
+  const divorce = await divorceMarriage(client, guildId, memberA, { confirmed: true });
+  assert.equal(divorce.status, 'database_unavailable');
+  assert.equal((await client.db.get(economyKey)).wallet, 250000);
+
+  const anniversaryPayments = await processMarriageAnniversaries(client, guildId);
+  assert.equal(anniversaryPayments.length, 0);
+  assert.equal((await client.db.get(economyKey)).wallet, 250000);
+});
