@@ -52,8 +52,7 @@ export function buildClanShopPage(items, guildId, page = 0) {
       '## 👥 Clan Member Expansion\n' +
       'Upgrade your clan roster by **10 additional slots** with each purchase.\n\n' +
       '**Expansion prices**\n' +
-      '• First upgrade: **10 → 20 members — 1,000,000 bCash**\n' +
-      '• Every upgrade after: **+10 slots — 500,000 bCash**\n' +
+      '• Every upgrade: **+10 slots — 1,000,000 bCash**\\n' +
       '• Maximum clan capacity: **200 members**\n\n' +
       '_Only Clan Leaders and Vice Leaders can purchase expansions._'
     ))
