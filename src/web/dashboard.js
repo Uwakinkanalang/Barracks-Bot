@@ -355,6 +355,7 @@ export function registerDashboardRoutes(app, bot) {
       updates.marriageAnnouncementChannelId = id;
     }
     if (body.managerRoleIds !== undefined) {
+      if (req.dashboardUser?.id !== guild.ownerId) return res.status(403).json({ error: 'Only the Barracks server owner can change Manager Roles.' });
       if (!Array.isArray(body.managerRoleIds) || body.managerRoleIds.length > 100)
         return res.status(400).json({ error: 'Manager roles must be a list of up to 100 roles.' });
       const roleIds = [...new Set(body.managerRoleIds.map(String))];
@@ -660,7 +661,7 @@ export function registerDashboardRoutes(app, bot) {
         if (!me.permissions.has('ModerateMembers')) return res.status(403).json({ error: 'Bot needs Moderate Members permission.' });
         if (!target.moderatable) return res.status(403).json({ error: 'The bot cannot edit this member.' });
         await target.timeout(null, cleanReason);
-        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason });
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, actorId: req.dashboardUser?.id, moderator: req.dashboardUser?.username || 'Discord manager' });
         return res.json({ ok: true, message: 'Timeout removed.' });
       }
       if (action === 'warn') {
