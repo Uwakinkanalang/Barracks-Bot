@@ -596,6 +596,32 @@ test('pending wagers can be listed and recovered exactly once with staff audit d
   assert.equal((await listRecentEconomyWagerRecoveries(client, '100000000000000099')).total, 0);
 });
 
+test('wager recovery audit is bounded to the latest 100 records per account', async () => {
+  const client = makeClient();
+  const userId = '400000000000000099';
+  const key = 'global:economy:' + userId;
+  await client.db.set(key, { wallet: 101, bank: 0, inventory: {}, cooldowns: {} });
+
+  for (let index = 0; index < 101; index += 1) {
+    const gameId = 'bounded-audit-' + index;
+    await startEconomyWager(client, guildId, userId, gameId, 1);
+    await recoverEconomyWager(client, guildId, userId, gameId, {
+      action: 'refund',
+      actorId: '500000000000000001',
+      reason: 'Bounded audit retention test.',
+    });
+  }
+
+  const account = await client.db.get(key);
+  assert.equal(account.economyWagerRecoveryAudit.length, 100);
+  assert.equal(account.economyWagerRecoveryAudit[0].gameId, 'bounded-audit-1');
+  assert.equal(account.economyWagerRecoveryAudit.at(-1).gameId, 'bounded-audit-100');
+  const audit = await listRecentEconomyWagerRecoveries(client, guildId, 50);
+  assert.equal(audit.status, 'ok');
+  assert.equal(audit.total, 100);
+  assert.equal(audit.recoveries.length, 50);
+});
+
 test('wager recovery rejects missing audit reason and unknown actions', async () => {
   const client = makeClient();
   await assert.rejects(
