@@ -381,6 +381,31 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId === 'clan:leader:addmember' || interaction.customId === 'clan:leader:kickmember') {
+            const clans = await interaction.client.db.get('guild:' + interaction.guildId + ':clans', []);
+            const clan = (Array.isArray(clans) ? clans : []).find(entry => entry.status === 'approved' &&
+              [String(entry.leaderId || ''), String(entry.viceLeaderId || '')].includes(interaction.user.id));
+            if (!clan) {
+              await interaction.reply({ content: 'Only the Clan Leader or Vice Clan Leader of an approved clan can manage members.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const isAdd = interaction.customId.endsWith('addmember');
+            const { ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+            const modal = new ModalBuilder()
+              .setCustomId('clan:leader:' + (isAdd ? 'addmember' : 'kickmember') + ':submit')
+              .setTitle(isAdd ? 'Add Clan Member' : 'Remove Clan Member')
+              .addComponents(new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                  .setCustomId('member_id')
+                  .setLabel('Member mention or Discord ID')
+                  .setPlaceholder('@member or 123456789012345678')
+                  .setStyle(TextInputStyle.Short)
+                  .setRequired(true)
+                  .setMaxLength(30)
+              ));
+            await interaction.showModal(modal);
+            return;
+          }
           if (interaction.customId.startsWith('clan:leader:')) {
             const action = interaction.customId.split(':')[2];
             const clans = await interaction.client.db.get(`guild:${interaction.guildId}:clans`, []);
@@ -1467,6 +1492,77 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isModalSubmit()) {
+          if (interaction.customId === 'clan:leader:addmember:submit' || interaction.customId === 'clan:leader:kickmember:submit') {
+            if (!interaction.inGuild()) {
+              await interaction.reply({ content: 'This action can only be used in a server.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const isAdd = interaction.customId === 'clan:leader:addmember:submit';
+            const rawTarget = interaction.fields.getTextInputValue('member_id').trim();
+            const targetId = rawTarget.match(/^(?:<@!?)?(\d{17,20})>?$/)?.[1];
+            if (!targetId) {
+              await interaction.reply({ content: 'Enter a valid member mention or Discord user ID.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const storageKey = 'guild:' + interaction.guildId + ':clans';
+            const clanData = await interaction.client.db.get(storageKey, []);
+            const clanList = Array.isArray(clanData) ? clanData : [];
+            const clan = clanList.find(entry => entry.status === 'approved' &&
+              [String(entry.leaderId || ''), String(entry.viceLeaderId || '')].includes(interaction.user.id));
+            if (!clan) {
+              await interaction.reply({ content: 'Only the Clan Leader or Vice Clan Leader of an approved clan can manage members.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (targetId === String(clan.leaderId) || targetId === String(clan.viceLeaderId || '')) {
+              await interaction.reply({ content: 'Clan leadership cannot be added or removed through regular member management.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const targetMember = await interaction.guild.members.fetch(targetId).catch(() => null);
+            if (!targetMember || targetMember.user.bot) {
+              await interaction.reply({ content: 'I could not find that human server member. Please check the mention or ID.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const members = Array.isArray(clan.memberIds) ? clan.memberIds.map(String) : [];
+            if (isAdd) {
+              const otherClan = clanList.find(entry =>
+                String(entry.leaderId || '') === targetId ||
+                String(entry.viceLeaderId || '') === targetId ||
+                (Array.isArray(entry.memberIds) && entry.memberIds.map(String).includes(targetId))
+              );
+              if (otherClan) {
+                await interaction.reply({ content: otherClan.id === clan.id ? 'That member is already in your clan.' : 'That member already belongs to another registered clan.', flags: MessageFlags.Ephemeral });
+                return;
+              }
+              if (members.length >= 50) {
+                await interaction.reply({ content: 'Your clan has reached the 50-regular-member limit.', flags: MessageFlags.Ephemeral });
+                return;
+              }
+              if (clan.roleId) {
+                const role = await interaction.guild.roles.fetch(clan.roleId).catch(() => null);
+                if (role) await targetMember.roles.add(role, 'Added to clan ' + clan.name);
+              }
+              clan.memberIds = [...members, targetId];
+              await interaction.client.db.set(storageKey, clanList);
+              await interaction.reply({ content: '✅ <@' + targetId + '> has joined **' + clan.name + ' [' + clan.tag + ']**.', allowedMentions: { users: [targetId] }, flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (!members.includes(targetId)) {
+              await interaction.reply({ content: 'That user is not a regular member of your clan.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (clan.roleId && targetMember.roles.cache.has(clan.roleId)) {
+              await targetMember.roles.remove(clan.roleId, 'Removed from clan ' + clan.name);
+            }
+            clan.memberIds = members.filter(id => id !== targetId);
+            await interaction.client.db.set(storageKey, clanList);
+            const currentName = targetMember.nickname || targetMember.user.username;
+            const tagPrefix = clan.tag + ' ';
+            const baseName = currentName.startsWith(tagPrefix) ? currentName.slice(tagPrefix.length).trim() : currentName;
+            const prefix = await getNicknamePrefix(targetMember, interaction.client, interaction.guildId);
+            await targetMember.setNickname((prefix + baseName).slice(0, 32), 'Removed from clan ' + clan.name).catch(() => {});
+            await interaction.reply({ content: '🗑️ <@' + targetId + '> has been removed from **' + clan.name + ' [' + clan.tag + ']**.', allowedMentions: { users: [targetId] }, flags: MessageFlags.Ephemeral });
+            return;
+          }
           if (interaction.customId === 'clan:create:step1') {
             const name = interaction.fields.getTextInputValue('clan_name').trim();
             const rawTagInput = interaction.fields.getTextInputValue('clan_tag').trim();
