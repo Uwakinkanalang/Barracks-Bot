@@ -558,7 +558,7 @@ test('pending wagers can be listed and recovered exactly once with staff audit d
 
   const pending = await listPendingEconomyWagers(client, guildId);
   assert.equal(pending.status, 'ok');
-  assert.equal((await listPendingEconomyWagers(client, 'another-guild')).total, 0);
+  assert.equal((await listPendingEconomyWagers(client, '100000000000000099')).total, 0);
   assert.equal(pending.total, 1);
   assert.equal(pending.wagers[0].userId, userId);
   assert.equal(pending.wagers[0].gameId, 'abandoned-game-1');
@@ -600,12 +600,12 @@ test('recovered wagers cannot later settle or be accessed from another guild', a
   await client.db.set(key, { wallet: 700, bank: 0, inventory: {}, cooldowns: {} });
   await startEconomyWager(client, guildId, userId, 'recovered-game-2', 300);
   await assert.rejects(
-    startEconomyWager(client, 'another-guild', userId, 'recovered-game-2', 300),
+    startEconomyWager(client, '100000000000000099', userId, 'recovered-game-2', 300),
     /Game receipt ID is already used by another server/,
   );
 
   await assert.rejects(
-    settleEconomyWager(client, 'another-guild', userId, 'recovered-game-2', 900),
+    settleEconomyWager(client, '100000000000000099', userId, 'recovered-game-2', 900),
     /No reserved wager exists for this game in this server/,
   );
   const recovery = await recoverEconomyWager(client, guildId, userId, 'recovered-game-2', {
