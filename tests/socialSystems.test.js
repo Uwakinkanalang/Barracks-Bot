@@ -13,13 +13,18 @@ import {
 import { withEconomyTransaction, startEconomyWager, settleEconomyWager, listPendingEconomyWagers, listRecentEconomyWagerRecoveries, recoverEconomyWager } from '../src/utils/economy.js';
 
 function addTestTransaction(db, store) {
+  // Model PostgreSQL transaction serialization for concurrency tests.
+  let transactionQueue = Promise.resolve();
   db.withKeyValueTransaction = async (callback) => {
+    const previous = transactionQueue;
+    let release;
+    transactionQueue = new Promise((resolve) => { release = resolve; });
+    await previous;
+
     const snapshot = new Map([...store.entries()].map(([key, value]) => [key, structuredClone(value)]));
     const transaction = {
       get: db.get.bind(db),
-      set: async (key, value) => {
-        return db.set(key, value);
-      },
+      set: async (key, value) => db.set(key, value),
     };
     try {
       return await callback(transaction);
@@ -27,6 +32,8 @@ function addTestTransaction(db, store) {
       store.clear();
       for (const [key, value] of snapshot) store.set(key, value);
       throw error;
+    } finally {
+      release();
     }
   };
   return db;
