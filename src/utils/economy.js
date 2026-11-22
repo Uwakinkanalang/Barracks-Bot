@@ -216,6 +216,10 @@ export async function withEconomyTransaction(client, guildId, userIds, callback)
         wallet: ECONOMY_CONFIG.startingBalance ?? DEFAULT_ECONOMY_DATA.wallet,
     };
 
+    // Preserve the existing first-access migration from legacy guild-scoped
+    // economy keys before locking and mutating the canonical global account.
+    await Promise.all(ids.map((userId) => getEconomyData(client, guildId, userId)));
+
     const levels = {};
     await Promise.all(ids.map(async (userId) => {
         const levelData = await client.db.get(getUserLevelKey(guildId, userId), null);
