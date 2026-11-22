@@ -1,6 +1,6 @@
 # Dashboard Security Review
 
-**Status:** Review completed; hardening is still required before production use.
+**Status:** OAuth/frontend integration and core authorization hardening implemented on the feature branch; production configuration and staging verification remain outstanding.
 **Reviewed:** 2026-11-23
 **Scope:** `src/web/dashboard.js`, `src/app.js`, and `package.json` on `feature/marriage-system`.
 
@@ -15,48 +15,39 @@
 
 ## Findings
 
-### High — shared-password login does not establish a Discord identity
+### High — shared-password login did not establish a Discord identity — addressed in branch
 
-A successful login proves only that the caller knows the shared dashboard password. The token payload contains an expiry and a dashboard scope, but no Discord user ID. Consequently, the server cannot verify that the caller is a current Barracks member or that they hold one of the configured Manager Roles.
+The dashboard frontend now starts Discord OAuth2 Authorization Code flow with state and PKCE; the password login endpoint is retired. The callback exchanges the code, obtains the Discord identity, and verifies live Barracks guild membership and configured Manager Role membership. The server owner can enter during initial setup to configure the first Manager Role. Missing OAuth configuration fails closed.
 
-**Required fix:** Replace the shared-password-only login with Discord OAuth2 Authorization Code flow using state validation and PKCE. After callback, identify the Discord account and verify current membership in the configured Barracks guild and possession of at least one configured Manager Role. Fail closed if the guild, member, or role check cannot be completed.
+### High — moderation actor identity — addressed in branch
 
-### High — moderation self-protection trusts a caller-supplied actor ID
+Moderation self-protection compares the target against the authenticated server-derived Discord identity. The client cannot choose the actor ID. Dashboard moderation log entries now record the authenticated moderator ID and username for all actions.
 
-In `POST /api/dashboard/moderation/action`, the target-member protection compares the target ID with `req.body.actorId`. That value is supplied by the request caller and is not tied to an authenticated Discord identity. It must not be used as the acting moderator identity.
+### High — Manager Role enforcement — addressed in branch
 
-**Required fix:** Derive the actor ID exclusively from the authenticated OAuth session. Reject attempts to moderate the authenticated actor, the guild owner, and the bot account. Record the authenticated actor ID and username in the moderation audit log.
+A shared `/api/dashboard` middleware verifies the signed session, persistent session record, current guild membership, and current configured Manager Role on every protected request. The guild owner is the only bootstrap exception and is the only user allowed to change Manager Role configuration. Guild identity remains pinned to the configured Barracks guild.
 
-### High — Manager Roles are settings, not an authorization boundary
+### Medium — individual session revocation — partially addressed in branch
 
-The settings endpoint validates that selected Manager Role IDs exist in the guild, but the dashboard route authorization currently checks only the signed bearer token. The selected roles therefore do not restrict who can view or change dashboard settings, economy balances, moderation actions, roles/channels, clans, tickets, birthdays, or other dashboard features.
+Each OAuth login now creates a cryptographically random session ID backed by the persistent database. Every protected request checks the session record, and logout revokes it. The session and signed bearer token expire after 12 hours. Sessions fail closed if the persistent database is degraded. A scheduled pruning job for expired session records is still recommended.
 
-**Required fix:** Centralize authorization middleware and apply it to every `/api/dashboard/*` route. Re-fetch or otherwise verify the member's current guild roles for each protected request (with a deliberately short, invalidatable cache if needed). Deny access when no Manager Roles are configured, unless a separately documented owner-only bootstrap flow is implemented.
+### Medium — OAuth attempt throttling is process-local — outstanding
 
-### Medium — bearer tokens have no individual revocation
+OAuth start attempts are limited per IP in process memory and the global Express API rate limit is also process-local. These limits reset on restart and are not shared between replicas. Keep the service to one replica until shared rate limiting is introduced; do not trust forwarded IP headers unless proxy trust is explicitly configured.
 
-The current token is self-contained and remains valid until its 12-hour expiry. There is no per-user session record or logout/revocation mechanism in the reviewed implementation.
+## Implementation and remaining acceptance checklist
 
-**Required fix:** Use opaque, high-entropy session IDs stored server-side (preferably in the existing durable database), rotate on login, enforce idle and absolute expiry, and support logout/revocation. Never log OAuth access or refresh tokens.
-
-### Medium — login throttling is process-local
-
-The login attempt map is in memory. It resets on restart and is not shared between multiple bot processes or replicas.
-
-**Required fix:** Apply shared rate limiting at the edge or in durable shared storage. Keep per-IP and per-account limits, and avoid trusting forwarded IP headers unless Express proxy trust is explicitly configured for the deployment.
-
-## Implementation requirements / acceptance checklist
-
-1. Discord OAuth2 callback validates a cryptographically random `state`, PKCE verifier/challenge, exact configured redirect URI, and expected token response.
-2. OAuth scopes are the minimum needed for identity and guild membership/role verification. Do not rely on a client-provided user ID or role list.
-3. Every dashboard API route is protected by one shared authentication + guild-membership + Manager Role authorization layer; public health/status endpoints remain separate.
-4. The authenticated actor ID comes from the server-side session only. Client-supplied `actorId` is ignored or rejected.
-5. Sessions use secure, HttpOnly cookies, an appropriate SameSite policy, HTTPS in production, and CSRF protection for cookie-authenticated state-changing requests.
-6. Session identifiers rotate after authentication; logout revokes the session; role loss or guild departure denies the next protected request.
-7. Guild identity remains pinned to the configured Barracks guild unless explicit multi-guild support is designed with per-guild authorization.
-8. Add tests for OAuth state/PKCE failures, expired/revoked sessions, missing Manager Roles, role removal, guild departure, cross-guild access attempts, spoofed actor IDs, and every protected route.
-9. Document the exact OAuth environment variables and Discord Developer Portal redirect URI only after the implementation and deployment URL are confirmed. Missing configuration must fail closed.
+1. OAuth state and PKCE S256 are implemented; the callback uses the configured redirect URI and the minimum `identify` scope. The OAuth access token is not stored or logged.
+2. The frontend now uses Discord sign-in, stores the short-lived dashboard bearer token in session storage, removes it from the URL fragment immediately, and calls the logout endpoint to revoke the server-side session.
+3. All `/api/dashboard/*` endpoints pass through centralized signed-token, persistent-session, live guild membership, and Manager Role checks. The configured Barracks guild is pinned server-side.
+4. The guild owner can bootstrap the first Manager Role and is the only user who can later change Manager Role configuration.
+5. Moderation actions use authenticated actor identity and audit records include moderator ID and username.
+6. Session identifiers are random, server-backed, revocable, and expire after 12 hours. Persistent database availability is required; degraded/in-memory mode is denied.
+7. The frontend is hosted on GitHub Pages and calls the Railway API over HTTPS. The frontend/API migration must be deployed together.
+8. Still required before production: configure `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DASHBOARD_OAUTH_REDIRECT_URI`, `DASHBOARD_SESSION_SECRET`, and `DASHBOARD_FRONTEND_URL` in Railway; add the exact callback URL in the Discord Developer Portal; verify `CORS_ORIGIN`; and run end-to-end OAuth/role-loss/logout tests against staging.
+9. Add automated route-level tests for invalid state/PKCE, expired/revoked sessions, no Manager Roles, role removal, guild departure, owner bootstrap, spoofed actor IDs, and protected endpoints.
+10. Introduce shared rate limiting and expired-session pruning before scaling beyond one application instance.
 
 ## Important deployment note
 
-Do not remove the existing login flow or change the dashboard frontend until its current token storage and API request behavior have been migrated together. Do not merge or deploy this work until OAuth credentials, redirect URL, HTTPS cookie behavior, and staging verification are configured.
+Password login has been retired on this feature branch and the frontend has been migrated with it. Do not merge or deploy until the OAuth credentials and redirect URI are configured in Railway and the Discord Developer Portal, then verify the GitHub Pages frontend and Railway API together in staging. No production deployment or merge has been performed.
