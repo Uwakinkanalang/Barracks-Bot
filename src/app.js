@@ -328,7 +328,7 @@ class TitanBot extends Client {
               .setColor(0xE6B84A)
               .setTitle('💍 Marriage Anniversary!')
               .setDescription(
-                `Congratulations <@${payment.member1Id}> and <@${payment.member2Id}> on celebrating **${payment.anniversaryNumber} year(s)** of marriage!\\n\\nEach spouse has received **1,000,000 bCash**. Keep marching together, lovebirds!`
+                `Congratulations <@${payment.member1Id}> and <@${payment.member2Id}> on celebrating **${payment.anniversaryNumber} year(s)** of marriage!\n\nEach spouse has received **1,000,000 bCash**. Keep marching together, lovebirds!`
               )
               .setTimestamp(new Date(payment.paidAt));
             await channel.send({ content: `<@${payment.member1Id}> <@${payment.member2Id}>`, embeds: [embed] });
