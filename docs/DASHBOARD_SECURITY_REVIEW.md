@@ -31,7 +31,7 @@ Moderation self-protection and audit records use the authenticated Discord ident
 
 ### Medium — browser token storage and XSS exposure — outstanding
 
-The frontend stores the dashboard bearer token in `sessionStorage`. This is safer than persistent local storage but remains accessible to JavaScript executing in the page. A same-origin XSS flaw could steal an active token. Prefer an HttpOnly, Secure, SameSite cookie-backed session with CSRF protection, and maintain a strict content security policy.
+The frontend stores the dashboard bearer token in `sessionStorage`. This is safer than persistent local storage but remains accessible to JavaScript executing in the page. A same-origin XSS flaw could steal an active token. A cookie migration needs an architecture change first: the current frontend is hosted at `uwakinkanalang.github.io` while the API is hosted at `barracks-bot-production.up.railway.app`, which are cross-site. A cross-site cookie would require `SameSite=None; Secure`, credentialed CORS, explicit Origin/CSRF validation, and may still be blocked by browser third-party-cookie restrictions. Prefer serving the dashboard and API under the same site (for example, a custom domain with a same-site API subdomain or a reverse proxy), then use an HttpOnly, Secure, SameSite cookie with CSRF protection and a strict content security policy.
 
 ### Medium — OAuth attempt throttling is process-local — outstanding
 
@@ -52,7 +52,7 @@ A scheduled job runs every six hours and removes expired `dashboard:sessions:` r
 7. The frontend is hosted on GitHub Pages and calls the Railway API over HTTPS. The frontend/API migration must be deployed together.
 8. Before production: configure `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DASHBOARD_OAUTH_REDIRECT_URI`, `DASHBOARD_SESSION_SECRET`, and `DASHBOARD_FRONTEND_URL` in Railway; add the exact callback URL in the Discord Developer Portal; verify `CORS_ORIGIN`; and run end-to-end OAuth, role-loss, and logout tests against staging.
 9. Expand automated route-level tests for invalid state/PKCE, expired/revoked sessions, no Manager Roles, role removal, guild departure, owner bootstrap, spoofed actor IDs, and protected endpoints.
-10. Move to an HttpOnly cookie-backed session with CSRF protection and introduce shared rate limiting before scaling beyond one application instance. The six-hour expired-session pruning job is implemented; verify it against staging database data before production.
+10. Resolve the cross-site hosting constraint before migrating to an HttpOnly cookie-backed session: use a same-site frontend/API deployment or deliberately implement and test cross-site cookie handling with CSRF and credentialed CORS. Introduce shared rate limiting before scaling beyond one application instance. The six-hour expired-session pruning job is implemented; verify it against staging database data before production.
 
 ## Deployment gate
 
