@@ -1034,9 +1034,6 @@ export default {
                   .setDescription('Use TAG for your clan tag and {username} for the member name. Default: TAG {username}; example: ★ {username}.')
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_autonick_format').setStyle(TextInputStyle.Short).setPlaceholder('TAG {username}').setValue('TAG {username}').setMaxLength(32).setRequired(true)),
                 new LabelBuilder()
-                  .setLabel('Clan Description')
-                  .setTextInputComponent(new TextInputBuilder().setCustomId('clan_description').setStyle(TextInputStyle.Paragraph).setMaxLength(500).setRequired(true)),
-                new LabelBuilder()
                   .setLabel('Vice Clan Leader')
                   .setDescription('Mention the member or enter their Discord user ID.')
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_vice_leader').setStyle(TextInputStyle.Short).setMaxLength(25).setRequired(true))
@@ -1613,7 +1610,6 @@ export default {
             const rawTagInput = interaction.fields.getTextInputValue('clan_tag').trim();
             const roleHexInput = interaction.fields.getTextInputValue('clan_role_hex').trim();
             const autoNickFormat = interaction.fields.getTextInputValue('clan_autonick_format').trim();
-            const description = interaction.fields.getTextInputValue('clan_description').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
             const tagLength = Array.from(rawTagInput).length;
             const validTag = tagLength >= 1 && tagLength <= 6 && /^[\p{L}\p{N}\p{S}\p{P}\p{M}]+$/u.test(rawTagInput);
@@ -1665,13 +1661,17 @@ export default {
               return;
             }
             await interaction.client.db.set(`guild:${interaction.guildId}:clan_create_draft:${interaction.user.id}`, {
-              name, tag, roleHex, autoNickFormat, description, viceLeaderId, createdAt: Date.now()
+              name, tag, roleHex, autoNickFormat, viceLeaderId, createdAt: Date.now()
             });
             const { ModalBuilder, LabelBuilder, TextInputBuilder, TextInputStyle, FileUploadBuilder } = await import('discord.js');
             const secondModal = new ModalBuilder()
               .setCustomId('clan:create:step2')
               .setTitle('Create Clan • Step 2 of 2')
               .addLabelComponents(
+                new LabelBuilder()
+                  .setLabel('Clan Description')
+                  .setDescription('Describe your clan (up to 500 characters).')
+                  .setTextInputComponent(new TextInputBuilder().setCustomId('clan_description').setStyle(TextInputStyle.Paragraph).setMaxLength(500).setRequired(true)),
                 new LabelBuilder()
                   .setLabel('Clan Rules')
                   .setDescription('Write the rules members must follow (up to 1000 characters).')
@@ -1693,7 +1693,8 @@ export default {
               await interaction.reply({ content: 'Your clan creation session expired. Please open the Create a Clan panel again.', flags: MessageFlags.Ephemeral });
               return;
             }
-            const { name, tag, roleHex, autoNickFormat = 'TAG {username}', description, viceLeaderId } = draft;
+            const { name, tag, roleHex, autoNickFormat = 'TAG {username}', viceLeaderId } = draft;
+            const description = interaction.fields.getTextInputValue('clan_description').trim();
             const clanRules = interaction.fields.getTextInputValue('clan_rules').trim();
             if (!clanRules) {
               await interaction.reply({ content: 'Please enter your Clan Rules.', flags: MessageFlags.Ephemeral });
