@@ -385,6 +385,38 @@ export async function listPendingEconomyWagers(client, guildId, limit = 100) {
 }
 
 /**
+ * Returns recent wager recoveries for one guild. Intended for staff-only audit views.
+ */
+export async function listRecentEconomyWagerRecoveries(client, guildId, limit = 10) {
+    const safeLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 10)));
+    const keys = typeof client?.db?.list === 'function'
+        ? await client.db.list('global:economy:')
+        : null;
+    if (!Array.isArray(keys)) return { status: 'listing_unavailable', recoveries: [] };
+
+    const recoveries = [];
+    for (const key of keys) {
+        const userId = String(key).replace(/^global:economy:/, '');
+        if (!/^\\d{17,20}$/.test(userId)) continue;
+        const account = await client.db.get(key, null);
+        for (const [gameId, receipt] of Object.entries(account?.economyGameTransactions || {})) {
+            const audit = receipt?.recovery;
+            if (!audit || String(receipt.guildId || '') !== String(guildId)) continue;
+            recoveries.push({
+                userId, gameId, amount: Number(receipt.amount) || 0,
+                action: String(audit.action || 'unknown'),
+                actorId: String(audit.actorId || ''),
+                reason: String(audit.reason || ''),
+                recoveredAt: Number(audit.recoveredAt) || Number(receipt.settledAt) || 0,
+                status: String(receipt.status || 'unknown'),
+            });
+        }
+    }
+    recoveries.sort((a, b) => b.recoveredAt - a.recoveredAt);
+    return { status: 'ok', recoveries: recoveries.slice(0, safeLimit), total: recoveries.length };
+}
+
+/**
  * Resolves an abandoned wager exactly once. Only a refund or a zero-payout
  * loss settlement is supported: staff must not guess a game result.
  */
