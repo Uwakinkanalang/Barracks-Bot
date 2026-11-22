@@ -8,6 +8,27 @@ import { getCountingGameConfig, saveCountingGameConfig } from '../services/count
 import { getCommandAccessSnapshot, disableCommand, enableCommand, isProtectedCommand, isCommandEnabledInConfig } from '../services/commandAccessService.js';
 import { getAllBirthdays } from '../services/birthdayService.js';
 
+export async function pruneExpiredDashboardSessions(bot) {
+  const db = bot?.db;
+  const status = db?.getStatus?.();
+  if (!db || typeof db.list !== 'function' || typeof db.get !== 'function' ||
+      typeof db.delete !== 'function' || status?.isDegraded || status?.isAvailable === false) {
+    return { skipped: true, deleted: 0 };
+  }
+
+  const keys = await db.list('dashboard:sessions:');
+  let deleted = 0;
+  const now = Date.now();
+  for (const key of keys) {
+    const session = await db.get(key, null);
+    if (session && Number(session.expiresAt) <= now) {
+      await db.delete(key);
+      deleted += 1;
+    }
+  }
+  return { skipped: false, deleted };
+}
+
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
 const loginAttempts = new Map();
