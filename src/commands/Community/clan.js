@@ -178,13 +178,13 @@ export default {
         const requestedName = interaction.options.getString('clan', true).trim().toLowerCase();
         const opponentClan = clanList.find(entry => String(entry.name || '').toLowerCase() === requestedName);
         if (!opponentClan) return interaction.reply({ content: 'I could not find an approved clan with that exact name.', flags: MessageFlags.Ephemeral });
-        if (String(opponentClan.id) === String(myClan.id)) return interaction.reply({ content: 'Your clan cannot challenge itself.', flags: MessageFlags.Ephemeral });
+        if (String(opponentClan.id || opponentClan.roleId || opponentClan.tag || opponentClan.name) === String(myClan.id)) return interaction.reply({ content: 'Your clan cannot challenge itself.', flags: MessageFlags.Ephemeral });
         state.active = {
           id: interaction.id, status: 'pending',
           clanAId: String(myClan.id), clanAName: myClan.name,
-          clanBId: String(opponentClan.id), clanBName: opponentClan.name,
+          clanBId: String(opponentClan.id || opponentClan.roleId || opponentClan.tag || opponentClan.name), clanBName: opponentClan.name,
           clanAScore: 0, clanBScore: 0, startedAt: null,
-          gamePoints: { tictactoe: 10 }, recordedMatches: [], results: [],
+          gamePoints: { tictactoe: 10, rps: 10 }, recordedMatches: [], results: [],
           challengedBy: interaction.user.id, createdAt: Date.now(),
         };
         await saveClanBattleState(interaction.client, interaction.guildId, state);
@@ -205,7 +205,11 @@ export default {
         const battle = state.active;
         if (!battle) return interaction.reply({ content: 'There is no clan battle to end.', flags: MessageFlags.Ephemeral });
         if (![String(battle.clanAId), String(battle.clanBId)].includes(String(myClan.id))) return interaction.reply({ content: 'Only a Leader or Vice Leader of either participating clan can end this battle.', flags: MessageFlags.Ephemeral });
-        if (battle.status === 'pending') return interaction.reply({ content: 'A pending challenge cannot be scored. Cancel it by ending it; no result will be recorded.', flags: MessageFlags.Ephemeral });
+        if (battle.status === 'pending') {
+          state.active = null;
+          await saveClanBattleState(interaction.client, interaction.guildId, state);
+          return interaction.reply({ content: '🗑️ Pending clan battle challenge cancelled. No result was recorded.' });
+        }
         battle.status = 'completed';
         battle.endedAt = Date.now();
         battle.winnerClanId = battle.clanAScore === battle.clanBScore ? null : (battle.clanAScore > battle.clanBScore ? battle.clanAId : battle.clanBId);
