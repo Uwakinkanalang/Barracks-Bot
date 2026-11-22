@@ -6,6 +6,7 @@ on:
     branches: [feature/marriage-system]
     paths:
       - package.json
+      - .github/workflows/repair-dependencies.yml
 
 permissions:
   contents: write
