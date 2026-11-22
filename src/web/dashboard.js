@@ -144,8 +144,9 @@ export function registerDashboardRoutes(app, bot) {
 
   app.get('/api/dashboard/oauth/callback', async (req, res) => {
     const state = String(req.query.state || ''), pending = pendingOAuth.get(state);
-    res.setHeader('Set-Cookie', 'barracks_oauth_state=; HttpOnly; SameSite=Lax; Path=/api/dashboard/oauth/callback; Max-Age=0' + secureCookie);
-    if (!pending || pending.expiresAt <= Date.now() || !safeEqual(state, cookieValue(req.headers.cookie))) return res.status(400).send('Sign-in expired or invalid. Return to the Barracks dashboard and try again.');
+    const cookieMatches = safeEqual(state, cookieValue(req.headers.cookie));
+    if (cookieMatches) res.setHeader('Set-Cookie', 'barracks_oauth_state=; HttpOnly; SameSite=Lax; Path=/api/dashboard/oauth/callback; Max-Age=0' + secureCookie);
+    if (!pending || pending.expiresAt <= Date.now() || !cookieMatches) return res.status(400).send('Sign-in expired or invalid. Return to the Barracks dashboard and try again.');
     pendingOAuth.delete(state);
     if (!req.query.code || !clientId() || !process.env.DISCORD_CLIENT_SECRET || !redirectUri()) return res.status(400).send('Discord sign-in could not be completed.');
     try {
