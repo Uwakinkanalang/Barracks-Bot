@@ -1310,14 +1310,8 @@ export default {
                     });
                   }
 
-                  const currentName = clanMember.nickname || clanMember.user.username;
-                  const clanTagPrefix = `${removedClan.tag} `;
-                  const baseName = currentName.startsWith(clanTagPrefix)
-                    ? currentName.slice(clanTagPrefix.length).trim()
-                    : currentName;
-                  const prefix = await getNicknamePrefix(clanMember, interaction.client, interaction.guildId);
-                  await clanMember.setNickname(`${prefix}${baseName}`.slice(0, 32), 'Clan removed; clear clan nickname tag').catch(error => {
-                    logger.warn(`Failed to clear clan nickname for member ${userId}: ${error.message}`);
+                  await applyHighestPriorityAutoNick(clanMember).catch(error => {
+                    logger.warn(`Failed to restore nickname for member ${userId} after clan deletion: ${error.message}`);
                   });
                 }
               }
