@@ -6,6 +6,7 @@ import {
   getFriendshipData, getActiveFriends, getFriendshipPoints,
   sendFriendRequest, resolveFriendRequest, cancelFriendRequest, removeFriend, claimFriendshipDailyBonus,
   createSoulmateRequest, resolveSoulmateRequest, endSoulmate, getActiveSoulmate,
+  blockFriendshipMember, unblockFriendshipMember,
 } from './friendshipService.js';
 
 const ephemeral = { flags: MessageFlags.Ephemeral };
@@ -28,7 +29,11 @@ export async function postFriendshipPanel(interaction) {
     new ButtonBuilder().setCustomId('friendship:soulmate').setLabel('Soulmates').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('friendship:leaderboard').setLabel('Leaderboard').setStyle(ButtonStyle.Secondary),
   );
-  await interaction.channel.send({ embeds: [embed], components: [row] });
+  const safetyRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('friendship:block').setLabel('Block Member').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId('friendship:unblock').setLabel('Unblock Member').setStyle(ButtonStyle.Secondary),
+  );
+  await interaction.channel.send({ embeds: [embed], components: [row, safetyRow] });
   return interaction.reply({ content: '🫂 Friendship Center posted.', ...ephemeral });
 }
 
@@ -44,6 +49,30 @@ function friendLevel(points) {
 
 export async function handleFriendshipInteraction(interaction, client) {
   const id = interaction.customId, guildId = interaction.guildId, userId = interaction.user.id;
+  if (id === 'friendship:block') {
+    const row = new ActionRowBuilder().addComponents(new UserSelectMenuBuilder()
+      .setCustomId('friendship:select-block').setPlaceholder('Select a member to block').setMinValues(1).setMaxValues(1));
+    return interaction.reply({ content: 'Blocked members cannot send you new friendship or Soulmate requests.', components: [row], ...ephemeral });
+  }
+  if (id === 'friendship:select-block') {
+    const targetId = interaction.values?.[0];
+    if (targetId === userId) return interaction.reply({ content: 'You cannot block yourself.', ...ephemeral });
+    const result = await blockFriendshipMember(client, guildId, userId, targetId);
+    return interaction.reply({ content: result.status === 'blocked' ? 'Member blocked. They cannot send you friendship or Soulmate requests.' : 'Could not block that member.', ...ephemeral });
+  }
+  if (id === 'friendship:unblock') {
+    const data = await getFriendshipData(client, guildId);
+    const blocked = Array.isArray(data.blocks[userId]) ? data.blocks[userId] : [];
+    if (!blocked.length) return interaction.reply({ content: 'You have no blocked members.', ...ephemeral });
+    const row = new ActionRowBuilder().addComponents(new UserSelectMenuBuilder()
+      .setCustomId('friendship:select-unblock').setPlaceholder('Select a member to unblock').setMinValues(1).setMaxValues(1));
+    return interaction.reply({ content: 'Select the member you want to unblock.', components: [row], ...ephemeral });
+  }
+  if (id === 'friendship:select-unblock') {
+    const targetId = interaction.values?.[0];
+    const result = await unblockFriendshipMember(client, guildId, userId, targetId);
+    return interaction.reply({ content: result.status === 'unblocked' ? 'Member unblocked.' : 'Could not unblock that member.', ...ephemeral });
+  }
   if (id === 'friendship:add') {
     const row = new ActionRowBuilder().addComponents(new UserSelectMenuBuilder()
       .setCustomId('friendship:select-add').setPlaceholder('Select a Barracks member').setMinValues(1).setMaxValues(1));
