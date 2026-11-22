@@ -1541,9 +1541,12 @@ export default {
                 const role = await interaction.guild.roles.fetch(clan.roleId).catch(() => null);
                 if (role) await targetMember.roles.add(role, 'Added to clan ' + clan.name);
               }
+              const currentName = targetMember.nickname || targetMember.user.username;
+              const prefix = await getNicknamePrefix(targetMember, interaction.client, interaction.guildId);
+              await targetMember.setNickname((prefix + clan.tag + ' ' + currentName).slice(0, 32), 'Added to clan ' + clan.name).catch(() => {});
               clan.memberIds = [...members, targetId];
               await interaction.client.db.set(storageKey, clanList);
-              await interaction.reply({ content: '✅ <@' + targetId + '> has joined **' + clan.name + ' [' + clan.tag + ']**.', allowedMentions: { users: [targetId] }, flags: MessageFlags.Ephemeral });
+              await interaction.reply({ content: '✅ <@' + targetId + '> has joined **' + clan.name + ' [' + clan.tag + ']**. Their clan role and nickname tag have been applied.', allowedMentions: { users: [targetId] }, flags: MessageFlags.Ephemeral });
               return;
             }
             if (!members.includes(targetId)) {
