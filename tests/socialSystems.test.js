@@ -91,6 +91,25 @@ test('friendship history, point cap, Soulmate eligibility, and block controls', 
   assert.equal(blockedAward.status, 'blocked');
 });
 
+test('Friendship daily cap resets at Manila midnight, not UTC midnight', async () => {
+  const client = makeClient();
+  const sent = await sendFriendRequest(client, guildId, memberA, memberB);
+  await resolveFriendRequest(client, guildId, sent.request.id, memberB, 'accepted');
+
+  // 15:59 UTC is 23:59 in Manila; one minute later is the next Manila day.
+  const beforeMidnight = Date.UTC(2026, 0, 1, 15, 59);
+  const firstDay = await awardFriendshipPoints(client, guildId, memberA, memberB, 30, {
+    now: beforeMidnight, activityKey: 'manila-day-one',
+  });
+  const nextDay = await awardFriendshipPoints(client, guildId, memberA, memberB, 30, {
+    now: beforeMidnight + 60_000, activityKey: 'manila-day-two',
+  });
+
+  assert.equal(firstDay.points, 30);
+  assert.equal(nextDay.points, 30);
+  assert.equal(nextDay.remainingToday, 0);
+});
+
 test('friendship requests expire automatically after their seven-day window', async () => {
   const client = makeClient();
   const sent = await sendFriendRequest(client, guildId, memberA, memberB);
