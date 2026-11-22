@@ -13,6 +13,12 @@ export default {
     )
     .addSubcommand(subcommand =>
       subcommand
+        .setName('leaderpanel')
+        .setDescription('Post the separate Clan Leader and Vice Leader management panel')
+        .addChannelOption(option => option.setName('channel').setDescription('Channel where the Leader Panel will be posted').addChannelTypes(ChannelType.GuildText).setRequired(true))
+    )
+    .addSubcommand(subcommand =>
+      subcommand
         .setName('setapproverole')
         .setDescription('Set the role allowed to approve or reject clan registrations')
         .addRoleOption(option =>
@@ -113,10 +119,42 @@ export default {
         new ButtonBuilder().setCustomId('clan:create').setLabel('Create a Clan').setEmoji('🏰').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId('clan:join:open').setLabel('Join a Clan').setEmoji('🛡️').setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId('clan:leave:open').setLabel('Leave a Clan').setEmoji('🚪').setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setCustomId('clan:bank:view').setLabel('Check Clan Bank').setEmoji('🏦').setStyle(ButtonStyle.Secondary),
       );
       await panelChannel.send({ embeds: [panelEmbed], components: [panelRow] });
       return interaction.reply({ content: `✅ Clan HQ panel posted in <#${panelChannelId}>.`, flags: MessageFlags.Ephemeral });
+    }
+
+    if (subcommand === 'leaderpanel') {
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+        return interaction.reply({ content: 'You need the **Manage Server** permission to post the Clan Leader Panel.', flags: MessageFlags.Ephemeral });
+      }
+      const channel = interaction.options.getChannel('channel', true);
+      if (!channel.isTextBased() || !channel.send) {
+        return interaction.reply({ content: 'Choose a text channel where the bot can send messages.', flags: MessageFlags.Ephemeral });
+      }
+      const panelEmbed = new EmbedBuilder()
+        .setColor(0xD4A017)
+        .setTitle('👑 BARRACKS • CLAN LEADER PANEL')
+        .setDescription('Your command post for managing your clan. Only the Clan Leader and Vice Clan Leader of an approved clan can use these controls.')
+        .addFields(
+          { name: '👥 Manage Members', value: 'View your clan roster.', inline: true },
+          { name: '🏦 Clan Bank', value: 'Check funds and deposit or withdraw bCash.', inline: true },
+          { name: '📜 Transactions', value: 'Review the latest bank activity.', inline: true },
+          { name: '📨 Join Requests', value: 'Check pending applications.', inline: true },
+          { name: '⚙️ Clan Settings', value: 'View your clan details and rules.', inline: true },
+        )
+        .setFooter({ text: 'Barracks • Leadership Command' });
+      const row1 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('clan:leader:members').setLabel('Manage Members').setEmoji('👥').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('clan:leader:bank').setLabel('Clan Bank').setEmoji('🏦').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('clan:leader:transactions').setLabel('Transactions').setEmoji('📜').setStyle(ButtonStyle.Secondary)
+      );
+      const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('clan:leader:requests').setLabel('Join Requests').setEmoji('📨').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('clan:leader:settings').setLabel('Clan Settings').setEmoji('⚙️').setStyle(ButtonStyle.Secondary)
+      );
+      await channel.send({ embeds: [panelEmbed], components: [row1, row2] });
+      return interaction.reply({ content: `✅ Clan Leader Panel posted in <#${channel.id}>. Only your approved clan's Leader and Vice Leader can use it.`, flags: MessageFlags.Ephemeral });
     }
 
     if (subcommand === 'leave') {
