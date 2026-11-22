@@ -5,7 +5,7 @@ import {
   EmbedBuilder,
   SlashCommandBuilder,
 } from 'discord.js';
-import { getEconomyData, addMoney, removeMoney } from '../../utils/economy.js';
+import { getEconomyData, startEconomyWager, settleEconomyWager } from '../../utils/economy.js';
 
 const GAME_TIMEOUT = 2 * 60 * 1000;
 const PICK_OPTIONS = {
@@ -223,12 +223,12 @@ export default {
             await message.edit({ embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('✊ ROCK PAPER SCISSORS').setDescription('Challenge cancelled: both players must have enough cash to cover the bet.').setAuthor({ name: `${game.challengerName}  VS  ${game.opponentName}`, iconURL: game.challengerAvatar }).setFooter({ text: 'Barracks • Two-Player Challenge', iconURL: game.opponentAvatar })], components: [] });
             return;
           }
-          await removeMoney(interaction.client, interaction.guildId, game.challengerId, game.bet, 'wallet');
+          await startEconomyWager(interaction.client, interaction.guildId, game.challengerId, gameId, game.bet);
           try {
-            await removeMoney(interaction.client, interaction.guildId, game.opponentId, game.bet, 'wallet');
+            await startEconomyWager(interaction.client, interaction.guildId, game.opponentId, gameId, game.bet);
             game.escrowed = true;
           } catch (error) {
-            await addMoney(interaction.client, interaction.guildId, game.challengerId, game.bet, 'wallet');
+            await settleEconomyWager(interaction.client, interaction.guildId, game.challengerId, gameId, game.bet).catch(() => {});
             throw error;
           }
         }
@@ -278,8 +278,20 @@ export default {
       if (matchFinished) {
         game.finished = true;
         if (game.escrowed && game.bet > 0) {
-          await addMoney(interaction.client, interaction.guildId, result.winnerId, game.bet * 2, 'wallet');
-          game.escrowed = false;
+          const loserId = result.winnerId === game.challengerId ? game.opponentId : game.challengerId;
+          try {
+            await settleEconomyWager(interaction.client, interaction.guildId, result.winnerId, gameId, game.bet * 2);
+            await settleEconomyWager(interaction.client, interaction.guildId, loserId, gameId, 0);
+            game.escrowed = false;
+          } catch (error) {
+            await message.edit({
+              embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('⚠️ RPS — SETTLEMENT PENDING').setDescription('The match result is recorded, but the prize needs staff review. Please do not start another wager yet.')],
+              components: [],
+            }).catch(() => {});
+            game.finished = true;
+            collector.stop('settlement_pending');
+            return;
+          }
         }
         collector.stop('finished');
         await message.edit({
@@ -300,9 +312,19 @@ export default {
       if (game.finished || reason === 'finished' || reason === 'declined') return;
       game.finished = true;
       if (game.escrowed && game.bet > 0) {
-        await addMoney(interaction.client, interaction.guildId, game.challengerId, game.bet, 'wallet');
-        await addMoney(interaction.client, interaction.guildId, game.opponentId, game.bet, 'wallet');
-        game.escrowed = false;
+        try {
+          await Promise.all([
+            settleEconomyWager(interaction.client, interaction.guildId, game.challengerId, gameId, game.bet),
+            settleEconomyWager(interaction.client, interaction.guildId, game.opponentId, gameId, game.bet),
+          ]);
+          game.escrowed = false;
+        } catch (error) {
+          await message.edit({
+            embeds: [new EmbedBuilder().setColor(0xE74C3C).setTitle('⚠️ RPS — REFUND PENDING').setDescription('Both wagers remain recorded. A staff member must review the pending refund.')],
+            components: [],
+          }).catch(() => {});
+          return;
+        }
       }
 
       const description = !game.accepted

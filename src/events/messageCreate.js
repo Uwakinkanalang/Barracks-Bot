@@ -17,6 +17,7 @@ import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
 import { getItems as getBShopItems, getColorItems as getBShopColorItems, getBoosterColorItems as getBShopBoosterColorItems, buildShopPage as buildBShopPage, buildColorShopPage as buildBShopColorPage, buildBoosterColorShopPage as buildBShopBoosterColorPage } from '../commands/Economy/roleshop.js';
 import { handleClanShopPrefixCommand } from '../commands/Economy/clanshop.js';
+import { awardFriendshipPoints } from '../services/friendshipService.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
@@ -26,12 +27,47 @@ import {
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
+const recentChatters = new Map();
+const recentFriendshipChatAwards = new Map();
+const FRIENDSHIP_CHAT_WINDOW_MS = 10 * 60 * 1000;
+const FRIENDSHIP_CHAT_PAIR_COOLDOWN_MS = 60 * 1000;
 
 export default {
   name: Events.MessageCreate,
   async execute(message, client) {
     try {
       if (message.author.bot || !message.guild) return;
+
+      const meaningfulText = message.content.trim();
+      if (meaningfulText.length >= 8 && !meaningfulText.startsWith('!') && !meaningfulText.startsWith('b!')) {
+        const now = Date.now();
+        const previous = recentChatters.get(message.channelId);
+        if (previous && previous.userId !== message.author.id && now - previous.at <= FRIENDSHIP_CHAT_WINDOW_MS) {
+          const pairKey = [previous.userId, message.author.id].sort().join(':');
+          const cooldownKey = `${message.guild.id}:${message.channelId}:${pairKey}`;
+          const lastAwardAt = recentFriendshipChatAwards.get(cooldownKey) || 0;
+          if (now - lastAwardAt >= FRIENDSHIP_CHAT_PAIR_COOLDOWN_MS) {
+            const result = await awardFriendshipPoints(client, message.guild.id, previous.userId, message.author.id, 1, {
+              activityKey: `chat:${message.id}`, now,
+            }).catch(error => {
+              logger.debug('Friendship chat points skipped:', error.message);
+              return null;
+            });
+            if (result?.status === 'awarded') recentFriendshipChatAwards.set(cooldownKey, now);
+          }
+        }
+        recentChatters.set(message.channelId, { userId: message.author.id, at: now });
+        if (recentChatters.size > 5000) {
+          for (const [channelId, entry] of recentChatters) {
+            if (now - entry.at > FRIENDSHIP_CHAT_WINDOW_MS) recentChatters.delete(channelId);
+          }
+        }
+        if (recentFriendshipChatAwards.size > 10000) {
+          for (const [key, awardedAt] of recentFriendshipChatAwards) {
+            if (now - awardedAt > FRIENDSHIP_CHAT_WINDOW_MS) recentFriendshipChatAwards.delete(key);
+          }
+        }
+      }
 
       logger.debug(`Message received from ${message.author.tag}: ${message.content}`);
 

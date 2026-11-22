@@ -170,39 +170,351 @@ export async function setEconomyData(client, guildId, userId, data) {
 
         const key = getEconomyKey(guildId, userId);
         const normalized = normalizeEconomyData(data, DEFAULT_ECONOMY_DATA);
-        await client.db.set(key, normalized);
-        return true;
+        const saved = await client.db.set(key, normalized);
+        return saved !== false;
     } catch (error) {
         logger.error(`Error saving economy data for user ${userId}`, error);
         return false;
     }
 }
 
-export async function updateBalance(client, guildId, userId, options = {}) {
-    const data = await getEconomyData(client, guildId, userId);
-    
-    if (options.wallet !== undefined) {
-        data.wallet = Math.max(0, (data.wallet || 0) + options.wallet);
-    }
-    
-    if (options.bank !== undefined) {
-        const maxBank = getMaxBankCapacity(data);
-        data.bank = Math.min(Math.max(0, (data.bank || 0) + options.bank), maxBank);
-    }
-    
-    if (options.xp !== undefined) {
-        data.xp = Math.max(0, (data.xp || 0) + options.xp);
-        
-        const xpNeeded = Math.floor(5 * Math.pow(data.level || 1, 2) + 50 * (data.level || 1) + 100);
-        if (data.xp >= xpNeeded) {
-            data.xp -= xpNeeded;
-            data.level = (data.level || 1) + 1;
-            data.leveledUp = true;
+const economyFallbackLocks = new Map();
+
+async function withEconomyFallbackLock(keys, callback) {
+    const orderedKeys = [...keys].sort();
+    const previous = orderedKeys.map((key) => economyFallbackLocks.get(key) || Promise.resolve());
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    for (const key of orderedKeys) economyFallbackLocks.set(key, gate);
+    await Promise.all(previous);
+    try {
+        return await callback();
+    } finally {
+        release();
+        for (const key of orderedKeys) {
+            if (economyFallbackLocks.get(key) === gate) economyFallbackLocks.delete(key);
         }
     }
-    
-    await setEconomyData(client, guildId, userId, data);
-    return data;
+}
+
+/**
+ * Atomically reads, mutates, and persists one or more economy accounts.
+ * PostgreSQL uses a database transaction; the in-memory fallback uses per-account
+ * process locks because it is single-process and non-durable by design.
+ * The callback must perform only local computation; external side effects belong after commit.
+ */
+export async function withEconomyTransaction(client, guildId, userIds, callback) {
+    if (typeof callback !== 'function') throw new TypeError('Economy transaction callback is required.');
+    if (!client?.db || typeof client.db.get !== 'function' || typeof client.db.set !== 'function') {
+        throw new Error('Economy storage is unavailable; no balance was changed.');
+    }
+
+    const ids = [...new Set((Array.isArray(userIds) ? userIds : [userIds]).filter(Boolean).map(String))];
+    if (!ids.length) throw new Error('At least one economy account is required.');
+    const defaults = {
+        ...DEFAULT_ECONOMY_DATA,
+        wallet: ECONOMY_CONFIG.startingBalance ?? DEFAULT_ECONOMY_DATA.wallet,
+    };
+
+    // Preserve the existing first-access migration from legacy guild-scoped
+    // economy keys before locking and mutating the canonical global account.
+    await Promise.all(ids.map((userId) => getEconomyData(client, guildId, userId)));
+
+    const levels = {};
+    await Promise.all(ids.map(async (userId) => {
+        const levelData = await client.db.get(getUserLevelKey(guildId, userId), null);
+        levels[userId] = levelData && Number.isFinite(Number(levelData.level))
+            ? Math.max(0, Number(levelData.level))
+            : null;
+    }));
+
+    const usePostgresTransaction = typeof client.db.withKeyValueTransaction === 'function' &&
+        !client.db.isDegraded?.() && !client.db.useFallback;
+    if (!usePostgresTransaction) {
+        const keys = ids.map((userId) => getEconomyKey(guildId, userId));
+        return withEconomyFallbackLock(keys, async () => {
+            const snapshots = new Map();
+            const accounts = {};
+            for (const userId of ids) {
+                const key = getEconomyKey(guildId, userId);
+                const raw = await client.db.get(key, null);
+                snapshots.set(key, raw === null ? null : structuredClone(raw));
+                const normalized = normalizeEconomyData(raw || {}, defaults);
+                if (levels[userId] !== null) normalized.level = levels[userId];
+                accounts[userId] = normalized;
+            }
+            const result = await callback(accounts);
+            try {
+                for (const userId of ids) {
+                    const key = getEconomyKey(guildId, userId);
+                    const saved = await client.db.set(key, normalizeEconomyData(accounts[userId], defaults));
+                    if (saved === false) throw new Error(`Failed to save economy account for ${userId}.`);
+                }
+            } catch (error) {
+                for (const [key, snapshot] of snapshots) {
+                    if (snapshot === null) await client.db.delete?.(key);
+                    else await client.db.set(key, snapshot);
+                }
+                throw error;
+            }
+            return result;
+        });
+    }
+
+    return client.db.withKeyValueTransaction(async (transaction) => {
+        const accounts = {};
+        const orderedIds = [...ids].sort((a, b) => getEconomyKey(guildId, a).localeCompare(getEconomyKey(guildId, b)));
+        for (const userId of orderedIds) {
+            const key = getEconomyKey(guildId, userId);
+            const raw = await transaction.get(key, null);
+            const normalized = normalizeEconomyData(raw || {}, defaults);
+            if (levels[userId] !== null) normalized.level = levels[userId];
+            accounts[userId] = normalized;
+        }
+
+        const result = await callback(accounts);
+        for (const userId of orderedIds) {
+            const saved = await transaction.set(getEconomyKey(guildId, userId), normalizeEconomyData(accounts[userId], defaults));
+            if (saved === false) throw new Error(`Failed to save economy account for ${userId}.`);
+        }
+        return result;
+    });
+}
+
+/**
+ * Reserve a wager once and record a durable pending receipt on the player's account.
+ * The receipt makes later payout/refund settlement idempotent across retries.
+ */
+export async function startEconomyWager(client, guildId, userId, gameId, amount) {
+    const wager = Number(amount);
+    const receiptId = String(gameId || '').trim();
+    if (!receiptId || !Number.isSafeInteger(wager) || wager <= 0) {
+        throw new Error('A valid game ID and positive whole-number wager are required.');
+    }
+
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const account = accounts[String(userId)];
+        account.economyGameTransactions ||= {};
+        const existing = account.economyGameTransactions[receiptId];
+        if (existing) {
+            if (String(existing.guildId || '') !== String(guildId)) {
+                throw new Error('Game receipt ID is already used by another server.');
+            }
+            if (existing.amount !== wager) throw new Error('Game receipt already exists with a different wager.');
+            return { started: false, status: existing.status, wallet: Number(account.wallet) || 0 };
+        }
+        const wallet = Math.max(0, Number(account.wallet) || 0);
+        if (wallet < wager) throw new Error('Insufficient bCash for this wager.');
+        account.wallet = wallet - wager;
+        account.economyGameTransactions[receiptId] = {
+            amount: wager,
+            payout: 0,
+            status: 'pending',
+            guildId: String(guildId),
+            gameId: receiptId,
+            createdAt: Date.now(),
+        };
+        return { started: true, status: 'pending', wallet: account.wallet };
+    });
+}
+
+/**
+ * Settle a previously reserved wager exactly once. payout is the total amount
+ * returned to the wallet (0 for loss, bet for refund/tie, or winnings payout).
+ */
+export async function settleEconomyWager(client, guildId, userId, gameId, payout) {
+    const receiptId = String(gameId || '').trim();
+    const amount = Number(payout);
+    if (!receiptId || !Number.isSafeInteger(amount) || amount < 0) {
+        throw new Error('A valid game ID and non-negative whole-number payout are required.');
+    }
+
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const account = accounts[String(userId)];
+        account.economyGameTransactions ||= {};
+        const receipt = account.economyGameTransactions[receiptId];
+        if (!receipt || String(receipt.guildId || '') !== String(guildId)) {
+            throw new Error('No reserved wager exists for this game in this server.');
+        }
+        if (receipt.status !== 'pending') {
+            return { settled: false, status: receipt.status, wallet: Number(account.wallet) || 0, payout: receipt.payout };
+        }
+        account.wallet = (Number(account.wallet) || 0) + amount;
+        receipt.status = 'settled';
+        receipt.payout = amount;
+        receipt.settledAt = Date.now();
+        const entries = Object.entries(account.economyGameTransactions);
+        if (entries.length > 200) {
+            for (const [key, value] of entries.sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0)).slice(0, entries.length - 200)) {
+                if (value.status === 'settled') delete account.economyGameTransactions[key];
+            }
+        }
+        return { settled: true, wallet: account.wallet, payout: amount };
+    });
+}
+
+/**
+ * Lists unsettled game wagers for authorized staff recovery workflows.
+ * The caller is responsible for checking staff permissions before exposing this data.
+ */
+function hasDurableWagerStorage(client) {
+    const db = client?.db;
+    return Boolean(
+        db &&
+        typeof db.withKeyValueTransaction === 'function' &&
+        (typeof db.isAvailable !== 'function' || db.isAvailable()) &&
+        !db.isDegraded?.() &&
+        !db.useFallback
+    );
+}
+
+export async function listPendingEconomyWagers(client, guildId, limit = 100) {
+    const safeLimit = Math.min(500, Math.max(1, Math.floor(Number(limit) || 100)));
+    if (!hasDurableWagerStorage(client)) return { status: 'storage_unavailable', wagers: [], total: 0 };
+    const keys = typeof client?.db?.list === 'function'
+        ? await client.db.list('global:economy:')
+        : null;
+    if (!Array.isArray(keys)) {
+        return { status: 'listing_unavailable', wagers: [] };
+    }
+
+    const wagers = [];
+    for (const key of keys) {
+        const userId = String(key).replace(/^global:economy:/, '');
+        if (!userId || key === userId) continue;
+        const account = await client.db.get(key, null);
+        for (const [gameId, receipt] of Object.entries(account?.economyGameTransactions || {})) {
+            if (receipt?.status !== 'pending' || String(receipt.guildId || '') !== String(guildId)) continue;
+            wagers.push({
+                userId, gameId, amount: Number(receipt.amount) || 0,
+                createdAt: Number(receipt.createdAt) || 0,
+                game: String(receipt.game || 'Unknown game'),
+            });
+        }
+    }
+    wagers.sort((a, b) => a.createdAt - b.createdAt);
+    return { status: 'ok', wagers: wagers.slice(0, safeLimit), total: wagers.length };
+}
+
+/**
+ * Returns recent wager recoveries for one guild. Intended for staff-only audit views.
+ */
+export async function listRecentEconomyWagerRecoveries(client, guildId, limit = 10) {
+    const safeLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 10)));
+    if (!hasDurableWagerStorage(client)) return { status: 'storage_unavailable', recoveries: [], total: 0 };
+    const keys = typeof client?.db?.list === 'function'
+        ? await client.db.list('global:economy:')
+        : null;
+    if (!Array.isArray(keys)) return { status: 'listing_unavailable', recoveries: [] };
+
+    const recoveries = [];
+    for (const key of keys) {
+        const userId = String(key).replace(/^global:economy:/, '');
+        if (!/^\d{17,20}$/.test(userId)) continue;
+        const account = await client.db.get(key, null);
+        const storedAudit = Array.isArray(account?.economyWagerRecoveryAudit)
+            ? account.economyWagerRecoveryAudit
+            : [];
+        const seen = new Set();
+        for (const entry of storedAudit) {
+            if (String(entry.guildId || '') !== String(guildId)) continue;
+            seen.add(String(entry.gameId));
+            recoveries.push({ ...entry, userId });
+        }
+        // Legacy accounts without the independent audit array can still be read
+        // from receipt metadata. Once the bounded audit exists, do not re-add
+        // older receipt metadata that has intentionally aged out of the 100-entry log.
+        if (!Array.isArray(account?.economyWagerRecoveryAudit)) {
+            for (const [gameId, receipt] of Object.entries(account?.economyGameTransactions || {})) {
+                const audit = receipt?.recovery;
+                if (!audit || seen.has(String(gameId)) || String(receipt.guildId || '') !== String(guildId)) continue;
+                recoveries.push({
+                    userId, gameId, guildId: String(receipt.guildId),
+                    amount: Number(receipt.amount) || 0,
+                    action: String(audit.action || 'unknown'),
+                    actorId: String(audit.actorId || ''),
+                    reason: String(audit.reason || ''),
+                    recoveredAt: Number(audit.recoveredAt) || Number(receipt.settledAt) || 0,
+                    status: String(receipt.status || 'unknown'),
+                });
+            }
+        }
+    }
+    recoveries.sort((a, b) => b.recoveredAt - a.recoveredAt);
+    return { status: 'ok', recoveries: recoveries.slice(0, safeLimit), total: recoveries.length };
+}
+
+/**
+ * Resolves an abandoned wager exactly once. Only a refund or a zero-payout
+ * loss settlement is supported: staff must not guess a game result.
+ */
+export async function recoverEconomyWager(client, guildId, userId, gameId, options = {}) {
+    const action = options.action;
+    const actorId = String(options.actorId || '').trim();
+    const reason = String(options.reason || '').trim().slice(0, 500);
+    if (!actorId || !reason || !['refund', 'settle_loss'].includes(action)) {
+        throw new Error('A staff actor, reason, and valid recovery action are required.');
+    }
+    if (!hasDurableWagerStorage(client)) {
+        throw new Error('Durable economy storage is unavailable; wager recovery was not performed.');
+    }
+
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const account = accounts[String(userId)];
+        account.economyGameTransactions ||= {};
+        const receipt = account.economyGameTransactions[String(gameId)];
+        if (!receipt || String(receipt.guildId || '') !== String(guildId)) return { recovered: false, status: 'not_found' };
+        if (receipt.status !== 'pending') return { recovered: false, status: 'already_resolved', statusNow: receipt.status };
+        const amount = Number(receipt.amount);
+        if (!Number.isSafeInteger(amount) || amount <= 0) {
+            throw new Error('The wager receipt has an invalid reserved amount.');
+        }
+
+        if (action === 'refund') {
+            account.wallet = (Number(account.wallet) || 0) + amount;
+            receipt.payout = amount;
+        } else {
+            receipt.payout = 0;
+        }
+        receipt.status = action === 'refund' ? 'refunded' : 'settled';
+        receipt.settledAt = Date.now();
+        const recoveredAt = Date.now();
+        receipt.recovery = { actorId, reason, action, recoveredAt };
+        const previousAudit = Array.isArray(account.economyWagerRecoveryAudit)
+            ? account.economyWagerRecoveryAudit
+            : [];
+        // Keep the newest 100 records in the persisted account independently of wager receipts.
+        account.economyWagerRecoveryAudit = previousAudit.concat({
+            gameId: String(gameId), guildId: String(guildId), amount,
+            action, actorId, reason, recoveredAt, status: receipt.status,
+        }).slice(-100);
+        return {
+            recovered: true, status: receipt.status,
+            userId: String(userId), gameId: String(gameId),
+            amount, wallet: Number(account.wallet) || 0,
+        };
+    });
+}
+
+export async function updateBalance(client, guildId, userId, options = {}) {
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const data = accounts[userId];
+        if (options.wallet !== undefined) data.wallet = Math.max(0, (Number(data.wallet) || 0) + options.wallet);
+        if (options.bank !== undefined) {
+            const maxBank = getMaxBankCapacity(data);
+            data.bank = Math.min(Math.max(0, (Number(data.bank) || 0) + options.bank), maxBank);
+        }
+        if (options.xp !== undefined) {
+            data.xp = Math.max(0, (Number(data.xp) || 0) + options.xp);
+            const xpNeeded = Math.floor(5 * Math.pow(data.level || 1, 2) + 50 * (data.level || 1) + 100);
+            if (data.xp >= xpNeeded) {
+                data.xp -= xpNeeded;
+                data.level = (data.level || 1) + 1;
+                data.leveledUp = true;
+            }
+        }
+        return structuredClone(data);
+    });
 }
 
 export function checkCooldown(userData, action) {
@@ -334,46 +646,30 @@ export function formatShopItem(item, index) {
 export const addMoney = wrapServiceBoundary(async function addMoney(client, guildId, userId, amount, type = 'wallet') {
     const validAmount = validateNumber(amount, 'amount');
     if (validAmount === null || validAmount <= 0) {
-        throw createError(
-            'Invalid amount',
-            ErrorTypes.VALIDATION,
-            'Amount must be a positive number.',
-            { guildId, userId, amount, operation: 'addMoney' }
-        );
+        throw createError('Invalid amount', ErrorTypes.VALIDATION, 'Amount must be a positive number.', { guildId, userId, amount, operation: 'addMoney' });
     }
-
     if (type !== 'wallet' && type !== 'bank') {
-        throw createError(
-            'Invalid money type',
-            ErrorTypes.VALIDATION,
-            'Type must be "wallet" or "bank".',
-            { guildId, userId, type, operation: 'addMoney' }
-        );
+        throw createError('Invalid money type', ErrorTypes.VALIDATION, 'Type must be "wallet" or "bank".', { guildId, userId, type, operation: 'addMoney' });
     }
 
-    const userData = await getEconomyData(client, guildId, userId);
-
-    if (type === 'bank') {
-        const maxBank = getMaxBankCapacity(userData);
-        if ((userData.bank || 0) + validAmount > maxBank) {
-            throw createError(
-                'Bank capacity exceeded',
-                ErrorTypes.VALIDATION,
-                `Bank capacity exceeded. Current: ${userData.bank || 0}, Max: ${maxBank}.`,
-                { guildId, userId, current: userData.bank || 0, max: maxBank, operation: 'addMoney' }
-            );
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const userData = accounts[userId];
+        if (type === 'bank') {
+            const maxBank = getMaxBankCapacity(userData);
+            if ((userData.bank || 0) + validAmount > maxBank) {
+                throw createError('Bank capacity exceeded', ErrorTypes.VALIDATION,
+                    `Bank capacity exceeded. Current: ${userData.bank || 0}, Max: ${maxBank}.`,
+                    { guildId, userId, current: userData.bank || 0, max: maxBank, operation: 'addMoney' });
+            }
+            userData.bank = (userData.bank || 0) + validAmount;
+        } else {
+            userData.wallet = (userData.wallet || 0) + validAmount;
         }
-        userData.bank = (userData.bank || 0) + validAmount;
-    } else {
-        userData.wallet = (userData.wallet || 0) + validAmount;
-    }
-
-    await setEconomyData(client, guildId, userId, userData);
-
-    return {
-        newBalance: type === 'bank' ? userData.bank : userData.wallet,
-        ...(type === 'bank' ? { maxBank: getMaxBankCapacity(userData) } : {}),
-    };
+        return {
+            newBalance: type === 'bank' ? userData.bank : userData.wallet,
+            ...(type === 'bank' ? { maxBank: getMaxBankCapacity(userData) } : {}),
+        };
+    });
 }, {
     service: 'economy',
     operation: 'addMoney',
@@ -383,52 +679,27 @@ export const addMoney = wrapServiceBoundary(async function addMoney(client, guil
 export const removeMoney = wrapServiceBoundary(async function removeMoney(client, guildId, userId, amount, type = 'wallet') {
     const validAmount = validateNumber(amount, 'amount');
     if (validAmount === null || validAmount <= 0) {
-        throw createError(
-            'Invalid amount',
-            ErrorTypes.VALIDATION,
-            'Amount must be a positive number.',
-            { guildId, userId, amount, operation: 'removeMoney' }
-        );
+        throw createError('Invalid amount', ErrorTypes.VALIDATION, 'Amount must be a positive number.', { guildId, userId, amount, operation: 'removeMoney' });
     }
-
     if (type !== 'wallet' && type !== 'bank') {
-        throw createError(
-            'Invalid money type',
-            ErrorTypes.VALIDATION,
-            'Type must be "wallet" or "bank".',
-            { guildId, userId, type, operation: 'removeMoney' }
-        );
+        throw createError('Invalid money type', ErrorTypes.VALIDATION, 'Type must be "wallet" or "bank".', { guildId, userId, type, operation: 'removeMoney' });
     }
 
-    const userData = await getEconomyData(client, guildId, userId);
-
-    if (type === 'bank') {
-        if ((userData.bank || 0) < validAmount) {
+    return withEconomyTransaction(client, guildId, userId, async (accounts) => {
+        const userData = accounts[userId];
+        const current = Number(userData[type]) || 0;
+        if (current < validAmount) {
+            const label = type === 'bank' ? 'bank' : 'wallet';
             throw createError(
-                'Insufficient bank funds',
+                type === 'bank' ? 'Insufficient bank funds' : 'Insufficient wallet funds',
                 ErrorTypes.VALIDATION,
-                `Insufficient funds in bank. You have ${userData.bank || 0}, need ${validAmount}.`,
-                { guildId, userId, current: userData.bank || 0, required: validAmount, operation: 'removeMoney' }
+                `Insufficient funds in ${label}. You have ${current}, need ${validAmount}.`,
+                { guildId, userId, current, required: validAmount, operation: 'removeMoney' }
             );
         }
-        userData.bank = (userData.bank || 0) - validAmount;
-    } else {
-        if ((userData.wallet || 0) < validAmount) {
-            throw createError(
-                'Insufficient wallet funds',
-                ErrorTypes.VALIDATION,
-                `Insufficient funds in wallet. You have ${userData.wallet || 0}, need ${validAmount}.`,
-                { guildId, userId, current: userData.wallet || 0, required: validAmount, operation: 'removeMoney' }
-            );
-        }
-        userData.wallet = (userData.wallet || 0) - validAmount;
-    }
-
-    await setEconomyData(client, guildId, userId, userData);
-
-    return {
-        newBalance: type === 'bank' ? userData.bank : userData.wallet,
-    };
+        userData[type] = current - validAmount;
+        return { newBalance: userData[type] };
+    });
 }, {
     service: 'economy',
     operation: 'removeMoney',

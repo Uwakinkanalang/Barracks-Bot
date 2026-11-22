@@ -12,6 +12,7 @@ import { handleMusicVoiceState } from '../services/music/musicVoiceState.js';
 import { addXp } from '../services/leveling/xpSystem.js';
 import { getLevelingConfig } from '../services/leveling/leveling.js';
 import { getAFKKey } from '../utils/database.js';
+import { awardFriendshipPoints } from '../services/friendshipService.js';
 
 const channelCreationCooldown = new Map();
 const VOICE_CREATE_COOLDOWN_MS = 2000;
@@ -91,6 +92,36 @@ const voiceXpTimer = setInterval(() => {
     }
 }, VOICE_XP_INTERVAL_MS);
 voiceXpTimer.unref?.();
+
+const FRIENDSHIP_VOICE_INTERVAL_MS = 10 * 60 * 1000;
+const friendshipVoiceTimer = setInterval(() => {
+    for (const client of voiceXpClients) {
+        awardVoiceFriendshipPoints(client).catch(error => logger.error('Voice friendship points cycle failed:', error));
+    }
+}, FRIENDSHIP_VOICE_INTERVAL_MS);
+friendshipVoiceTimer.unref?.();
+
+async function awardVoiceFriendshipPoints(client) {
+    const now = Date.now();
+    const bucket = Math.floor(now / FRIENDSHIP_VOICE_INTERVAL_MS);
+    for (const guild of client.guilds.cache.values()) {
+        for (const channel of guild.channels.cache.values()) {
+            if (!channel.isVoiceBased?.()) continue;
+            const members = [...channel.members.values()].filter(member =>
+                !member.user.bot && member.voice?.channelId === channel.id &&
+                !member.voice.selfMute && !member.voice.serverMute &&
+                !member.voice.selfDeaf && !member.voice.serverDeaf
+            );
+            for (let i = 0; i < members.length; i++) {
+                for (let j = i + 1; j < members.length; j++) {
+                    await awardFriendshipPoints(client, guild.id, members[i].id, members[j].id, 3, {
+                        activityKey: `voice:${bucket}`, now,
+                    }).catch(error => logger.debug('Voice friendship points skipped:', error.message));
+                }
+            }
+        }
+    }
+}
 
 async function awardVoiceXp(client) {
     for (const guild of client.guilds.cache.values()) {

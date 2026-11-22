@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { randomInt } from 'node:crypto';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { getEconomyData, withEconomyTransaction } from '../../utils/economy.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHandler.js';
 
@@ -156,17 +156,19 @@ export default {
                 });
             }
 
-            const latestAccount = await getEconomyData(client, interaction.guildId, interaction.user.id);
-            const latestWallet = Math.max(0, Number(latestAccount?.wallet) || 0);
-            if (latestWallet < bet) {
+            const settlement = await withEconomyTransaction(client, interaction.guildId, interaction.user.id, async (accounts) => {
+                const account = accounts[interaction.user.id];
+                const latestWallet = Math.max(0, Number(account.wallet) || 0);
+                if (latestWallet < bet) return { charged: false, wallet: latestWallet };
+                account.wallet = latestWallet - bet + payout;
+                return { charged: true, wallet: account.wallet };
+            });
+            if (!settlement.charged) {
                 await InteractionHelper.safeEditReply(interaction, {
                     content: renderSpin(spin.reels, 3, bet, '⚠️ Your wallet changed while the reels were spinning. No bet was charged.'),
                 });
                 return;
             }
-
-            latestAccount.wallet = latestWallet - bet + payout;
-            await setEconomyData(client, interaction.guildId, interaction.user.id, latestAccount);
 
             const outcome = spin.win
                 ? `🎉 **${spin.label}!** You won **₱${payout.toLocaleString()} bCash** (${spin.multiplier}× your bet, ${spin.chance}% chance).`

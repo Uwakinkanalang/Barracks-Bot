@@ -1,0 +1,68 @@
+name: Repair dependency lockfile
+# Lockfile repair is verified in CI; retain this workflow for repeatable dependency refreshes.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/marriage-system]
+    paths:
+      - package.json
+      - .github/workflows/repair-dependencies.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/marriage-system
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Regenerate lockfile with compatible security fixes
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          npm audit fix --package-lock-only
+      - name: Install exactly from regenerated lockfile
+        run: npm ci
+      - name: Verify production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Check social-system syntax
+        run: |
+          files=(
+            src/commands/Friendship/friendship.js
+            src/commands/Marriage/marriage.js
+            src/events/interactionCreate.js
+            src/events/messageCreate.js
+            src/events/voiceStateUpdate.js
+            src/services/friendshipPanelService.js
+            src/services/friendshipService.js
+            src/services/marriagePanelService.js
+            src/services/marriageService.js
+            src/services/economyService.js
+            src/utils/economy.js
+            src/utils/postgresDatabase.js
+            src/utils/database/wrapper.js
+            src/app.js
+            src/web/dashboard.js
+          )
+          for file in "${files[@]}"; do node --check "$file"; done
+      - name: Run social and dashboard security tests
+        run: node --test tests/socialSystems.test.js tests/dashboardSecurity.test.js
+      - name: Commit verified lockfile
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "Lockfile already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "Fix vulnerable production dependency versions"
+          git push origin HEAD:feature/marriage-system

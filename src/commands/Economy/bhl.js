@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
+import { getEconomyData, startEconomyWager, settleEconomyWager } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
 const SUITS = ['♠️', '♥️', '♦️', '♣️'];
@@ -65,7 +65,7 @@ export default {
             throw createError('Insufficient bCash', ErrorTypes.VALIDATION, `You only have **₱${wallet.toLocaleString()}** in your cash wallet.`);
         }
 
-        await removeMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet');
+        await startEconomyWager(client, interaction.guildId, interaction.user.id, interaction.id, bet);
 
         const first = drawCard();
         const startEmbed = new EmbedBuilder()
@@ -86,7 +86,7 @@ export default {
                 fetchReply: true
             });
         } catch (error) {
-            await addMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet').catch(() => {});
+            await settleEconomyWager(client, interaction.guildId, interaction.user.id, interaction.id, bet).catch(() => {});
             throw error;
         }
 
@@ -104,21 +104,19 @@ export default {
             const won = !tie && ((choice === 'higher' && second.value > first.value) || (choice === 'lower' && second.value < first.value));
             const payout = tie ? bet : (won ? bet * 2 : 0);
 
+            let newBalance;
             try {
-                if (payout > 0) {
-                    await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
-                }
+                const settlement = await settleEconomyWager(client, interaction.guildId, interaction.user.id, interaction.id, payout);
+                newBalance = settlement.wallet;
             } catch (error) {
-                await addMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet').catch(() => {});
                 const failedEmbed = new EmbedBuilder()
                     .setColor(0xE74C3C)
-                    .setTitle('⚠️ HIGHER-LOWER ERROR')
-                    .setDescription('The payout could not be processed. Your bet has been refunded.');
+                    .setTitle('⚠️ HIGHER-LOWER SETTLEMENT PENDING')
+                    .setDescription('Your bet is safely recorded, but settlement needs staff review. Please do not start another round until this is resolved.');
                 await gameMessage.edit({ embeds: [failedEmbed], components: [makeButtons(true)] }).catch(() => {});
                 return;
             }
 
-            const newBalance = wallet - bet + payout;
             const outcome = tie
                 ? '🤝 **TIE! Your bet has been returned.**'
                 : (won ? '🏆 **YOU WON!**' : '💔 **YOU LOST!**');
@@ -139,7 +137,7 @@ export default {
 
         collector.on('end', async collected => {
             if (collected.size === 0) {
-                await addMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet').catch(() => {});
+                await settleEconomyWager(client, interaction.guildId, interaction.user.id, interaction.id, bet).catch(() => {});
                 const timeoutEmbed = new EmbedBuilder()
                     .setColor(0x95A5A6)
                     .setTitle('⏰ HIGHER-LOWER • TIME UP')

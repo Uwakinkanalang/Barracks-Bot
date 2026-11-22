@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { successEmbed, warningEmbed, buildUserErrorEmbed } from '../../utils/embeds.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { withEconomyTransaction } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { BotConfig } from '../../config/bot.js';
@@ -49,91 +49,69 @@ export default {
                 );
             }
 
-            const robberData = await getEconomyData(client, guildId, robberId);
-            const victimData = await getEconomyData(client, guildId, victimUser.id);
-            
-            if (!robberData || !victimData) {
-                throw createError(
-                    "Failed to load economy data",
-                    ErrorTypes.DATABASE,
-                    "Failed to load economy data. Please try again later.",
-                    { robberId: !!robberData, victimId: !!victimData, guildId }
-                );
-            }
-            
-            const lastRob = robberData.lastRob || 0;
+            const robbery = await withEconomyTransaction(client, guildId, [robberId, victimUser.id], async (accounts) => {
+                const robberData = accounts[robberId];
+                const victimData = accounts[victimUser.id];
+                const lastRob = Number(robberData.lastRob) || 0;
+                if (now < lastRob + ROB_COOLDOWN) {
+                    const remaining = lastRob + ROB_COOLDOWN - now;
+                    const hours = Math.floor(remaining / (1000 * 60 * 60));
+                    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                    throw createError("Robbery cooldown active", ErrorTypes.RATE_LIMIT,
+                        `You need to lay low. Wait **${hours}h ${minutes}m** before attempting another robbery.`,
+                        { remaining, hours, minutes, cooldownType: 'rob' });
+                }
+                if ((Number(victimData.wallet) || 0) < 500) {
+                    throw createError("Victim too poor", ErrorTypes.VALIDATION,
+                        `${victimUser.username} is too poor. They need at least ₱500 cash to be worth robbing.`,
+                        { victimWallet: victimData.wallet, required: 500 });
+                }
 
-            if (now < lastRob + ROB_COOLDOWN) {
-                const remaining = lastRob + ROB_COOLDOWN - now;
-                const hours = Math.floor(remaining / (1000 * 60 * 60));
-                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-
-                throw createError(
-                    "Robbery cooldown active",
-                    ErrorTypes.RATE_LIMIT,
-                    `You need to lay low. Wait **${hours}h ${minutes}m** before attempting another robbery.`,
-                    { remaining, hours, minutes, cooldownType: 'rob' }
-                );
-            }
-
-            if (victimData.wallet < 500) {
-                throw createError(
-                    "Victim too poor",
-                    ErrorTypes.VALIDATION,
-                    `${victimUser.username} is too poor. They need at least ₱500 cash to be worth robbing.`,
-                    { victimWallet: victimData.wallet, required: 500 }
-                );
-            }
-
-            const hasSafe = victimData.inventory["personal_safe"] || 0;
-
-            if (hasSafe > 0) {
                 robberData.lastRob = now;
-                await setEconomyData(client, guildId, robberId, robberData);
+                if ((Number(victimData.inventory?.personal_safe) || 0) > 0) {
+                    return { blockedBySafe: true, robberData: structuredClone(robberData), victimData: structuredClone(victimData) };
+                }
 
+                const isSuccessful = Math.random() < BASE_ROB_SUCCESS_CHANCE;
+                let amountStolen = 0;
+                let fineAmount = 0;
+                if (isSuccessful) {
+                    amountStolen = Math.floor((Number(victimData.wallet) || 0) * ROB_PERCENTAGE);
+                    robberData.wallet = (Number(robberData.wallet) || 0) + amountStolen;
+                    victimData.wallet = (Number(victimData.wallet) || 0) - amountStolen;
+                } else {
+                    fineAmount = Math.floor((Number(robberData.wallet) || 0) * FINE_PERCENTAGE);
+                    robberData.wallet = Math.max(0, (Number(robberData.wallet) || 0) - fineAmount);
+                }
+                return {
+                    blockedBySafe: false, isSuccessful, amountStolen, fineAmount,
+                    robberData: structuredClone(robberData), victimData: structuredClone(victimData),
+                };
+            });
+
+            const { robberData, victimData } = robbery;
+            if (robbery.blockedBySafe) {
                 return await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [
-                        warningEmbed(
-                            'Robbery Blocked',
-                            `${victimUser.username} was prepared! Your attempt failed because they own a **Personal Safe**. You got away clean but didn't gain anything.`
-                        )
-                    ],
+                    embeds: [warningEmbed(
+                        'Robbery Blocked',
+                        `${victimUser.username} was prepared! Your attempt failed because they own a **Personal Safe**. You got away clean but didn't gain anything.`
+                    )],
                 });
             }
 
-            const isSuccessful = Math.random() < BASE_ROB_SUCCESS_CHANCE;
             let resultEmbed;
-
-            if (isSuccessful) {
-                const amountStolen = Math.floor(victimData.wallet * ROB_PERCENTAGE);
-
-                robberData.wallet = (robberData.wallet || 0) + amountStolen;
-                victimData.wallet = (victimData.wallet || 0) - amountStolen;
-
+            if (robbery.isSuccessful) {
                 resultEmbed = successEmbed(
                     'Robbery Successful',
-                    `You successfully stole **₱${amountStolen.toLocaleString()}** from ${victimUser.username}!`
+                    `You successfully stole **₱${robbery.amountStolen.toLocaleString()}** from ${victimUser.username}!`
                 );
             } else {
-                const fineAmount = Math.floor((robberData.wallet || 0) * FINE_PERCENTAGE);
-
-                if ((robberData.wallet || 0) < fineAmount) {
-                    robberData.wallet = 0;
-                } else {
-                    robberData.wallet = (robberData.wallet || 0) - fineAmount;
-                }
-
                 resultEmbed = buildUserErrorEmbed(
                     'unknown',
-                    `You failed the robbery and were caught! You were fined **₱${fineAmount.toLocaleString()}** of your own cash.`,
+                    `You failed the robbery and were caught! You were fined **₱${robbery.fineAmount.toLocaleString()}** of your own cash.`,
                     { titleOverride: 'Robbery Failed' }
                 );
             }
-
-            robberData.lastRob = now;
-
-            await setEconomyData(client, guildId, robberId, robberData);
-            await setEconomyData(client, guildId, victimUser.id, victimData);
 
             resultEmbed
                 .addFields(

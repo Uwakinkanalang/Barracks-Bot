@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
+import { Client, Collection, EmbedBuilder, GatewayIntentBits, Partials } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
 import cron from 'node-cron';
@@ -12,6 +12,8 @@ import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { runLottoDraws } from './services/barracksLottoService.js';
 import { checkBirthdays } from './services/birthdayService.js';
+import { processMarriageAnniversaries, processMarriageNotifications, reconcileMarriageRoles, expireMarriageProposals } from './services/marriageService.js';
+import { expireFriendshipRequests } from './services/friendshipService.js';
 import { processCalendarReminders, refreshCalendars } from './services/calendarService.js';
 import { checkDonationExpirations } from './services/donationExpiryService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/loaders/commandLoader.js';
@@ -20,7 +22,7 @@ import { initializeMusic } from './services/music/riffySetup.js';
 import { shutdownMusic } from './services/music/playerHandler.js';
 import pkg from '../package.json' with { type: 'json' };
 import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
-import { registerDashboardRoutes } from './web/dashboard.js';
+import { registerDashboardRoutes, pruneExpiredDashboardSessions } from './web/dashboard.js';
 
 class TitanBot extends Client {
   constructor() {
@@ -128,6 +130,14 @@ class TitanBot extends Client {
       .filter(Boolean);
 
     app.use((req, res, next) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+      res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+      if (process.env.NODE_ENV === 'production') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      }
+
       const origin = req.headers.origin;
       if (origin && allowedOrigins.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
@@ -155,10 +165,18 @@ class TitanBot extends Client {
       const now = Date.now();
       const windowStart = now - windowMs;
       
-      if (!requestCounts.has(ip)) {
-        requestCounts.set(ip, []);
+      if (!requestCounts.has(ip) && requestCounts.size >= 5000) {
+        for (const [knownIp, timestamps] of requestCounts) {
+          const active = timestamps.filter(time => time > windowStart);
+          if (active.length) requestCounts.set(knownIp, active);
+          else requestCounts.delete(knownIp);
+        }
+        if (requestCounts.size >= 5000) {
+          return res.status(503).json({ error: 'API is temporarily busy. Try again shortly.' });
+        }
       }
-      
+      if (!requestCounts.has(ip)) requestCounts.set(ip, []);
+
       const times = requestCounts.get(ip).filter(t => t > windowStart);
       
       if (times.length >= maxRequests) {
@@ -306,6 +324,49 @@ class TitanBot extends Client {
     cron.schedule('0 0 * * *', runSafeTask('birthday_role_sync', () => checkBirthdays(this)), {
       timezone: 'Asia/Manila',
     });
+
+    cron.schedule('0 */6 * * *', runSafeTask('dashboard_session_prune', () => pruneExpiredDashboardSessions(this)));
+    cron.schedule('*/15 * * * *', runSafeTask('social_request_expiry', async () => {
+      for (const [guildId] of this.guilds.cache) {
+        try {
+          await expireFriendshipRequests(this, guildId);
+          await expireMarriageProposals(this, guildId);
+        } catch (error) {
+          logger.error(`Social request expiry failed for guild ${guildId}`, error);
+        }
+      }
+    }), { timezone: 'Asia/Manila' });
+
+    cron.schedule('*/30 * * * *', runSafeTask('marriage_role_reconciliation', async () => {
+      for (const [guildId] of this.guilds.cache) {
+        try {
+          await reconcileMarriageRoles(this, guildId);
+        } catch (error) {
+          logger.error(`Marriage role reconciliation failed for guild ${guildId}`, error);
+        }
+      }
+    }), { timezone: 'Asia/Manila' });
+
+    cron.schedule('5 0 * * *', runSafeTask('marriage_anniversary_rewards', async () => {
+      for (const [guildId] of this.guilds.cache) {
+        try {
+          await processMarriageAnniversaries(this, guildId);
+        } catch (error) {
+          logger.error(`Marriage anniversary processing failed for guild ${guildId}`, error);
+        }
+      }
+    }), { timezone: 'Asia/Manila' });
+
+    cron.schedule('* * * * *', runSafeTask('marriage_notification_outbox', async () => {
+      for (const [guildId] of this.guilds.cache) {
+        try {
+          await processMarriageNotifications(this, guildId);
+        } catch (error) {
+          logger.error(`Marriage notification delivery failed for guild ${guildId}`, error);
+        }
+      }
+    }), { timezone: 'Asia/Manila' });
+
   }
 
   async updateAllCounters() {

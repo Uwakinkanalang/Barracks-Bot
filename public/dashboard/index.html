@@ -77,49 +77,39 @@ body{background:#303137;color:#f2f3f5}.side{width:278px;background:#303137;borde
 </section>
 </main>
 </div>
-<script>
-async function loadOverview(){try{const response=await fetch('/api/dashboard/overview',{credentials:'same-origin'});if(response.status===401){location.href='/dashboard';return}if(!response.ok)throw new Error('Could not load server overview');const data=await response.json();document.getElementById('guildName').textContent=data.guildName;document.getElementById('members').textContent=Number(data.memberCount).toLocaleString();document.getElementById('channels').textContent=Number(data.channelCount).toLocaleString();document.getElementById('roles').textContent=Number(data.roleCount).toLocaleString();document.getElementById('commands').textContent=Number(data.commandCount).toLocaleString();document.getElementById('updated').textContent='Updated '+new Date(data.updatedAt).toLocaleTimeString();if(data.guildIcon){const img=document.getElementById('guildIcon');img.src=data.guildIcon;img.hidden=false;document.getElementById('guildFallback').hidden=true}}catch(error){document.getElementById('updated').textContent='Status unavailable';console.error(error)}}loadOverview();setInterval(loadOverview,60000);
-</script>
 
 <div id="loginScreen" style="position:fixed;inset:0;z-index:10;background:#0b1110;display:none;place-items:center;padding:20px">
-  <form id="loginForm" style="width:min(420px,100%);padding:34px;border:1px solid #27372d;border-radius:20px;background:#111a16">
+  <div style="width:min(420px,100%);padding:34px;border:1px solid #27372d;border-radius:20px;background:#111a16">
     <div class="brand-mark">B</div><div class="eyebrow" style="margin-top:22px">Barracks · Command Center</div>
-    <h1>Welcome back, soldier.</h1><p class="sub" style="margin:10px 0 22px">Sign in to manage your Barracks server dashboard.</p>
-    <label for="dashboardPassword" style="display:block;margin-bottom:8px;color:#cbd7ce">Dashboard password</label>
-    <input id="dashboardPassword" type="password" autocomplete="current-password" required style="width:100%;padding:13px;border-radius:10px;border:1px solid #34463b;background:#0b1310;color:white">
-    <button type="submit" style="width:100%;margin-top:14px;padding:13px;border:0;border-radius:10px;background:#c3f36b;color:#18210f;font-weight:800">Enter Dashboard</button>
+    <h1>Welcome back, soldier.</h1><p class="sub" style="margin:10px 0 22px">Sign in with your Discord account. Access is limited to the Barracks server owner and members with a configured Manager Role.</p>
+    <button id="discordLoginButton" type="button" style="width:100%;margin-top:14px;padding:13px;border:0;border-radius:10px;background:#5865f2;color:white;font-weight:800">Continue with Discord</button>
     <p id="loginError" role="alert" style="color:#ff9a91;margin-top:12px"></p>
     <div class="foot">AUTHORIZED PERSONNEL ONLY · BARRACKS SERVER</div>
-  </form>
+  </div>
 </div>
 <script>
 const API_BASE = 'https://barracks-bot-production.up.railway.app';
 const TOKEN_KEY = 'barracks_dashboard_access';
 const loginScreen = document.getElementById('loginScreen');
-function showLogin(){loginScreen.style.display='grid';}
+function showLogin(message=''){loginScreen.style.display='grid';document.getElementById('loginError').textContent=message;}
 function hideLogin(){loginScreen.style.display='none';}
 function getToken(){return sessionStorage.getItem(TOKEN_KEY);}
-document.getElementById('loginForm').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const error = document.getElementById('loginError');
-  const button = event.currentTarget.querySelector('button');
-  error.textContent = '';
-  button.disabled = true; button.textContent = 'Signing in…';
-  try {
-    const response = await fetch(API_BASE + '/api/dashboard/login', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({password:document.getElementById('dashboardPassword').value})
-    });
-    const result = await response.json();
-    if(!response.ok) throw new Error(result.error || 'Sign-in failed.');
-    sessionStorage.setItem(TOKEN_KEY,result.token);
-    document.getElementById('dashboardPassword').value='';
-    hideLogin(); loadOverview();
-  } catch(err) { error.textContent=err.message; }
-  finally { button.disabled=false; button.textContent='Enter Dashboard'; }
+function consumeOAuthToken(){
+  if(!location.hash.startsWith('#access_token=')) return;
+  const params=new URLSearchParams(location.hash.slice(1));
+  const token=params.get('access_token');
+  history.replaceState(null,document.title,location.pathname+location.search);
+  if(token) sessionStorage.setItem(TOKEN_KEY,token);
+}
+consumeOAuthToken();
+document.getElementById('discordLoginButton').addEventListener('click',()=>{
+  document.getElementById('loginError').textContent='';
+  location.href=API_BASE+'/api/dashboard/oauth/start';
 });
-document.getElementById('logoutButton').addEventListener('click',()=>{
-  sessionStorage.removeItem(TOKEN_KEY); showLogin();
+document.getElementById('logoutButton').addEventListener('click',async()=>{
+  const token=getToken();
+  if(token) await fetch(API_BASE+'/api/dashboard/logout',{method:'POST',headers:{Authorization:'Bearer '+token}}).catch(()=>{});
+  sessionStorage.removeItem(TOKEN_KEY); showLogin('You have signed out.');
   ['members','channels','roles','commands'].forEach(id=>document.getElementById(id).textContent='—');
 });
 async function loadOverview(){
@@ -127,7 +117,7 @@ async function loadOverview(){
   if(!token){showLogin();return;}
   try{
     const response=await fetch(API_BASE+'/api/dashboard/overview',{headers:{Authorization:'Bearer '+token}});
-    if(response.status===401){sessionStorage.removeItem(TOKEN_KEY);showLogin();return;}
+    if(response.status===401||response.status===403){sessionStorage.removeItem(TOKEN_KEY);showLogin('Your Discord access or Manager Role is no longer valid. Sign in again.');return;}
     if(!response.ok)throw new Error('Could not load server overview');
     const data=await response.json();
     document.getElementById('guildName').textContent=data.guildName;
@@ -137,6 +127,7 @@ async function loadOverview(){
     document.getElementById('commands').textContent=Number(data.commandCount).toLocaleString();
     document.getElementById('updated').textContent='Updated '+new Date(data.updatedAt).toLocaleTimeString();
     if(data.guildIcon){const img=document.getElementById('guildIcon');img.src=data.guildIcon;img.hidden=false;document.getElementById('guildFallback').hidden=true;}
+    hideLogin();
   }catch(error){document.getElementById('updated').textContent='Status unavailable';console.error(error);}
 }
 if(getToken()) loadOverview(); else showLogin();

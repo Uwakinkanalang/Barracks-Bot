@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { successEmbed, warningEmbed } from '../../utils/embeds.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { getEconomyData, withEconomyTransaction } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -97,8 +97,20 @@ export default {
         const result = won ? guess : (guess === 'heads' ? 'tails' : 'heads');
 
         // Correct guesses receive 2x the stake, including the returned original bet.
-        userData.wallet = wallet - betAmount + (won ? betAmount * 2 : 0);
-        await setEconomyData(client, guildId, userId, userData);
+        const newCash = await withEconomyTransaction(client, guildId, userId, async (accounts) => {
+            const account = accounts[userId];
+            const currentWallet = Number(account.wallet) || 0;
+            if (currentWallet < betAmount) {
+                throw createError(
+                    'Insufficient cash for coin flip',
+                    ErrorTypes.VALIDATION,
+                    `You only have **₱${currentWallet.toLocaleString()}** cash, but your bet is **₱${betAmount.toLocaleString()}**.`,
+                    { userId, wallet: currentWallet, betAmount }
+                );
+            }
+            account.wallet = currentWallet - betAmount + (won ? betAmount * 2 : 0);
+            return account.wallet;
+        });
 
         const embed = won
             ? successEmbed(

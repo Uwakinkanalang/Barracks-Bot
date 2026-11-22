@@ -8,9 +8,29 @@ import { getCountingGameConfig, saveCountingGameConfig } from '../services/count
 import { getCommandAccessSnapshot, disableCommand, enableCommand, isProtectedCommand, isCommandEnabledInConfig } from '../services/commandAccessService.js';
 import { getAllBirthdays } from '../services/birthdayService.js';
 
+export async function pruneExpiredDashboardSessions(bot) {
+  const db = bot?.db;
+  const status = db?.getStatus?.();
+  if (!db || typeof db.list !== 'function' || typeof db.get !== 'function' ||
+      typeof db.delete !== 'function' || status?.isDegraded || status?.isAvailable === false) {
+    return { skipped: true, deleted: 0 };
+  }
+
+  const keys = await db.list('dashboard:sessions:');
+  let deleted = 0;
+  const now = Date.now();
+  for (const key of keys) {
+    const session = await db.get(key, null);
+    if (session && Number(session.expiresAt) <= now) {
+      await db.delete(key);
+      deleted += 1;
+    }
+  }
+  return { skipped: false, deleted };
+}
+
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
-const loginAttempts = new Map();
 const BOOSTER_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
 const boosterMemberSnapshots = new Map();
 
@@ -25,10 +45,13 @@ function sign(value, secret) {
   return crypto.createHmac('sha256', secret).update(value).digest('base64url');
 }
 
-function createAccessToken(secret) {
+function createAccessToken(secret, user) {
   const payload = Buffer.from(JSON.stringify({
     exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
-    scope: 'barracks-dashboard'
+    scope: 'barracks-dashboard',
+    sub: String(user.id),
+    jti: String(user.sessionId || ''),
+    username: String(user.username || 'Discord user').slice(0, 80)
   })).toString('base64url');
   return `${payload}.${sign(payload, secret)}`;
 }
@@ -49,35 +72,132 @@ function validAccessToken(req, secret) {
   }
 }
 
-function allowLoginAttempt(ip) {
-  const now = Date.now();
-  const recent = (loginAttempts.get(ip) || []).filter(time => time > now - 15 * 60 * 1000);
-  if (recent.length >= 8) {
-    loginAttempts.set(ip, recent);
-    return false;
-  }
-  recent.push(now);
-  loginAttempts.set(ip, recent);
-  return true;
-}
 
 export function registerDashboardRoutes(app, bot) {
-  app.post('/api/dashboard/login', (req, res) => {
-    const expectedPassword = process.env.DASHBOARD_PASSWORD;
+  const oauthAttempts = new Map();
+  const pendingOAuth = new Map();
+  const frontendUrl = () => (process.env.DASHBOARD_FRONTEND_URL || 'https://uwakinkanalang.github.io/Barracks-Bot/dashboard/').replace(/#.*$/, '');
+  const clientId = () => process.env.DISCORD_CLIENT_ID || bot.config?.bot?.clientId || '';
+  const redirectUri = () => process.env.DASHBOARD_OAUTH_REDIRECT_URI || '';
+  const cookieValue = header => String(header || '').split(';').map(part => part.trim()).find(part => part.startsWith('barracks_oauth_state='))?.slice('barracks_oauth_state='.length) || '';
+  const secureCookie = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  const verifyDashboardUser = async userId => {
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return { ok: false, status: 503, error: 'Barracks server is not available.' };
+    const config = await getGuildConfig(bot, guild.id);
+    const managerRoleIds = Array.isArray(config.managerRoleIds) ? config.managerRoleIds.map(String) : [];
+    const member = await guild.members.fetch({ user: String(userId), force: true }).catch(() => null);
+    if (!member) return { ok: false, status: 403, error: 'You must be a current member of Barracks to access this dashboard.' };
+    // The guild owner is the permanent recovery administrator and can configure the first Manager Role.
+    if (member.id !== guild.ownerId && (!managerRoleIds.length || !managerRoleIds.some(roleId => member.roles.cache.has(roleId)))) return { ok: false, status: 403, error: managerRoleIds.length ? 'You do not have a configured Barracks Manager Role.' : 'Dashboard access is disabled until the server owner configures at least one Manager Role.' };
+    return { ok: true, member, guild };
+  };
+
+  app.use('/api/dashboard', async (req, res, next) => {
+    if (req.path === '/login' || req.path === '/oauth/start' || req.path === '/oauth/callback') return next();
     const secret = process.env.DASHBOARD_SESSION_SECRET;
-    if (!expectedPassword || !secret) {
-      return res.status(503).json({ error: 'Dashboard login is not configured.' });
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const authorization = req.get('authorization') || '';
+    const payload = authorization.slice(7).split('.')[0];
+    let identity;
+    try { identity = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')); } catch { return res.status(401).json({ error: 'Unauthorized' }); }
+    if (!/^\d{17,20}$/.test(String(identity.sub || '')) || !/^[A-Za-z0-9_-]{20,80}$/.test(String(identity.jti || ''))) return res.status(401).json({ error: 'Discord identity or session ID missing.' });
+    try {
+      const dbStatus = bot.db?.getStatus?.();
+      if (!bot.db?.get || !bot.db?.set || dbStatus?.isDegraded) return res.status(503).json({ error: 'Secure dashboard sessions require the persistent database to be available.' });
+      const session = await bot.db.get('dashboard:sessions:' + identity.jti, null);
+      if (!session || session.revoked || String(session.userId) !== String(identity.sub) || Number(session.expiresAt) <= Date.now()) return res.status(401).json({ error: 'Dashboard session expired or revoked. Sign in again.' });
+      // Allow an authenticated user to revoke their own session even after losing their Manager Role or leaving the guild.
+      if (req.path === '/logout') {
+        req.dashboardUser = { id: String(identity.sub), username: String(identity.username || 'Discord user') };
+        return next();
+      }
+      const verified = await verifyDashboardUser(identity.sub);
+      if (!verified.ok) return res.status(verified.status).json({ error: verified.error });
+      req.dashboardUser = { id: verified.member.id, username: verified.member.user.username };
+      return next();
+    } catch (error) {
+      return res.status(503).json({ error: 'Could not verify your current Barracks permissions. Try again.' });
     }
-    if (!allowLoginAttempt(req.ip)) {
-      return res.status(429).json({ error: 'Too many login attempts. Try again in 15 minutes.' });
+  });
+
+  app.post('/api/dashboard/login', (req, res) => res.status(410).json({ error: 'Password login has been retired. Sign in with Discord.' }));
+
+  app.get('/api/dashboard/oauth/start', (req, res) => {
+    const id = clientId(), callback = redirectUri();
+    if (!id || !process.env.DISCORD_CLIENT_SECRET || !callback || !process.env.DASHBOARD_SESSION_SECRET) return res.status(503).send('Discord OAuth is not configured. Set DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DASHBOARD_OAUTH_REDIRECT_URI and DASHBOARD_SESSION_SECRET.');
+    const now = Date.now();
+    for (const [key, value] of pendingOAuth) if (value.expiresAt <= now) pendingOAuth.delete(key);
+    const ip = req.ip || 'unknown';
+    // Bound memory use from clients rotating source IPs and starting many OAuth attempts.
+    if (!oauthAttempts.has(ip) && oauthAttempts.size >= 5000) {
+      for (const [knownIp, timestamps] of oauthAttempts) {
+        const active = timestamps.filter(time => time > now - 15 * 60 * 1000);
+        if (active.length) oauthAttempts.set(knownIp, active);
+        else oauthAttempts.delete(knownIp);
+      }
+      if (oauthAttempts.size >= 5000) return res.status(503).send('Sign-in is temporarily busy. Try again shortly.');
     }
-    if (!safeEqual(req.body?.password || '', expectedPassword)) {
-      return res.status(401).json({ error: 'Incorrect password.' });
+    if (pendingOAuth.size >= 5000) return res.status(503).send('Sign-in is temporarily busy. Try again shortly.');
+    const attempts = (oauthAttempts.get(ip) || []).filter(time => time > now - 15 * 60 * 1000);
+    if (attempts.length >= 8) return res.status(429).send('Too many sign-in attempts. Try again later.');
+    attempts.push(now); oauthAttempts.set(ip, attempts);
+    const state = crypto.randomBytes(32).toString('base64url');
+    const verifier = crypto.randomBytes(48).toString('base64url');
+    const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+    pendingOAuth.set(state, { verifier, expiresAt: now + 10 * 60 * 1000 });
+    res.setHeader('Set-Cookie', 'barracks_oauth_state=' + state + '; HttpOnly; SameSite=Lax; Path=/api/dashboard/oauth/callback; Max-Age=600' + secureCookie);
+    const params = new URLSearchParams({ client_id: id, response_type: 'code', redirect_uri: callback, scope: 'identify', state, code_challenge: challenge, code_challenge_method: 'S256' });
+    return res.redirect('https://discord.com/oauth2/authorize?' + params.toString());
+  });
+
+  app.get('/api/dashboard/oauth/callback', async (req, res) => {
+    const state = String(req.query.state || ''), pending = pendingOAuth.get(state);
+    const cookieMatches = safeEqual(state, cookieValue(req.headers.cookie));
+    if (cookieMatches) res.setHeader('Set-Cookie', 'barracks_oauth_state=; HttpOnly; SameSite=Lax; Path=/api/dashboard/oauth/callback; Max-Age=0' + secureCookie);
+    if (!pending || pending.expiresAt <= Date.now() || !cookieMatches) return res.status(400).send('Sign-in expired or invalid. Return to the Barracks dashboard and try again.');
+    pendingOAuth.delete(state);
+    if (!req.query.code || !clientId() || !process.env.DISCORD_CLIENT_SECRET || !redirectUri()) return res.status(400).send('Discord sign-in could not be completed.');
+    try {
+      const tokenResponse = await fetch('https://discord.com/api/v10/oauth2/token', {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ client_id: clientId(), client_secret: process.env.DISCORD_CLIENT_SECRET, grant_type: 'authorization_code', code: String(req.query.code), redirect_uri: redirectUri(), code_verifier: pending.verifier })
+      });
+      if (!tokenResponse.ok) throw new Error('OAuth token exchange failed');
+      const tokenData = await tokenResponse.json();
+      if (!tokenData.access_token || tokenData.token_type !== 'Bearer') throw new Error('OAuth token response invalid');
+      const userResponse = await fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: 'Bearer ' + tokenData.access_token } });
+      if (!userResponse.ok) throw new Error('Discord identity lookup failed');
+      const user = await userResponse.json();
+      if (!/^\d{17,20}$/.test(String(user.id || ''))) throw new Error('Discord identity invalid');
+      const verified = await verifyDashboardUser(user.id);
+      if (!verified.ok) return res.status(verified.status).send(verified.error);
+      const secret = process.env.DASHBOARD_SESSION_SECRET;
+      const sessionId = crypto.randomBytes(32).toString('base64url');
+      const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
+      const dbStatus = bot.db?.getStatus?.();
+      if (!bot.db?.set || dbStatus?.isDegraded) return res.status(503).send('Secure dashboard sessions require the persistent database. Please try again later.');
+      await bot.db.set('dashboard:sessions:' + sessionId, { userId: String(user.id), createdAt: Date.now(), expiresAt, revoked: false });
+      const accessToken = createAccessToken(secret, { id: user.id, username: user.username, sessionId });
+      return res.redirect(frontendUrl() + '#access_token=' + encodeURIComponent(accessToken));
+    } catch (error) {
+      return res.status(401).send('Discord sign-in failed or you do not have dashboard access. Return to Barracks and try again.');
     }
-    return res.json({
-      token: createAccessToken(secret),
-      expiresIn: SESSION_TTL_SECONDS
-    });
+  });
+
+  app.post('/api/dashboard/logout', async (req, res) => {
+    try {
+      const authorization = req.get('authorization') || '';
+      const token = authorization.slice(7);
+      const payload = token.split('.')[0];
+      const identity = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+      if (identity.jti) {
+        const key = 'dashboard:sessions:' + identity.jti;
+        const session = await bot.db.get(key, null);
+        if (session && String(session.userId) === String(req.dashboardUser?.id)) await bot.db.set(key, { ...session, revoked: true, revokedAt: Date.now() });
+      }
+      return res.json({ ok: true });
+    } catch { return res.status(500).json({ error: 'Could not revoke dashboard session.' }); }
   });
 
   app.get('/api/dashboard/commands', async (req, res) => {
@@ -210,7 +330,13 @@ export function registerDashboardRoutes(app, bot) {
         language: typeof guildConfig.dashboardLanguage === 'string' ? guildConfig.dashboardLanguage : 'en',
         timezone: typeof guildConfig.timezone === 'string' ? guildConfig.timezone : 'Asia/Manila',
         managerRoleIds: Array.isArray(guildConfig.managerRoleIds) ? guildConfig.managerRoleIds : [],
-        roles
+        marriedRoleId: guildConfig.marriedRoleId || null,
+        marriageAnnouncementChannelId: guildConfig.marriageAnnouncementChannelId || null,
+        roles,
+        channels: guild.channels.cache
+          .filter(channel => channel.isTextBased?.() && !channel.isThread?.())
+          .map(channel => ({ id: channel.id, name: channel.name }))
+          .sort((a, b) => a.name.localeCompare(b.name))
       });
     } catch (error) {
       return res.status(500).json({ error: error?.message || 'Could not load bot settings.' });
@@ -241,7 +367,21 @@ export function registerDashboardRoutes(app, bot) {
       catch { return res.status(400).json({ error: 'Choose a valid timezone.' }); }
       updates.timezone = body.timezone;
     }
+    if (body.marriedRoleId !== undefined) {
+      const id = body.marriedRoleId === '' || body.marriedRoleId === null ? null : String(body.marriedRoleId);
+      if (id && (!/^\d{17,20}$/.test(id) || !guild.roles.cache.has(id) || guild.roles.cache.get(id)?.name !== '💍B-Married'))
+        return res.status(400).json({ error: 'Select the Discord role named 💍B-Married.' });
+      updates.marriedRoleId = id;
+    }
+    if (body.marriageAnnouncementChannelId !== undefined) {
+      const id = body.marriageAnnouncementChannelId === '' || body.marriageAnnouncementChannelId === null ? null : String(body.marriageAnnouncementChannelId);
+      const channel = id ? guild.channels.cache.get(id) : null;
+      if (id && (!/^\d{17,20}$/.test(id) || !channel?.isTextBased?.() || channel.isThread?.()))
+        return res.status(400).json({ error: 'Select a valid text channel for marriage announcements.' });
+      updates.marriageAnnouncementChannelId = id;
+    }
     if (body.managerRoleIds !== undefined) {
+      if (req.dashboardUser?.id !== guild.ownerId) return res.status(403).json({ error: 'Only the Barracks server owner can change Manager Roles.' });
       if (!Array.isArray(body.managerRoleIds) || body.managerRoleIds.length > 100)
         return res.status(400).json({ error: 'Manager roles must be a list of up to 100 roles.' });
       const roleIds = [...new Set(body.managerRoleIds.map(String))];
@@ -258,7 +398,9 @@ export function registerDashboardRoutes(app, bot) {
         prefix: verified.prefix,
         language: verified.dashboardLanguage || 'en',
         timezone: verified.timezone || 'Asia/Manila',
-        managerRoleIds: Array.isArray(verified.managerRoleIds) ? verified.managerRoleIds : []
+        managerRoleIds: Array.isArray(verified.managerRoleIds) ? verified.managerRoleIds : [],
+        marriedRoleId: verified.marriedRoleId || null,
+        marriageAnnouncementChannelId: verified.marriageAnnouncementChannelId || null
       });
     } catch (error) {
       return res.status(500).json({ error: error?.message || 'Could not save server settings.' });
@@ -468,7 +610,7 @@ export function registerDashboardRoutes(app, bot) {
     const key = moderationLogKey(guildId);
     const existing = await getFromDb(key, []);
     const logs = Array.isArray(existing) ? existing : [];
-    logs.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), moderator: 'Dashboard staff', ...entry });
+    logs.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), moderator: 'Dashboard staff', actorId: null, ...entry });
     await setInDb(key, logs.slice(0, 500));
   };
 
@@ -501,14 +643,14 @@ export function registerDashboardRoutes(app, bot) {
           return res.status(400).json({ error: 'Choose a valid text channel in Barracks.' });
         const count = Math.min(100, Math.max(1, Number(amount) || 10));
         const deleted = await channel.bulkDelete(count, true);
-        await recordModerationLog(guild.id, { action, targetId: null, targetName: channel.name, reason: cleanReason, details: deleted.size + ' messages deleted' });
+        await recordModerationLog(guild.id, { action, targetId: null, targetName: channel.name, reason: cleanReason, actorId: req.dashboardUser?.id, moderator: req.dashboardUser?.username || 'Discord manager', details: deleted.size + ' messages deleted' });
         return res.json({ ok: true, message: 'Deleted ' + deleted.size + ' recent messages.' });
       }
 
       if (!/^\d{17,20}$/.test(String(userId || ''))) return res.status(400).json({ error: 'Enter a valid Discord user ID.' });
       const target = await guild.members.fetch(String(userId)).catch(() => null);
       if (action !== 'unban' && !target) return res.status(404).json({ error: 'That member was not found in Barracks.' });
-      if (target && (target.id === guild.ownerId || target.id === bot.user.id || target.id === req.body?.actorId))
+      if (target && (target.id === guild.ownerId || target.id === bot.user.id || target.id === req.dashboardUser?.id))
         return res.status(400).json({ error: 'This member cannot be moderated from the dashboard.' });
       if (target && me.roles.highest.comparePositionTo(target.roles.highest) <= 0)
         return res.status(403).json({ error: 'The bot role must be higher than the target member.' });
@@ -517,20 +659,20 @@ export function registerDashboardRoutes(app, bot) {
         if (!me.permissions.has('BanMembers')) return res.status(403).json({ error: 'Bot needs Ban Members permission.' });
         if (!target.bannable) return res.status(403).json({ error: 'The bot cannot ban this member.' });
         await target.ban({ reason: cleanReason });
-        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason });
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, actorId: req.dashboardUser?.id, moderator: req.dashboardUser?.username || 'Discord manager' });
         return res.json({ ok: true, message: 'Member banned successfully.' });
       }
       if (action === 'unban') {
         if (!me.permissions.has('BanMembers')) return res.status(403).json({ error: 'Bot needs Ban Members permission.' });
         await guild.members.unban(String(userId), cleanReason);
-        await recordModerationLog(guild.id, { action, targetId: String(userId), targetName: String(userId), reason: cleanReason });
+        await recordModerationLog(guild.id, { action, targetId: String(userId), targetName: String(userId), reason: cleanReason, actorId: req.dashboardUser?.id, moderator: req.dashboardUser?.username || 'Discord manager' });
         return res.json({ ok: true, message: 'User unbanned successfully.' });
       }
       if (action === 'kick') {
         if (!me.permissions.has('KickMembers')) return res.status(403).json({ error: 'Bot needs Kick Members permission.' });
         if (!target.kickable) return res.status(403).json({ error: 'The bot cannot kick this member.' });
         await target.kick(cleanReason);
-        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason });
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, actorId: req.dashboardUser?.id, moderator: req.dashboardUser?.username || 'Discord manager' });
         return res.json({ ok: true, message: 'Member kicked successfully.' });
       }
       if (action === 'timeout') {
@@ -538,19 +680,19 @@ export function registerDashboardRoutes(app, bot) {
         if (!target.moderatable) return res.status(403).json({ error: 'The bot cannot timeout this member.' });
         const minutes = Math.min(40320, Math.max(1, Number(duration) || 10));
         await target.timeout(minutes * 60 * 1000, cleanReason);
-        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, details: minutes + ' minutes' });
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, actorId: req.dashboardUser?.id, moderator: req.dashboardUser?.username || 'Discord manager', details: minutes + ' minutes' });
         return res.json({ ok: true, message: 'Member timed out for ' + minutes + ' minutes.' });
       }
       if (action === 'untimeout') {
         if (!me.permissions.has('ModerateMembers')) return res.status(403).json({ error: 'Bot needs Moderate Members permission.' });
         if (!target.moderatable) return res.status(403).json({ error: 'The bot cannot edit this member.' });
         await target.timeout(null, cleanReason);
-        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason });
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, actorId: req.dashboardUser?.id, moderator: req.dashboardUser?.username || 'Discord manager' });
         return res.json({ ok: true, message: 'Timeout removed.' });
       }
       if (action === 'warn') {
         const dm = await target.send('You have received a warning in **' + guild.name + '**. Reason: ' + cleanReason).then(() => true).catch(() => false);
-        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, details: dm ? 'DM delivered' : 'DM could not be delivered' });
+        await recordModerationLog(guild.id, { action, targetId: target.id, targetName: target.user.tag, reason: cleanReason, actorId: req.dashboardUser?.id, moderator: req.dashboardUser?.username || 'Discord manager', details: dm ? 'DM delivered' : 'DM could not be delivered' });
         return res.json({ ok: true, message: dm ? 'Warning delivered by DM.' : 'Could not DM the member (their DMs may be closed).' });
       }
       return res.status(400).json({ error: 'Unknown moderation action.' });
@@ -1060,7 +1202,7 @@ export function registerDashboardRoutes(app, bot) {
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
     if (!roleHex) return res.status(400).json({ error: 'Role Hex Code must be a valid six-digit color, such as #5865F2.' });
-    if (!/^\\d{17,20}$/.test(leaderId) || !/^\\d{17,20}$/.test(viceLeaderId) || leaderId === viceLeaderId) return res.status(400).json({ error: 'Enter valid, different Discord IDs for the clan leader and vice clan leader.' });
+    if (!/^\d{17,20}$/.test(leaderId) || !/^\d{17,20}$/.test(viceLeaderId) || leaderId === viceLeaderId) return res.status(400).json({ error: 'Enter valid, different Discord IDs for the clan leader and vice clan leader.' });
     if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
     if (!rules || rules.length > 1000) return res.status(400).json({ error: 'Clan Rules are required and must be 1,000 characters or fewer.' });
 

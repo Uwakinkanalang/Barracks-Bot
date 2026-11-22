@@ -1,0 +1,68 @@
+name: Barracks Social Systems Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/marriage-system]
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Check changed social-system JavaScript syntax
+        run: |
+          files=(
+            src/commands/Friendship/friendship.js
+            src/commands/Marriage/marriage.js
+            src/events/interactionCreate.js
+            src/events/messageCreate.js
+            src/events/voiceStateUpdate.js
+            src/services/friendshipPanelService.js
+            src/services/friendshipService.js
+            src/services/marriagePanelService.js
+            src/services/marriageService.js
+            src/services/economyService.js
+            src/utils/economy.js
+            src/commands/Economy/deposit.js
+            src/commands/Economy/withdraw.js
+            src/commands/Economy/work.js
+            src/commands/Economy/rob.js
+            src/commands/Economy/buy.js
+            src/commands/Economy/crime.js
+            src/commands/Economy/beg.js
+            src/commands/Economy/fish.js
+            src/commands/Economy/mine.js
+            src/commands/Economy/coinflip.js
+            src/commands/Economy/gamble.js
+            src/commands/Economy/slots.js
+            src/commands/Economy/nickname.js
+            src/commands/Economy/bhl.js
+            src/commands/Economy/talpak.js
+            src/commands/Economy/blackjack.js
+            src/commands/Economy/mines.js
+            src/commands/Economy/roulette.js
+            src/commands/Economy/rps.js
+            src/commands/Economy/slut.js
+            src/utils/postgresDatabase.js
+            src/utils/database/wrapper.js
+            src/commands/Economy/daily.js
+            src/app.js
+            src/web/dashboard.js
+          )
+          for file in "${files[@]}"; do
+            node --check "$file"
+          done
+      - name: Run Friendship, Soulmate, Marriage, Economy, and Dashboard security tests
+        run: node --test tests/socialSystems.test.js tests/dashboardSecurity.test.js

@@ -5,7 +5,7 @@ import {
     EmbedBuilder,
     SlashCommandBuilder,
 } from 'discord.js';
-import { removeMoney, addMoney, getEconomyData } from '../../utils/economy.js';
+import { getEconomyData, startEconomyWager, settleEconomyWager } from '../../utils/economy.js';
 import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHandler.js';
 
 const ROUND_TIMEOUT = 60 * 1000;
@@ -77,7 +77,7 @@ export default {
             finished: false,
         };
 
-        await removeMoney(client, interaction.guildId, game.userId, bet, 'wallet');
+        await startEconomyWager(client, interaction.guildId, game.userId, game.id, bet);
 
         let message;
         try {
@@ -87,7 +87,7 @@ export default {
                 fetchReply: true,
             });
         } catch (error) {
-            await addMoney(client, interaction.guildId, game.userId, bet, 'wallet');
+            await settleEconomyWager(client, interaction.guildId, game.userId, game.id, bet).catch(() => {});
             throw error;
         }
 
@@ -118,7 +118,16 @@ export default {
 
             if (won) {
                 const payout = bet * 2;
-                await addMoney(client, interaction.guildId, game.userId, payout, 'wallet');
+                try {
+                    await settleEconomyWager(client, interaction.guildId, game.userId, game.id, payout);
+                } catch (error) {
+                    await message.edit({
+                        embeds: [buildTalpakEmbed(game, '⚠️ Your result is recorded, but the payout is pending staff review. Please do not start another round yet.', 0xE74C3C, '⚠️ TALPAK — SETTLEMENT PENDING')],
+                        components: [buildChoiceButtons(game, true)],
+                    }).catch(() => {});
+                    collector.stop('settlement_pending');
+                    return;
+                }
                 await message.edit({
                     embeds: [buildTalpakEmbed(
                         game,
@@ -129,6 +138,16 @@ export default {
                     components: [buildChoiceButtons(game, true)],
                 });
             } else {
+                try {
+                    await settleEconomyWager(client, interaction.guildId, game.userId, game.id, 0);
+                } catch (error) {
+                    await message.edit({
+                        embeds: [buildTalpakEmbed(game, '⚠️ Your loss is recorded, but settlement needs staff review.', 0xE74C3C, '⚠️ TALPAK — SETTLEMENT PENDING')],
+                        components: [buildChoiceButtons(game, true)],
+                    }).catch(() => {});
+                    collector.stop('settlement_pending');
+                    return;
+                }
                 await message.edit({
                     embeds: [buildTalpakEmbed(
                         game,
@@ -146,7 +165,12 @@ export default {
         collector.on('end', async (_collected, reason) => {
             if (reason === 'round_finished' || game.finished) return;
             game.finished = true;
-            await addMoney(client, interaction.guildId, game.userId, bet, 'wallet');
+            try {
+                await settleEconomyWager(client, interaction.guildId, game.userId, game.id, bet);
+            } catch (error) {
+                await message.edit({ embeds: [buildTalpakEmbed(game, '⚠️ Your refund is pending staff review. Please do not start another round yet.', 0xE74C3C, '⚠️ TALPAK — REFUND PENDING')], components: [buildChoiceButtons(game, true)] }).catch(() => {});
+                return;
+            }
             await message.edit({
                 embeds: [buildTalpakEmbed(game, '⏰ No pick was made in time. Your bet has been refunded.', 0x808080)],
                 components: [buildChoiceButtons(game, true)],

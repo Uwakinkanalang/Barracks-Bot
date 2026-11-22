@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { successEmbed, warningEmbed } from '../../utils/embeds.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { withEconomyTransaction } from '../../utils/economy.js';
 import { botConfig } from '../../config/bot.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -22,46 +22,31 @@ export default {
             const userId = interaction.user.id;
             const guildId = interaction.guildId;
 
-            let userData = await getEconomyData(client, guildId, userId);
-            
-            if (!userData) {
-                throw createError(
-                    "Failed to load economy data",
-                    ErrorTypes.DATABASE,
-                    "Failed to load your economy data. Please try again later.",
-                    { userId, guildId }
-                );
-            }
-
-            const lastBeg = userData.lastBeg || 0;
-            const remainingTime = lastBeg + COOLDOWN - Date.now();
-
-            if (remainingTime > 0) {
-                const minutes = Math.floor(remainingTime / 60000);
-                const seconds = Math.floor((remainingTime % 60000) / 1000);
-
-                let timeMessage =
-                    minutes > 0 ? `${minutes} minute(s)` : `${seconds} second(s)`;
-
-                throw createError(
-                    "Beg cooldown active",
-                    ErrorTypes.RATE_LIMIT,
-                    `You are tired from begging! Try again in **${timeMessage}**.`,
-                    { remainingTime, minutes, seconds, cooldownType: 'beg' }
-                );
-            }
-
+            const now = Date.now();
             const success = Math.random() < SUCCESS_CHANCE;
+            const amountWon = success
+                ? Math.floor(Math.random() * (MAX_WIN - MIN_WIN + 1)) + MIN_WIN
+                : 0;
+
+            await withEconomyTransaction(client, guildId, userId, async (accounts) => {
+                const userData = accounts[userId];
+                const lastBeg = Number(userData.lastBeg) || 0;
+                const remainingTime = lastBeg + COOLDOWN - now;
+                if (remainingTime > 0) {
+                    const minutes = Math.floor(remainingTime / 60000);
+                    const seconds = Math.floor((remainingTime % 60000) / 1000);
+                    const timeMessage = minutes > 0 ? `${minutes} minute(s)` : `${seconds} second(s)`;
+                    throw createError("Beg cooldown active", ErrorTypes.RATE_LIMIT,
+                        `You are tired from begging! Try again in **${timeMessage}**.`,
+                        { remainingTime, minutes, seconds, cooldownType: 'beg' });
+                }
+                if (success) userData.wallet = (Number(userData.wallet) || 0) + amountWon;
+                userData.lastBeg = now;
+                return true;
+            });
 
             let replyEmbed;
-            let newCash = userData.wallet;
-
             if (success) {
-                const amountWon =
-                    Math.floor(Math.random() * (MAX_WIN - MIN_WIN + 1)) + MIN_WIN;
-
-                newCash += amountWon;
-
                 const successMessages = [
                     `A kind stranger drops **₱${amountWon.toLocaleString()}** into your cup.`,
                     `You spotted an unattended wallet! You grab **₱${amountWon.toLocaleString()}** and run.`,
@@ -88,11 +73,6 @@ export default {
                     failMessages[Math.floor(Math.random() * failMessages.length)]
                 );
             }
-
-            userData.wallet = newCash;
-userData.lastBeg = Date.now();
-
-            await setEconomyData(client, guildId, userId, userData);
 
             await InteractionHelper.safeEditReply(interaction, { embeds: [replyEmbed] });
     }, { command: 'beg' })

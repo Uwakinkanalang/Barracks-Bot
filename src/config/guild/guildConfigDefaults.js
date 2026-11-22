@@ -14,4 +14,6 @@ export const GUILD_CONFIG_DEFAULTS = {
     disabledCategories: {},
     rolePanelRoles: [],
     rolePanelStaffRoles: [],
+    marriedRoleId: null,
+    marriageAnnouncementChannelId: null,
 };

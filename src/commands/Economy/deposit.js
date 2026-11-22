@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { successEmbed, buildUserErrorEmbed } from '../../utils/embeds.js';
-import { getEconomyData, setEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
+import { getEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
+import EconomyService from '../../services/economyService.js';
 import { BotConfig } from '../../config/bot.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -134,10 +135,8 @@ export default {
                 );
             }
 
-            userData.wallet -= depositAmount;
-            userData.bank += depositAmount;
-
-            await setEconomyData(client, guildId, userId, userData);
+            const updatedData = await EconomyService.depositToBank(client, guildId, userId, depositAmount);
+            const updatedMaxBank = getMaxBankCapacity(updatedData);
 
             const embed = successEmbed(
                 'Deposit Successful',
@@ -146,12 +145,12 @@ export default {
                 .addFields(
                     {
                         name: "New Cash Balance",
-                        value: `₱${userData.wallet.toLocaleString()}`,
+                        value: `₱${updatedData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
                         name: "New Bank Balance",
-                        value: `₱${userData.bank.toLocaleString()} / ₱${maxBank.toLocaleString()}`,
+                        value: `₱${updatedData.bank.toLocaleString()} / ₱${updatedMaxBank.toLocaleString()}`,
                         inline: true,
                     },
                 );

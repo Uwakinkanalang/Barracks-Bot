@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { withEconomyTransaction } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -41,57 +41,49 @@ export default {
             const guildId = interaction.guildId;
             const now = Date.now();
 
-            const userData = await getEconomyData(client, guildId, userId);
-            const lastCrime = userData.cooldowns?.crime || 0;
-            const isJailed = userData.jailedUntil && userData.jailedUntil > now;
-
-            if (isJailed) {
-                const timeLeft = Math.ceil((userData.jailedUntil - now) / (1000 * 60));
-                throw createError(
-                    "User is in jail",
-                    ErrorTypes.RATE_LIMIT,
-                    `You're in jail for ${timeLeft} more minutes!`,
-                    { jailTimeRemaining: userData.jailedUntil - now }
-                );
-            }
-
-            if (now < lastCrime + CRIME_COOLDOWN) {
-                const timeLeft = Math.ceil((lastCrime + CRIME_COOLDOWN - now) / (1000 * 60));
-                throw createError(
-                    "Crime cooldown active",
-                    ErrorTypes.RATE_LIMIT,
-                    `You need to wait ${timeLeft} more minutes before committing another crime.`,
-                    { remaining: lastCrime + CRIME_COOLDOWN - now, cooldownType: 'crime' }
-                );
-            }
-
             const crimeType = interaction.options.getString("type").toLowerCase();
-            const crime = CRIME_TYPES.find(
-                c => c.name.toLowerCase().replace(/\s+/g, '-') === crimeType
-            );
-
+            const crime = CRIME_TYPES.find(c => c.name.toLowerCase().replace(/\s+/g, '-') === crimeType);
             if (!crime) {
-                throw createError(
-                    "Invalid crime type",
-                    ErrorTypes.VALIDATION,
-                    "Please select a valid crime type.",
-                    { crimeType }
-                );
+                throw createError("Invalid crime type", ErrorTypes.VALIDATION, "Please select a valid crime type.", { crimeType });
             }
-
             const isSuccess = Math.random() > crime.risk;
             const amountEarned = isSuccess
                 ? Math.floor(Math.random() * (crime.max - crime.min + 1)) + crime.min
                 : 0;
+            const potentialHaul = Math.floor((crime.min + crime.max) / 2);
 
-            userData.cooldowns = userData.cooldowns || {};
-            userData.cooldowns.crime = now;
+            const crimeResult = await withEconomyTransaction(client, guildId, userId, async (accounts) => {
+                const userData = accounts[userId];
+                const lastCrime = Number(userData.cooldowns?.crime) || 0;
+                const isJailed = Number(userData.jailedUntil) > now;
+                if (isJailed) {
+                    const remaining = Number(userData.jailedUntil) - now;
+                    throw createError("User is in jail", ErrorTypes.RATE_LIMIT,
+                        `You're in jail for ${Math.ceil(remaining / 60000)} more minutes!`,
+                        { jailTimeRemaining: remaining });
+                }
+                if (now < lastCrime + CRIME_COOLDOWN) {
+                    const remaining = lastCrime + CRIME_COOLDOWN - now;
+                    throw createError("Crime cooldown active", ErrorTypes.RATE_LIMIT,
+                        `You need to wait ${Math.ceil(remaining / 60000)} more minutes before committing another crime.`,
+                        { remaining, cooldownType: 'crime' });
+                }
+                userData.cooldowns ||= {};
+                userData.cooldowns.crime = now;
+                let fine = 0;
+                if (isSuccess) {
+                    userData.wallet = (Number(userData.wallet) || 0) + amountEarned;
+                } else {
+                    fine = Math.min(Math.floor(potentialHaul * FINE_RATE), Number(userData.wallet) || 0);
+                    userData.wallet = Math.max(0, (Number(userData.wallet) || 0) - fine);
+                    userData.jailedUntil = now + JAIL_TIME;
+                }
+                return { userData: structuredClone(userData), fine };
+            });
+            const { fine } = crimeResult;
+            const userData = crimeResult.userData;
 
             if (isSuccess) {
-                userData.wallet = (userData.wallet || 0) + amountEarned;
-                
-                await setEconomyData(client, guildId, userId, userData);
-                
                 const embed = successEmbed(
                     "🕵️ Crime Successful!",
                     `You successfully committed ${crime.name} and earned **${amountEarned}** coins!`
@@ -99,14 +91,6 @@ export default {
                 
                 await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
             } else {
-                // Fine is based on the potential haul of the attempted crime
-                const potentialHaul = Math.floor((crime.min + crime.max) / 2);
-                const fine = Math.min(Math.floor(potentialHaul * FINE_RATE), userData.wallet || 0);
-                userData.wallet = Math.max(0, (userData.wallet || 0) - fine);
-                userData.jailedUntil = now + JAIL_TIME;
-                
-                await setEconomyData(client, guildId, userId, userData);
-                
                 const embed = warningEmbed(
                     "🚔 Crime Failed!",
                     `You were caught while attempting ${crime.name} and have been sent to jail! ` +

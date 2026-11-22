@@ -23,7 +23,7 @@ export const LoggingConfigSchema = z
     enabled: z.boolean().default(false),
     channels: LoggingChannelsSchema.optional(),
     ignore: LogIgnoreSchema.optional(),
-    enabledEvents: z.record(z.boolean()).default({}),
+    enabledEvents: z.record(z.string(), z.boolean()).default({}),
     // legacy flat fields — accepted on parse, stripped on normalize
     channelId: z.string().nullable().optional(),
   })
@@ -70,9 +70,11 @@ export const GuildConfigSchema = z
     reportChannelId: z.string().nullable().optional(),
     birthdayChannelId: z.string().nullable().optional(),
     premiumRoleId: z.string().nullable().optional(),
+    marriedRoleId: z.string().nullable().optional(),
+    marriageAnnouncementChannelId: z.string().nullable().optional(),
     logIgnore: LogIgnoreSchema.optional(),
-    disabledCommands: z.record(z.boolean()).optional(),
-    disabledCategories: z.record(z.boolean()).optional(),
+    disabledCommands: z.record(z.string(), z.boolean()).optional(),
+    disabledCategories: z.record(z.string(), z.boolean()).optional(),
     logging: LoggingConfigSchema.optional(),
     ticketLogging: TicketLoggingSchema.optional(),
     enableLogging: z.boolean().optional(),
@@ -96,8 +98,8 @@ export const EconomyDataSchema = z
     lastWithdraw: z.number().int().nonnegative().default(0),
     xp: z.number().int().nonnegative().default(0),
     level: z.number().int().nonnegative().default(1),
-    inventory: z.record(z.any()).default({}),
-    cooldowns: z.record(z.number().int().nonnegative()).default({})
+    inventory: z.record(z.string(), z.any()).default({}),
+    cooldowns: z.record(z.string(), z.number().int().nonnegative()).default({})
   })
   .passthrough();
 

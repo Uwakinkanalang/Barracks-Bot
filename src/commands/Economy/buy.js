@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { shopItems } from '../../config/shop/items.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { withEconomyTransaction, addMoney } from '../../utils/economy.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -61,90 +61,68 @@ export default {
             const guildConfig = await getGuildConfig(client, guildId);
             const PREMIUM_ROLE_ID = guildConfig.premiumRoleId;
 
-            const userData = await getEconomyData(client, guildId, userId);
-
-            if (userData.wallet < totalCost) {
-                throw createError(
-                    "Insufficient funds",
-                    ErrorTypes.VALIDATION,
-                    `You need **₱${totalCost.toLocaleString()}** to purchase ${quantity}x **${item.name}**, but you only have **₱${userData.wallet.toLocaleString()}** in cash.`,
-                    { required: totalCost, current: userData.wallet, itemId, quantity }
-                );
-            }
-
+            let role = null;
             if (item.type === "role" && itemId === "premium_role") {
                 if (!PREMIUM_ROLE_ID) {
-                    throw createError(
-                        "Premium role not configured",
-                        ErrorTypes.CONFIGURATION,
-                        "The **Premium Shop Role** has not been configured by a server administrator yet.",
-                        { itemId }
-                    );
+                    throw createError("Premium role not configured", ErrorTypes.CONFIGURATION,
+                        "The **Premium Shop Role** has not been configured by a server administrator yet.", { itemId });
                 }
                 if (interaction.member.roles.cache.has(PREMIUM_ROLE_ID)) {
-                    throw createError(
-                        "Role already owned",
-                        ErrorTypes.VALIDATION,
-                        `You already have the **${item.name}** role.`,
-                        { itemId, roleId: PREMIUM_ROLE_ID }
-                    );
+                    throw createError("Role already owned", ErrorTypes.VALIDATION,
+                        `You already have the **${item.name}** role.`, { itemId, roleId: PREMIUM_ROLE_ID });
                 }
                 if (quantity > 1) {
-                    throw createError(
-                        "Invalid quantity for role",
-                        ErrorTypes.VALIDATION,
-                        `You can only purchase the **${item.name}** role once.`,
-                        { itemId, quantity }
-                    );
+                    throw createError("Invalid quantity for role", ErrorTypes.VALIDATION,
+                        `You can only purchase the **${item.name}** role once.`, { itemId, quantity });
+                }
+                role = interaction.guild.roles.cache.get(PREMIUM_ROLE_ID);
+                if (!role) {
+                    throw createError("Role not found", ErrorTypes.CONFIGURATION,
+                        "The configured premium role no longer exists in this guild.", { roleId: PREMIUM_ROLE_ID });
                 }
             }
 
-            userData.wallet -= totalCost;
+            const userData = await withEconomyTransaction(client, guildId, userId, async (accounts) => {
+                const account = accounts[userId];
+                const currentWallet = Number(account.wallet) || 0;
+                if (currentWallet < totalCost) {
+                    throw createError("Insufficient funds", ErrorTypes.VALIDATION,
+                        `You need **₱${totalCost.toLocaleString()}** to purchase ${quantity}x **${item.name}**, but you only have **₱${currentWallet.toLocaleString()}** in cash.`,
+                        { required: totalCost, current: currentWallet, itemId, quantity });
+                }
+                account.wallet = currentWallet - totalCost;
+                if (item.type === "upgrade") {
+                    account.upgrades ||= {};
+                    account.upgrades[itemId] = true;
+                } else if (item.type === "consumable" || item.type === "tool") {
+                    account.inventory ||= {};
+                    account.inventory[itemId] = (Number(account.inventory[itemId]) || 0) + quantity;
+                }
+                return structuredClone(account);
+            });
 
             let successDescription = `You successfully purchased ${quantity}x **${item.name}** for **₱${totalCost.toLocaleString()}**!`;
-
             if (item.type === "role" && itemId === "premium_role") {
-                const member = interaction.member;
-
-                const role = interaction.guild.roles.cache.get(PREMIUM_ROLE_ID);
-
-                if (!role) {
-                    throw createError(
-                        "Role not found",
-                        ErrorTypes.CONFIGURATION,
-                        "The configured premium role no longer exists in this guild.",
-                        { roleId: PREMIUM_ROLE_ID }
-                    );
-                }
-
                 try {
-                    await member.roles.add(
-                        role,
-                        `Purchased role: ${item.name}`,
-                    );
+                    await interaction.member.roles.add(role, `Purchased role: ${item.name}`);
                     successDescription += `\n\n**👑 The role ${role.toString()} has been granted to you!**`;
                 } catch (roleError) {
-                    userData.wallet += totalCost;
-                    await setEconomyData(client, guildId, userId, userData);
-                    throw createError(
-                        "Role assignment failed",
-                        ErrorTypes.DISCORD_API,
-                        "Successfully deducted money, but failed to grant the role. Your cash has been refunded.",
-                        { roleId: PREMIUM_ROLE_ID, originalError: roleError.message }
-                    );
+                    try {
+                        await addMoney(client, guildId, userId, totalCost);
+                    } catch (refundError) {
+                        throw createError("Role assignment and refund failed", ErrorTypes.DATABASE,
+                            "The role could not be granted and the automatic refund failed. Please contact staff with your purchase details.",
+                            { roleId: PREMIUM_ROLE_ID, originalError: roleError.message, refundError: refundError.message });
+                    }
+                    throw createError("Role assignment failed", ErrorTypes.DISCORD_API,
+                        "The role could not be granted. Your cash has been refunded.",
+                        { roleId: PREMIUM_ROLE_ID, originalError: roleError.message });
                 }
             } else if (item.type === "upgrade") {
-                userData.upgrades[itemId] = true;
                 successDescription += `\n\n**✨ Your upgrade is now active!**`;
-            } else if (item.type === "consumable" || item.type === "tool") {
-                userData.inventory[itemId] =
-                    (userData.inventory[itemId] || 0) + quantity;
-                if (item.type === "tool") {
-                    successDescription += `\n\n**🛠️ ${item.name} added to your inventory!**`;
-                }
+            } else if (item.type === "tool") {
+                successDescription += `\n\n**🛠️ ${item.name} added to your inventory!**`;
             }
-
-            await setEconomyData(client, guildId, userId, userData);
 
             const embed = successEmbed(
                 "💰 Purchase Successful",

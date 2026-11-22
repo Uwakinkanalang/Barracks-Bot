@@ -1,0 +1,95 @@
+# Barracks Social Systems — Live Guild Test Plan
+
+This checklist is for a private staging Discord guild before PR #237 is merged or deployed to the production Barracks server.
+
+## Safety setup
+
+- [ ] Use a private test guild and test accounts if performing Discord smoke tests. A separate Railway staging environment is optional; never test fees or rewards with production member wallets.
+- [ ] Back up the PostgreSQL database before testing.
+- [ ] Confirm the bot is connected to PostgreSQL and not degraded in-memory mode.
+- [ ] Configure the exact shared role name `💍B-Married` and the anniversary announcement channel in the dashboard.
+- [ ] Place the bot's highest role above `💍B-Married`; grant Manage Roles and the required channel send/embed permissions.
+- [ ] Keep proposal and divorce fees/rewards visible to testers before they interact.
+
+## Friendship Center
+
+- [ ] Post the Friendship Center panel using an account with Manage Server.
+- [ ] Send a friend request; verify only the selected recipient can accept or decline.
+- [ ] Verify the sender can cancel their own pending request.
+- [ ] Verify duplicate requests and self-requests are rejected.
+- [ ] Remove an accepted friend, then re-add them; verify points and original friendship date are restored.
+- [ ] Block a member; verify requests and FP awards between the pair are prevented. Unblock and verify the documented behavior resumes.
+- [ ] Verify chat FP requires meaningful back-and-forth activity and respects the per-pair daily cap.
+- [ ] Verify voice FP only accrues while both non-bot members are actively present and not muted/deafened.
+- [ ] Claim the +5 FP daily pair bonus; verify a second claim on the same Manila calendar day is rejected.
+- [ ] Verify leaderboard and profile views only include active relationships where appropriate.
+- [ ] With two bot processes connected to the same PostgreSQL database, submit simultaneous friend requests for the same pair; verify only one pending request is stored.
+- [ ] With two bot processes, accept/remove/block the same friendship and award FP concurrently; verify no points, request, or block updates are lost and the 30-FP daily pair cap is never exceeded.
+
+## Soulmates
+
+- [ ] Verify members below 800 pair FP cannot send a Soulmate request.
+- [ ] Verify a request requires recipient acceptance and only one active Soulmate per member is possible.
+- [ ] Verify outgoing requests can be cancelled and incoming requests can be accepted/declined only by the recipient.
+- [ ] End a Soulmate relationship; verify history remains and the seven-day cooldown is enforced.
+
+## Marriage and economy
+
+- [ ] Verify a proposal is rejected unless both members have at least 1,000 pair FP and an active Soulmate relationship.
+- [ ] Verify the proposer is charged exactly 100,000 bCash once; acceptance is free.
+- [ ] Verify only the recipient can accept/decline and only the proposer can cancel.
+- [ ] Verify declined/expired proposals are not refunded and the re-proposal cooldown is enforced.
+- [ ] Accept a proposal; verify one active marriage record and `💍B-Married` on both spouses.
+- [ ] Verify each spouse receives their own +5,000 bCash through the existing daily claim, with no separate claim button.
+- [ ] Open My Marriage, Relationship History, and Longest Marriages; verify names, dates, duration, couple FP, and reward totals.
+- [ ] Initiate divorce and cancel the confirmation; verify no fee is charged and the marriage remains active.
+- [ ] Confirm divorce; verify only the initiator pays 100,000 bCash, both lose the married role, both receive the seven-day cooldown, and history remains.
+- [ ] Verify insufficient wallet funds prevent divorce without changing the marriage.
+
+## Economy wallet transaction checks
+
+- [ ] Run two simultaneous `/pay` transfers from the same sender; confirm the wallet never goes negative and both account balances reconcile.
+- [ ] Run a marriage proposal fee deduction at the same time as a daily claim; confirm neither wallet update overwrites the other.
+- [ ] Run simultaneous deposit and withdrawal attempts; confirm wallet + bank totals remain consistent and bank capacity is never exceeded.
+- [ ] Run simultaneous work claims; confirm only one claim succeeds unless an extra-work consumable is legitimately consumed.
+- [ ] Run a robbery while the victim is making another wallet transaction; confirm the final balances reflect both committed operations without lost updates.
+- [ ] Buy a shop item while another wallet transaction is running; confirm the item/inventory and wallet debit remain consistent.
+- [ ] Run concurrent coin flip, gamble, and slot settlements against the same wallet; verify no bet is charged twice and rewards/losses match each committed result.
+- [ ] Run concurrent Blackjack, Mines, Roulette, Higher-Lower, Talpak, and two-player RPS wagers; verify each wager is reserved once and every win, loss, tie, timeout, and cancelled round settles exactly once.
+- [ ] Restart the bot during an active game and inspect pending wager receipts; verify no automatic duplicate payout/refund occurs.
+- [ ] Open `/wagerrecovery` with a Manage Server account; verify pending wagers are listed only for the current guild and unavailable/degraded storage disables recovery.
+- [ ] Select a pending wager and test both staff actions using a disposable test account: refund the reserved stake, or settle as loss with zero payout. Require a reason for every action.
+- [ ] Verify a second recovery attempt is rejected, a late game settlement cannot pay a recovered wager, and the Recovery Audit records player, staff actor, amount, action, reason, and time.
+- [ ] Verify a member without Manage Server cannot open or use the recovery panel.
+- [ ] Use fishing, mining, begging, and crime commands simultaneously with other wallet activity; verify cooldowns, consumables, and rewards are committed together.
+- [ ] In PostgreSQL-unavailable memory fallback mode, repeat same-process wallet actions and verify the in-process account locks serialize them.
+
+## Database transaction and concurrency checks
+
+- [ ] Confirm the bot reports PostgreSQL as available; marriage fees and anniversary processing must refuse to run without atomic transaction support.
+- [ ] In staging with two bot processes connected to the same database, send simultaneous proposals from the same proposer; verify one pending proposal and one 100,000 bCash debit only.
+- [ ] Accept the same proposal from two processes at nearly the same time; verify one marriage record and one married-role assignment per spouse.
+- [ ] Initiate divorce from two processes at nearly the same time; verify one divorce fee and one divorce history record.
+- [ ] Run anniversary processing from two processes simultaneously; verify each spouse receives exactly one 1,000,000 bCash reward per anniversary.
+- [ ] Force a PostgreSQL error before transaction commit; verify both wallet and marriage records roll back together.
+- [ ] Verify normal economy activity (daily, work, deposit/withdraw, shop) does not overwrite a marriage fee or anniversary wallet update during concurrent use.
+
+## Anniversary and recovery
+
+- [ ] In staging only, create a test marriage with a wedding timestamp at least one year in the past.
+- [ ] Run the anniversary processor; verify each spouse receives exactly 1,000,000 bCash and the configured channel receives one announcement.
+- [ ] Run the processor again; verify no duplicate payment or announcement.
+- [ ] Simulate one spouse wallet write failing; rerun after recovery and verify only the unpaid spouse is credited.
+- [ ] Temporarily remove the bot's Manage Roles permission; verify role reconciliation reports/retries the mismatch once permissions are restored.
+- [ ] Restart the bot and verify relationship history, pending requests, cooldowns, and anniversary receipts persist.
+
+## Release gate
+
+- [ ] Automated CI, syntax, service, migration, and Docker checks pass on the final PR head.
+- [ ] Review the optional private test-guild smoke checks above before enabling relationship/economy features for members.
+- [ ] Actual multi-process PostgreSQL concurrency and live Discord role/notification behavior remain unverified without runtime testing; do not describe them as passed.
+- [ ] No unresolved critical/high-severity defects remain, and dependency audit findings are reviewed.
+- [ ] Production backup and rollback plan are ready.
+- [ ] A maintainer explicitly approves merge and production deployment.
+
+**Do not use production accounts or real member balances for simulated anniversary, fee, or failure-injection tests.**
