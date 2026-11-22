@@ -911,6 +911,21 @@ export function registerDashboardRoutes(app, bot) {
     entries.sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
     await setInDb(key, entries);
   };
+  const applyClanAutoNick = async (member, tag, format) => {
+    const stateKey = 'guild:' + member.guild.id + ':autonick_member:' + member.id;
+    const previous = await getFromDb(stateKey, null);
+    const original = typeof previous?.originalNickname === 'string'
+      ? previous.originalNickname
+      : (member.nickname ?? member.user.globalName ?? member.user.username);
+    await setInDb(stateKey, { originalNickname: original, savedAt: previous?.savedAt || Date.now() });
+    const nickname = String(format)
+      .replace(/\\bTAG\\b/gi, String(tag || ''))
+      .replace(/\\{username\\}/gi, original)
+      .replace(/\\s+/g, ' ')
+      .trim()
+      .slice(0, 32);
+    if (member.nickname !== nickname) await member.setNickname(nickname, 'Apply selected clan AutoNick format');
+  };
   const loadDashboardClans = async guildId => {
     const [currentStored, legacyStored] = await Promise.all([
       getFromDb(clanStorageKey(guildId), []),
@@ -1148,7 +1163,7 @@ export function registerDashboardRoutes(app, bot) {
     const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
-    if (!autoNickFormat.includes('{username}') || autoNickFormat.length > 32) return res.status(400).json({ error: 'Clan AutoNick Format must include {username} and be 32 characters or fewer. Use TAG for the clan tag.' });
+    if (!['TAG {username}', '★ {username}', '⚔ {username}'].includes(autoNickFormat)) return res.status(400).json({ error: 'Choose TAG {username}, ★ {username}, or ⚔ {username} as the Clan AutoNick format.' });
     if (!/^\d{17,20}$/.test(leaderId)) return res.status(400).json({ error: 'Enter a valid Discord user ID for the clan leader.' });
     if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
     const me = guild.members.me;
@@ -1188,6 +1203,8 @@ export function registerDashboardRoutes(app, bot) {
       voiceChannel = await guild.channels.create({ name: (tag + '-' + name + '-vc').toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 100), type: 2, parent: category.id, permissionOverwrites: overwrites, reason: 'Private clan voice channel created from Barracks dashboard' });
       await leader.roles.add(role, 'Assigned as clan leader by Barracks dashboard');
       if (viceLeader) await viceLeader.roles.add(role, 'Assigned as vice clan leader by Barracks dashboard');
+      await applyClanAutoNick(leader, tag, autoNickFormat);
+      if (viceLeader) await applyClanAutoNick(viceLeader, tag, autoNickFormat);
       const record = { id: role.id, name, tag, roleHex, autoNickFormat, description, leaderId: leader.id, leaderName: leader.displayName, viceLeaderId: viceLeader?.id || '', viceLeaderName: viceLeader?.displayName || '', roleId: role.id, categoryId: category.id, textChannelId: textChannel.id, voiceChannelId: voiceChannel.id, status: 'approved', memberIds: [], joinRequests: [], createdAt: new Date().toISOString(), source: 'dashboard' };
       await setInDb(clanStorageKey(guild.id), [...clans, record]);
       return res.json({ ok: true, clan: record });
