@@ -738,7 +738,7 @@ export default {
                 return;
               }
               const nextLimit = Math.min(200, currentLimit + 10);
-              const price = currentLimit === 10 ? 1000000 : 500000;
+              const price = 1000000;
               const economy = await getEconomyData(interaction.client, guildId, interaction.user.id);
               const wallet = Number(economy?.wallet) || 0;
               if (wallet < price) {
