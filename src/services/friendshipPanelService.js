@@ -97,7 +97,7 @@ export async function handleFriendshipInteraction(interaction, client) {
   if (id.startsWith('friendship:accept:') || id.startsWith('friendship:decline:')) {
     const [action, requestId] = id.startsWith('friendship:accept:') ? ['accepted', id.slice('friendship:accept:'.length)] : ['declined', id.slice('friendship:decline:'.length)];
     const result = await resolveFriendRequest(client, guildId, requestId, userId, action);
-    const messages = { accepted: '🫂 Friendship accepted! Your previous friendship progress has been restored if this is a re-connection.', declined: 'Friend request declined.', not_pending: 'This request is no longer pending.', not_authorized: 'Only the recipient can respond.', expired: 'This request has expired.' };
+    const messages = { accepted: '🫂 Friendship accepted! Your previous friendship progress has been restored if this is a re-connection.', declined: 'Friend request declined.', not_pending: 'This request is no longer pending.', not_authorized: 'Only the recipient can respond.', expired: 'This request has expired.', blocked: 'This request cannot be accepted because one of you has blocked the other.' };
     if (result.status === 'accepted' || result.status === 'declined') return interaction.update({ content: messages[result.status], components: [] });
     return interaction.reply({ content: messages[result.status] || 'Could not process this request.', ...ephemeral });
   }
