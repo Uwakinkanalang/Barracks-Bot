@@ -12,7 +12,7 @@ import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { runLottoDraws } from './services/barracksLottoService.js';
 import { checkBirthdays } from './services/birthdayService.js';
-import { processMarriageAnniversaries } from './services/marriageService.js';
+import { processMarriageAnniversaries, reconcileMarriageRoles } from './services/marriageService.js';
 import { processCalendarReminders, refreshCalendars } from './services/calendarService.js';
 import { checkDonationExpirations } from './services/donationExpiryService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/loaders/commandLoader.js';
@@ -307,6 +307,16 @@ class TitanBot extends Client {
     cron.schedule('0 0 * * *', runSafeTask('birthday_role_sync', () => checkBirthdays(this)), {
       timezone: 'Asia/Manila',
     });
+
+    cron.schedule('*/30 * * * *', runSafeTask('marriage_role_reconciliation', async () => {
+      for (const [guildId] of this.guilds.cache) {
+        try {
+          await reconcileMarriageRoles(this, guildId);
+        } catch (error) {
+          logger.error(`Marriage role reconciliation failed for guild ${guildId}`, error);
+        }
+      }
+    }), { timezone: 'Asia/Manila' });
 
     cron.schedule('5 0 * * *', runSafeTask('marriage_anniversary_rewards', async () => {
       for (const [guildId, guild] of this.guilds.cache) {
