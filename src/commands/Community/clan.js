@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { getNicknamePrefix } from '../Economy/nickname.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
-import { getClanForMember, canManageClanBattle, getClanBattleState, saveClanBattleState } from '../../services/clanBattleService.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -70,23 +69,6 @@ export default {
       subcommand.setName('transactions').setDescription('View your clan bank transaction history')
     )
     .addSubcommand(subcommand =>
-      subcommand.setName('battle-challenge')
-        .setDescription('Challenge another approved clan to a battle')
-        .addStringOption(option => option.setName('clan').setDescription('Exact name of the opposing clan').setRequired(true))
-    )
-    .addSubcommand(subcommand =>
-      subcommand.setName('battle-accept').setDescription('Accept a pending clan battle challenge')
-    )
-    .addSubcommand(subcommand =>
-      subcommand.setName('battle-status').setDescription('View the active or pending clan battle')
-    )
-    .addSubcommand(subcommand =>
-      subcommand.setName('battle-end').setDescription('End your clan battle and record the result')
-    )
-    .addSubcommand(subcommand =>
-      subcommand.setName('battle-rankings').setDescription('View the clan battle rankings')
-    )
-    .addSubcommand(subcommand =>
       subcommand
         .setName('leave')
         .setDescription('Leave the clan you currently belong to')
@@ -134,92 +116,6 @@ export default {
       );
       await panelChannel.send({ embeds: [panelEmbed], components: [panelRow] });
       return interaction.reply({ content: `✅ Clan HQ panel posted in <#${panelChannelId}>.`, flags: MessageFlags.Ephemeral });
-    }
-
-    if (subcommand.startsWith('battle-')) {
-      const clansKey = `guild:${interaction.guildId}:clans`;
-      const clans = await interaction.client.db.get(clansKey, []);
-      const clanList = Array.isArray(clans) ? clans.filter(entry => entry.status === 'approved') : [];
-      const myClan = getClanForMember(clanList, interaction.user.id);
-      const state = await getClanBattleState(interaction.client, interaction.guildId);
-
-      if (subcommand === 'battle-rankings') {
-        const totals = new Map();
-        for (const battle of state.history) {
-          const a = String(battle.clanAId);
-          const b = String(battle.clanBId);
-          const rowA = totals.get(a) || { name: battle.clanAName, points: 0, wins: 0, losses: 0 };
-          const rowB = totals.get(b) || { name: battle.clanBName, points: 0, wins: 0, losses: 0 };
-          rowA.points += Number(battle.clanAScore) || 0;
-          rowB.points += Number(battle.clanBScore) || 0;
-          if (battle.winnerClanId === a) { rowA.wins++; rowB.losses++; }
-          else if (battle.winnerClanId === b) { rowB.wins++; rowA.losses++; }
-          totals.set(a, rowA); totals.set(b, rowB);
-        }
-        const lines = [...totals.values()].sort((a,b) => b.wins-a.wins || b.points-a.points)
-          .slice(0, 10).map((row, i) => `**${i+1}. ${row.name}** — ${row.wins}W / ${row.losses}L • ${row.points} pts`);
-        return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xD4AF37).setTitle('🏆 Barracks Clan Battle Rankings').setDescription(lines.join('\n') || 'No completed clan battles yet.')], flags: MessageFlags.Ephemeral });
-      }
-
-      if (subcommand === 'battle-status') {
-        const battle = state.active;
-        if (!battle) return interaction.reply({ content: 'There is no pending or active clan battle.', flags: MessageFlags.Ephemeral });
-        const statusText = battle.status === 'pending' ? '⏳ Awaiting acceptance' : '⚔️ Battle in progress';
-        return interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865F2).setTitle(statusText)
-          .setDescription(`**${battle.clanAName}** — ${battle.clanAScore || 0} pts\nvs.\n**${battle.clanBName}** — ${battle.clanBScore || 0} pts\n\nGames enabled: ${Object.keys(battle.gamePoints || {}).join(', ') || 'None'}\nStarted: ${battle.startedAt ? new Date(battle.startedAt).toLocaleString() : 'Not started'}`)] , flags: MessageFlags.Ephemeral });
-      }
-
-      if (!myClan || !canManageClanBattle(myClan, interaction.user.id)) {
-        return interaction.reply({ content: 'Only an approved Clan Leader or Vice Clan Leader can manage clan battles.', flags: MessageFlags.Ephemeral });
-      }
-
-      if (subcommand === 'battle-challenge') {
-        if (state.active) return interaction.reply({ content: 'A clan battle challenge is already pending or active. Finish it before starting another.', flags: MessageFlags.Ephemeral });
-        const requestedName = interaction.options.getString('clan', true).trim().toLowerCase();
-        const opponentClan = clanList.find(entry => String(entry.name || '').toLowerCase() === requestedName);
-        if (!opponentClan) return interaction.reply({ content: 'I could not find an approved clan with that exact name.', flags: MessageFlags.Ephemeral });
-        if (String(opponentClan.id || opponentClan.roleId || opponentClan.tag || opponentClan.name) === String(myClan.id)) return interaction.reply({ content: 'Your clan cannot challenge itself.', flags: MessageFlags.Ephemeral });
-        state.active = {
-          id: interaction.id, status: 'pending',
-          clanAId: String(myClan.id), clanAName: myClan.name,
-          clanBId: String(opponentClan.id || opponentClan.roleId || opponentClan.tag || opponentClan.name), clanBName: opponentClan.name,
-          clanAScore: 0, clanBScore: 0, startedAt: null,
-          gamePoints: { tictactoe: 10, rps: 10 }, recordedMatches: [], results: [],
-          challengedBy: interaction.user.id, createdAt: Date.now(),
-        };
-        await saveClanBattleState(interaction.client, interaction.guildId, state);
-        return interaction.reply({ content: `⚔️ **Clan Battle Challenge!**\n**${myClan.name}** has challenged **${opponentClan.name}**.\nA Leader or Vice Leader of the challenged clan can accept using `/clan battle-accept`.` });
-      }
-
-      if (subcommand === 'battle-accept') {
-        const battle = state.active;
-        if (!battle || battle.status !== 'pending') return interaction.reply({ content: 'There is no pending clan battle challenge.', flags: MessageFlags.Ephemeral });
-        if (String(myClan.id) !== String(battle.clanBId)) return interaction.reply({ content: 'Only the challenged clan can accept this battle.', flags: MessageFlags.Ephemeral });
-        battle.status = 'active';
-        battle.startedAt = Date.now();
-        await saveClanBattleState(interaction.client, interaction.guildId, state);
-        return interaction.reply({ content: `⚔️ **Battle accepted!** ${battle.clanAName} vs. ${battle.clanBName}. Members can now compete in supported games. Tic-Tac-Toe wins are worth **10 points**.` });
-      }
-
-      if (subcommand === 'battle-end') {
-        const battle = state.active;
-        if (!battle) return interaction.reply({ content: 'There is no clan battle to end.', flags: MessageFlags.Ephemeral });
-        if (![String(battle.clanAId), String(battle.clanBId)].includes(String(myClan.id))) return interaction.reply({ content: 'Only a Leader or Vice Leader of either participating clan can end this battle.', flags: MessageFlags.Ephemeral });
-        if (battle.status === 'pending') {
-          state.active = null;
-          await saveClanBattleState(interaction.client, interaction.guildId, state);
-          return interaction.reply({ content: '🗑️ Pending clan battle challenge cancelled. No result was recorded.' });
-        }
-        battle.status = 'completed';
-        battle.endedAt = Date.now();
-        battle.winnerClanId = battle.clanAScore === battle.clanBScore ? null : (battle.clanAScore > battle.clanBScore ? battle.clanAId : battle.clanBId);
-        state.history.push(battle);
-        state.history = state.history.slice(-100);
-        state.active = null;
-        await saveClanBattleState(interaction.client, interaction.guildId, state);
-        const outcome = battle.winnerClanId ? `🏆 **${battle.winnerClanId === battle.clanAId ? battle.clanAName : battle.clanBName} wins!**` : '🤝 The battle ended in a draw.';
-        return interaction.reply({ content: `⚔️ **Clan Battle Results**\n**${battle.clanAName}:** ${battle.clanAScore} points\n**${battle.clanBName}:** ${battle.clanBScore} points\n\n${outcome}\nResults saved to Clan Battle Rankings.` });
-      }
     }
 
     if (subcommand === 'leave') {
