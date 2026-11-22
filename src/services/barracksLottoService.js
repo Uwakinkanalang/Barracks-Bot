@@ -39,7 +39,7 @@ export function buildLottoPanel(state) {
       { name: '💰 Current Jackpot', value: `₱${Number(state.jackpot || 0).toLocaleString()} bCash`, inline: true },
       { name: '🎫 Ticket Cost', value: `₱${LOTTO_PRICE.toLocaleString()} bCash`, inline: true },
       { name: '🎟️ Total Entries', value: String(state.tickets?.length || 0), inline: true },
-      { name: '⏰ Next Draw', value: `**8:00 PM PHT**\n${hours}h ${minutes}m remaining`, inline: true },
+      { name: '⏰ Next Draw', value: `**8:00 PM**\n${hours}h ${minutes}m remaining`, inline: true },
     )
     .setTimestamp();
   if (bannerUrl) embed.setImage(bannerUrl);
