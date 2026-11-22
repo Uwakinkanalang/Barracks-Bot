@@ -73,3 +73,19 @@ test('OAuth implementation requires PKCE, server-side sessions, and live Manager
   assert.match(source, /Only the Barracks server owner can change Manager Roles/);
   assert.match(source, /revoked: true/);
 });
+
+test('all dashboard endpoints are registered behind the shared authorization middleware', async () => {
+  const source = await readFile(new URL('../src/web/dashboard.js', import.meta.url), 'utf8');
+  const middlewareIndex = source.indexOf("app.use('/api/dashboard'");
+  assert.notEqual(middlewareIndex, -1, 'shared dashboard middleware must exist');
+  const routePattern = /app\.(?:get|post|put|patch|delete)\(\s*['"]\/api\/dashboard\//g;
+  const routeIndexes = [...source.matchAll(routePattern)].map(match => match.index);
+  assert.ok(routeIndexes.length > 10, 'expected dashboard API routes to be covered');
+  assert.ok(routeIndexes.every(index => index > middlewareIndex), 'every dashboard API route must be registered after shared authorization middleware');
+});
+
+test('OAuth state cookie uses HttpOnly and SameSite protections', async () => {
+  const source = await readFile(new URL('../src/web/dashboard.js', import.meta.url), 'utf8');
+  assert.match(source, /barracks_oauth_state=.*HttpOnly; SameSite=Lax; Path=\/api\/dashboard\/oauth\/callback; Max-Age=600/);
+  assert.match(source, /process\.env\.NODE_ENV === 'production' \? '; Secure' : ''/);
+});
