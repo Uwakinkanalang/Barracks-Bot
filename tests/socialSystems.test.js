@@ -89,10 +89,9 @@ test('friendship history, point cap, Soulmate eligibility, and block controls', 
 
 test('friendship requests expire automatically after their seven-day window', async () => {
   const client = makeClient();
-  const now = Date.UTC(2026, 2, 1);
   const sent = await sendFriendRequest(client, guildId, memberA, memberB);
   assert.equal(sent.status, 'created');
-  const expired = await expireFriendshipRequests(client, guildId, now + 8 * DAY);
+  const expired = await expireFriendshipRequests(client, guildId, Date.now() + 8 * DAY);
   assert.equal(expired, 1);
   const retry = await sendFriendRequest(client, guildId, memberA, memberB);
   assert.equal(retry.status, 'created');
