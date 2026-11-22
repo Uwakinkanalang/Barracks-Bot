@@ -60,6 +60,7 @@ export async function handleMarriagePanelInteraction(interaction, client) {
       invalid_target: 'You cannot propose to yourself.',
       bot_target: 'Bots cannot receive marriage proposals.',
       payment_failed: 'Payment failed. No proposal was created.',
+      database_unavailable: 'Barracks storage is temporarily unavailable. No bCash was charged; please try again later.',
     };
     if (result.status !== 'created') return interaction.reply({ content: errors[result.status] || 'The proposal could not be created.', flags: MessageFlags.Ephemeral });
     const row = new ActionRowBuilder().addComponents(
@@ -149,7 +150,7 @@ export async function handleMarriagePanelInteraction(interaction, client) {
   if (id === 'marriage:divorce-confirm') {
     const result = await divorceMarriage(client, guildId, userId, { confirmed: true });
     if (result.status !== 'divorced') {
-      const messages = { not_married: 'You are not currently married.', insufficient_funds: 'You need **100,000 bCash** in your wallet.', payment_failed: 'Payment failed. Your marriage remains active.' };
+      const messages = { not_married: 'You are not currently married.', insufficient_funds: 'You need **100,000 bCash** in your wallet.', payment_failed: 'Payment failed. Your marriage remains active.', database_unavailable: 'Barracks storage is temporarily unavailable. No divorce fee was charged; your marriage remains active.' };
       return interaction.update({ content: messages[result.status] || 'Divorce could not be completed.', components: [] });
     }
     await interaction.update({ content: '💔 Divorce finalized. **100,000 bCash** was deducted. Your 7-day remarriage cooldown has started.', components: [] });
