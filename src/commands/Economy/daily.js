@@ -68,7 +68,7 @@ export default {
             const activeMarriage = await getActiveMarriage(client, guildId, userId);
             if (activeMarriage) {
                 earned += 5000;
-                bonusMessage += `\\n💍 **Marriage Bonus:** +₱5,000`;
+                bonusMessage += `\n💍 **Marriage Bonus:** +₱5,000`;
             }
 
             if (
