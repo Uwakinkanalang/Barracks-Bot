@@ -397,7 +397,7 @@ export async function listRecentEconomyWagerRecoveries(client, guildId, limit = 
     const recoveries = [];
     for (const key of keys) {
         const userId = String(key).replace(/^global:economy:/, '');
-        if (!/^\\d{17,20}$/.test(userId)) continue;
+        if (!/^\d{17,20}$/.test(userId)) continue;
         const account = await client.db.get(key, null);
         for (const [gameId, receipt] of Object.entries(account?.economyGameTransactions || {})) {
             const audit = receipt?.recovery;
