@@ -90,6 +90,10 @@ export async function resolveFriendRequest(client, guildId, requestId, recipient
       req.status = 'expired'; req.updatedAt = now; await save(client, guildId, data);
       return { status: 'expired' };
     }
+    if (decision === 'accepted' && (
+      data.blocks[req.senderId]?.includes(req.recipientId) ||
+      data.blocks[req.recipientId]?.includes(req.senderId)
+    )) return { status: 'blocked' };
     req.status = decision; req.updatedAt = now;
     if (decision === 'accepted') {
       const id = pairKey(req.senderId, req.recipientId);
