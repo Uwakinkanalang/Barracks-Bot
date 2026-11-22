@@ -44,6 +44,16 @@ This checklist is for a private staging Discord guild before PR #237 is merged o
 - [ ] Confirm divorce; verify only the initiator pays 100,000 bCash, both lose the married role, both receive the seven-day cooldown, and history remains.
 - [ ] Verify insufficient wallet funds prevent divorce without changing the marriage.
 
+## Database transaction and concurrency checks
+
+- [ ] Confirm the bot reports PostgreSQL as available; marriage fees and anniversary processing must refuse to run without atomic transaction support.
+- [ ] In staging with two bot processes connected to the same database, send simultaneous proposals from the same proposer; verify one pending proposal and one 100,000 bCash debit only.
+- [ ] Accept the same proposal from two processes at nearly the same time; verify one marriage record and one married-role assignment per spouse.
+- [ ] Initiate divorce from two processes at nearly the same time; verify one divorce fee and one divorce history record.
+- [ ] Run anniversary processing from two processes simultaneously; verify each spouse receives exactly one 1,000,000 bCash reward per anniversary.
+- [ ] Force a PostgreSQL error before transaction commit; verify both wallet and marriage records roll back together.
+- [ ] Verify normal economy activity (daily, work, deposit/withdraw, shop) does not overwrite a marriage fee or anniversary wallet update during concurrent use.
+
 ## Anniversary and recovery
 
 - [ ] In staging only, create a test marriage with a wedding timestamp at least one year in the past.
