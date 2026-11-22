@@ -57,15 +57,15 @@ export default {
                 }
 
                 let earned = DAILY_AMOUNT + levelBonus;
-                let bonusMessage = `\\n🎖️ **Level Bonus (Level ${memberLevel}):** +₱${levelBonus.toLocaleString()}`;
+                let bonusMessage = `\n🎖️ **Level Bonus (Level ${memberLevel}):** +₱${levelBonus.toLocaleString()}`;
                 if (activeMarriage) {
                     earned += 5000;
-                    bonusMessage += `\\n💍 **Marriage Bonus:** +₱5,000`;
+                    bonusMessage += `\n💍 **Marriage Bonus:** +₱5,000`;
                 }
                 if (hasPremiumRole) {
                     const bonusAmount = Math.floor(earned * PREMIUM_BONUS_PERCENTAGE);
                     earned += bonusAmount;
-                    bonusMessage += `\\n✨ **Premium Bonus:** +₱${bonusAmount.toLocaleString()}`;
+                    bonusMessage += `\n✨ **Premium Bonus:** +₱${bonusAmount.toLocaleString()}`;
                 }
 
                 userData.wallet = (Number(userData.wallet) || 0) + earned;
