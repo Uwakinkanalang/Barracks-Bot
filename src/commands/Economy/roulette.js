@@ -1,6 +1,6 @@
 import { AttachmentBuilder, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { readFileSync } from 'node:fs';
-import { getEconomyData, removeMoney, addMoney } from '../../utils/economy.js';
+import { getEconomyData, startEconomyWager, settleEconomyWager } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 
 const RED_NUMBERS = new Set([1, 3, 5]);
@@ -55,7 +55,7 @@ export default {
             throw createError('Insufficient bCash', ErrorTypes.VALIDATION, `You only have **₱${wallet.toLocaleString()}** in your cash wallet.`);
         }
 
-        await removeMoney(client, interaction.guildId, interaction.user.id, bet, 'wallet');
+        await startEconomyWager(client, interaction.guildId, interaction.user.id, interaction.id, bet);
 
         const number = Math.floor(Math.random() * 7);
         const resultColor = colorOf(number);
@@ -78,15 +78,18 @@ export default {
             .setFooter({ text: 'Mini Roulette • 0–6' })
             .setImage('attachment://roulette-spin.gif');
 
-        const sentMessage = await interaction.reply({ embeds: [spinning], files: [spinningGif], fetchReply: true });
+        let sentMessage;
+        try {
+            sentMessage = await interaction.reply({ embeds: [spinning], files: [spinningGif], fetchReply: true });
+        } catch (error) {
+            await settleEconomyWager(client, interaction.guildId, interaction.user.id, interaction.id, bet).catch(() => {});
+            throw error;
+        }
         await new Promise(resolve => setTimeout(resolve, 1800));
 
-        if (payout > 0) {
-            await addMoney(client, interaction.guildId, interaction.user.id, payout, 'wallet');
-        }
-
+        const settlement = await settleEconomyWager(client, interaction.guildId, interaction.user.id, interaction.id, payout);
         const { emoji } = formatNumber(number);
-        const newBalance = wallet - bet + payout;
+        const newBalance = settlement.wallet;
         const resultGif = new AttachmentBuilder(rouletteGifBuffer, { name: 'roulette-spin.gif' });
         const resultEmbed = new EmbedBuilder()
             .setColor(won ? 0x2ECC71 : 0xE74C3C)
