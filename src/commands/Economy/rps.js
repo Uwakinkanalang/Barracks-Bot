@@ -284,7 +284,7 @@ export default {
         }
         collector.stop('finished');
         await recordClanBattleGame(
-          interaction.client, interaction.guildId, 'rps', game.challengerId, game.opponentId, result.winnerId
+          interaction.client, interaction.guildId, 'rps', game.challengerId, game.opponentId, result.winnerId, gameId
         ).catch(() => {});
         await message.edit({
           embeds: [resultEmbed],
