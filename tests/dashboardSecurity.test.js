@@ -182,3 +182,17 @@ test('dashboard session pruning is scheduled every six hours with safe task hand
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   assert.match(source, /cron\.schedule\('0 \*\/6 \* \* \*', runSafeTask\('dashboard_session_prune', \(\) => pruneExpiredDashboardSessions\(this\)\)\)/);
 });
+
+
+test('API and OAuth rate limiters keep bounded per-process tracking and prune expired entries', async () => {
+  const appSource = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const dashboardSource = await readFile(new URL('../src/web/dashboard.js', import.meta.url), 'utf8');
+
+  assert.match(appSource, /requestCounts\.size >= 5000/);
+  assert.match(appSource, /timestamps\.filter\(time => time > windowStart\)/);
+  assert.match(appSource, /API is temporarily busy/);
+  assert.match(dashboardSource, /oauthAttempts\.size >= 5000/);
+  assert.match(dashboardSource, /timestamps\.filter\(time => time > now - 15 \* 60 \* 1000\)/);
+  assert.match(dashboardSource, /pendingOAuth\.size >= 5000/);
+  assert.match(dashboardSource, /attempts\.length >= 8/);
+});
