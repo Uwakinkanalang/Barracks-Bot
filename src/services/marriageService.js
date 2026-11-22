@@ -84,6 +84,39 @@ export async function getActiveMarriage(client, guildId, userId) {
 }
 
 
+async function syncMarriageRole(client, guildId, memberIds, shouldHaveRole) {
+  const { getGuildConfig } = await import('./config/guildConfig.js');
+  const config = await getGuildConfig(client, guildId);
+  const roleId = config.marriedRoleId;
+  if (!roleId) return { status: 'not_configured' };
+
+  const guild = client.guilds?.cache?.get(guildId);
+  if (!guild) return { status: 'guild_unavailable' };
+
+  const role = await guild.roles.fetch(roleId).catch(() => null);
+  if (!role) return { status: 'role_not_found' };
+  if (role.name !== '💍B-Married') {
+    return { status: 'wrong_role_name', expectedName: '💍B-Married', actualName: role.name };
+  }
+
+  const results = [];
+  for (const userId of memberIds) {
+    const member = await guild.members.fetch(userId).catch(() => null);
+    if (!member) { results.push({ userId, status: 'member_not_found' }); continue; }
+    try {
+      if (shouldHaveRole && !member.roles.cache.has(roleId)) {
+        await member.roles.add(roleId, 'Barracks marriage accepted');
+      } else if (!shouldHaveRole && member.roles.cache.has(roleId)) {
+        await member.roles.remove(roleId, 'Barracks marriage ended');
+      }
+      results.push({ userId, status: 'synced' });
+    } catch (error) {
+      results.push({ userId, status: 'failed', message: error.message });
+    }
+  }
+  return { status: 'completed', results };
+}
+
 function pairKey(firstId, secondId) {
   return [String(firstId), String(secondId)].sort().join(':');
 }
@@ -169,6 +202,8 @@ export async function createMarriageProposal(client, guildId, proposerId, recipi
         createdAt: now,
       };
       await saveMarriageData(client, guildId, data);
+      const roleSync = await syncMarriageRole(client, guildId, [marriage.member1Id, marriage.member2Id], false);
+      marriage.roleSync = roleSync;
     } catch (error) {
       economy.wallet = Number(economy.wallet) + PROPOSAL_FEE;
       await setEconomyData(client, guildId, proposerId, economy);
@@ -299,7 +334,8 @@ export async function finalizeMarriageProposal(client, guildId, proposalId, reci
       status: 'married',
     });
     await saveMarriageData(client, guildId, data);
-    return { status: 'married', marriage };
+    const roleSync = await syncMarriageRole(client, guildId, [marriage.member1Id, marriage.member2Id], true);
+    return { status: 'married', marriage, roleSync };
   });
 }
 
