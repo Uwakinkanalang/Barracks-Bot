@@ -62,5 +62,5 @@ jobs:
           for file in "${files[@]}"; do
             node --check "$file"
           done
-      - name: Run Friendship, Soulmate, Marriage, and Economy transaction tests
-        run: node --test tests/socialSystems.test.js
+      - name: Run Friendship, Soulmate, Marriage, Economy, and Dashboard security tests
+        run: node --test tests/socialSystems.test.js tests/dashboardSecurity.test.js
