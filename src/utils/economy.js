@@ -357,8 +357,20 @@ export async function settleEconomyWager(client, guildId, userId, gameId, payout
  * Lists unsettled game wagers for authorized staff recovery workflows.
  * The caller is responsible for checking staff permissions before exposing this data.
  */
+function hasDurableWagerStorage(client) {
+    const db = client?.db;
+    return Boolean(
+        db &&
+        typeof db.withKeyValueTransaction === 'function' &&
+        (typeof db.isAvailable !== 'function' || db.isAvailable()) &&
+        !db.isDegraded?.() &&
+        !db.useFallback
+    );
+}
+
 export async function listPendingEconomyWagers(client, guildId, limit = 100) {
     const safeLimit = Math.min(500, Math.max(1, Math.floor(Number(limit) || 100)));
+    if (!hasDurableWagerStorage(client)) return { status: 'storage_unavailable', wagers: [], total: 0 };
     const keys = typeof client?.db?.list === 'function'
         ? await client.db.list('global:economy:')
         : null;
@@ -389,6 +401,7 @@ export async function listPendingEconomyWagers(client, guildId, limit = 100) {
  */
 export async function listRecentEconomyWagerRecoveries(client, guildId, limit = 10) {
     const safeLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 10)));
+    if (!hasDurableWagerStorage(client)) return { status: 'storage_unavailable', recoveries: [], total: 0 };
     const keys = typeof client?.db?.list === 'function'
         ? await client.db.list('global:economy:')
         : null;
@@ -426,6 +439,9 @@ export async function recoverEconomyWager(client, guildId, userId, gameId, optio
     const reason = String(options.reason || '').trim().slice(0, 500);
     if (!actorId || !reason || !['refund', 'settle_loss'].includes(action)) {
         throw new Error('A staff actor, reason, and valid recovery action are required.');
+    }
+    if (!hasDurableWagerStorage(client)) {
+        throw new Error('Durable economy storage is unavailable; wager recovery was not performed.');
     }
 
     return withEconomyTransaction(client, guildId, userId, async (accounts) => {
