@@ -195,9 +195,6 @@ export default {
         const clanBattleResult = await recordClanBattleGame(
           game.client, game.guildId, 'tictactoe', game.playerX, game.playerO, winnerId
         ).catch(() => ({ recorded: false }));
-        if (clanBattleResult.recorded) {
-          logger.info?.(`Clan Battle: ${clanBattleResult.clanName} earned ${clanBattleResult.points} points from Tic Tac Toe.`);
-        }
         return updateBoard(button, `🏆 **<@${winnerId}> wins the match!** ${game.bet > 0 ? `They receive **₱${(game.bet * 2).toLocaleString()}**!` : ''}`, true);
       }
 
