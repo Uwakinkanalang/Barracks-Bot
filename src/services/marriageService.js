@@ -478,33 +478,42 @@ export async function processMarriageAnniversaries(client, guildId, now = Date.n
         const claimKey = `${marriage.id}:${anniversaryNumber}`;
         if (!data.anniversaryClaims[claimKey]) {
           const memberIds = [marriage.member1Id, marriage.member2Id];
-          const snapshots = [];
+          const receipts = [];
           let paymentFailed = false;
 
+          // The wallet record is the idempotency source for each spouse. If the
+          // marriage metadata save fails after a payment, the next run can safely
+          // detect that spouse's receipt and pay only the remaining spouse.
           for (const userId of memberIds) {
             const { getEconomyData, setEconomyData } = await import('../utils/economy.js');
             const economy = await getEconomyData(client, guildId, userId);
             if (!economy) { paymentFailed = true; break; }
-            snapshots.push({ userId, economy: { ...economy }, previousWallet: Number(economy.wallet) || 0 });
+            economy.anniversaryTransactions ||= {};
+            const existingReceipt = economy.anniversaryTransactions[claimKey];
+            if (existingReceipt) {
+              receipts.push({ userId, paidAt: Number(existingReceipt.paidAt) || now });
+              continue;
+            }
+
+            const paidAt = Date.now();
             economy.wallet = (Number(economy.wallet) || 0) + ANNIVERSARY_REWARD;
+            economy.anniversaryTransactions[claimKey] = {
+              type: 'marriage_anniversary',
+              marriageId: marriage.id,
+              anniversaryNumber,
+              amount: ANNIVERSARY_REWARD,
+              paidAt,
+            };
             if (!await setEconomyData(client, guildId, userId, economy)) {
               paymentFailed = true;
               break;
             }
+            receipts.push({ userId, paidAt });
           }
 
-          if (paymentFailed) {
-            for (const snapshot of snapshots) {
-              const { setEconomyData } = await import('../utils/economy.js');
-              await setEconomyData(client, guildId, snapshot.userId, {
-                ...snapshot.economy,
-                wallet: snapshot.previousWallet,
-              });
-            }
-            break;
-          }
+          if (paymentFailed || receipts.length !== memberIds.length) break;
 
-          const paidAt = Date.now();
+          const paidAt = Math.max(...receipts.map(receipt => receipt.paidAt));
           data.anniversaryClaims[claimKey] = {
             marriageId: marriage.id,
             anniversaryNumber,
@@ -526,6 +535,7 @@ export async function processMarriageAnniversaries(client, guildId, now = Date.n
             amountPerSpouse: ANNIVERSARY_REWARD,
             paidAt,
           });
+          await saveMarriageData(client, guildId, data);
         }
         anniversaryNumber += 1;
       }
