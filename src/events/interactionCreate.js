@@ -1087,6 +1087,12 @@ export default {
                 await interaction.reply({ content: 'This member already belongs to another clan.', flags: MessageFlags.Ephemeral });
                 return;
               }
+              const currentMembers = Array.isArray(clan.memberIds) ? clan.memberIds : [];
+              const clanCapacity = Math.max(10, Number(clan.maxMembers) || 10);
+              if (currentMembers.length + 2 >= clanCapacity) {
+                await interaction.reply({ content: 'This clan has reached its current capacity of ' + clanCapacity + ' members (including leadership). Purchase the Clan Member Expansion in the Clan Shop to increase it to 20.', flags: MessageFlags.Ephemeral });
+                return;
+              }
               const role = await guild.roles.fetch(clan.roleId).catch(() => null);
               if (!role) {
                 await interaction.reply({ content: 'The clan role could not be found. Please contact an administrator.', flags: MessageFlags.Ephemeral });
