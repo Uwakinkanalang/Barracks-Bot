@@ -39,6 +39,7 @@ jobs:
             src/commands/Economy/rob.js
             src/commands/Economy/buy.js
             src/commands/Economy/crime.js
+            src/commands/Economy/beg.js
             src/utils/postgresDatabase.js
             src/utils/database/wrapper.js
             src/commands/Economy/daily.js
