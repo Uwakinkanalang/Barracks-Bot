@@ -384,7 +384,7 @@ export default {
           });
         }
         if (memberIds.length + 2 >= Math.max(10, Number(clan.maxMembers) || 10)) {
-          return interaction.reply({ content: `Your clan has reached its current capacity of ${Math.max(10, Number(clan.maxMembers) || 10)} members (including leadership). Purchase the Clan Member Expansion in the Clan Shop to increase it to 20.`, flags: MessageFlags.Ephemeral });
+          return interaction.reply({ content: `Your clan has reached its current capacity of ${Math.max(10, Number(clan.maxMembers) || 10)} members (including leadership). Purchase another Clan Member Expansion in the Clan Shop to add 10 more slots, up to 200.`, flags: MessageFlags.Ephemeral });
         }
         clan.memberIds = [...memberIds, target.id];
         await interaction.client.db.set(storageKey, clanList);
