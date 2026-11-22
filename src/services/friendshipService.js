@@ -133,6 +133,7 @@ export async function awardFriendshipPoints(client, guildId, a, b, amount, optio
     const now = Number(options.now) || Date.now(), day = new Date(now).toISOString().slice(0, 10);
     pair.activity ||= {};
     const activity = pair.activity[day] ||= { points: 0, keys: [] };
+    activity.keys ||= [];
     if (options.activityKey && activity.keys.includes(String(options.activityKey))) return { status: 'duplicate_activity' };
     const granted = Math.min(amount, Math.max(0, DAILY_PAIR_CAP - (Number(activity.points) || 0)));
     if (!granted) return { status: 'daily_cap' };
