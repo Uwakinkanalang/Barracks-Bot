@@ -115,7 +115,7 @@ async function awardVoiceFriendshipPoints(client) {
             for (let i = 0; i < members.length; i++) {
                 for (let j = i + 1; j < members.length; j++) {
                     await awardFriendshipPoints(client, guild.id, members[i].id, members[j].id, 3, {
-                        activityKey: `voice:${channel.id}:${bucket}`, now,
+                        activityKey: `voice:${bucket}`, now,
                     }).catch(error => logger.debug('Voice friendship points skipped:', error.message));
                 }
             }
