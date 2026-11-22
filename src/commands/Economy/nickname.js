@@ -160,6 +160,7 @@ export default {
                     return;
                 }
 
+                const previousNickname = member.nickname;
                 try {
                     await member.setNickname(newNickname, 'Purchased nickname change with bCash');
                 } catch (error) {
@@ -174,7 +175,7 @@ export default {
                 try {
                     payment = await removeMoney(client, interaction.guildId, submitted.user.id, NICKNAME_CHANGE_PRICE, 'wallet');
                 } catch (paymentError) {
-                    await member.setNickname(member.nickname || null, 'Reverted nickname because bCash payment failed').catch(() => {});
+                    await member.setNickname(previousNickname || null, 'Reverted nickname because bCash payment failed').catch(() => {});
                     await submitted.reply({
                         content: '❌ Your bCash payment could not be completed, so your previous nickname was restored.',
                         flags: [MessageFlags.Ephemeral],
