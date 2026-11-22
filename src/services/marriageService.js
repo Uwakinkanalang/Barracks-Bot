@@ -17,6 +17,10 @@ function hasDurableStorage(client) {
   return typeof client?.db?.isAvailable !== 'function' || client.db.isAvailable();
 }
 
+function hasAtomicStorage(client) {
+  return hasDurableStorage(client) && typeof client?.db?.withKeyValueTransaction === 'function';
+}
+
 async function withGuildLock(guildId, callback) {
   const previous = guildLocks.get(guildId) || Promise.resolve();
   let release;
@@ -151,79 +155,57 @@ function findPendingProposal(data, proposerId, recipientId) {
  * from the caller until the Friendship/Soulmate services are integrated.
  */
 export async function createMarriageProposal(client, guildId, proposerId, recipientId, options = {}) {
-  if (!proposerId || !recipientId || proposerId === recipientId) {
-    return { status: 'invalid_target' };
-  }
+  if (!proposerId || !recipientId || proposerId === recipientId) return { status: 'invalid_target' };
   if (options.isBot) return { status: 'bot_target' };
-  if (typeof options.validateEligibility !== 'function') {
-    return { status: 'eligibility_service_unavailable' };
-  }
-  if (!hasDurableStorage(client)) return { status: 'database_unavailable' };
+  if (typeof options.validateEligibility !== 'function') return { status: 'eligibility_service_unavailable' };
+  if (!hasAtomicStorage(client)) return { status: 'database_unavailable' };
 
   return withGuildLock(guildId, async () => {
     const eligibility = await options.validateEligibility(proposerId, recipientId);
     if (!eligibility?.eligible) return { status: 'not_eligible', reason: eligibility?.reason || 'Eligibility requirements not met.' };
 
-    const data = await getMarriageData(client, guildId);
-    const now = Date.now();
-    if (hasActiveMarriage(data, proposerId) || hasActiveMarriage(data, recipientId)) {
-      return { status: 'already_married' };
-    }
-    const proposerCooldown = Number(data.divorceCooldowns[proposerId]) || 0;
-    const recipientCooldown = Number(data.divorceCooldowns[recipientId]) || 0;
-    if (now < proposerCooldown || now < recipientCooldown) {
-      return { status: 'remarriage_cooldown', retryAt: Math.max(proposerCooldown, recipientCooldown) };
-    }
-    if (findPendingProposal(data, proposerId, recipientId)) {
-      return { status: 'duplicate_pending' };
-    }
+    const { getEconomyData, getEconomyKey } = await import('../utils/economy.js');
+    const fallbackEconomy = await getEconomyData(client, guildId, proposerId);
+    return client.db.withKeyValueTransaction(async (transaction) => {
+      const transactionClient = { db: transaction };
+      const data = await getMarriageData(transactionClient, guildId);
+      const now = Date.now();
+      if (hasActiveMarriage(data, proposerId) || hasActiveMarriage(data, recipientId)) return { status: 'already_married' };
+      const proposerCooldown = Number(data.divorceCooldowns[proposerId]) || 0;
+      const recipientCooldown = Number(data.divorceCooldowns[recipientId]) || 0;
+      if (now < proposerCooldown || now < recipientCooldown) {
+        return { status: 'remarriage_cooldown', retryAt: Math.max(proposerCooldown, recipientCooldown) };
+      }
+      if (findPendingProposal(data, proposerId, recipientId)) return { status: 'duplicate_pending' };
 
-    const pair = pairKey(proposerId, recipientId);
-    const previous = data.history
-      .filter((item) => item.type === 'proposal' && item.pairKey === pair &&
-        ['declined', 'expired'].includes(item.status))
-      .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0))[0];
-    if (previous && now < Number(previous.updatedAt || 0) + REPROPOSAL_COOLDOWN) {
-      return { status: 'proposal_cooldown', retryAt: Number(previous.updatedAt) + REPROPOSAL_COOLDOWN };
-    }
+      const pair = pairKey(proposerId, recipientId);
+      const previous = data.history
+        .filter((item) => item.type === 'proposal' && item.pairKey === pair &&
+          ['declined', 'expired'].includes(item.status))
+        .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0))[0];
+      if (previous && now < Number(previous.updatedAt || 0) + REPROPOSAL_COOLDOWN) {
+        return { status: 'proposal_cooldown', retryAt: Number(previous.updatedAt) + REPROPOSAL_COOLDOWN };
+      }
 
-    const { getEconomyData, setEconomyData } = await import('../utils/economy.js');
-    const economy = await getEconomyData(client, guildId, proposerId);
-    if (!economy || Number(economy.wallet) < PROPOSAL_FEE) {
-      return { status: 'insufficient_funds', required: PROPOSAL_FEE };
-    }
+      const economyKey = getEconomyKey(guildId, proposerId);
+      const economy = await transaction.get(economyKey, fallbackEconomy);
+      if (!economy || Number(economy.wallet) < PROPOSAL_FEE) return { status: 'insufficient_funds', required: PROPOSAL_FEE };
 
-    const proposalId = `mp-${now}-${proposerId}-${recipientId}`;
-    const proposal = {
-      id: proposalId,
-      proposerId,
-      recipientId,
-      fee: PROPOSAL_FEE,
-      status: 'pending',
-      createdAt: now,
-      expiresAt: now + PROPOSAL_TTL,
-    };
+      const proposalId = `mp-${now}-${proposerId}-${recipientId}`;
+      const proposal = {
+        id: proposalId, proposerId, recipientId, fee: PROPOSAL_FEE,
+        status: 'pending', createdAt: now, expiresAt: now + PROPOSAL_TTL,
+      };
+      economy.wallet = Number(economy.wallet) - PROPOSAL_FEE;
+      if (await transaction.set(economyKey, economy) === false) throw new Error('Proposal fee could not be saved.');
 
-    economy.wallet = Number(economy.wallet) - PROPOSAL_FEE;
-    const savedEconomy = await setEconomyData(client, guildId, proposerId, economy);
-    if (!savedEconomy) return { status: 'payment_failed' };
-
-    try {
       data.proposals[proposalId] = proposal;
       data.transactions[proposalId] = {
-        type: 'proposal_fee',
-        userId: proposerId,
-        amount: PROPOSAL_FEE,
-        createdAt: now,
+        type: 'proposal_fee', userId: proposerId, amount: PROPOSAL_FEE, createdAt: now,
       };
-      await saveMarriageData(client, guildId, data);
-    } catch (error) {
-      economy.wallet = Number(economy.wallet) + PROPOSAL_FEE;
-      await setEconomyData(client, guildId, proposerId, economy);
-      throw error;
-    }
-
-    return { status: 'created', proposal };
+      await saveMarriageData(transactionClient, guildId, data);
+      return { status: 'created', proposal };
+    });
   });
 }
 
@@ -367,77 +349,58 @@ const DIVORCE_COOLDOWN = 7 * 24 * 60 * 60 * 1000;
  */
 export async function divorceMarriage(client, guildId, initiatorId, options = {}) {
   if (options.confirmed !== true) return { status: 'confirmation_required', fee: DIVORCE_FEE };
-  if (!hasDurableStorage(client)) return { status: 'database_unavailable' };
+  if (!hasAtomicStorage(client)) return { status: 'database_unavailable' };
 
   return withGuildLock(guildId, async () => {
-    const data = await getMarriageData(client, guildId);
-    const marriage = Object.values(data.marriages).find((record) =>
-      record?.status === 'married' &&
-      (record.member1Id === initiatorId || record.member2Id === initiatorId)
-    );
+    const { getEconomyData, getEconomyKey } = await import('../utils/economy.js');
+    const fallbackEconomy = await getEconomyData(client, guildId, initiatorId);
+    const result = await client.db.withKeyValueTransaction(async (transaction) => {
+      const transactionClient = { db: transaction };
+      const data = await getMarriageData(transactionClient, guildId);
+      const marriage = Object.values(data.marriages).find((record) =>
+        record?.status === 'married' &&
+        (record.member1Id === initiatorId || record.member2Id === initiatorId)
+      );
+      if (!marriage) return { status: 'not_married' };
 
-    if (!marriage) return { status: 'not_married' };
+      const spouseId = marriage.member1Id === initiatorId ? marriage.member2Id : marriage.member1Id;
+      const economyKey = getEconomyKey(guildId, initiatorId);
+      const economy = await transaction.get(economyKey, fallbackEconomy);
+      if (!economy || Number(economy.wallet) < DIVORCE_FEE) {
+        return { status: 'insufficient_funds', required: DIVORCE_FEE };
+      }
 
-    const spouseId = marriage.member1Id === initiatorId
-      ? marriage.member2Id
-      : marriage.member1Id;
+      const now = Date.now();
+      economy.wallet = Number(economy.wallet) - DIVORCE_FEE;
+      if (await transaction.set(economyKey, economy) === false) throw new Error('Divorce fee could not be saved.');
 
-    const { getEconomyData, setEconomyData } = await import('../utils/economy.js');
-    const economy = await getEconomyData(client, guildId, initiatorId);
-    if (!economy || Number(economy.wallet) < DIVORCE_FEE) {
-      return { status: 'insufficient_funds', required: DIVORCE_FEE };
-    }
-
-    const now = Date.now();
-    const previousWallet = Number(economy.wallet);
-    economy.wallet = previousWallet - DIVORCE_FEE;
-    const paid = await setEconomyData(client, guildId, initiatorId, economy);
-    if (!paid) return { status: 'payment_failed' };
-
-    try {
       marriage.status = 'divorced';
       marriage.divorcedAt = now;
       marriage.divorceInitiatedBy = initiatorId;
       marriage.divorceFee = DIVORCE_FEE;
       marriage.durationMs = Math.max(0, now - Number(marriage.marriedAt || now));
-
       data.divorceCooldowns[initiatorId] = now + DIVORCE_COOLDOWN;
       data.divorceCooldowns[spouseId] = now + DIVORCE_COOLDOWN;
       data.transactions[`divorce-${marriage.id}-${now}`] = {
-        type: 'divorce_fee',
-        userId: initiatorId,
-        spouseId,
-        marriageId: marriage.id,
-        amount: DIVORCE_FEE,
-        createdAt: now,
+        type: 'divorce_fee', userId: initiatorId, spouseId,
+        marriageId: marriage.id, amount: DIVORCE_FEE, createdAt: now,
       };
       data.history.push({
-        type: 'divorce',
-        marriageId: marriage.id,
-        member1Id: marriage.member1Id,
-        member2Id: marriage.member2Id,
-        initiatedBy: initiatorId,
-        divorcedAt: now,
-        durationMs: marriage.durationMs,
-        fee: DIVORCE_FEE,
+        type: 'divorce', marriageId: marriage.id,
+        member1Id: marriage.member1Id, member2Id: marriage.member2Id,
+        initiatedBy: initiatorId, divorcedAt: now,
+        durationMs: marriage.durationMs, fee: DIVORCE_FEE,
       });
-      await saveMarriageData(client, guildId, data);
-    } catch (error) {
-      economy.wallet = previousWallet;
-      await setEconomyData(client, guildId, initiatorId, economy);
-      throw error;
-    }
+      await saveMarriageData(transactionClient, guildId, data);
+      return { status: 'divorced', marriage, spouseId, now };
+    });
 
-    const roleSync = await syncMarriageRole(client, guildId, [marriage.member1Id, marriage.member2Id], false);
-
+    if (result.status !== 'divorced') return result;
+    const roleSync = await syncMarriageRole(client, guildId, [result.marriage.member1Id, result.marriage.member2Id], false);
     return {
-      status: 'divorced',
-      marriage,
-      initiatorId,
-      spouseId,
-      fee: DIVORCE_FEE,
-      cooldownUntil: now + DIVORCE_COOLDOWN,
-      roleSync,
+      status: 'divorced', marriage: result.marriage, initiatorId,
+      spouseId: result.spouseId, fee: DIVORCE_FEE,
+      cooldownUntil: result.now + DIVORCE_COOLDOWN, roleSync,
     };
   });
 }
