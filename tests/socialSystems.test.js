@@ -586,6 +586,13 @@ test('pending wagers can be listed and recovered exactly once with staff audit d
   assert.equal(audit.recoveries[0].userId, userId);
   assert.equal(audit.recoveries[0].actorId, '500000000000000001');
   assert.equal(audit.recoveries[0].reason, 'Game session was abandoned.');
+  // The independent audit survives pruning of its associated game receipt.
+  await withEconomyTransaction(client, guildId, userId, async (accounts) => {
+    delete accounts[userId].economyGameTransactions['abandoned-game-1'];
+  });
+  const afterReceiptPrune = await listRecentEconomyWagerRecoveries(client, guildId, 10);
+  assert.equal(afterReceiptPrune.total, 1);
+  assert.equal(afterReceiptPrune.recoveries[0].gameId, 'abandoned-game-1');
   assert.equal((await listRecentEconomyWagerRecoveries(client, '100000000000000099')).total, 0);
 });
 
