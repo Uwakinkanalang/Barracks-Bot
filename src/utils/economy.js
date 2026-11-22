@@ -421,19 +421,23 @@ export async function listRecentEconomyWagerRecoveries(client, guildId, limit = 
             seen.add(String(entry.gameId));
             recoveries.push({ ...entry, userId });
         }
-        // Include older receipts for backward compatibility.
-        for (const [gameId, receipt] of Object.entries(account?.economyGameTransactions || {})) {
-            const audit = receipt?.recovery;
-            if (!audit || seen.has(String(gameId)) || String(receipt.guildId || '') !== String(guildId)) continue;
-            recoveries.push({
-                userId, gameId, guildId: String(receipt.guildId),
-                amount: Number(receipt.amount) || 0,
-                action: String(audit.action || 'unknown'),
-                actorId: String(audit.actorId || ''),
-                reason: String(audit.reason || ''),
-                recoveredAt: Number(audit.recoveredAt) || Number(receipt.settledAt) || 0,
-                status: String(receipt.status || 'unknown'),
-            });
+        // Legacy accounts without the independent audit array can still be read
+        // from receipt metadata. Once the bounded audit exists, do not re-add
+        // older receipt metadata that has intentionally aged out of the 100-entry log.
+        if (!Array.isArray(account?.economyWagerRecoveryAudit)) {
+            for (const [gameId, receipt] of Object.entries(account?.economyGameTransactions || {})) {
+                const audit = receipt?.recovery;
+                if (!audit || seen.has(String(gameId)) || String(receipt.guildId || '') !== String(guildId)) continue;
+                recoveries.push({
+                    userId, gameId, guildId: String(receipt.guildId),
+                    amount: Number(receipt.amount) || 0,
+                    action: String(audit.action || 'unknown'),
+                    actorId: String(audit.actorId || ''),
+                    reason: String(audit.reason || ''),
+                    recoveredAt: Number(audit.recoveredAt) || Number(receipt.settledAt) || 0,
+                    status: String(receipt.status || 'unknown'),
+                });
+            }
         }
     }
     recoveries.sort((a, b) => b.recoveredAt - a.recoveredAt);
