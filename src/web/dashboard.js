@@ -212,7 +212,11 @@ export function registerDashboardRoutes(app, bot) {
         managerRoleIds: Array.isArray(guildConfig.managerRoleIds) ? guildConfig.managerRoleIds : [],
         marriedRoleId: guildConfig.marriedRoleId || null,
         marriageAnnouncementChannelId: guildConfig.marriageAnnouncementChannelId || null,
-        roles
+        roles,
+        channels: guild.channels.cache
+          .filter(channel => channel.isTextBased?.() && !channel.isThread?.())
+          .map(channel => ({ id: channel.id, name: channel.name }))
+          .sort((a, b) => a.name.localeCompare(b.name))
       });
     } catch (error) {
       return res.status(500).json({ error: error?.message || 'Could not load bot settings.' });
