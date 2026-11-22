@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { withEconomyTransaction } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -42,70 +42,38 @@ export default {
             const guildId = interaction.guildId;
             const now = Date.now();
 
-            const userData = await getEconomyData(client, guildId, userId);
-            const lastFish = userData.lastFish || 0;
-            const hasFishingRod = userData.inventory["fishing_rod"] || 0;
-
-            if (now < lastFish + FISH_COOLDOWN) {
-                const remaining = lastFish + FISH_COOLDOWN - now;
-                const hours = Math.floor(remaining / (1000 * 60 * 60));
-                const minutes = Math.floor(
-                    (remaining % (1000 * 60 * 60)) / (1000 * 60),
-                );
-
-                throw createError(
-                    "Fishing cooldown active",
-                    ErrorTypes.RATE_LIMIT,
-                    `You're too tired to fish right now. Rest for **${hours}h ${minutes}m** before fishing again.`,
-                    { remaining, cooldownType: 'fish' }
-                );
-            }
-
             const rand = Math.random();
             let fishCaught;
-            
-            if (rand < 0.5) {
-                
-                fishCaught = FISH_TYPES.filter(f => f.rarity === 'common')[Math.floor(Math.random() * 3)];
-            } else if (rand < 0.75) {
-                
-                fishCaught = FISH_TYPES.filter(f => f.rarity === 'uncommon')[Math.floor(Math.random() * 2)];
-            } else if (rand < 0.9) {
-                
-                fishCaught = FISH_TYPES.filter(f => f.rarity === 'rare')[Math.floor(Math.random() * 2)];
-            } else if (rand < 0.98) {
-                
-                fishCaught = FISH_TYPES.find(f => f.rarity === 'epic');
-            } else {
-                
-                fishCaught = FISH_TYPES.find(f => f.rarity === 'legendary');
-            }
-
-            const baseEarned = Math.floor(
-                Math.random() * (BASE_MAX_REWARD - BASE_MIN_REWARD + 1)
-            ) + BASE_MIN_REWARD;
-
-            let finalEarned = baseEarned;
-            let multiplierMessage = "";
-
-            if (hasFishingRod > 0) {
-                finalEarned = Math.floor(baseEarned * FISHING_ROD_MULTIPLIER);
-                multiplierMessage = `\n🎣 **Fishing Rod Bonus: +50%**`;
-            }
-
+            if (rand < 0.5) fishCaught = FISH_TYPES.filter(f => f.rarity === 'common')[Math.floor(Math.random() * 3)];
+            else if (rand < 0.75) fishCaught = FISH_TYPES.filter(f => f.rarity === 'uncommon')[Math.floor(Math.random() * 2)];
+            else if (rand < 0.9) fishCaught = FISH_TYPES.filter(f => f.rarity === 'rare')[Math.floor(Math.random() * 2)];
+            else if (rand < 0.98) fishCaught = FISH_TYPES.find(f => f.rarity === 'epic');
+            else fishCaught = FISH_TYPES.find(f => f.rarity === 'legendary');
+            const baseEarned = Math.floor(Math.random() * (BASE_MAX_REWARD - BASE_MIN_REWARD + 1)) + BASE_MIN_REWARD;
             const catchMessage = CATCH_MESSAGES[Math.floor(Math.random() * CATCH_MESSAGES.length)];
 
-            userData.wallet += finalEarned;
-            userData.lastFish = now;
-
-            await setEconomyData(client, guildId, userId, userData);
-
+            const fishing = await withEconomyTransaction(client, guildId, userId, async (accounts) => {
+                const userData = accounts[userId];
+                const lastFish = Number(userData.lastFish) || 0;
+                if (now < lastFish + FISH_COOLDOWN) {
+                    const remaining = lastFish + FISH_COOLDOWN - now;
+                    const hours = Math.floor(remaining / 3600000);
+                    const minutes = Math.floor((remaining % 3600000) / 60000);
+                    throw createError("Fishing cooldown active", ErrorTypes.RATE_LIMIT,
+                        `You're too tired to fish right now. Rest for **${hours}h ${minutes}m** before fishing again.`,
+                        { remaining, cooldownType: 'fish' });
+                }
+                const hasFishingRod = Number(userData.inventory?.fishing_rod) || 0;
+                const finalEarned = hasFishingRod > 0 ? Math.floor(baseEarned * FISHING_ROD_MULTIPLIER) : baseEarned;
+                userData.wallet = (Number(userData.wallet) || 0) + finalEarned;
+                userData.lastFish = now;
+                return { wallet: userData.wallet, finalEarned, hasFishingRod };
+            });
+            const { wallet: newWallet, finalEarned, hasFishingRod } = fishing;
+            const multiplierMessage = hasFishingRod > 0 ? `\\n🎣 **Fishing Rod Bonus: +50%**` : "";
             const rarityColors = {
-                common: '#95A5A6',
-                uncommon: '#2ECC71',
-                rare: '#3498DB',
-                epic: '#9B59B6',
-                legendary: '#F1C40F'
+                common: '#95A5A6', uncommon: '#2ECC71', rare: '#3498DB',
+                epic: '#9B59B6', legendary: '#F1C40F'
             };
 
             const embed = createEmbed({
@@ -116,7 +84,7 @@ export default {
                 .addFields(
                     {
                         name: "New Cash Balance",
-                        value: `₱${userData.wallet.toLocaleString()}`,
+                        value: `₱${newWallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
