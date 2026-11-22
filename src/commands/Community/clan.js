@@ -201,7 +201,7 @@ export default {
         return interaction.reply({ content: `⚔️ **Battle accepted!** ${battle.clanAName} vs. ${battle.clanBName}. Members can now compete in supported games. Tic-Tac-Toe wins are worth **10 points**.` });
       }
 
-      if ((subcommand === 'battle-end') {
+      if (subcommand === 'battle-end') {
         const battle = state.active;
         if (!battle) return interaction.reply({ content: 'There is no clan battle to end.', flags: MessageFlags.Ephemeral });
         if (![String(battle.clanAId), String(battle.clanBId)].includes(String(myClan.id))) return interaction.reply({ content: 'Only a Leader or Vice Leader of either participating clan can end this battle.', flags: MessageFlags.Ephemeral });
