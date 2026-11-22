@@ -916,12 +916,12 @@ export function registerDashboardRoutes(app, bot) {
     const previous = await getFromDb(stateKey, null);
     const original = typeof previous?.originalNickname === 'string'
       ? previous.originalNickname
-      : (member.nickname ?? member.user.globalName ?? member.user.username);
+      : (member.displayName ?? member.user.globalName ?? member.user.username);
     await setInDb(stateKey, { originalNickname: original, savedAt: previous?.savedAt || Date.now() });
     const nickname = String(format)
       .replace(/\\bTAG\\b/gi, String(tag || ''))
-      .replace(/\\{username\\}/gi, original)
-      .replace(/\\s+/g, ' ')
+      .replace(/\{username\}/gi, original)
+      .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 32);
     if (member.nickname !== nickname) await member.setNickname(nickname, 'Apply selected clan AutoNick format');
