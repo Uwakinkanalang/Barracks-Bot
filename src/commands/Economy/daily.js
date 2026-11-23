@@ -34,9 +34,6 @@ function getStreakReward(streak) {
     );
 }
 
-function getNextStreakMilestone(streak) {
-    return STREAK_REWARDS.find((milestone) => milestone.day > streak) || null;
-}
 
 export default {
     prefixOnly: true,
@@ -111,7 +108,6 @@ export default {
             );
         }
 
-        const nextMilestone = getNextStreakMilestone(dailyStreak);
         const bonusLines = [
             `\n🎖️ **Level Bonus (Level ${memberLevel}):** +${(memberLevel * DAILY_LEVEL_BONUS).toLocaleString()} bCash`,
             roleBonusRate > 0
