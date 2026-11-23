@@ -324,11 +324,6 @@ export default {
               baseName = baseName.replace(repeatedTagPattern, '').trimStart();
             }
 
-            const knownClanTags = clanList');
-              const repeatedTagPattern = new RegExp(`^(?:\\s*${escapedTag}\\s*(?:\\|\\s*)?)+`, 'u');
-              baseName = baseName.replace(repeatedTagPattern, '').trimStart();
-            }
-
             const knownClanTags = clanList
               .map((clan) => String(clan.tag || '').trim())
               .filter(Boolean)
