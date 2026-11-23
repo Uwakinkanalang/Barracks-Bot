@@ -159,7 +159,6 @@ export default {
         .setDescription('Your command post for managing your clan. Only the Clan Leader and Vice Clan Leader of an approved clan can use these controls.')
         .addFields(
           { name: '👥 Manage Members', value: 'View your clan roster.', inline: true },
-          { name: '📜 Transactions', value: 'Review the latest bank activity.', inline: true },
           { name: '📨 Join Requests', value: 'Check pending applications.', inline: true },
           { name: '⚙️ Clan Settings', value: 'View your clan details and rules.', inline: true },
         )
@@ -170,7 +169,6 @@ export default {
         new ButtonBuilder().setCustomId('clan:leader:settings').setLabel('Clan Details').setEmoji('⚙️').setStyle(ButtonStyle.Secondary)
       );
       const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('clan:leader:transactions').setLabel('Transactions').setEmoji('📜').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('clan:leader:kickmember').setLabel('Remove Member').setEmoji('➖').setStyle(ButtonStyle.Danger)
       );
       await channel.send({ embeds: [panelEmbed], components: [row1, row2] });
