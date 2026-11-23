@@ -38,6 +38,27 @@ async function refreshGuildAutoNick(guild, configs, prefixesToStrip = configs.ma
     let base = typeof state?.originalNickname === 'string'
       ? state.originalNickname
       : (member.nickname ?? member.user.globalName ?? member.user.username);
+
+    // A manual nickname edit can happen while the member still has an AutoNick
+    // state saved. If the live nickname is no longer the configured output,
+    // refresh the saved base instead of restoring an outdated nickname.
+    if (state && typeof state.originalNickname === 'string' && member.nickname && active) {
+      const savedTemplate = typeof active.format === 'string' && active.format.includes('{username}')
+        ? active.format
+        : `${String(active.prefix || '').trim()} {username}`;
+      const savedTaggedTemplate = active.tag && !/\\bTAG\\b/i.test(savedTemplate)
+        ? `TAG ${savedTemplate}`
+        : savedTemplate;
+      const expectedSavedNickname = savedTaggedTemplate
+        .replace(/\\bTAG\\b/gi, String(active.tag || ''))
+        .replace(/\\{username\\}/gi, state.originalNickname)
+        .replace(/\\s+/g, ' ')
+        .trim()
+        .slice(0, 32);
+      const liveWithoutAfk = String(member.nickname).replace(/^\\[AFK\\]\\s*/u, '');
+      if (liveWithoutAfk !== expectedSavedNickname) base = liveWithoutAfk;
+    }
+
     base = String(base).replace(/^\[AFK\]\s*/u, '').trimStart();
     let matched;
     do {
