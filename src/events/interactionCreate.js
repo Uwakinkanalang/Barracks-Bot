@@ -1764,14 +1764,12 @@ export default {
               try {
                 const logChannel = await interaction.guild.channels.fetch(logChannelId);
                 if (logChannel?.isTextBased() && logChannel?.send) {
-                  const clanTagDisplay = String(tag);
                   const logEmbed = new EmbedBuilder()
                     .setColor(Number.parseInt(roleHex.slice(1), 16))
                     .setAuthor({ name: 'BARRACKS • CLAN REGISTRY', iconURL: interaction.guild.iconURL({ size: 128 }) || undefined })
                     .setTitle(`🏰 ${name}`)
                     .setDescription('A new clan registration is awaiting review. Please check the details below.')
                     .addFields(
-                      { name: '🏷️ REQUESTED CLAN TAG', value: clanTagDisplay, inline: false },
                       { name: '👑 CLAN LEADER', value: `<@${interaction.user.id}>\n` + '`' + `${interaction.user.id}` + '`', inline: true },
                       { name: '🛡️ VICE CLAN LEADER', value: `<@${viceLeaderId}>\n` + '`' + `${viceLeaderId}` + '`', inline: true },
                       { name: '🎨 ROLE COLOR', value: `\`${roleHex}\``, inline: true },
