@@ -13,9 +13,10 @@ export async function applyDashboardAutoNick(member, trigger = 'join') {
     : rule.type === 'role' && member.roles.cache.has(String(rule.roleId)));
   if (!matching.length) return false;
   const rule = matching.sort((a,b) => Number(b.priority || 0) - Number(a.priority || 0))[0];
+  const serverDisplayName = member.displayName || member.nickname || member.user.globalName || member.user.username;
   const values = {
-    username: member.user.username,
-    displayname: member.displayName || member.user.globalName || member.user.username,
+    username: serverDisplayName,
+    displayname: serverDisplayName,
     userid: member.id,
     server: member.guild.name
   };
