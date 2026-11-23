@@ -44,46 +44,46 @@ const COMMAND_ERROR_SUBTYPES = {
 
 async function applyHighestPriorityAutoNick(member) {
   const { client, guild } = member;
-  const key = `guild:${guild.id}:autonick_roles`;
-  const stored = await client.db.get(key, []);
+  const stored = await client.db.get(`guild:${guild.id}:autonick_roles`, []);
   const configs = (Array.isArray(stored) ? stored : [])
-    .filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
-    .map(entry => ({ ...entry, priority: Number(entry.priority) || 0 }))
+    .filter((entry) => entry && typeof entry.roleId === 'string')
+    .map((entry) => ({ ...entry, priority: Number(entry.priority) || 0 }))
     .sort((a, b) => b.priority - a.priority);
-  const active = configs.find(entry => member.roles.cache.has(entry.roleId)) || null;
+  const active = configs.find((entry) => member.roles.cache.has(entry.roleId)) || null;
   const stateKey = `guild:${guild.id}:autonick_member:${member.id}`;
   const state = await client.db.get(stateKey, null);
-  const prefixes = [...new Set(configs.map(entry => entry.prefix.trim()).filter(Boolean))]
-    .sort((a, b) => b.length - a.length);
-
   let base = typeof state?.originalNickname === 'string'
     ? state.originalNickname
     : (member.nickname ?? member.user.globalName ?? member.user.username);
-  base = String(base).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
-  // Repair names already polluted by repeated clan tags before saving/reapplying.
+  base = String(base).replace(/^\[AFK\]\s*/u, '').trimStart();
   if (active?.tag) {
-    const escapedTag = String(active.tag).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\  base = String(base).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
-  let matched;');
-    const repeatedTagPattern = new RegExp(`^(?:\\s*${escapedTag}\\s*(?:\\|\\s*)?)+`, 'u');
-    base = base.replace(repeatedTagPattern, '').trimStart();
+    const tag = String(active.tag).trim();
+    if (tag) {
+      const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      base = base.replace(new RegExp(`^(?:\\s*${escapedTag}\\s*(?:\\|\\s*)?)+`, 'u'), '').trimStart();
+    }
   }
+  const knownPrefixes = [...new Set(configs.map((entry) => String(entry.prefix || '').trim()).filter(Boolean))]
+    .sort((a, b) => b.length - a.length);
   let matched;
   do {
-    matched = prefixes.find(prefix => base.startsWith(prefix));
+    matched = knownPrefixes.find((prefix) => base.startsWith(prefix));
     if (matched) base = base.slice(matched.length).trimStart();
   } while (matched);
   if (!base.trim()) base = member.user.globalName || member.user.username;
 
   let desired;
   if (active) {
+    const template = typeof active.format === 'string' && active.format.includes('{username}')
+      ? active.format
+      : `${String(active.prefix || '').trim()} {username}`;
+    desired = template.replace(/\bTAG\b/gi, String(active.tag || ''))
+      .replace(/\{username\}/gi, base).replace(/\s+/g, ' ').trim().slice(0, 32);
     await client.db.set(stateKey, { originalNickname: base, savedAt: state?.savedAt || Date.now() });
-    const template = typeof active.format === 'string' && active.format.includes('{username}') ? active.format : `${active.prefix.trim()} {username}`;
-    desired = template.replace(/\bTAG\b/gi, String(active.tag || '')).replace(/\{username\}/gi, base).replace(/\s+/g, ' ').trim().slice(0, 32);
   } else if (state) {
-    desired = base || null;
+    desired = state.hadNickname === false ? null : (base || null);
     await client.db.delete(stateKey).catch(() => {});
   } else {
-    // No AutoNick configuration applies; preserve the normal nickname-prefix system.
     const normalPrefix = await getNicknamePrefix(member, client, guild.id);
     desired = `${normalPrefix}${base}`.slice(0, 32) || null;
   }
@@ -96,21 +96,9 @@ async function applyHighestPriorityAutoNick(member) {
     await client.db.set(afkKey, afk);
     desired = afk.afkNickname;
   }
-  if (member.nickname !== desired) {
-    await member.setNickname(desired, 'Apply highest-priority AutoNick after clan membership change');
+  if (member.nickname !== desired && member.manageable) {
+    await member.setNickname(desired, 'Recalculate highest-priority AutoNick after clan membership change');
   }
-}
-
-async function registerClanAutoNick(client, guildId, roleId, tag, format = 'TAG {username}') {
-  const key = `guild:${guildId}:autonick_roles`;
-  const stored = await client.db.get(key, []);
-  const entries = Array.isArray(stored) ? stored.filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string') : [];
-  const safeFormat = String(format || 'TAG {username}').trim().slice(0, 32);
-  const existing = entries.find(entry => entry.roleId === roleId);
-  if (existing) Object.assign(existing, { prefix: '', format: safeFormat, tag: String(tag), priority: 50 });
-  else entries.push({ roleId, prefix: '', format: safeFormat, tag: String(tag), priority: 50 });
-  entries.sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
-  await client.db.set(key, entries);
 }
 
 function withTraceContext(context = {}, traceContext = {}) {
