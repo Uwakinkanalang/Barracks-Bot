@@ -1203,7 +1203,7 @@ export function registerDashboardRoutes(app, bot) {
     const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
     const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
-    if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
+    if (!tag) return res.status(400).json({ error: 'Please enter a Clan Tag.' });
     const autoNickFormat = `${tag} {username}`;
     if (!/^\d{17,20}$/.test(leaderId)) return res.status(400).json({ error: 'Enter a valid Discord user ID for the clan leader.' });
     if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
