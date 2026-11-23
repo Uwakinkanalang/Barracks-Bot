@@ -109,10 +109,11 @@ export default {
       if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
         return interaction.reply({ content: 'You need the **Manage Server** permission to post the Clan HQ panel.', flags: MessageFlags.Ephemeral });
       }
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const panelChannelId = '1559627423492874351';
       const panelChannel = await interaction.guild.channels.fetch(panelChannelId).catch(() => null);
       if (!panelChannel?.isTextBased() || !panelChannel.send) {
-        return interaction.reply({ content: 'I could not access the configured Clan HQ channel. Check the channel ID and my View Channel / Send Messages permissions.', flags: MessageFlags.Ephemeral });
+        return interaction.editReply({ content: 'I could not access the configured Clan HQ channel. Check the channel ID and my View Channel / Send Messages permissions.' });
       }
       const panelEmbed = new EmbedBuilder()
         .setColor(0x5865F2)
@@ -127,7 +128,7 @@ export default {
         new ButtonBuilder().setCustomId('clan:leave:open').setLabel('Leave a Clan').setEmoji('🚪').setStyle(ButtonStyle.Danger),
       );
       await panelChannel.send({ embeds: [panelEmbed], components: [panelRow] });
-      return interaction.reply({ content: `✅ Clan HQ panel posted in <#${panelChannelId}>.`, flags: MessageFlags.Ephemeral });
+      return interaction.editReply({ content: `✅ Clan HQ panel posted in <#${panelChannelId}>.` });
     }
 
     if (subcommand === 'leaderpanel') {
