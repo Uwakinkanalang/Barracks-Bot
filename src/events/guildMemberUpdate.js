@@ -321,7 +321,10 @@ export default {
             );
             const currentClanTag = String(currentClan?.tag || '').trim();
             if (currentClanTag) {
-              const escapedTag = currentClanTag.replace(/[.*+?^${}()|[\]\\]/g, '\\            baseName = stripRankDecorations(baseName);
+              const escapedTag = currentClanTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const repeatedTagPattern = new RegExp(`^(?:\\s*${escapedTag}\\s*(?:\\|\\s*)?)+`, 'u');
+              baseName = baseName.replace(repeatedTagPattern, '').trimStart();
+            }
 
             const knownClanTags = clanList');
               const repeatedTagPattern = new RegExp(`^(?:\\s*${escapedTag}\\s*(?:\\|\\s*)?)+`, 'u');
