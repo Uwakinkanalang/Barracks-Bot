@@ -1130,11 +1130,11 @@ export function registerDashboardRoutes(app, bot) {
     if (clans.some((c, i) => i !== index && String(c.name).toLowerCase() === name.toLowerCase())) return res.status(409).json({ error: 'A clan with that name already exists.' });
 
     const role = guild.roles.cache.get(String(current.roleId || current.id));
-    const category = guild.channels.cache.get(String(current.categoryId));
-    const textChannel = guild.channels.cache.get(String(current.textChannelId));
-    const voiceChannel = guild.channels.cache.get(String(current.voiceChannelId));
-    if (!role || !category || !textChannel || !voiceChannel) return res.status(409).json({ error: 'One or more Discord clan resources are missing. Please check the clan channels and role.' });
-    if (!role.editable || !category.manageable || !textChannel.manageable || !voiceChannel.manageable) return res.status(403).json({ error: 'Barracks-Bot cannot edit this clan role or channels. Check its role hierarchy and Manage Roles/Channels permissions.' });
+    const category = current.categoryId ? guild.channels.cache.get(String(current.categoryId)) : null;
+    const textChannel = current.textChannelId ? guild.channels.cache.get(String(current.textChannelId)) : null;
+    const voiceChannel = current.voiceChannelId ? guild.channels.cache.get(String(current.voiceChannelId)) : null;
+    if (!role) return res.status(409).json({ error: 'The clan role is missing from Discord. Restore the clan role before editing this clan.' });
+    if (!role.editable || [category, textChannel, voiceChannel].some(channel => channel && !channel.manageable)) return res.status(403).json({ error: 'Barracks-Bot cannot edit this clan role or its existing channels. Check its role hierarchy and Manage Roles/Channels permissions.' });
 
     // Blank leader fields mean "keep the existing leaders" when editing other clan details.
     const effectiveLeaderId = leaderId || String(current.leaderId || '').trim();
@@ -1161,32 +1161,32 @@ export function registerDashboardRoutes(app, bot) {
       await role.edit({ name: tag + ' ' + name, color: roleHex, reason: 'Clan details updated from Barracks dashboard' });
       const levelsRole = await guild.roles.fetch('1564159581825933353').catch(() => null);
       if (levelsRole && role.editable) await role.setPosition(levelsRole.position + 1, { reason: 'Keep Barracks clan roles above the Levels separator' });
-      await category.edit({ name: tag + ' | ' + name, reason: 'Clan details updated from Barracks dashboard' });
-      await textChannel.edit({ name: slug + '-chat', reason: 'Clan details updated from Barracks dashboard' });
-      await voiceChannel.edit({ name: voiceName, reason: 'Clan details updated from Barracks dashboard' });
+      if (category) await category.edit({ name: tag + ' | ' + name, reason: 'Clan details updated from Barracks dashboard' });
+      if (textChannel) await textChannel.edit({ name: slug + '-chat', reason: 'Clan details updated from Barracks dashboard' });
+      if (voiceChannel) await voiceChannel.edit({ name: voiceName, reason: 'Clan details updated from Barracks dashboard' });
 
       if (!leaderUnchanged && oldLeader) {
         await Promise.all([
-          category.permissionOverwrites.delete(oldLeader.id).catch(() => {}),
-          textChannel.permissionOverwrites.delete(oldLeader.id).catch(() => {}),
-          voiceChannel.permissionOverwrites.delete(oldLeader.id).catch(() => {}),
+          category?.permissionOverwrites.delete(oldLeader.id).catch(() => {}),
+          textChannel?.permissionOverwrites.delete(oldLeader.id).catch(() => {}),
+          voiceChannel?.permissionOverwrites.delete(oldLeader.id).catch(() => {}),
           oldLeader.roles.remove(role, 'Clan leader changed in Barracks dashboard').catch(() => {})
         ]);
       }
       if (!viceUnchanged && oldVice) {
         await Promise.all([
-          category.permissionOverwrites.delete(oldVice.id).catch(() => {}),
-          textChannel.permissionOverwrites.delete(oldVice.id).catch(() => {}),
-          voiceChannel.permissionOverwrites.delete(oldVice.id).catch(() => {}),
+          category?.permissionOverwrites.delete(oldVice.id).catch(() => {}),
+          textChannel?.permissionOverwrites.delete(oldVice.id).catch(() => {}),
+          voiceChannel?.permissionOverwrites.delete(oldVice.id).catch(() => {}),
           oldVice.roles.remove(role, 'Vice clan leader changed in Barracks dashboard').catch(() => {})
         ]);
       }
       for (const member of [leader, viceLeader].filter(Boolean)) {
         await Promise.all([
-          category.permissionOverwrites.edit(member.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, Connect: true, Speak: true }),
-          textChannel.permissionOverwrites.edit(member.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true, EmbedLinks: true }),
-          voiceChannel.permissionOverwrites.edit(member.id, { ViewChannel: true, Connect: true, Speak: true })
-        ]);
+          category?.permissionOverwrites.edit(member.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, Connect: true, Speak: true }),
+          textChannel?.permissionOverwrites.edit(member.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true, EmbedLinks: true }),
+          voiceChannel?.permissionOverwrites.edit(member.id, { ViewChannel: true, Connect: true, Speak: true })
+        ].filter(Boolean));
         if ((!leaderUnchanged && member.id === leader.id) || (!viceUnchanged && member.id === viceLeader.id)) {
           await member.roles.add(role, 'Assigned as clan leadership by Barracks dashboard');
         }
