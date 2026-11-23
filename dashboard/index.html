@@ -693,7 +693,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
    <form id="clanCreateForm">
     <div class="clan-fields">
      <label class="clan-field clan-field-wide"><span>Clan Name <i>Required</i></span><input id="clanName" maxlength="60" required placeholder="e.g. Shadow Wolves"><small>Choose a name your members will recognize.</small></label>
-     <label class="clan-field"><span>Clan Tag <i>Required</i></span><input id="clanTag" maxlength="10" minlength="1" required placeholder="e.g. SW, ⚔️, ★7"><small>1–5 characters. Letters, numbers, symbols, and emoji are accepted.</small></label>
+     <label class="clan-field"><span>Clan Tag <i>Required</i></span><input id="clanTag" maxlength="100" required pattern="[A-Za-z]+" placeholder="e.g. SHADOW"><small>Letters only. No spaces or fixed length.</small></label>
      <label class="clan-field"><span>Role Hex Code <i>Required</i></span><input id="clanRoleHex" maxlength="7" minlength="7" required pattern="#[0-9a-fA-F]{6}" placeholder="Enter a hex color, e.g. #5865F2"><small>Choose the color for your clan’s Discord role. Use # followed by six hexadecimal characters.</small></label>
      <label class="clan-field"><span>Clan Leader Discord ID <i>Required</i></span><input id="clanLeaderId" maxlength="20" minlength="17" required inputmode="numeric" pattern="[0-9]{17,20}" placeholder="Enter the leader's user ID"><small>The leader must already be a member of Barracks.</small></label>
      <label class="clan-field clan-field-wide"><span>Vice Clan Leader Discord ID <i>Required</i></span><input id="clanViceLeaderId" maxlength="20" minlength="17" required inputmode="numeric" pattern="[0-9]{17,20}" placeholder="Enter the vice leader's user ID"><small>The vice leader must be a different member and already belong to Barracks.</small></label>
@@ -1024,7 +1024,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
    <input type="hidden" id="clanEditId">
    <div class="clan-fields">
     <label class="clan-field"><span>Clan name</span><input id="clanEditName" maxlength="60" required></label>
-    <label class="clan-field"><span>Clan tag</span><input id="clanEditTag" minlength="1" maxlength="10" required><small>1–5 characters, including symbols and emoji.</small></label>
+    <label class="clan-field"><span>Clan tag</span><input id="clanEditTag" maxlength="100" required pattern="[A-Za-z]+"><small>Letters only. No spaces or fixed length.</small></label>
     <label class="clan-field"><span>Role Hex Code</span><input id="clanEditRoleHex" maxlength="7" minlength="7" required pattern="#[0-9a-fA-F]{6}" placeholder="#5865F2"><small>Role color in six-digit hex format.</small></label>
     <label class="clan-field"><span>Clan Leader Discord ID</span><input id="clanEditLeader" maxlength="20" minlength="17" inputmode="numeric" pattern="[0-9]{17,20}" required></label>
     <label class="clan-field clan-field-wide"><span>Vice Clan Leader Discord ID</span><input id="clanEditViceLeader" maxlength="20" minlength="17" inputmode="numeric" pattern="[0-9]{17,20}" required></label>
