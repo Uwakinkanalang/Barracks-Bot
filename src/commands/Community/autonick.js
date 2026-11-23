@@ -14,6 +14,15 @@ async function refreshGuildAutoNick(guild, configs, prefixesToStrip = configs.ma
   // Do not request a full guild member download from a slash command: large
   // guilds can take too long and leave the interaction showing "thinking".
   const members = new Map(guild.members.cache);
+
+  // Explicitly include connected voice members so refreshes apply immediately
+  // without requiring anyone to disconnect and rejoin.
+  for (const voiceState of guild.voiceStates.cache.values()) {
+    if (voiceState.member && !voiceState.member.user.bot) {
+      members.set(voiceState.member.id, voiceState.member);
+    }
+  }
+
   for (const entry of configs) {
     const role = guild.roles.cache.get(entry.roleId);
     if (role) {
@@ -100,9 +109,10 @@ async function refreshGuildAutoNick(guild, configs, prefixesToStrip = configs.ma
       try {
         await member.setNickname(desired, 'Refresh configured AutoNick priority and prefix');
         updated += 1;
+        logger.info(`[AUTO_NICKNAME] Refreshed ${member.user.tag}${member.voice?.channelId ? ' while connected to voice' : ''}: ${desired || '(no nickname)'}`);
       } catch (error) {
         failed += 1;
-        logger.warn(`[AUTO_NICKNAME] Could not refresh ${member.user.tag}: ${error.message}`);
+        logger.warn(`[AUTO_NICKNAME] Could not refresh ${member.user.tag}${member.voice?.channelId ? ' while connected to voice' : ''}: ${error.message}`);
       }
     }
   }
