@@ -1727,7 +1727,8 @@ try{const payload={name:document.getElementById('clanName').value.trim(),tag:doc
 })();
 </script>
 <script>
-let autoNickRulesCache=[];\nlet editingAutoNickId=null;
+let autoNickRulesCache=[];
+let editingAutoNickId=null;
 async function loadAutoNickRules(){
  const box=document.getElementById('autoNickRules');box.innerHTML='<p class="sub">Loading AutoNick rules…</p>';
  try{const r=await fetch(API_BASE+'/api/dashboard/autonick',{headers:{Authorization:'Bearer '+sessionStorage.getItem('barracks_dashboard_access')}});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not load AutoNick.');autoNickRulesCache=d.rules||[];const role=document.getElementById('autoNickRole');role.innerHTML='<option value="">Select a role</option>'+(d.roles||[]).map(x=>'<option value="'+x.id+'">'+escapeHtml(x.name)+'</option>').join('');renderAutoNickRules();}
