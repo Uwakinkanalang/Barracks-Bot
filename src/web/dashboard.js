@@ -1231,6 +1231,12 @@ export function registerDashboardRoutes(app, bot) {
       const updated = { ...current, name, tag, roleHex, rules, description, leaderId: effectiveLeaderId, leaderName: leader?.displayName || current.leaderName || effectiveLeaderId, viceLeaderId: effectiveViceLeaderId, viceLeaderName: viceLeader?.displayName || current.viceLeaderName || effectiveViceLeaderId, updatedAt: new Date().toISOString() };
       clans[index] = updated;
       await setInDb(clanStorageKey(guild.id), clans);
+
+      // Keep this clan's shared AutoNick role entry in sync with the edited tag.
+      await registerClanAutoNick(guild, role, tag, autoNickFormat);
+      const clanMembers = [...role.members.values()];
+      await Promise.allSettled(clanMembers.map(member => applyClanAutoNick(member, tag, autoNickFormat)));
+
       return res.json({ ok: true, clan: updated });
     } catch (error) {
       return res.status(500).json({ error: error?.message || 'Could not update the clan. Check the bot permissions and try again.' });
