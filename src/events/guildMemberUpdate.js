@@ -105,7 +105,7 @@ export default {
       // AutoNick is available in every server; Barracks rank/clan nickname rules remain server-specific.
       const autoNickConfigsRaw = await newMember.client.db.get(`guild:${newMember.guild.id}:autonick_roles`, []);
       const autoNickConfigs = (Array.isArray(autoNickConfigsRaw) ? autoNickConfigsRaw : [])
-        .filter((entry) => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
+        .filter((entry) => entry && typeof entry.roleId === 'string')
         .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
       const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
       const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
