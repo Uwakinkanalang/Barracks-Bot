@@ -1021,7 +1021,7 @@ export default {
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_name').setStyle(TextInputStyle.Short).setMaxLength(32).setRequired(true)),
                 new LabelBuilder()
                   .setLabel('Clan Tag')
-                  .setDescription('Letters, numbers, symbols, and emojis are allowed. Keep it short and avoid spaces.')
+                  .setDescription('Letters, numbers, symbols, and emojis are allowed.')
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_tag').setStyle(TextInputStyle.Short).setPlaceholder('★').setMaxLength(100).setRequired(true)),
                 new LabelBuilder()
                   .setLabel('Role Hex')
