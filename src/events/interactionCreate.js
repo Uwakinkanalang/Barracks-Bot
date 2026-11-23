@@ -60,6 +60,13 @@ async function applyHighestPriorityAutoNick(member) {
     ? state.originalNickname
     : (member.nickname ?? member.user.globalName ?? member.user.username);
   base = String(base).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+  // Repair names already polluted by repeated clan tags before saving/reapplying.
+  if (active?.tag) {
+    const escapedTag = String(active.tag).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\  base = String(base).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+  let matched;');
+    const repeatedTagPattern = new RegExp(`^(?:\\s*${escapedTag}\\s*(?:\\|\\s*)?)+`, 'u');
+    base = base.replace(repeatedTagPattern, '').trimStart();
+  }
   let matched;
   do {
     matched = prefixes.find(prefix => base.startsWith(prefix));
