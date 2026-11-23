@@ -955,7 +955,9 @@ export function registerDashboardRoutes(app, bot) {
       ? previous.originalNickname
       : (member.displayName ?? member.user.globalName ?? member.user.username);
     await setInDb(stateKey, { originalNickname: original, savedAt: previous?.savedAt || Date.now() });
-    const nickname = String(format)
+    const template = String(format || 'TAG {username}');
+    const taggedTemplate = tag && !/\bTAG\b/i.test(template) ? `TAG ${template}` : template;
+    const nickname = taggedTemplate
       .replace(/\bTAG\b/gi, String(tag || ''))
       .replace(/\{username\}/gi, original)
       .replace(/\s+/g, ' ')
