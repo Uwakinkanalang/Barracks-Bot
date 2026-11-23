@@ -1165,7 +1165,22 @@ export default {
                 // Avoid forcing it above a configured separator role, which can fail
                 // when that separator is higher than the bot.
                 approvalStage = 'registering the clan AutoNick role';
-                await registerClanAutoNick(interaction.client, interaction.guildId, clanRole.id, reviewedClan.tag, reviewedClan.autoNickFormat || 'TAG {username}');
+                const autoNickKey = `guild:${interaction.guildId}:autonick_roles`;
+                const autoNickEntriesRaw = await interaction.client.db.get(autoNickKey, []);
+                const autoNickEntries = Array.isArray(autoNickEntriesRaw) ? autoNickEntriesRaw : [];
+                const existingAutoNick = autoNickEntries.find(entry => String(entry.roleId) === String(clanRole.id));
+                const clanAutoNickEntry = {
+                  ...(existingAutoNick || {}),
+                  roleId: clanRole.id,
+                  tag: reviewedClan.tag,
+                  prefix: '',
+                  format: reviewedClan.autoNickFormat || 'TAG {username}',
+                  priority: Number(existingAutoNick?.priority) || 50,
+                };
+                const updatedAutoNickEntries = existingAutoNick
+                  ? autoNickEntries.map(entry => String(entry.roleId) === String(clanRole.id) ? clanAutoNickEntry : entry)
+                  : [...autoNickEntries, clanAutoNickEntry];
+                await interaction.client.db.set(autoNickKey, updatedAutoNickEntries);
 
                 reviewedClan.roleId = clanRole.id;
                 reviewedClan.status = 'approved';
