@@ -46,7 +46,28 @@ async function refreshAutoNickOnVoiceJoin(member) {
         ? state.originalNickname
         : (member.nickname ?? member.user.globalName ?? member.user.username);
 
-    baseName = String(baseName).replace(/^\[AFK\]\s*/u, '').trimStart();
+    // If the live nickname no longer matches the saved AutoNick output, treat
+    // it as a manual nickname change and make it the new original name.
+    if (state && typeof state.originalNickname === 'string' && member.nickname) {
+        const savedTemplate = typeof activeConfig.format === 'string' && activeConfig.format.includes('{username}')
+            ? activeConfig.format
+            : `${String(activeConfig.prefix || '').trim()} {username}`;
+        const savedTaggedTemplate = activeConfig.tag && !/\\bTAG\\b/i.test(savedTemplate)
+            ? `TAG ${savedTemplate}`
+            : savedTemplate;
+        const expectedSavedNickname = savedTaggedTemplate
+            .replace(/\\bTAG\\b/gi, String(activeConfig.tag || ''))
+            .replace(/\\{username\\}/gi, state.originalNickname)
+            .replace(/\\s+/g, ' ')
+            .trim()
+            .slice(0, 32);
+        const liveWithoutAfk = String(member.nickname).replace(/^\\[AFK\\]\\s*/u, '');
+        if (liveWithoutAfk !== expectedSavedNickname) {
+            baseName = liveWithoutAfk;
+        }
+    }
+
+    baseName = String(baseName).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
 
     // Remove legacy/current AutoNick tags and prefixes before formatting the winner.
     const markers = [...new Set(configs.flatMap(entry =>
