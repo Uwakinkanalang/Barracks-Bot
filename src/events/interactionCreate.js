@@ -1751,8 +1751,8 @@ export default {
               .addFields(
                 { name: '👑 Clan Leader', value: `<@${interaction.user.id}>`, inline: true },
                 { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>`, inline: true },
-                { name: '🏷️ Clan Tag', value: `\\`${tag}\\``, inline: true },
-                { name: '🎨 Role Color', value: `\\`${roleHex}\\``, inline: true },
+                { name: '🏷️ Clan Tag', value: '`' + tag + '`', inline: true },
+                { name: '🎨 Role Color', value: '`' + roleHex + '`', inline: true },
               )
               .setFooter({ text: 'Barracks • Clan Registry' })
               .setTimestamp();
