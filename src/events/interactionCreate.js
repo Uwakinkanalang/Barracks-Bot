@@ -1635,10 +1635,10 @@ export default {
             const autoNickFormat = `TAG {username}`;
             const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
             const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
-            const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\\d{17,20})>?$/)?.[1];
+            const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\d{17,20})>?$/)?.[1];
 
             const nameSegments = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(name)];
-            if (!name || nameSegments.length > 32 || /\\p{Cc}/u.test(name)) {
+            if (!name || nameSegments.length > 32 || /\p{Cc}/u.test(name)) {
               await interaction.reply({ content: 'Please enter a Clan Name using up to 32 characters. Letters, numbers, symbols, emojis, and spaces are all allowed.', flags: MessageFlags.Ephemeral });
               return;
             }
