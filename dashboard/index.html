@@ -461,6 +461,21 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 @media(max-width:850px){.games-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.games-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.games-heading{align-items:flex-start;flex-direction:column}.games-heading h1{font-size:24px}.games-section{padding:15px}.games-card-grid,.games-settings-grid{grid-template-columns:1fr}.games-option-card>p{min-height:0}}
 </style>
+
+<style id="clanMemberDirectoryStyles">
+.clan-directory-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start;padding:17px 0;border-top:1px solid #494a52}
+.clan-directory-info{min-width:0}.clan-directory-title{display:block;font-size:15px;color:#f0d18a;margin-bottom:6px}
+.clan-directory-info>p{margin:4px 0}.clan-member-count{display:inline-flex;margin-top:8px;padding:4px 9px;border-radius:20px;background:#414149;color:#e1d2a9;font-size:11px;font-weight:750}
+.clan-directory-card>.clan-list-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.clan-roster-toggle{min-height:40px;padding:9px 13px;border:1px solid #586b50;border-radius:9px;background:#343d35;color:#dcebd4;font-size:12px;font-weight:750}
+.clan-roster{grid-column:1/-1;min-width:0;margin-top:2px;padding:13px;border:1px solid #4b4c54;border-radius:11px;background:#2d2e34}
+.clan-roster[hidden]{display:none!important}.clan-roster-head{font-size:12px;font-weight:800;color:#e7d29e;margin-bottom:9px}
+.clan-roster-member{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #45464d}
+.clan-roster-member img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#414149}
+.clan-roster-name{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.clan-roster-name b{font-size:12px;overflow-wrap:anywhere}.clan-roster-name small{font-size:10px;color:#aeb0ba}
+.clan-roster-role{font-size:9px;font-weight:850;letter-spacing:.06em;color:#e7d29e;background:#494238;border:1px solid #66583c;border-radius:20px;padding:5px 8px;white-space:nowrap}
+@media(max-width:700px){.clan-directory-card{grid-template-columns:1fr}.clan-directory-card>.clan-list-actions{justify-content:flex-start}.clan-roster{grid-column:1}.clan-roster-member{gap:8px}}
+</style>
 </head>
 <body>
 <div class="shell">
@@ -1645,9 +1660,41 @@ document.getElementById('slashCommandsRefresh').addEventListener('click',loadSla
 <script>
 window.loadClansPanel=async function(){
  const list=document.getElementById('clanList');if(!list)return;list.innerHTML='<p class="metric-note">Loading clans…</p>';
- try{const token=sessionStorage.getItem('barracks_dashboard_access');const r=await fetch(API_BASE+'/api/dashboard/clans',{headers:{Authorization:'Bearer '+token}});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not load clans.');
- if(!d.clans.length){list.innerHTML='<p class="metric-note">No clans yet. Create the first Barracks clan above.</p>';return;}list.innerHTML='';
- d.clans.forEach(c=>{const card=document.createElement('div');card.style='display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:14px 0;border-top:1px solid #484950';const info=document.createElement('div');info.style='min-width:220px;flex:1';const title=document.createElement('b');title.textContent='['+c.tag+'] '+c.name;const desc=document.createElement('p');desc.className='metric-note';desc.style='margin:6px 0';desc.textContent=c.description||'No description provided.';const leader=document.createElement('p');leader.className='metric-note';leader.textContent='Leader: '+(c.leaderName||c.leaderId);info.append(title,desc,leader);const ids=document.createElement('p');ids.className='metric-note';ids.textContent='Role: '+c.roleId+' · Category: '+c.categoryId+' · Text: '+c.textChannelId+' · Voice: '+c.voiceChannelId;const actions=document.createElement('div');actions.className='clan-list-actions';const edit=document.createElement('button');edit.type='button';edit.className='clan-edit-action';edit.textContent='✏️ Edit Clan';edit.dataset.clanEditId=c.roleId||c.id;edit.dataset.clanName=c.name||'';edit.dataset.clanTag=c.tag||'';edit.dataset.clanLeader=c.leaderId||'';edit.dataset.clanViceLeader=c.viceLeaderId||'';edit.dataset.clanDescription=c.description||'';edit.dataset.clanRoleHex=c.roleHex||'#5865F2';edit.dataset.clanRules=c.rules||'';const del=document.createElement('button');del.type='button';del.className='clan-delete-action';del.textContent='🗑 Delete Clan';del.dataset.clanDeleteId=c.roleId||c.id;del.dataset.clanDeleteName=c.name||'';del.dataset.clanDeleteTag=c.tag||'';actions.append(edit);del.style.cssText='display:inline-flex!important;visibility:visible!important;opacity:1!important;align-items:center;justify-content:center;flex:0 0 auto;min-height:42px;padding:10px 16px;border:2px solid #e17a70;border-radius:9px;background:#542b29;color:#ffe2df;font-size:14px;font-weight:800;white-space:nowrap;cursor:pointer';const danger=document.createElement('div');danger.style.cssText='display:flex;align-items:center;gap:10px;flex:0 0 100%;width:100%;margin-top:10px;padding:10px 12px;border:1px solid #75413e;border-radius:9px;background:#392e30';const dangerLabel=document.createElement('span');dangerLabel.textContent='Clan management';dangerLabel.style.cssText='color:#d7b9b7;font-size:12px;font-weight:700;margin-right:auto';danger.append(dangerLabel,del);card.append(info,ids,actions,danger);list.append(card);});
+ try{
+  const token=sessionStorage.getItem('barracks_dashboard_access');
+  const r=await fetch(API_BASE+'/api/dashboard/clans',{headers:{Authorization:'Bearer '+token}});
+  const d=await r.json();if(!r.ok)throw Error(d.error||'Could not load clans.');
+  if(!d.clans.length){list.innerHTML='<p class="metric-note">No clans yet. Create the first Barracks clan above.</p>';return;}
+  list.innerHTML='';
+  d.clans.forEach(c=>{
+   const card=document.createElement('article');card.className='clan-directory-card';
+   const info=document.createElement('div');info.className='clan-directory-info';
+   const title=document.createElement('b');title.className='clan-directory-title';title.textContent='['+c.tag+'] '+c.name;
+   const desc=document.createElement('p');desc.className='metric-note';desc.textContent=c.description||'No description provided.';
+   const leader=document.createElement('p');leader.className='metric-note';leader.textContent='Leader: '+(c.leaderName||c.leaderId||'Not assigned');
+   const count=document.createElement('span');count.className='clan-member-count';count.textContent=(c.memberCount||0)+' members';
+   info.append(title,desc,leader,count);
+   const roster=document.createElement('div');roster.className='clan-roster';roster.hidden=true;
+   const rosterHead=document.createElement('div');rosterHead.className='clan-roster-head';rosterHead.textContent='👥 Clan Members ('+(c.memberCount||0)+')';
+   roster.append(rosterHead);
+   if(c.members?.length){
+    c.members.forEach(m=>{
+     const row=document.createElement('div');row.className='clan-roster-member';
+     const avatar=document.createElement('img');avatar.src=m.avatar;avatar.alt='';avatar.loading='lazy';
+     const name=document.createElement('div');name.className='clan-roster-name';const display=document.createElement('b');display.textContent=m.displayName;const username=document.createElement('small');username.textContent='@'+m.username;name.append(display,username);
+     const role=document.createElement('span');role.className='clan-roster-role';role.textContent=m.isLeader?'LEADER':m.isViceLeader?'VICE LEADER':'MEMBER';
+     row.append(avatar,name,role);roster.append(row);
+    });
+   }else{const empty=document.createElement('p');empty.className='metric-note';empty.textContent='No members are currently recorded for this clan.';roster.append(empty);}
+   const actions=document.createElement('div');actions.className='clan-list-actions';
+   const view=document.createElement('button');view.type='button';view.className='clan-roster-toggle';view.textContent='👥 View Members';view.setAttribute('aria-expanded','false');
+   view.addEventListener('click',()=>{roster.hidden=!roster.hidden;view.setAttribute('aria-expanded',String(!roster.hidden));view.textContent=roster.hidden?'👥 View Members':'✕ Hide Members';});
+   const edit=document.createElement('button');edit.type='button';edit.className='clan-edit-action';edit.textContent='✏️ Edit Clan';
+   edit.dataset.clanEditId=c.roleId||c.id;edit.dataset.clanName=c.name||'';edit.dataset.clanTag=c.tag||'';edit.dataset.clanLeader=c.leaderId||'';edit.dataset.clanViceLeader=c.viceLeaderId||'';edit.dataset.clanDescription=c.description||'';edit.dataset.clanRoleHex=c.roleHex||'#5865F2';edit.dataset.clanRules=c.rules||'';
+   const del=document.createElement('button');del.type='button';del.className='clan-delete-action';del.textContent='🗑 Delete Clan';del.dataset.clanDeleteId=c.roleId||c.id;del.dataset.clanDeleteName=c.name||'';del.dataset.clanDeleteTag=c.tag||'';
+   actions.append(view,edit,del);
+   card.append(info,actions,roster);list.append(card);
+  });
  }catch(e){list.innerHTML='<p style="color:#ff9a91"></p>';list.querySelector('p').textContent=e.message;}
 };
 document.getElementById('clanRefresh')?.addEventListener('click',()=>window.loadClansPanel());
