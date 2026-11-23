@@ -949,9 +949,9 @@ export function registerDashboardRoutes(app, bot) {
     await setInDb(key, entries);
   };
   const applyClanAutoNick = async (member) => {
-    const stateKey = \`guild:\${member.guild.id}:autonick_member:\${member.id}\`;
+    const stateKey = `guild:${member.guild.id}:autonick_member:${member.id}`;
     const previous = await getFromDb(stateKey, null);
-    const stored = await getFromDb(\`guild:\${member.guild.id}:autonick_roles\`, []);
+    const stored = await getFromDb(`guild:${member.guild.id}:autonick_roles`, []);
     const configs = (Array.isArray(stored) ? stored : [])
       .filter(entry => entry && typeof entry.roleId === 'string')
       .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
@@ -971,8 +971,8 @@ export function registerDashboardRoutes(app, bot) {
     let desired = base || null;
     if (active) {
       const template = typeof active.format === 'string' && active.format.includes('{username}')
-        ? active.format : \`\${String(active.prefix || '').trim()} {username}\`;
-      const taggedTemplate = active.tag && !/\bTAG\b/i.test(template) ? \`TAG \${template}\` : template;
+        ? active.format : `${String(active.prefix || '').trim()} {username}`;
+      const taggedTemplate = active.tag && !/\bTAG\b/i.test(template) ? `TAG ${template}` : template;
       desired = taggedTemplate.replace(/\bTAG\b/gi, String(active.tag || ''))
         .replace(/\{username\}/gi, base).replace(/\s+/g, ' ').trim().slice(0, 32);
       await setInDb(stateKey, { originalNickname: base, hadNickname: previous?.hadNickname ?? member.nickname != null, savedAt: previous?.savedAt || Date.now() });
