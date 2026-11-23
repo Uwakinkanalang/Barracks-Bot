@@ -309,6 +309,20 @@ export default {
 
             baseName = stripRankDecorations(baseName);
 
+            // Remove repeated copies of this member's clan tag from legacy/polluted
+            // nicknames before formatting. Support both "TAG | Name" and "TAG Name".
+            const currentClan = clanList.find((clan) =>
+              clan.status === 'approved' && clan.roleId && newMember.roles.cache.has(clan.roleId)
+            );
+            const currentClanTag = String(currentClan?.tag || '').trim();
+            if (currentClanTag) {
+              const escapedTag = currentClanTag.replace(/[.*+?^${}()|[\]\\]/g, '\\            baseName = stripRankDecorations(baseName);
+
+            const knownClanTags = clanList');
+              const repeatedTagPattern = new RegExp(`^(?:\\s*${escapedTag}\\s*(?:\\|\\s*)?)+`, 'u');
+              baseName = baseName.replace(repeatedTagPattern, '').trimStart();
+            }
+
             const knownClanTags = clanList
               .map((clan) => String(clan.tag || '').trim())
               .filter(Boolean)
