@@ -31,8 +31,9 @@ async function refreshAutoNickOnVoiceJoin(member) {
     const guildId = member.guild.id;
     const configsRaw = await member.client.db.get(`guild:${guildId}:autonick_roles`, []);
     const configs = (Array.isArray(configsRaw) ? configsRaw : [])
-        .filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
-        .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
+        .filter(entry => entry && typeof entry.roleId === 'string')
+        .map(entry => ({ ...entry, priority: Number(entry.priority) || 0 }))
+        .sort((a, b) => b.priority - a.priority);
 
     if (configs.length === 0) return;
 
@@ -40,36 +41,47 @@ async function refreshAutoNickOnVoiceJoin(member) {
     if (!activeConfig) return;
 
     const stateKey = `guild:${guildId}:autonick_member:${member.id}`;
-    let state = await member.client.db.get(stateKey, null);
-    let baseName = state && typeof state.originalNickname === 'string'
+    const state = await member.client.db.get(stateKey, null);
+    let baseName = typeof state?.originalNickname === 'string'
         ? state.originalNickname
         : (member.nickname ?? member.user.globalName ?? member.user.username);
 
-    baseName = String(baseName).replace(/^\[AFK\]\s*/u, '').trimStart();
+    baseName = String(baseName).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
 
-    // Normalize legacy or polluted saved state before applying the winning prefix.
-    const configuredPrefixes = configs
-        .map(entry => String(entry.prefix).trim())
-        .filter(Boolean)
-        .sort((a, b) => b.length - a.length);
-    let matchedPrefix;
+    // Remove legacy/current AutoNick tags and prefixes before formatting the winner.
+    const markers = [...new Set(configs.flatMap(entry =>
+        [entry.tag, entry.prefix].map(value => String(value || '').trim()).filter(Boolean)
+    ))].sort((a, b) => b.length - a.length);
+    let matched;
     do {
-        matchedPrefix = configuredPrefixes.find(prefix => baseName.startsWith(prefix));
-        if (matchedPrefix) baseName = baseName.slice(matchedPrefix.length).trimStart();
-    } while (matchedPrefix);
+        matched = markers.find(marker => baseName.toLowerCase().startsWith(marker.toLowerCase()));
+        if (matched) baseName = baseName.slice(matched.length).replace(/^[-_|:：\\s]+/u, '');
+    } while (matched);
 
-    if (!baseName.trim()) {
-        baseName = member.user.globalName || member.user.username;
-    }
+    if (!baseName.trim()) baseName = member.user.globalName || member.user.username;
 
-    state = { ...(state || {}), originalNickname: baseName, savedAt: state?.savedAt || Date.now() };
-    await member.client.db.set(stateKey, state);
+    const template = typeof activeConfig.format === 'string' && activeConfig.format.includes('{username}')
+        ? activeConfig.format
+        : `${String(activeConfig.prefix || '').trim()} {username}`;
+    const taggedTemplate = activeConfig.tag && !/\\bTAG\\b/i.test(template)
+        ? `TAG ${template}`
+        : template;
+    const desiredNickname = taggedTemplate
+        .replace(/\\bTAG\\b/gi, String(activeConfig.tag || ''))
+        .replace(/\\{username\\}/gi, baseName)
+        .replace(/\\s+/g, ' ')
+        .trim()
+        .slice(0, 32);
 
-    const desiredNickname = `${String(activeConfig.prefix).trim()} ${baseName}`.slice(0, 32);
+    await member.client.db.set(stateKey, {
+        originalNickname: baseName,
+        hadNickname: state?.hadNickname ?? member.nickname != null,
+        savedAt: state?.savedAt || Date.now(),
+    });
+
     const afkKey = getAFKKey(guildId, member.id);
     const afkStatus = await member.client.db.get(afkKey, null);
-    let finalNickname = desiredNickname;
-
+    let finalNickname = desiredNickname || null;
     if (afkStatus) {
         afkStatus.originalNickname = desiredNickname;
         afkStatus.afkNickname = `[AFK] ${desiredNickname}`.slice(0, 32);
