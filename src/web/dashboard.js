@@ -1232,10 +1232,45 @@ export function registerDashboardRoutes(app, bot) {
       clans[index] = updated;
       await setInDb(clanStorageKey(guild.id), clans);
 
-      // Keep this clan's shared AutoNick role entry in sync with the edited tag.
+      // Keep the clan AutoNick entry in sync and replace the old tag on every current clan member.
       await registerClanAutoNick(guild, role, tag, autoNickFormat);
-      const clanMembers = [...role.members.values()];
-      await Promise.allSettled(clanMembers.map(member => applyClanAutoNick(member, tag, autoNickFormat)));
+      const autoNickKey = `guild:${guild.id}:autonick_roles`;
+      const autoNickConfigs = await getFromDb(autoNickKey, []);
+      const configs = (Array.isArray(autoNickConfigs) ? autoNickConfigs : [])
+        .filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
+        .map(entry => ({ ...entry, priority: Number(entry.priority) || 0 }))
+        .sort((a, b) => b.priority - a.priority);
+      const clanMembers = await guild.members.fetch({ withPresences: false }).catch(() => null);
+      const membersToUpdate = clanMembers
+        ? [...clanMembers.values()].filter(member => member.roles.cache.has(role.id))
+        : [...role.members.values()];
+      await Promise.allSettled(membersToUpdate.map(async member => {
+        const stateKey = `guild:${guild.id}:autonick_member:${member.id}`;
+        const state = await getFromDb(stateKey, null);
+        let base = typeof state?.originalNickname === 'string'
+          ? state.originalNickname
+          : (member.nickname ?? member.user.globalName ?? member.user.username);
+        const oldTag = String(current.tag || '').trim();
+        if (oldTag && base.toLowerCase().startsWith(oldTag.toLowerCase())) {
+          base = base.slice(oldTag.length).replace(/^[-_|:：\s]+/, '');
+        }
+        base = String(base).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+        if (!base) base = member.user.globalName || member.user.username;
+        await setInDb(stateKey, { originalNickname: base, savedAt: state?.savedAt || Date.now() });
+        const active = configs.find(entry => member.roles.cache.has(entry.roleId));
+        let desired = null;
+        if (active) {
+          const template = typeof active.format === 'string' && active.format.includes('{username}')
+            ? active.format
+            : `${String(active.prefix || '').trim()} {username}`;
+          desired = template.replace(/\\bTAG\\b/gi, String(active.tag || ''))
+            .replace(/\\{username\\}/gi, base).replace(/\\s+/g, ' ').trim().slice(0, 32);
+        } else {
+          desired = base || null;
+          await bot.db?.delete?.(stateKey).catch(() => {});
+        }
+        if (member.nickname !== desired) await member.setNickname(desired, 'Update clan AutoNick after clan tag edit');
+      }));
 
       return res.json({ ok: true, clan: updated });
     } catch (error) {
