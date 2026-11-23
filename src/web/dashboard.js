@@ -1111,7 +1111,7 @@ export function registerDashboardRoutes(app, bot) {
     const description = String(req.body?.description || '').trim();
     const rules = String(req.body?.rules || '').trim();
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
-    if (Array.from(tag).length < 1 || Array.from(tag).length > 5) return res.status(400).json({ error: 'Clan tag must be 1–5 characters. Letters, numbers, symbols, and emoji are accepted.' });
+    if (!/^\p{L}+$/u.test(tag)) return res.status(400).json({ error: 'Clan tag must contain letters only, with no spaces.' });
     const autoNickFormat = `${tag} {username}`;
     const fixedAutoNickFormat = 'TAG ⚔ ★ {username}';
     if (!roleHex) return res.status(400).json({ error: 'Role Hex Code must be a valid six-digit color, such as #5865F2.' });
