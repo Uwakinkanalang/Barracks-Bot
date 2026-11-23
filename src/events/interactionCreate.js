@@ -1218,7 +1218,7 @@ export default {
 
                 const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
                   .setColor(Number.parseInt((reviewedClan.roleHex || '#5865F2').slice(1), 16))
-                  .setTitle(`🏰 ${reviewedClan.name} [${reviewedClan.tag}]`)
+                  .setTitle(`🏰 ${reviewedClan.name}`)
                   .addFields(
                     { name: '📝 Status', value: `✅ Approved by <@${interaction.user.id}>`, inline: true },
                     { name: '🎭 Clan Role', value: `<@&${clanRole.id}>`, inline: true },
@@ -1765,8 +1765,8 @@ export default {
                     .setDescription('A new clan registration is awaiting review. Please check the details below.')
                     .addFields(
                       { name: '🏷️ REQUESTED CLAN TAG', value: `> **${safeClanTag}**`, inline: false },
-                      { name: '👑 CLAN LEADER', value: `<@${interaction.user.id}>\\n` + '`' + `${interaction.user.id}` + '`', inline: true },
-                      { name: '🛡️ VICE CLAN LEADER', value: `<@${viceLeaderId}>\\n` + '`' + `${viceLeaderId}` + '`', inline: true },
+                      { name: '👑 CLAN LEADER', value: `<@${interaction.user.id}>\n` + '`' + `${interaction.user.id}` + '`', inline: true },
+                      { name: '🛡️ VICE CLAN LEADER', value: `<@${viceLeaderId}>\n` + '`' + `${viceLeaderId}` + '`', inline: true },
                       { name: '🎨 ROLE COLOR', value: `\`${roleHex}\``, inline: true },
                       { name: '📝 STATUS', value: '⏳ Awaiting approval', inline: true },
                       { name: '📨 SUBMITTED BY', value: `<@${interaction.user.id}>`, inline: true },
@@ -1792,7 +1792,7 @@ export default {
             const confirmationEmbed = new EmbedBuilder()
               .setColor(Number.parseInt(roleHex.slice(1), 16))
               .setAuthor({ name: 'BARRACKS • CLAN REGISTRY' })
-              .setTitle(`⏳ ${name} [${tag}] Submitted for Approval`)
+              .setTitle(`⏳ ${name} — Submitted for Approval`)
               .setDescription('Your clan registration has been saved.')
               .addFields(
                 { name: '👑 Clan Leader', value: `<@${interaction.user.id}>`, inline: true },
