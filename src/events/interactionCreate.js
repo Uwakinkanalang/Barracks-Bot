@@ -1013,7 +1013,7 @@ export default {
             const { ModalBuilder, LabelBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
             const modal = new ModalBuilder()
               .setCustomId('clan:create:step1')
-              .setTitle('Create Clan • Step 1 of 2')
+              .setTitle('Create a Clan')
               .addLabelComponents(
                 new LabelBuilder()
                   .setLabel('Clan Name')
@@ -1675,7 +1675,7 @@ export default {
             const rawTagInput = interaction.fields.getTextInputValue('clan_tag').trim();
             const roleHexInput = interaction.fields.getTextInputValue('clan_role_hex').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
-            const tag = rawTagInput ? rawTagInput.toUpperCase() : null;
+            const tag = rawTagInput ? rawTagInput.normalize('NFC') : null;
             const autoNickFormat = `TAG {username}`;
             const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
             const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
@@ -1707,7 +1707,7 @@ export default {
             const storageKey = `guild:${interaction.guildId}:clans`;
             const clans = await interaction.client.db.get(storageKey, []);
             const clanList = Array.isArray(clans) ? clans : [];
-            const duplicate = clanList.find(clan => clan.tag?.toUpperCase() === tag || clan.name?.toLowerCase() === name.toLowerCase());
+            const duplicate = clanList.find(clan => String(clan.tag || '').normalize('NFC').toLocaleUpperCase() === tag.toLocaleUpperCase() || clan.name?.toLowerCase() === name.toLowerCase());
             if (duplicate) {
               await interaction.reply({ content: 'A clan with that name or tag already exists in this server. Please choose another.', flags: MessageFlags.Ephemeral });
               return;
@@ -1764,7 +1764,7 @@ export default {
                     .addFields(
                       { name: '👑 Clan Leader', value: `<@${interaction.user.id}>\n` + '`' + `${interaction.user.id}` + '`', inline: true },
                       { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>\n` + '`' + `${viceLeaderId}` + '`', inline: true },
-                      { name: '🏷️ Clan Tag', value: '`' + tag + '`', inline: true },
+                      { name: '🏷️ Requested Clan Tag', value: `**${tag.replace(/`/g, 'ˋ')}**`, inline: false },
                       { name: '🎨 Role Color', value: '`' + roleHex + '`', inline: true },
                       { name: '📝 Status', value: '⏳ Awaiting approval', inline: true },
                       { name: '📨 Submitted By', value: `<@${interaction.user.id}>`, inline: true },
@@ -1795,7 +1795,7 @@ export default {
               .addFields(
                 { name: '👑 Clan Leader', value: `<@${interaction.user.id}>`, inline: true },
                 { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>`, inline: true },
-                { name: '🏷️ Clan Tag', value: '`' + tag + '`', inline: true },
+                { name: '🏷️ Requested Clan Tag', value: `**${tag.replace(/`/g, 'ˋ')}**`, inline: true },
                 { name: '🎨 Role Color', value: '`' + roleHex + '`', inline: true },
               )
               .setFooter({ text: 'Barracks • Clan Registry' })
