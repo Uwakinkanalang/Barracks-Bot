@@ -236,9 +236,19 @@ export default {
             let autoNickState = changedAutoNickRole
               ? await newMember.client.db.get(autoNickStateKey, null)
               : null;
-            let baseName = autoNickState && typeof autoNickState.originalNickname === 'string'
-              ? autoNickState.originalNickname
-              : (newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
+            // Capture the exact server nickname before the first AutoNick role is applied.
+          // Keep null when the member had no server nickname so removal restores that state too.
+          if (changedAutoNickRole && activeAutoNick && !autoNickState) {
+            autoNickState = {
+              originalNickname: oldMember.nickname ?? null,
+              hadNickname: oldMember.nickname != null,
+              savedAt: Date.now(),
+            };
+            await newMember.client.db.set(autoNickStateKey, autoNickState);
+          }
+          let baseName = autoNickState && typeof autoNickState.originalNickname === 'string'
+            ? autoNickState.originalNickname
+            : (newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
             baseName = baseName.replace(/^\[AFK\]\s*/u, '');
             const knownDepartmentPrefixes = legacyDepartmentPrefixes
               .slice()
@@ -323,10 +333,6 @@ export default {
               : baseName.trimStart();
 
             const clanTag = memberClan ? String(memberClan.tag || '').trim() : '';
-            if (changedAutoNickRole && activeAutoNick && !autoNickState) {
-              autoNickState = { originalNickname: baseName.trimStart(), savedAt: Date.now() };
-              await newMember.client.db.set(autoNickStateKey, autoNickState);
-            }
             const autoNickTemplate = activeAutoNick
               ? (typeof activeAutoNick.format === 'string' && activeAutoNick.format.includes('{username}')
                   ? activeAutoNick.format
@@ -343,7 +349,7 @@ export default {
             let desiredNickname = activeAutoNick
               ? formattedAutoNick
               : changedAutoNickRole && autoNickState
-                ? (autoNickState.originalNickname || null)
+                ? (autoNickState.hadNickname === false ? null : autoNickState.originalNickname)
                 : memberClan
                   ? `${clanTag}| ${baseName.trimStart()}`.slice(0, 32)
                   : rankDisplayName
