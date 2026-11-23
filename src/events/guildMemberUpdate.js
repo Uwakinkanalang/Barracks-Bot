@@ -121,16 +121,19 @@ export default {
         if (activeAutoNick) {
           const stateKey = `guild:${newMember.guild.id}:autonick_member:${newMember.id}`;
           const savedState = await newMember.client.db.get(stateKey, null);
-          const savedBaseName = typeof savedState?.originalNickname === 'string'
-            ? savedState.originalNickname
-            : (newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
+          // Clearing the server nickname is an explicit reset: use the
+          // account display name as the base and recalculate the best matching
+          // /autonick rule from the member's currently assigned roles.
+          const savedBaseName = newMember.nickname === null
+            ? (newMember.user.globalName || newMember.user.username)
+            : (savedState?.originalNickname ?? newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
           const expectedTemplate = typeof activeAutoNick.format === 'string' && activeAutoNick.format.includes('{username}')
             ? activeAutoNick.format
             : `${String(activeAutoNick.prefix || '').trim()} {username}`;
           const expectedNickname = expectedTemplate
-            .replace(/\\bTAG\\b/gi, String(activeAutoNick.tag || ''))
-            .replace(/\\{username\\}/gi, savedBaseName)
-            .replace(/\\s+/g, ' ')
+            .replace(/\bTAG\b/gi, String(activeAutoNick.tag || ''))
+            .replace(/\{username\}/gi, savedBaseName)
+            .replace(/\s+/g, ' ')
             .trim()
             .slice(0, 32);
           const isAutoNickBotUpdate = newMember.nickname === expectedNickname ||
@@ -140,7 +143,9 @@ export default {
           if (!isAutoNickBotUpdate) {
           const currentNickname = String(newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
           const hadAfkMarker = /^\[AFK\]\s*/u.test(currentNickname);
-          let baseName = currentNickname.replace(/^\[AFK\]\s*/u, '').trimStart();
+          let baseName = (newMember.nickname === null
+            ? (newMember.user.globalName || newMember.user.username)
+            : currentNickname).replace(/^\[AFK\]\s*/u, '').trimStart();
           const configuredPrefixes = autoNickConfigs
             .map((entry) => String(entry.prefix).trim())
             .filter(Boolean)
