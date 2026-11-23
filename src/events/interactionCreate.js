@@ -1023,8 +1023,8 @@ export default {
                   .setTextInputComponent(new TextInputBuilder().setCustomId('clan_name').setStyle(TextInputStyle.Short).setMaxLength(32).setRequired(true)),
                 new LabelBuilder()
                   .setLabel('Clan Tag')
-                  .setDescription('1–6 characters; letters, numbers, symbols, or emoji. No spaces.')
-                  .setTextInputComponent(new TextInputBuilder().setCustomId('clan_tag').setStyle(TextInputStyle.Short).setPlaceholder('★').setMaxLength(12).setRequired(true)),
+                  .setDescription('Letters only. No spaces or fixed length.')
+                  .setTextInputComponent(new TextInputBuilder().setCustomId('clan_tag').setStyle(TextInputStyle.Short).setPlaceholder('★').setMaxLength(100).setRequired(true)),
                 new LabelBuilder()
                   .setLabel('Role Hex')
                   .setDescription('Six-digit color code, for example #5865F2.')
@@ -1621,8 +1621,7 @@ export default {
             const rawTagInput = interaction.fields.getTextInputValue('clan_tag').trim();
             const roleHexInput = interaction.fields.getTextInputValue('clan_role_hex').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
-            const tagLength = Array.from(rawTagInput).length;
-            const validTag = tagLength >= 1 && tagLength <= 6 && /^[\p{L}\p{N}\p{S}\p{P}\p{M}]+$/u.test(rawTagInput);
+            const validTag = /^[\p{L}]+$/u.test(rawTagInput);
             const tag = validTag ? rawTagInput.toUpperCase() : null;
             const autoNickFormat = `${tag} {username}`;
             const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
@@ -1638,7 +1637,7 @@ export default {
               return;
             }
             if (!validTag || !tag) {
-              await interaction.reply({ content: 'Clan Tag must be 1–6 characters with no spaces. Letters, numbers, symbols, and emoji are allowed.', flags: MessageFlags.Ephemeral });
+              await interaction.reply({ content: 'Clan Tag must contain letters only, with no spaces.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!roleHex) {
