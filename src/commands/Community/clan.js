@@ -189,7 +189,7 @@ export default {
       const panelEmbed = new EmbedBuilder()
         .setColor(0x5865F2)
         .setTitle('🛡️ BARRACKS • CLAN MEMBER PANEL')
-        .setDescription('Your squad information hub. Members of an approved clan can use these buttons to check their clan details, roster, and rules.')
+        .setDescription('Your squad information hub. Members of an approved clan can check their clan details, roster, rules, or leave their clan.')
         .addFields(
           { name: '🏰 Clan Details', value: 'View your clan information.', inline: true },
           { name: '👥 Clan Members', value: 'See who is in your squad.', inline: true },
@@ -199,7 +199,8 @@ export default {
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('clan:member:details').setLabel('Clan Details').setEmoji('🏰').setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId('clan:member:members').setLabel('Members').setEmoji('👥').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('clan:member:rules').setLabel('Clan Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId('clan:member:rules').setLabel('Clan Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('clan:leave:open').setLabel('Leave Clan').setEmoji('🚪').setStyle(ButtonStyle.Danger)
       );
       await channel.send({ embeds: [panelEmbed], components: [row] });
       return interaction.reply({ content: `✅ Clan Member Panel posted in <#${channel.id}>. Any member of an approved clan can use it.`, flags: MessageFlags.Ephemeral });
