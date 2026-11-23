@@ -1631,20 +1631,18 @@ export default {
             const rawTagInput = interaction.fields.getTextInputValue('clan_tag').trim();
             const roleHexInput = interaction.fields.getTextInputValue('clan_role_hex').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
-            const validTag = rawTagInput.length > 0;
-            const tag = validTag ? rawTagInput.toUpperCase() : null;
-            const autoNickFormat = `${tag} {username}`;
+            const tag = rawTagInput ? rawTagInput.toUpperCase() : null;
+            const autoNickFormat = `TAG {username}`;
             const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
             const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
-            const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\d{17,20})>?$/)?.[1];
+            const viceLeaderId = viceLeaderInput.match(/^(?:<@!?)?(\\d{17,20})>?$/)?.[1];
 
             const nameSegments = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(name)];
-            const hasInvalidControlCharacters = /\p{Cc}/u.test(name);
-            if (!name || nameSegments.length > 32 || hasInvalidControlCharacters) {
+            if (!name || nameSegments.length > 32 || /\\p{Cc}/u.test(name)) {
               await interaction.reply({ content: 'Please enter a Clan Name using up to 32 characters. Letters, numbers, symbols, emojis, and spaces are all allowed.', flags: MessageFlags.Ephemeral });
               return;
             }
-            if (!validTag || !tag) {
+            if (!tag) {
               await interaction.reply({ content: 'Please enter a Clan Tag.', flags: MessageFlags.Ephemeral });
               return;
             }
@@ -1661,6 +1659,7 @@ export default {
               await interaction.reply({ content: 'I could not find that server member. Please check the Vice Clan Leader mention or ID.', flags: MessageFlags.Ephemeral });
               return;
             }
+
             const storageKey = `guild:${interaction.guildId}:clans`;
             const clans = await interaction.client.db.get(storageKey, []);
             const clanList = Array.isArray(clans) ? clans : [];
@@ -1671,74 +1670,6 @@ export default {
             }
             const existingClan = clanList.find(clan => clan.leaderId === interaction.user.id);
             if (existingClan) {
-              await interaction.reply({ content: `You already lead **${existingClan.name}** [${existingClan.tag}].`, flags: MessageFlags.Ephemeral });
-              return;
-            }
-            await interaction.client.db.set(`guild:${interaction.guildId}:clan_create_draft:${interaction.user.id}`, {
-              name, tag, roleHex, autoNickFormat, viceLeaderId, createdAt: Date.now()
-            });
-            const { ModalBuilder, LabelBuilder, TextInputBuilder, TextInputStyle, FileUploadBuilder } = await import('discord.js');
-            const secondModal = new ModalBuilder()
-              .setCustomId('clan:create:step2')
-              .setTitle('Create Clan • Step 2 of 2')
-              .addLabelComponents(
-                new LabelBuilder()
-                  .setLabel('Clan Description')
-                  .setDescription('Describe your clan (up to 500 characters).')
-                  .setTextInputComponent(new TextInputBuilder().setCustomId('clan_description').setStyle(TextInputStyle.Paragraph).setMaxLength(500).setRequired(true)),
-                new LabelBuilder()
-                  .setLabel('Clan Rules')
-                  .setDescription('Write the rules members must follow (up to 1000 characters).')
-                  .setTextInputComponent(new TextInputBuilder().setCustomId('clan_rules').setStyle(TextInputStyle.Paragraph).setMaxLength(1000).setRequired(true)),
-                new LabelBuilder()
-                  .setLabel('Clan Logo')
-                  .setDescription('Upload your clan logo image (PNG, JPG, GIF, WEBP, or AVIF).')
-                  .setFileUploadComponent(new FileUploadBuilder().setCustomId('clan_logo').setMinValues(1).setMaxValues(1).setRequired(true))
-              );
-            await interaction.showModal(secondModal);
-            return;
-          }
-
-          if (interaction.customId === 'clan:create:step2') {
-            const draftKey = `guild:${interaction.guildId}:clan_create_draft:${interaction.user.id}`;
-            const draft = await interaction.client.db.get(draftKey, null);
-            if (!draft || Date.now() - draft.createdAt > 30 * 60 * 1000) {
-              await interaction.client.db.delete(draftKey).catch(() => {});
-              await interaction.reply({ content: 'Your clan creation session expired. Please open the Create a Clan panel again.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            const { name, tag, roleHex, autoNickFormat = 'TAG {username}', viceLeaderId } = draft;
-            const description = interaction.fields.getTextInputValue('clan_description').trim();
-            const clanRules = interaction.fields.getTextInputValue('clan_rules').trim();
-            if (!clanRules) {
-              await interaction.reply({ content: 'Please enter your Clan Rules.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            const uploadedFiles = interaction.fields.getUploadedFiles('clan_logo');
-            const logoAttachment = uploadedFiles?.first?.() || null;
-            if (!logoAttachment) {
-              await interaction.reply({ content: 'Please upload your clan logo before submitting the registration.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif'];
-            const extension = logoAttachment.name?.slice(logoAttachment.name.lastIndexOf('.')).toLowerCase();
-            if (!logoAttachment.contentType?.startsWith('image/') || !allowedExtensions.includes(extension)) {
-              await interaction.reply({ content: 'The clan logo must be an image file (PNG, JPG, GIF, WEBP, or AVIF).', flags: MessageFlags.Ephemeral });
-              return;
-            }
-
-            const storageKey = `guild:${interaction.guildId}:clans`;
-            const clans = await interaction.client.db.get(storageKey, []);
-            const clanList = Array.isArray(clans) ? clans : [];
-            const duplicate = clanList.find(clan => clan.tag?.toUpperCase() === tag || clan.name?.toLowerCase() === name.toLowerCase());
-            if (duplicate) {
-              await interaction.client.db.delete(draftKey).catch(() => {});
-              await interaction.reply({ content: 'A clan with that name or tag already exists in this server. Please choose another.', flags: MessageFlags.Ephemeral });
-              return;
-            }
-            const existingClan = clanList.find(clan => clan.leaderId === interaction.user.id);
-            if (existingClan) {
-              await interaction.client.db.delete(draftKey).catch(() => {});
               await interaction.reply({ content: `You already lead **${existingClan.name}** [${existingClan.tag}].`, flags: MessageFlags.Ephemeral });
               return;
             }
@@ -1760,8 +1691,8 @@ export default {
               id: `clan_${Date.now()}_${interaction.user.id}`,
               name,
               tag,
-              description,
-              rules: clanRules,
+              description: '',
+              rules: '',
               leaderId: interaction.user.id,
               viceLeaderId,
               memberIds: [],
@@ -1775,7 +1706,6 @@ export default {
             };
             clanList.push(clan);
             await interaction.client.db.set(storageKey, clanList);
-            await interaction.client.db.delete(draftKey).catch(() => {});
 
             const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
             const logChannelId = await interaction.client.db.get(`guild:${interaction.guildId}:clan_log_channel`, null);
@@ -1787,12 +1717,11 @@ export default {
                     .setColor(Number.parseInt(roleHex.slice(1), 16))
                     .setAuthor({ name: 'BARRACKS • CLAN REGISTRY', iconURL: interaction.guild.iconURL({ size: 128 }) || undefined })
                     .setTitle(`🏰 ${name} [${tag}]`)
-                    .setDescription(`**CLAN DESCRIPTION**\n${description}\n\n**CLAN RULES**\n${clanRules}`)
                     .addFields(
-                      { name: '👑 Clan Leader', value: `<@${interaction.user.id}>\n` + '`' + `${interaction.user.id}` + '`', inline: true },
-                      { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>\n` + '`' + `${viceLeaderId}` + '`', inline: true },
-                      { name: '🏷️ Clan Tag', value: `\`${tag}\``, inline: true },
-                      { name: '🎨 Role Color', value: `\`${roleHex}\``, inline: true },
+                      { name: '👑 Clan Leader', value: `<@${interaction.user.id}>\\n` + '`' + `${interaction.user.id}` + '`', inline: true },
+                      { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>\\n` + '`' + `${viceLeaderId}` + '`', inline: true },
+                      { name: '🏷️ Clan Tag', value: `\\`${tag}\\``, inline: true },
+                      { name: '🎨 Role Color', value: `\\`${roleHex}\\``, inline: true },
                       { name: '📝 Status', value: '⏳ Awaiting approval', inline: true },
                       { name: '📨 Submitted By', value: `<@${interaction.user.id}>`, inline: true },
                     )
@@ -1803,10 +1732,7 @@ export default {
                     new ButtonBuilder().setCustomId(`clan:review:approve:${clan.id}`).setLabel('Approve Clan').setEmoji('✅').setStyle(ButtonStyle.Success),
                     new ButtonBuilder().setCustomId(`clan:review:reject:${clan.id}`).setLabel('Reject Clan').setEmoji('❌').setStyle(ButtonStyle.Danger),
                   );
-                  const logPayload = { embeds: [logEmbed], components: approverRoleId ? [reviewRow] : [] };
-                  logEmbed.setImage(`attachment://${logoAttachment.name}`);
-                  logPayload.files = [{ attachment: logoAttachment.url, name: logoAttachment.name }];
-                  await logChannel.send(logPayload);
+                  await logChannel.send({ embeds: [logEmbed], components: approverRoleId ? [reviewRow] : [] });
                 } else {
                   logger.warn('Configured clan log channel is unavailable or not text-based.', { guildId: interaction.guildId, channelId: logChannelId });
                 }
@@ -1821,16 +1747,15 @@ export default {
               .setColor(Number.parseInt(roleHex.slice(1), 16))
               .setAuthor({ name: 'BARRACKS • CLAN REGISTRY' })
               .setTitle(`⏳ ${name} [${tag}] Submitted for Approval`)
-              .setDescription(`Your clan registration has been saved.\n\n**Clan Description**\n${description}\n\n**Clan Rules**\n${clanRules}`)
+              .setDescription('Your clan registration has been saved.')
               .addFields(
                 { name: '👑 Clan Leader', value: `<@${interaction.user.id}>`, inline: true },
                 { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>`, inline: true },
-                { name: '🏷️ Clan Tag', value: `\`${tag}\``, inline: true },
-                { name: '🎨 Role Color', value: `\`${roleHex}\``, inline: true },
+                { name: '🏷️ Clan Tag', value: `\\`${tag}\\``, inline: true },
+                { name: '🎨 Role Color', value: `\\`${roleHex}\\``, inline: true },
               )
               .setFooter({ text: 'Barracks • Clan Registry' })
-              .setTimestamp()
-              .setThumbnail(logoAttachment.url);
+              .setTimestamp();
             await interaction.editReply({
               content: logChannelId
                 ? 'Your clan registration was submitted and is awaiting approval!'
