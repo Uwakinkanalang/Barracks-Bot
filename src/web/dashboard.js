@@ -393,7 +393,7 @@ export function registerDashboardRoutes(app, bot) {
         ...rule, source: 'dashboard', roleName: rule.roleId ? (guild.roles.cache.get(rule.roleId)?.name || 'Deleted role') : null
       }));
       const slashRules = (Array.isArray(slashStored) ? slashStored : []).map(rule => ({
-        id: `slash-role:${rule.roleId}`, nickname: rule.prefix, format: 'none', type: 'role', roleId: rule.roleId,
+        id: `slash-role:${rule.roleId}`, nickname: rule.tag ? String(rule.tag) : String(rule.prefix || ''), format: rule.tag ? 'clan-tag' : 'none', type: 'role', roleId: rule.roleId,
         priority: Number(rule.priority) || 0, source: 'slash', roleName: guild.roles.cache.get(rule.roleId)?.name || 'Deleted role'
       }));
       const rules = [...dashboardRules, ...slashRules];
@@ -940,7 +940,7 @@ export function registerDashboardRoutes(app, bot) {
   const registerClanAutoNick = async (guild, role, tag, format = 'TAG {username}') => {
     const key = 'guild:' + guild.id + ':autonick_roles';
     const stored = await getFromDb(key, []);
-    const entries = Array.isArray(stored) ? stored.filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string') : [];
+    const entries = Array.isArray(stored) ? stored.filter(entry => entry && typeof entry.roleId === 'string') : [];
     const safeFormat = String(format || 'TAG {username}').trim().slice(0, 32);
     const existing = entries.find(entry => entry.roleId === role.id);
     if (existing) Object.assign(existing, { prefix: '', format: safeFormat, tag: String(tag), priority: 50 });
