@@ -160,7 +160,6 @@ export default {
         .setDescription('Your command post for managing your clan. Only the Clan Leader and Vice Clan Leader of an approved clan can use these controls.')
         .addFields(
           { name: '👥 Manage Members', value: 'View your clan roster.', inline: true },
-          { name: '🏦 Clan Bank', value: 'Check funds and deposit or withdraw bCash.', inline: true },
           { name: '📜 Transactions', value: 'Review the latest bank activity.', inline: true },
           { name: '📨 Join Requests', value: 'Check pending applications.', inline: true },
           { name: '⚙️ Clan Settings', value: 'View your clan details and rules.', inline: true },
@@ -168,7 +167,6 @@ export default {
         .setFooter({ text: 'Barracks • Leadership Command' });
       const row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('clan:leader:members').setLabel('View Members').setEmoji('👥').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('clan:leader:bank').setLabel('Clan Bank').setEmoji('🏦').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId('clan:leader:transactions').setLabel('Transactions').setEmoji('📜').setStyle(ButtonStyle.Secondary)
       );
       const row2 = new ActionRowBuilder().addComponents(
@@ -193,18 +191,16 @@ export default {
       const panelEmbed = new EmbedBuilder()
         .setColor(0x5865F2)
         .setTitle('🛡️ BARRACKS • CLAN MEMBER PANEL')
-        .setDescription('Your squad information hub. Members of an approved clan can use these buttons to check their clan details, roster, shared bank balance, and rules.')
+        .setDescription('Your squad information hub. Members of an approved clan can use these buttons to check their clan details, roster, and rules.')
         .addFields(
           { name: '🏰 Clan Details', value: 'View your clan information.', inline: true },
           { name: '👥 Clan Members', value: 'See who is in your squad.', inline: true },
-          { name: '🏦 Clan Bank', value: 'Check your clan’s shared funds.', inline: true },
           { name: '📜 Clan Rules', value: 'Review the rules of your squad.', inline: true }
         )
         .setFooter({ text: 'Barracks • Member Command Post' });
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('clan:member:details').setLabel('Clan Details').setEmoji('🏰').setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId('clan:member:members').setLabel('Members').setEmoji('👥').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('clan:member:bank').setLabel('Clan Bank').setEmoji('🏦').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId('clan:member:rules').setLabel('Clan Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary)
       );
       await channel.send({ embeds: [panelEmbed], components: [row] });
