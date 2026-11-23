@@ -7,7 +7,7 @@ import { getGuildConfig } from '../../services/config/guildConfig.js';
 
 const CONFIG_KEY = (guildId) => `guild:${guildId}:autonick_roles`;
 const DEFAULT_SERVER_MANAGER_ROLE_IDS = ['1466364437622423694'];
-const normalize = (items) => (Array.isArray(items) ? items : []).filter((x) => x && typeof x.roleId === 'string' && typeof x.prefix === 'string').map((x) => ({ roleId: x.roleId, prefix: x.prefix, priority: Number(x.priority) || 0 })).sort((a, b) => b.priority - a.priority);
+const normalize = (items) => (Array.isArray(items) ? items : []).filter((x) => x && typeof x.roleId === 'string').map((x) => ({ ...x, prefix: String(x.prefix ?? ''), priority: Number(x.priority) || 0 })).sort((a, b) => b.priority - a.priority);
 
 async function refreshGuildAutoNick(guild, configs, prefixesToStrip = configs.map(entry => entry.prefix)) {
   const client = guild.client;
@@ -70,7 +70,16 @@ async function refreshGuildAutoNick(guild, configs, prefixesToStrip = configs.ma
     let desired;
     if (active) {
       await client.db.set(stateKey, { originalNickname: base, savedAt: state?.savedAt || Date.now() });
-      desired = `${active.prefix.trim()} ${base}`.slice(0, 32);
+      const template = typeof active.format === 'string' && active.format.includes('{username}')
+        ? active.format
+        : `${String(active.prefix || '').trim()} {username}`;
+      const taggedTemplate = active.tag && !/\bTAG\b/i.test(template) ? `TAG ${template}` : template;
+      desired = taggedTemplate
+        .replace(/\bTAG\b/gi, String(active.tag || ''))
+        .replace(/\{username\}/gi, base)
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 32);
     } else if (state) {
       desired = base || null;
       await client.db.delete(stateKey).catch(() => {});
