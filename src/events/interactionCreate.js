@@ -1760,7 +1760,8 @@ export default {
                   const logEmbed = new EmbedBuilder()
                     .setColor(Number.parseInt(roleHex.slice(1), 16))
                     .setAuthor({ name: 'BARRACKS • CLAN REGISTRY', iconURL: interaction.guild.iconURL({ size: 128 }) || undefined })
-                    .setTitle(`🏰 ${name} [${tag}]`)
+                    .setTitle(`🏰 ${name}`)
+                    .setDescription(`**Requested Clan Tag**\n${tag}`)
                     .addFields(
                       { name: '👑 Clan Leader', value: `<@${interaction.user.id}>\n` + '`' + `${interaction.user.id}` + '`', inline: true },
                       { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>\n` + '`' + `${viceLeaderId}` + '`', inline: true },
@@ -1776,7 +1777,7 @@ export default {
                     new ButtonBuilder().setCustomId(`clan:review:approve:${clan.id}`).setLabel('Approve Clan').setEmoji('✅').setStyle(ButtonStyle.Success),
                     new ButtonBuilder().setCustomId(`clan:review:reject:${clan.id}`).setLabel('Reject Clan').setEmoji('❌').setStyle(ButtonStyle.Danger),
                   );
-                  await logChannel.send({ embeds: [logEmbed], components: approverRoleId ? [reviewRow] : [] });
+                  await logChannel.send({ embeds: [logEmbed], components: approverRoleId ? [reviewRow] : [], allowedMentions: { parse: [] } });
                 } else {
                   logger.warn('Configured clan log channel is unavailable or not text-based.', { guildId: interaction.guildId, channelId: logChannelId });
                 }
