@@ -139,7 +139,15 @@ export default {
             savedAt: Date.now(),
           });
 
-          const desiredBase = `${activeAutoNick.prefix.trim()} ${baseName}`.slice(0, 32);
+          const autoNickTemplate = typeof activeAutoNick.format === 'string' && activeAutoNick.format.includes('{username}')
+            ? activeAutoNick.format
+            : `${String(activeAutoNick.prefix || '').trim()} {username}`;
+          const desiredBase = autoNickTemplate
+            .replace(/\\bTAG\\b/gi, String(activeAutoNick.tag || ''))
+            .replace(/\\{username\\}/gi, baseName)
+            .replace(/\\s+/g, ' ')
+            .trim()
+            .slice(0, 32);
           let desiredNickname = desiredBase;
           const afkKey = getAFKKey(newMember.guild.id, newMember.id);
           const afkStatus = await newMember.client.db.get(afkKey, null);
@@ -319,8 +327,21 @@ export default {
               autoNickState = { originalNickname: baseName.trimStart(), savedAt: Date.now() };
               await newMember.client.db.set(autoNickStateKey, autoNickState);
             }
+            const autoNickTemplate = activeAutoNick
+              ? (typeof activeAutoNick.format === 'string' && activeAutoNick.format.includes('{username}')
+                  ? activeAutoNick.format
+                  : `${String(activeAutoNick.prefix || '').trim()} {username}`)
+              : '';
+            const formattedAutoNick = activeAutoNick
+              ? autoNickTemplate
+                  .replace(/\\bTAG\\b/gi, String(activeAutoNick.tag || ''))
+                  .replace(/\\{username\\}/gi, baseName.trimStart())
+                  .replace(/\\s+/g, ' ')
+                  .trim()
+                  .slice(0, 32)
+              : null;
             let desiredNickname = activeAutoNick
-              ? `${String(activeAutoNick.prefix).trim()} ${baseName.trimStart()}`.slice(0, 32)
+              ? formattedAutoNick
               : changedAutoNickRole && autoNickState
                 ? (autoNickState.originalNickname || null)
                 : memberClan
