@@ -906,8 +906,8 @@ export function registerDashboardRoutes(app, bot) {
     const entries = Array.isArray(stored) ? stored.filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string') : [];
     const safeFormat = String(format || 'TAG {username}').trim().slice(0, 32);
     const existing = entries.find(entry => entry.roleId === role.id);
-    if (existing) Object.assign(existing, { prefix: '', format: safeFormat, tag: String(tag), priority: 1000 });
-    else entries.push({ roleId: role.id, prefix: '', format: safeFormat, tag: String(tag), priority: 1000 });
+    if (existing) Object.assign(existing, { prefix: '', format: safeFormat, tag: String(tag), priority: 50 });
+    else entries.push({ roleId: role.id, prefix: '', format: safeFormat, tag: String(tag), priority: 50 });
     entries.sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
     await setInDb(key, entries);
   };
