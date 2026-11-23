@@ -948,22 +948,41 @@ export function registerDashboardRoutes(app, bot) {
     entries.sort((left, right) => (Number(right.priority) || 0) - (Number(left.priority) || 0));
     await setInDb(key, entries);
   };
-  const applyClanAutoNick = async (member, tag, format) => {
-    const stateKey = 'guild:' + member.guild.id + ':autonick_member:' + member.id;
+  const applyClanAutoNick = async (member) => {
+    const stateKey = \`guild:\${member.guild.id}:autonick_member:\${member.id}\`;
     const previous = await getFromDb(stateKey, null);
-    const original = typeof previous?.originalNickname === 'string'
+    const stored = await getFromDb(\`guild:\${member.guild.id}:autonick_roles\`, []);
+    const configs = (Array.isArray(stored) ? stored : [])
+      .filter(entry => entry && typeof entry.roleId === 'string')
+      .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
+    const active = configs.find(entry => member.roles.cache.has(entry.roleId));
+    let base = typeof previous?.originalNickname === 'string'
       ? previous.originalNickname
-      : (member.displayName ?? member.user.globalName ?? member.user.username);
-    await setInDb(stateKey, { originalNickname: original, savedAt: previous?.savedAt || Date.now() });
-    const template = String(format || 'TAG {username}');
-    const taggedTemplate = tag && !/\bTAG\b/i.test(template) ? `TAG ${template}` : template;
-    const nickname = taggedTemplate
-      .replace(/\bTAG\b/gi, String(tag || ''))
-      .replace(/\{username\}/gi, original)
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, 32);
-    if (member.nickname !== nickname) await member.setNickname(nickname, 'Apply selected clan AutoNick format');
+      : (member.nickname ?? member.user.globalName ?? member.user.username);
+    base = String(base).replace(/^\[AFK\]\s*/u, '').trimStart();
+    for (const entry of configs) {
+      for (const marker of [String(entry.tag || '').trim(), String(entry.prefix || '').trim()].filter(Boolean).sort((a,b)=>b.length-a.length)) {
+        while (base.toLowerCase().startsWith(marker.toLowerCase())) {
+          base = base.slice(marker.length).replace(/^[-_|:：\s]+/, '');
+        }
+      }
+    }
+    if (!base.trim()) base = member.user.globalName || member.user.username;
+    let desired = base || null;
+    if (active) {
+      const template = typeof active.format === 'string' && active.format.includes('{username}')
+        ? active.format : \`\${String(active.prefix || '').trim()} {username}\`;
+      const taggedTemplate = active.tag && !/\bTAG\b/i.test(template) ? \`TAG \${template}\` : template;
+      desired = taggedTemplate.replace(/\bTAG\b/gi, String(active.tag || ''))
+        .replace(/\{username\}/gi, base).replace(/\s+/g, ' ').trim().slice(0, 32);
+      await setInDb(stateKey, { originalNickname: base, hadNickname: previous?.hadNickname ?? member.nickname != null, savedAt: previous?.savedAt || Date.now() });
+    } else if (previous) {
+      desired = previous.hadNickname === false ? null : (base || null);
+      await bot.db?.delete?.(stateKey).catch(() => {});
+    }
+    if (member.nickname !== desired && member.manageable) {
+      await member.setNickname(desired, 'Recalculate highest-priority AutoNick after clan tag edit');
+    }
   };
   const loadDashboardClans = async guildId => {
     const [currentStored, legacyStored] = await Promise.all([
@@ -1151,7 +1170,7 @@ export function registerDashboardRoutes(app, bot) {
     const rules = String(req.body?.rules || '').trim();
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (!tag) return res.status(400).json({ error: 'Please enter a Clan Tag.' });
-    const autoNickFormat = `${tag} {username}`;
+    const autoNickFormat = 'TAG {username}';
     const fixedAutoNickFormat = 'TAG ⚔ ★ {username}';
     if (!roleHex) return res.status(400).json({ error: 'Role Hex Code must be a valid six-digit color, such as #5865F2.' });
     if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
@@ -1234,45 +1253,15 @@ export function registerDashboardRoutes(app, bot) {
       clans[index] = updated;
       await setInDb(clanStorageKey(guild.id), clans);
 
-      // Keep the clan AutoNick entry in sync and replace the old tag on every current clan member.
-      await registerClanAutoNick(guild, role, tag, autoNickFormat);
-      const autoNickKey = `guild:${guild.id}:autonick_roles`;
-      const autoNickConfigs = await getFromDb(autoNickKey, []);
-      const configs = (Array.isArray(autoNickConfigs) ? autoNickConfigs : [])
-        .filter(entry => entry && typeof entry.roleId === 'string' && typeof entry.prefix === 'string')
-        .map(entry => ({ ...entry, priority: Number(entry.priority) || 0 }))
-        .sort((a, b) => b.priority - a.priority);
-      const clanMembers = await guild.members.fetch({ withPresences: false }).catch(() => null);
-      const membersToUpdate = clanMembers
-        ? [...clanMembers.values()].filter(member => member.roles.cache.has(role.id))
+      // Update the clan's role rule, then use one priority-aware resolver for all members.
+      await registerClanAutoNick(guild, role, tag, 'TAG {username}');
+      const fetchedMembers = await guild.members.fetch({ withPresences: false }).catch(() => null);
+      const membersToUpdate = fetchedMembers
+        ? [...fetchedMembers.values()].filter(member => member.roles.cache.has(role.id))
         : [...role.members.values()];
-      await Promise.allSettled(membersToUpdate.map(async member => {
-        const stateKey = `guild:${guild.id}:autonick_member:${member.id}`;
-        const state = await getFromDb(stateKey, null);
-        let base = typeof state?.originalNickname === 'string'
-          ? state.originalNickname
-          : (member.nickname ?? member.user.globalName ?? member.user.username);
-        const oldTag = String(current.tag || '').trim();
-        if (oldTag && base.toLowerCase().startsWith(oldTag.toLowerCase())) {
-          base = base.slice(oldTag.length).replace(/^[-_|:：\s]+/, '');
-        }
-        base = String(base).replace(/^\[AFK\]\s*/u, '').trimStart();
-        if (!base) base = member.user.globalName || member.user.username;
-        await setInDb(stateKey, { originalNickname: base, savedAt: state?.savedAt || Date.now() });
-        const active = configs.find(entry => member.roles.cache.has(entry.roleId));
-        let desired = null;
-        if (active) {
-          const template = typeof active.format === 'string' && active.format.includes('{username}')
-            ? active.format
-            : `${String(active.prefix || '').trim()} {username}`;
-          desired = template.replace(/\bTAG\b/gi, String(active.tag || ''))
-            .replace(/\{username\}/gi, base).replace(/\s+/g, ' ').trim().slice(0, 32);
-        } else {
-          desired = base || null;
-          await bot.db?.delete?.(stateKey).catch(() => {});
-        }
-        if (member.nickname !== desired) await member.setNickname(desired, 'Update clan AutoNick after clan tag edit');
-      }));
+      const results = await Promise.allSettled(membersToUpdate.map(member => applyClanAutoNick(member)));
+      const failed = results.filter(result => result.status === 'rejected').length;
+      if (failed) console.warn(\`Clan AutoNick updated with \${failed} nickname failures for role \${role.id}\`);
 
       return res.json({ ok: true, clan: updated });
     } catch (error) {
