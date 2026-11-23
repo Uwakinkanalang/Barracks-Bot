@@ -128,21 +128,21 @@ export default {
           const template = typeof activeAutoNick.format === 'string' && activeAutoNick.format.includes('{username}')
             ? activeAutoNick.format
             : `${String(activeAutoNick.prefix || '').trim()} {username}`;
-          const taggedTemplate = activeAutoNick.tag && !/\\bTAG\\b/i.test(template)
+          const taggedTemplate = activeAutoNick.tag && !/\bTAG\b/i.test(template)
             ? `TAG ${template}`
             : template;
           const expectedPrevious = taggedTemplate
-            .replace(/\\bTAG\\b/gi, String(activeAutoNick.tag || ''))
-            .replace(/\\{username\\}/gi, previousBase)
-            .replace(/\\s+/g, ' ')
+            .replace(/\bTAG\b/gi, String(activeAutoNick.tag || ''))
+            .replace(/\{username\}/gi, previousBase)
+            .replace(/\s+/g, ' ')
             .trim()
             .slice(0, 32);
-          const liveNickname = String(newMember.nickname ?? '').replace(/^\\[AFK\\]\\s*/u, '');
+          const liveNickname = String(newMember.nickname ?? '').replace(/^\\[AFK\\]\s*/u, '');
           const isBotAppliedNickname = liveNickname === expectedPrevious;
 
           // Discord sends a second update after our own setNickname call.
           if (!isBotAppliedNickname) {
-            const hadAfkMarker = /^\\[AFK\\]\\s*/u.test(String(newMember.nickname || ''));
+            const hadAfkMarker = /^\\[AFK\\]\s*/u.test(String(newMember.nickname || ''));
             let baseName = newMember.nickname === null
               ? (newMember.user.globalName || newMember.user.username)
               : liveNickname.trimStart();
@@ -153,14 +153,14 @@ export default {
             let matchedMarker;
             do {
               matchedMarker = markers.find((marker) => baseName.toLowerCase().startsWith(marker.toLowerCase()));
-              if (matchedMarker) baseName = baseName.slice(matchedMarker.length).replace(/^[-_|:：\\s]+/u, '');
+              if (matchedMarker) baseName = baseName.slice(matchedMarker.length).replace(/^[-_|:：\s]+/u, '');
             } while (matchedMarker);
             if (!baseName.trim()) baseName = newMember.user.globalName || newMember.user.username;
 
             const desiredBase = taggedTemplate
-              .replace(/\\bTAG\\b/gi, String(activeAutoNick.tag || ''))
-              .replace(/\\{username\\}/gi, baseName)
-              .replace(/\\s+/g, ' ')
+              .replace(/\bTAG\b/gi, String(activeAutoNick.tag || ''))
+              .replace(/\{username\}/gi, baseName)
+              .replace(/\s+/g, ' ')
               .trim()
               .slice(0, 32);
             await newMember.client.db.set(stateKey, {
