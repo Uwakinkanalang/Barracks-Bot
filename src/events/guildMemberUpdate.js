@@ -110,7 +110,8 @@ export default {
       const autoNickRoleIds = new Set(autoNickConfigs.map((entry) => entry.roleId));
       const changedAutoNickRole = [...changedRoleIds].some((roleId) => autoNickRoleIds.has(roleId));
 
-      // Keep the stored base nickname synchronized with manual edits.
+      // Manual nickname changes become the new base name, then the highest
+      // priority matching AutoNick rule is applied immediately.
       if (
         oldMember.nickname !== newMember.nickname &&
         !roleSetChanged &&
@@ -121,70 +122,67 @@ export default {
         if (activeAutoNick) {
           const stateKey = `guild:${newMember.guild.id}:autonick_member:${newMember.id}`;
           const savedState = await newMember.client.db.get(stateKey, null);
-          // Clearing the server nickname is an explicit reset: use the
-          // account display name as the base and recalculate the best matching
-          // /autonick rule from the member's currently assigned roles.
-          const savedBaseName = newMember.nickname === null
-            ? (newMember.user.globalName || newMember.user.username)
-            : (savedState?.originalNickname ?? newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
-          const expectedTemplate = typeof activeAutoNick.format === 'string' && activeAutoNick.format.includes('{username}')
+          const previousBase = typeof savedState?.originalNickname === 'string'
+            ? savedState.originalNickname
+            : (oldMember.nickname ?? oldMember.user.globalName ?? oldMember.user.username);
+          const template = typeof activeAutoNick.format === 'string' && activeAutoNick.format.includes('{username}')
             ? activeAutoNick.format
             : `${String(activeAutoNick.prefix || '').trim()} {username}`;
-          const expectedNickname = expectedTemplate
-            .replace(/\bTAG\b/gi, String(activeAutoNick.tag || ''))
-            .replace(/\{username\}/gi, savedBaseName)
-            .replace(/\s+/g, ' ')
+          const taggedTemplate = activeAutoNick.tag && !/\\bTAG\\b/i.test(template)
+            ? `TAG ${template}`
+            : template;
+          const expectedPrevious = taggedTemplate
+            .replace(/\\bTAG\\b/gi, String(activeAutoNick.tag || ''))
+            .replace(/\\{username\\}/gi, previousBase)
+            .replace(/\\s+/g, ' ')
             .trim()
             .slice(0, 32);
-          const isAutoNickBotUpdate = newMember.nickname === expectedNickname ||
-            newMember.nickname === `[AFK] ${expectedNickname}`.slice(0, 32);
-          // Discord emits another member-update event after setNickname. Do not
-          // mistake that bot-applied formatted nickname for a manual nickname edit.
-          if (!isAutoNickBotUpdate) {
-          const currentNickname = String(newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
-          const hadAfkMarker = /^\[AFK\]\s*/u.test(currentNickname);
-          let baseName = (newMember.nickname === null
-            ? (newMember.user.globalName || newMember.user.username)
-            : currentNickname).replace(/^\[AFK\]\s*/u, '').trimStart();
-          const configuredPrefixes = autoNickConfigs
-            .map((entry) => String(entry.prefix).trim())
-            .filter(Boolean)
-            .sort((x, y) => y.length - x.length);
-          let matchedPrefix;
-          do {
-            matchedPrefix = configuredPrefixes.find((prefix) => baseName.startsWith(prefix));
-            if (matchedPrefix) baseName = baseName.slice(matchedPrefix.length).trimStart();
-          } while (matchedPrefix);
+          const liveNickname = String(newMember.nickname ?? '').replace(/^\\[AFK\\]\\s*/u, '');
+          const isBotAppliedNickname = liveNickname === expectedPrevious;
 
-          if (!baseName.trim()) baseName = newMember.user.globalName || newMember.user.username;
-          await newMember.client.db.set(stateKey, {
-            originalNickname: baseName,
-            savedAt: Date.now(),
-          });
+          // Discord sends a second update after our own setNickname call.
+          if (!isBotAppliedNickname) {
+            const hadAfkMarker = /^\\[AFK\\]\\s*/u.test(String(newMember.nickname || ''));
+            let baseName = newMember.nickname === null
+              ? (newMember.user.globalName || newMember.user.username)
+              : liveNickname.trimStart();
 
-          const autoNickTemplate = typeof activeAutoNick.format === 'string' && activeAutoNick.format.includes('{username}')
-            ? activeAutoNick.format
-            : `${String(activeAutoNick.prefix || '').trim()} {username}`;
-          const desiredBase = autoNickTemplate
-            .replace(/\bTAG\b/gi, String(activeAutoNick.tag || ''))
-            .replace(/\{username\}/gi, baseName)
-            .replace(/\s+/g, ' ')
-            .trim()
-            .slice(0, 32);
-          let desiredNickname = desiredBase;
-          const afkKey = getAFKKey(newMember.guild.id, newMember.id);
-          const afkStatus = await newMember.client.db.get(afkKey, null);
-          if (afkStatus || hadAfkMarker) {
-            const status = afkStatus || {};
-            status.originalNickname = desiredBase;
-            status.afkNickname = `[AFK] ${desiredBase}`.slice(0, 32);
-            await newMember.client.db.set(afkKey, status);
-            desiredNickname = status.afkNickname;
-          }
+            const markers = [...new Set(autoNickConfigs.flatMap((entry) =>
+              [entry.prefix, entry.tag].map((value) => String(value || '').trim()).filter(Boolean)
+            ))].sort((a, b) => b.length - a.length);
+            let matchedMarker;
+            do {
+              matchedMarker = markers.find((marker) => baseName.toLowerCase().startsWith(marker.toLowerCase()));
+              if (matchedMarker) baseName = baseName.slice(matchedMarker.length).replace(/^[-_|:：\\s]+/u, '');
+            } while (matchedMarker);
+            if (!baseName.trim()) baseName = newMember.user.globalName || newMember.user.username;
 
-          if (newMember.nickname !== desiredNickname) {
-            await newMember.setNickname(desiredNickname, 'Save manual nickname and reapply AutoNick prefix');
-          }
+            const desiredBase = taggedTemplate
+              .replace(/\\bTAG\\b/gi, String(activeAutoNick.tag || ''))
+              .replace(/\\{username\\}/gi, baseName)
+              .replace(/\\s+/g, ' ')
+              .trim()
+              .slice(0, 32);
+            await newMember.client.db.set(stateKey, {
+              originalNickname: baseName,
+              hadNickname: newMember.nickname !== null,
+              savedAt: savedState?.savedAt || Date.now(),
+            });
+
+            let desiredNickname = desiredBase || null;
+            const afkKey = getAFKKey(newMember.guild.id, newMember.id);
+            const afkStatus = await newMember.client.db.get(afkKey, null);
+            if (afkStatus || hadAfkMarker) {
+              const status = afkStatus || {};
+              status.originalNickname = desiredBase;
+              status.afkNickname = `[AFK] ${desiredBase}`.slice(0, 32);
+              await newMember.client.db.set(afkKey, status);
+              desiredNickname = status.afkNickname;
+            }
+
+            if (newMember.nickname !== desiredNickname) {
+              await newMember.setNickname(desiredNickname, `Apply highest-priority AutoNick role (${activeAutoNick.roleId}) after manual nickname change`);
+            }
           }
         }
       }
