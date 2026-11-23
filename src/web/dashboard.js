@@ -956,7 +956,7 @@ export function registerDashboardRoutes(app, bot) {
       : (member.displayName ?? member.user.globalName ?? member.user.username);
     await setInDb(stateKey, { originalNickname: original, savedAt: previous?.savedAt || Date.now() });
     const nickname = String(format)
-      .replace(/\\bTAG\\b/gi, String(tag || ''))
+      .replace(/\bTAG\b/gi, String(tag || ''))
       .replace(/\{username\}/gi, original)
       .replace(/\s+/g, ' ')
       .trim()
@@ -1254,7 +1254,7 @@ export function registerDashboardRoutes(app, bot) {
         if (oldTag && base.toLowerCase().startsWith(oldTag.toLowerCase())) {
           base = base.slice(oldTag.length).replace(/^[-_|:：\s]+/, '');
         }
-        base = String(base).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+        base = String(base).replace(/^\[AFK\]\s*/u, '').trimStart();
         if (!base) base = member.user.globalName || member.user.username;
         await setInDb(stateKey, { originalNickname: base, savedAt: state?.savedAt || Date.now() });
         const active = configs.find(entry => member.roles.cache.has(entry.roleId));
@@ -1263,8 +1263,8 @@ export function registerDashboardRoutes(app, bot) {
           const template = typeof active.format === 'string' && active.format.includes('{username}')
             ? active.format
             : `${String(active.prefix || '').trim()} {username}`;
-          desired = template.replace(/\\bTAG\\b/gi, String(active.tag || ''))
-            .replace(/\\{username\\}/gi, base).replace(/\\s+/g, ' ').trim().slice(0, 32);
+          desired = template.replace(/\bTAG\b/gi, String(active.tag || ''))
+            .replace(/\{username\}/gi, base).replace(/\s+/g, ' ').trim().slice(0, 32);
         } else {
           desired = base || null;
           await bot.db?.delete?.(stateKey).catch(() => {});
