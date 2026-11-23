@@ -1143,9 +1143,12 @@ export default {
               return;
             }
             const reviewedClan = clanList[clanIndex];
-            const levelsRole = await interaction.guild.roles.fetch('1564159581825933353').catch(() => null);
             if (decision === 'approve') {
+              let approvalStage = 'starting approval';
               try {
+                await interaction.deferUpdate();
+
+                approvalStage = 'creating or fetching the clan role';
                 let clanRole = reviewedClan.roleId
                   ? await interaction.guild.roles.fetch(reviewedClan.roleId).catch(() => null)
                   : null;
@@ -1153,37 +1156,51 @@ export default {
                 if (!clanRole) {
                   clanRole = await interaction.guild.roles.create({
                     name: reviewedClan.name,
-                    color: reviewedClan.roleHex || '#5865F2',
+                    colors: { primaryColor: Number.parseInt((reviewedClan.roleHex || '#5865F2').slice(1), 16) },
                     reason: `Automatic clan role for approved clan: ${reviewedClan.name}`,
                   });
                 }
 
-                if (levelsRole && clanRole.editable) {
-                  await clanRole.setPosition(levelsRole.position + 1, {
-                    reason: 'Keep Barracks clan roles above the Levels separator',
-                  });
-                }
-
+                // A newly-created role is already placed beneath the bot's highest role.
+                // Avoid forcing it above a configured separator role, which can fail
+                // when that separator is higher than the bot.
+                approvalStage = 'registering the clan AutoNick role';
                 await registerClanAutoNick(interaction.client, interaction.guildId, clanRole.id, reviewedClan.tag, reviewedClan.autoNickFormat || 'TAG {username}');
+
                 reviewedClan.roleId = clanRole.id;
                 reviewedClan.status = 'approved';
                 reviewedClan.reviewedBy = interaction.user.id;
                 reviewedClan.reviewedAt = new Date().toISOString();
-
-                const leader = await interaction.guild.members.fetch(reviewedClan.leaderId).catch(() => null);
-                const viceLeader = await interaction.guild.members.fetch(reviewedClan.viceLeaderId).catch(() => null);
-                if (leader) {
-                  await leader.roles.add(clanRole, 'Assign approved clan role to clan leader');
-                  await leader.roles.fetch();
-                  await applyHighestPriorityAutoNick(leader);
-                }
-                if (viceLeader) {
-                  await viceLeader.roles.add(clanRole, 'Assign approved clan role to vice clan leader');
-                  await viceLeader.roles.fetch();
-                  await applyHighestPriorityAutoNick(viceLeader);
-                }
-
                 await interaction.client.db.set(storageKey, clanList);
+
+                const assignmentErrors = [];
+                for (const [memberId, label] of [
+                  [reviewedClan.leaderId, 'Clan Leader'],
+                  [reviewedClan.viceLeaderId, 'Vice Clan Leader'],
+                ]) {
+                  if (!memberId) continue;
+                  approvalStage = `assigning the clan role to the ${label}`;
+                  const member = await interaction.guild.members.fetch(memberId).catch(() => null);
+                  if (!member) {
+                    assignmentErrors.push(`${label} is no longer in the server`);
+                    continue;
+                  }
+                  try {
+                    await member.roles.add(clanRole, `Assign approved clan role to ${label.toLowerCase()}`);
+                    await member.roles.fetch();
+                    await applyHighestPriorityAutoNick(member).catch(error => {
+                      logger.warn('Clan AutoNick could not be refreshed after role assignment.', {
+                        error: error.message, guildId: interaction.guildId, clanId, memberId,
+                      });
+                    });
+                  } catch (error) {
+                    assignmentErrors.push(`${label}: ${error.message}`);
+                    logger.error('Failed to assign approved clan role to a member:', {
+                      error: error.message, code: error.code, guildId: interaction.guildId, clanId, memberId,
+                    });
+                  }
+                }
+
                 const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
                   .setColor(Number.parseInt((reviewedClan.roleHex || '#5865F2').slice(1), 16))
                   .setTitle(`🏰 ${reviewedClan.name} [${reviewedClan.tag}]`)
@@ -1191,18 +1208,30 @@ export default {
                     { name: '📝 Status', value: `✅ Approved by <@${interaction.user.id}>`, inline: true },
                     { name: '🎭 Clan Role', value: `<@&${clanRole.id}>`, inline: true },
                   );
-                await interaction.update({ embeds: [updated], components: [] });
+                await interaction.message.edit({ embeds: [updated], components: [] });
+
+                if (assignmentErrors.length) {
+                  await interaction.followUp({
+                    content: `The clan was approved and the role was created, but I could not assign it to everyone: ${assignmentErrors.join('; ')}. Check my Manage Roles permission and role hierarchy.`,
+                    flags: MessageFlags.Ephemeral,
+                  });
+                }
                 return;
               } catch (error) {
-                logger.error('Failed to create or assign approved clan role:', {
+                logger.error('Failed to approve clan:', {
+                  stage: approvalStage,
                   error: error.message,
+                  code: error.code,
+                  rawError: error.rawError,
                   guildId: interaction.guildId,
                   clanId,
                 });
-                await interaction.reply({
-                  content: 'I could not create or assign the clan role. Please check that I have Manage Roles permission and that my highest role is above the clan roles.',
-                  flags: MessageFlags.Ephemeral,
-                });
+                const message = `Clan approval failed while ${approvalStage}. Discord error: ${error.message || 'Unknown error'}. Check that I have Manage Roles permission and that my highest role is above the clan role.`;
+                if (interaction.deferred || interaction.replied) {
+                  await interaction.followUp({ content: message, flags: MessageFlags.Ephemeral }).catch(() => {});
+                } else {
+                  await interaction.reply({ content: message, flags: MessageFlags.Ephemeral }).catch(() => {});
+                }
                 return;
               }
             }
