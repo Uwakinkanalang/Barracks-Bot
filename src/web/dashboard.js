@@ -1253,15 +1253,8 @@ export function registerDashboardRoutes(app, bot) {
       clans[index] = updated;
       await setInDb(clanStorageKey(guild.id), clans);
 
-      // Update the clan's role rule, then use one priority-aware resolver for all members.
-      await registerClanAutoNick(guild, role, tag, 'TAG {username}');
-      const fetchedMembers = await guild.members.fetch({ withPresences: false }).catch(() => null);
-      const membersToUpdate = fetchedMembers
-        ? [...fetchedMembers.values()].filter(member => member.roles.cache.has(role.id))
-        : [...role.members.values()];
-      const results = await Promise.allSettled(membersToUpdate.map(member => applyClanAutoNick(member)));
-      const failed = results.filter(result => result.status === 'rejected').length;
-      if (failed) console.warn(\`Clan AutoNick updated with \${failed} nickname failures for role \${role.id}\`);
+      // Clan Edit changes clan metadata only. AutoNick rules stay independent
+      // so staff can manually edit the clan tag in the AutoNick dashboard.
 
       return res.json({ ok: true, clan: updated });
     } catch (error) {
