@@ -422,6 +422,43 @@ export function registerDashboardRoutes(app, bot) {
       return res.status(201).json({ ok: true, rule });
     } catch (error) { return res.status(500).json({ error: error?.message || 'Could not create AutoNick rule.' }); }
   });
+  app.patch('/api/dashboard/autonick/:ruleId', async (req, res) => {
+    const guild = requireDashboardGuild(req, res); if (!guild) return;
+    const requestedId = String(req.params.ruleId || '');
+    const body = req.body || {};
+    const nickname = String(body.nickname || '').trim();
+    const priority = Number(body.priority || 1);
+    if (!nickname || nickname.length > 32) return res.status(400).json({ error: 'Nickname must contain 1–32 characters.' });
+    try {
+      if (requestedId.startsWith('slash-role:')) {
+        const roleId = requestedId.slice('slash-role:'.length);
+        const slashRules = await getFromDb(`guild:${guild.id}:autonick_roles`, []);
+        const list = Array.isArray(slashRules) ? slashRules : [];
+        const index = list.findIndex(rule => String(rule.roleId) === roleId);
+        if (index < 0) return res.status(404).json({ error: 'AutoNick role rule not found.' });
+        if (!Number.isInteger(priority) || priority < 1 || priority > 1000) return res.status(400).json({ error: 'Priority must be between 1 and 1000.' });
+        list[index] = { ...list[index], prefix: nickname, priority };
+        await setInDb(`guild:${guild.id}:autonick_roles`, list);
+        return res.json({ ok: true });
+      }
+      const type = String(body.type || 'join'), format = String(body.format || 'none');
+      const roleId = String(body.roleId || '');
+      if (!['join','role'].includes(type)) return res.status(400).json({ error: 'Choose a valid AutoNick type.' });
+      if (!['none','uppercase','lowercase','title'].includes(format)) return res.status(400).json({ error: 'Choose a valid nickname format.' });
+      if (type === 'role' && (!guild.roles.cache.has(roleId) || roleId === guild.id || guild.roles.cache.get(roleId)?.managed)) return res.status(400).json({ error: 'Choose a valid server role.' });
+      if (type === 'role' && (!Number.isInteger(priority) || priority < 1 || priority > 1000)) return res.status(400).json({ error: 'Priority must be between 1 and 1000.' });
+      const rules = await getFromDb(autoNickRulesKey(guild.id), []);
+      const list = Array.isArray(rules) ? rules : [];
+      const index = list.findIndex(rule => rule.id === requestedId);
+      if (index < 0) return res.status(404).json({ error: 'AutoNick rule not found.' });
+      if (type === 'join' && list.some((rule, i) => i !== index && rule.type === 'join')) return res.status(409).json({ error: 'A server-join AutoNick rule already exists.' });
+      if (type === 'role' && list.some((rule, i) => i !== index && rule.type === 'role' && rule.roleId === roleId)) return res.status(409).json({ error: 'This role already has an AutoNick rule.' });
+      list[index] = { ...list[index], nickname, format, type, roleId: type === 'role' ? roleId : null, priority: type === 'role' ? priority : 0, updatedAt: Date.now() };
+      await setInDb(autoNickRulesKey(guild.id), list);
+      return res.json({ ok: true, rule: list[index] });
+    } catch (error) { return res.status(500).json({ error: error?.message || 'Could not edit AutoNick rule.' }); }
+  });
+
   app.delete('/api/dashboard/autonick/:ruleId', async (req, res) => {
     const guild = requireDashboardGuild(req, res); if (!guild) return;
     try {
