@@ -19,7 +19,7 @@ import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
 import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
-import { getNicknamePrefix } from '../commands/Economy/nickname.js';
+import { getNicknamePrefix, handleNicknameChangeButton, handleNicknameChangeModal } from '../commands/Economy/nickname.js';
 import { getAFKKey } from '../utils/database.js';
 import { getItems as getBShopItems, getColorItems as getBShopColorItems, getBoosterColorItems as getBShopBoosterColorItems, buildColorShopPage, buildBoosterColorShopPage } from '../commands/Economy/roleshop.js';
 import { getEconomyData, getMaxBankCapacity, setEconomyData, removeMoney, addMoney } from '../utils/economy.js';
@@ -371,6 +371,10 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId === 'barracks_nickname_change') {
+            await handleNicknameChangeButton(interaction);
+            return;
+          }
           if (interaction.customId === 'clan:leader:addmember' || interaction.customId === 'clan:leader:kickmember') {
             const clans = await interaction.client.db.get('guild:' + interaction.guildId + ':clans', []);
             const clan = (Array.isArray(clans) ? clans : []).find(entry => entry.status === 'approved' &&
@@ -1544,6 +1548,10 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isModalSubmit()) {
+          if (interaction.customId === 'barracks_nickname_modal') {
+            await handleNicknameChangeModal(interaction, client);
+            return;
+          }
           if (interaction.customId === 'clan:leader:addmember:submit' || interaction.customId === 'clan:leader:kickmember:submit') {
             if (!interaction.inGuild()) {
               await interaction.reply({ content: 'This action can only be used in a server.', flags: MessageFlags.Ephemeral });
