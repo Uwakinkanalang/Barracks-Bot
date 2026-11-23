@@ -1170,8 +1170,16 @@ export default {
 
                 const leader = await interaction.guild.members.fetch(reviewedClan.leaderId).catch(() => null);
                 const viceLeader = await interaction.guild.members.fetch(reviewedClan.viceLeaderId).catch(() => null);
-                if (leader) await leader.roles.add(clanRole, 'Assign approved clan role to clan leader');
-                if (viceLeader) await viceLeader.roles.add(clanRole, 'Assign approved clan role to vice clan leader');
+                if (leader) {
+                  await leader.roles.add(clanRole, 'Assign approved clan role to clan leader');
+                  await leader.roles.fetch();
+                  await applyHighestPriorityAutoNick(leader);
+                }
+                if (viceLeader) {
+                  await viceLeader.roles.add(clanRole, 'Assign approved clan role to vice clan leader');
+                  await viceLeader.roles.fetch();
+                  await applyHighestPriorityAutoNick(viceLeader);
+                }
 
                 await interaction.client.db.set(storageKey, clanList);
                 const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
