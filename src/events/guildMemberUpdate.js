@@ -137,12 +137,12 @@ export default {
             .replace(/\s+/g, ' ')
             .trim()
             .slice(0, 32);
-          const liveNickname = String(newMember.nickname ?? '').replace(/^\\[AFK\\]\s*/u, '');
+          const liveNickname = String(newMember.nickname ?? '').replace(/^\[AFK\]\s*/u, '');
           const isBotAppliedNickname = liveNickname === expectedPrevious;
 
           // Discord sends a second update after our own setNickname call.
           if (!isBotAppliedNickname) {
-            const hadAfkMarker = /^\\[AFK\\]\s*/u.test(String(newMember.nickname || ''));
+            const hadAfkMarker = /^\[AFK\]\s*/u.test(String(newMember.nickname || ''));
             let baseName = newMember.nickname === null
               ? (newMember.user.globalName || newMember.user.username)
               : liveNickname.trimStart();
