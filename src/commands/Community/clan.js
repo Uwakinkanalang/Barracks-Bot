@@ -135,7 +135,6 @@ export default {
         const panelRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId('clan:create').setLabel('Create a Clan').setEmoji('🏰').setStyle(ButtonStyle.Success),
           new ButtonBuilder().setCustomId('clan:join:open').setLabel('Join a Clan').setEmoji('🛡️').setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId('clan:leave:open').setLabel('Leave a Clan').setEmoji('🚪').setStyle(ButtonStyle.Danger),
         );
 
         await panelChannel.send({ embeds: [panelEmbed], components: [panelRow] });
