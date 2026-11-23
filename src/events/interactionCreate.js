@@ -56,19 +56,17 @@ async function applyHighestPriorityAutoNick(member) {
     ? state.originalNickname
     : (member.nickname ?? member.user.globalName ?? member.user.username);
   base = String(base).replace(/^\[AFK\]\s*/u, '').trimStart();
-  if (active?.tag) {
-    const tag = String(active.tag).trim();
-    if (tag) {
-      const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      base = base.replace(new RegExp(`^(?:\\s*${escapedTag}\\s*(?:\\|\\s*)?)+`, 'u'), '').trimStart();
-    }
-  }
-  const knownPrefixes = [...new Set(configs.map((entry) => String(entry.prefix || '').trim()).filter(Boolean))]
-    .sort((a, b) => b.length - a.length);
+  // Strip existing AutoNick tags and prefixes before applying the winning format.
+  // Handle plain, bracketed, and pipe-separated clan tag styles.
+  const markers = [...new Set(configs.flatMap((entry) => {
+    const tag = String(entry.tag || '').trim();
+    const prefix = String(entry.prefix || '').trim();
+    return [tag, prefix, ...(tag ? [`[${tag}]`, `[${tag}]|`, `${tag}|`] : [])].filter(Boolean);
+  }))].sort((a, b) => b.length - a.length);
   let matched;
   do {
-    matched = knownPrefixes.find((prefix) => base.startsWith(prefix));
-    if (matched) base = base.slice(matched.length).trimStart();
+    matched = markers.find((marker) => base.toLowerCase().startsWith(marker.toLowerCase()));
+    if (matched) base = base.slice(matched.length).replace(/^[-_|:：\s]+/u, '');
   } while (matched);
   if (!base.trim()) base = member.user.globalName || member.user.username;
 
