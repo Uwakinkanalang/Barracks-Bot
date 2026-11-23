@@ -167,16 +167,14 @@ export default {
         .setFooter({ text: 'Barracks • Leadership Command' });
       const row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('clan:leader:members').setLabel('View Members').setEmoji('👥').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('clan:leader:transactions').setLabel('Transactions').setEmoji('📜').setStyle(ButtonStyle.Secondary)
-      );
-      const row2 = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('clan:leader:requests').setLabel('Join Requests').setEmoji('📨').setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId('clan:leader:settings').setLabel('Clan Details').setEmoji('⚙️').setStyle(ButtonStyle.Secondary)
       );
-      const row3 = new ActionRowBuilder().addComponents(
+      const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('clan:leader:transactions').setLabel('Transactions').setEmoji('📜').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('clan:leader:kickmember').setLabel('Remove Member').setEmoji('➖').setStyle(ButtonStyle.Danger)
       );
-      await channel.send({ embeds: [panelEmbed], components: [row1, row2, row3] });
+      await channel.send({ embeds: [panelEmbed], components: [row1, row2] });
       return interaction.reply({ content: `✅ Clan Leader Panel posted in <#${channel.id}>. Only your approved clan's Leader and Vice Leader can use it.`, flags: MessageFlags.Ephemeral });
     }
 
