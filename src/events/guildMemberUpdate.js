@@ -379,8 +379,11 @@ export default {
                   ? activeAutoNick.format
                   : `${String(activeAutoNick.prefix || '').trim()} {username}`)
               : '';
+            const taggedAutoNickTemplate = activeAutoNick?.tag && !/\bTAG\b/i.test(autoNickTemplate)
+              ? `TAG ${autoNickTemplate}`
+              : autoNickTemplate;
             const formattedAutoNick = activeAutoNick
-              ? autoNickTemplate
+              ? taggedAutoNickTemplate
                   .replace(/\bTAG\b/gi, String(activeAutoNick.tag || ''))
                   .replace(/\{username\}/gi, baseName.trimStart())
                   .replace(/\s+/g, ' ')
