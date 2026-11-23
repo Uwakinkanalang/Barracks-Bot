@@ -114,9 +114,6 @@ export default {
                 ? `\n${hasVipRole ? '💎 **VIP Bonus (+30%)**' : '🚀 **Booster Bonus (+20%)**'}: +${roleBonus.toLocaleString()} bCash`
                 : null,
             `\n🔥 **Daily Streak (Day ${dailyStreak}):** +${streakBonus.toLocaleString()} bCash`,
-            nextMilestone
-                ? `\n🎯 **Next Milestone:** Day ${nextMilestone.day} — ${nextMilestone.reward.toLocaleString()} bCash streak bonus`
-                : '\n🏆 **Maximum streak reward reached!**',
         ].filter(Boolean).join('');
 
         logger.info('[ECONOMY_TRANSACTION] Daily claimed', {
