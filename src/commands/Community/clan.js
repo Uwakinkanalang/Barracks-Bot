@@ -167,7 +167,7 @@ export default {
         new ButtonBuilder().setCustomId('clan:leader:members').setLabel('Members').setEmoji('👥').setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId('clan:leader:requests').setLabel('Requests').setEmoji('📨').setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId('clan:leader:settings').setLabel('Details').setEmoji('⚙️').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('clan:leader:kickmember').setLabel('Remove').setEmoji('➖').setStyle(ButtonStyle.Danger)
+        new ButtonBuilder().setCustomId('clan:leader:kickmember').setLabel('Remove Member').setEmoji('➖').setStyle(ButtonStyle.Danger)
       );
       await channel.send({ embeds: [panelEmbed], components: [row] });
       return interaction.reply({ content: `✅ Clan Leader Panel posted in <#${channel.id}>. Only your approved clan's Leader and Vice Leader can use it.`, flags: MessageFlags.Ephemeral });
