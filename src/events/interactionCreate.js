@@ -1762,8 +1762,8 @@ export default {
                     .setAuthor({ name: 'BARRACKS • CLAN REGISTRY', iconURL: interaction.guild.iconURL({ size: 128 }) || undefined })
                     .setTitle(`🏰 ${name} [${tag}]`)
                     .addFields(
-                      { name: '👑 Clan Leader', value: `<@${interaction.user.id}>\\n` + '`' + `${interaction.user.id}` + '`', inline: true },
-                      { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>\\n` + '`' + `${viceLeaderId}` + '`', inline: true },
+                      { name: '👑 Clan Leader', value: `<@${interaction.user.id}>\n` + '`' + `${interaction.user.id}` + '`', inline: true },
+                      { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>\n` + '`' + `${viceLeaderId}` + '`', inline: true },
                       { name: '🏷️ Clan Tag', value: '`' + tag + '`', inline: true },
                       { name: '🎨 Role Color', value: '`' + roleHex + '`', inline: true },
                       { name: '📝 Status', value: '⏳ Awaiting approval', inline: true },
