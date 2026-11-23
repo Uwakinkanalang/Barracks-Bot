@@ -1015,7 +1015,21 @@ export function registerDashboardRoutes(app, bot) {
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     try {
       const clans = await loadDashboardClans(guild.id);
-      return res.json({ clans: clans.map(clan => ({ ...clan, leaderName: guild.members.cache.get(clan.leaderId)?.displayName || clan.leaderName || clan.leaderId })) });
+      const results = await Promise.all(clans.map(async clan => {
+        const ids = [...new Set([clan.leaderId, clan.viceLeaderId, ...(Array.isArray(clan.memberIds) ? clan.memberIds : [])].filter(Boolean).map(String))];
+        const members = await Promise.all(ids.map(async id => {
+          const member = await guild.members.fetch(id).catch(() => null);
+          if (!member) return null;
+          const role = String(clan.roleId || clan.id || '');
+          return { id: member.id, username: member.user.username, displayName: member.displayName || member.user.username,
+            avatar: member.user.displayAvatarURL({ size: 64 }), isLeader: String(clan.leaderId) === member.id,
+            isViceLeader: String(clan.viceLeaderId || '') === member.id,
+            hasClanRole: role ? member.roles.cache.has(role) : false };
+        }));
+        const roster = members.filter(Boolean).sort((a,b) => Number(b.isLeader)-Number(a.isLeader) || Number(b.isViceLeader)-Number(a.isViceLeader) || a.displayName.localeCompare(b.displayName));
+        return { ...clan, leaderName: roster.find(member => member.isLeader)?.displayName || clan.leaderName || clan.leaderId, members: roster, memberCount: roster.length };
+      }));
+      return res.json({ clans: results });
     } catch (error) { return res.status(500).json({ error: error?.message || 'Could not load clans.' }); }
   });
 
