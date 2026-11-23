@@ -143,9 +143,9 @@ export default {
             ? activeAutoNick.format
             : `${String(activeAutoNick.prefix || '').trim()} {username}`;
           const desiredBase = autoNickTemplate
-            .replace(/\\bTAG\\b/gi, String(activeAutoNick.tag || ''))
-            .replace(/\\{username\\}/gi, baseName)
-            .replace(/\\s+/g, ' ')
+            .replace(/\bTAG\b/gi, String(activeAutoNick.tag || ''))
+            .replace(/\{username\}/gi, baseName)
+            .replace(/\s+/g, ' ')
             .trim()
             .slice(0, 32);
           let desiredNickname = desiredBase;
@@ -237,18 +237,18 @@ export default {
               ? await newMember.client.db.get(autoNickStateKey, null)
               : null;
             // Capture the exact server nickname before the first AutoNick role is applied.
-          // Keep null when the member had no server nickname so removal restores that state too.
-          if (changedAutoNickRole && activeAutoNick && !autoNickState) {
-            autoNickState = {
-              originalNickname: oldMember.nickname ?? null,
-              hadNickname: oldMember.nickname != null,
-              savedAt: Date.now(),
-            };
-            await newMember.client.db.set(autoNickStateKey, autoNickState);
-          }
-          let baseName = autoNickState && typeof autoNickState.originalNickname === 'string'
-            ? autoNickState.originalNickname
-            : (newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
+            // Keep null when the member had no server nickname so removal restores that state too.
+            if (changedAutoNickRole && activeAutoNick && !autoNickState) {
+              autoNickState = {
+                originalNickname: oldMember.nickname ?? null,
+                hadNickname: oldMember.nickname != null,
+                savedAt: Date.now(),
+              };
+              await newMember.client.db.set(autoNickStateKey, autoNickState);
+            }
+            let baseName = autoNickState && typeof autoNickState.originalNickname === 'string'
+              ? autoNickState.originalNickname
+              : (newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
             baseName = baseName.replace(/^\[AFK\]\s*/u, '');
             const knownDepartmentPrefixes = legacyDepartmentPrefixes
               .slice()
@@ -340,9 +340,9 @@ export default {
               : '';
             const formattedAutoNick = activeAutoNick
               ? autoNickTemplate
-                  .replace(/\\bTAG\\b/gi, String(activeAutoNick.tag || ''))
-                  .replace(/\\{username\\}/gi, baseName.trimStart())
-                  .replace(/\\s+/g, ' ')
+                  .replace(/\bTAG\b/gi, String(activeAutoNick.tag || ''))
+                  .replace(/\{username\}/gi, baseName.trimStart())
+                  .replace(/\s+/g, ' ')
                   .trim()
                   .slice(0, 32)
               : null;
