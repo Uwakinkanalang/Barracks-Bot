@@ -46,7 +46,7 @@ async function refreshAutoNickOnVoiceJoin(member) {
         ? state.originalNickname
         : (member.nickname ?? member.user.globalName ?? member.user.username);
 
-    baseName = String(baseName).replace(/^\\[AFK\\]\\s*/u, '').trimStart();
+    baseName = String(baseName).replace(/^\[AFK\]\s*/u, '').trimStart();
 
     // Remove legacy/current AutoNick tags and prefixes before formatting the winner.
     const markers = [...new Set(configs.flatMap(entry =>
@@ -55,7 +55,7 @@ async function refreshAutoNickOnVoiceJoin(member) {
     let matched;
     do {
         matched = markers.find(marker => baseName.toLowerCase().startsWith(marker.toLowerCase()));
-        if (matched) baseName = baseName.slice(matched.length).replace(/^[-_|:：\\s]+/u, '');
+        if (matched) baseName = baseName.slice(matched.length).replace(/^[-_|:：\s]+/u, '');
     } while (matched);
 
     if (!baseName.trim()) baseName = member.user.globalName || member.user.username;
@@ -63,13 +63,13 @@ async function refreshAutoNickOnVoiceJoin(member) {
     const template = typeof activeConfig.format === 'string' && activeConfig.format.includes('{username}')
         ? activeConfig.format
         : `${String(activeConfig.prefix || '').trim()} {username}`;
-    const taggedTemplate = activeConfig.tag && !/\\bTAG\\b/i.test(template)
+    const taggedTemplate = activeConfig.tag && !/\bTAG\b/i.test(template)
         ? `TAG ${template}`
         : template;
     const desiredNickname = taggedTemplate
-        .replace(/\\bTAG\\b/gi, String(activeConfig.tag || ''))
-        .replace(/\\{username\\}/gi, baseName)
-        .replace(/\\s+/g, ' ')
+        .replace(/\bTAG\b/gi, String(activeConfig.tag || ''))
+        .replace(/\{username\}/gi, baseName)
+        .replace(/\s+/g, ' ')
         .trim()
         .slice(0, 32);
 
