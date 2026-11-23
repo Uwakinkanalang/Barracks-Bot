@@ -1676,6 +1676,13 @@ export default {
             const roleHexInput = interaction.fields.getTextInputValue('clan_role_hex').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
             const tag = rawTagInput ? rawTagInput.normalize('NFC') : null;
+            logger.info('Clan tag captured from registration modal', {
+              guildId: interaction.guildId,
+              userId: interaction.user.id,
+              rawTagInput: JSON.stringify(rawTagInput),
+              normalizedTag: JSON.stringify(tag),
+              codePoints: [...rawTagInput].map((character) => `U+${character.codePointAt(0).toString(16).toUpperCase()}`),
+            });
             const autoNickFormat = `TAG {username}`;
             const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
             const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
