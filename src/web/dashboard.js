@@ -1120,7 +1120,7 @@ export function registerDashboardRoutes(app, bot) {
     if (!rules || rules.length > 1000) return res.status(400).json({ error: 'Clan Rules are required and must be 1,000 characters or fewer.' });
 
     const me = guild.members.me;
-    if (!me || !me.permissions.has(['ManageRoles', 'ManageChannels'])) return res.status(403).json({ error: 'Barracks-Bot needs Manage Roles and Manage Channels permissions.' });
+    if (!me || !me.permissions.has('ManageRoles')) return res.status(403).json({ error: 'Barracks-Bot needs Manage Roles permission.' });
     let clans;
     try { clans = await loadDashboardClans(guild.id); }
     catch { return res.status(500).json({ error: 'Could not read saved clan records.' }); }
@@ -1221,8 +1221,7 @@ export function registerDashboardRoutes(app, bot) {
     catch { return res.status(500).json({ error: 'Could not read saved clan records.' }); }
     if (clans.some(c => String(c.tag).toUpperCase() === tag)) return res.status(409).json({ error: 'That clan tag is already in use.' });
     if (clans.some(c => String(c.name).toLowerCase() === name.toLowerCase())) return res.status(409).json({ error: 'A clan with that name already exists.' });
-    const slug = (tag + '-' + name).toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 85);
-    let role = null, category = null, textChannel = null, voiceChannel = null;
+    let role = null;
     try {
       role = await guild.roles.create({ name: tag + ' ' + name, color: roleHex, hoist: true, mentionable: false, reason: 'Clan created from Barracks dashboard' });
       await registerClanAutoNick(guild, role, tag, autoNickFormat);
@@ -1232,27 +1231,17 @@ export function registerDashboardRoutes(app, bot) {
           reason: 'Keep Barracks clan roles above the Levels separator',
         });
       }
-      const overwrites = [
-        { id: guild.id, deny: ['ViewChannel'] },
-        { id: role.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles', 'EmbedLinks', 'Connect', 'Speak', 'UseVAD'] },
-        { id: leader.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'Connect', 'Speak'] },
-        ...(viceLeader ? [{ id: viceLeader.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'Connect', 'Speak'] }] : []),
-        { id: me.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'Connect', 'Speak'] }
-      ];
-      category = await guild.channels.create({ name: '⚔️ ' + tag + ' | ' + name, type: 4, permissionOverwrites: overwrites, reason: 'Private clan category created from Barracks dashboard' });
-      textChannel = await guild.channels.create({ name: slug + '-chat', type: 0, parent: category.id, permissionOverwrites: overwrites, reason: 'Private clan text channel created from Barracks dashboard' });
-      voiceChannel = await guild.channels.create({ name: (tag + '-' + name + '-vc').toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 100), type: 2, parent: category.id, permissionOverwrites: overwrites, reason: 'Private clan voice channel created from Barracks dashboard' });
       await leader.roles.add(role, 'Assigned as clan leader by Barracks dashboard');
       if (viceLeader) await viceLeader.roles.add(role, 'Assigned as vice clan leader by Barracks dashboard');
       await applyClanAutoNick(leader, tag, autoNickFormat);
       if (viceLeader) await applyClanAutoNick(viceLeader, tag, autoNickFormat);
-      const record = { id: role.id, name, tag, roleHex, autoNickFormat, description, leaderId: leader.id, leaderName: leader.displayName, viceLeaderId: viceLeader?.id || '', viceLeaderName: viceLeader?.displayName || '', roleId: role.id, categoryId: category.id, textChannelId: textChannel.id, voiceChannelId: voiceChannel.id, status: 'approved', memberIds: [], joinRequests: [], createdAt: new Date().toISOString(), source: 'dashboard' };
+      const record = { id: role.id, name, tag, roleHex, autoNickFormat, description, leaderId: leader.id, leaderName: leader.displayName, viceLeaderId: viceLeader?.id || '', viceLeaderName: viceLeader?.displayName || '', roleId: role.id, status: 'approved', memberIds: [], joinRequests: [], createdAt: new Date().toISOString(), source: 'dashboard' };
       await setInDb(clanStorageKey(guild.id), [...clans, record]);
       return res.json({ ok: true, clan: record });
     } catch (error) {
       if (role && leader.roles.cache.has(role.id)) await leader.roles.remove(role, 'Rollback failed clan creation').catch(() => {});
       if (role && viceLeader?.roles.cache.has(role.id)) await viceLeader.roles.remove(role, 'Rollback failed clan creation').catch(() => {});
-      await Promise.allSettled([voiceChannel, textChannel, category, role].filter(Boolean).map(resource => resource.delete('Rollback failed clan creation')));
+      if (role) await role.delete('Rollback failed clan creation').catch(() => {});
       return res.status(500).json({ error: error?.message || 'Clan creation failed. Partially created Discord resources were cleaned up.' });
     }
   });
