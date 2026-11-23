@@ -531,11 +531,6 @@ export default {
         .setLabel('Join a Clan')
         .setEmoji('🛡️')
         .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('clan:leave:open')
-        .setLabel('Leave a Clan')
-        .setEmoji('🚪')
-        .setStyle(ButtonStyle.Danger)
     );
 
     await interaction.reply({ embeds: [embed], components: [row] });
