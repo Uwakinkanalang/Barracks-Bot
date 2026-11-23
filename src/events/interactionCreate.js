@@ -1757,14 +1757,14 @@ export default {
               try {
                 const logChannel = await interaction.guild.channels.fetch(logChannelId);
                 if (logChannel?.isTextBased() && logChannel?.send) {
-                  const safeClanTag = String(tag || '').replace(/`/g, 'ˋ');
+                  const clanTagDisplay = String(tag);
                   const logEmbed = new EmbedBuilder()
                     .setColor(Number.parseInt(roleHex.slice(1), 16))
                     .setAuthor({ name: 'BARRACKS • CLAN REGISTRY', iconURL: interaction.guild.iconURL({ size: 128 }) || undefined })
                     .setTitle(`🏰 ${name}`)
                     .setDescription('A new clan registration is awaiting review. Please check the details below.')
                     .addFields(
-                      { name: '🏷️ REQUESTED CLAN TAG', value: `> **${safeClanTag}**`, inline: false },
+                      { name: '🏷️ REQUESTED CLAN TAG', value: clanTagDisplay, inline: false },
                       { name: '👑 CLAN LEADER', value: `<@${interaction.user.id}>\n` + '`' + `${interaction.user.id}` + '`', inline: true },
                       { name: '🛡️ VICE CLAN LEADER', value: `<@${viceLeaderId}>\n` + '`' + `${viceLeaderId}` + '`', inline: true },
                       { name: '🎨 ROLE COLOR', value: `\`${roleHex}\``, inline: true },
@@ -1797,7 +1797,7 @@ export default {
               .addFields(
                 { name: '👑 Clan Leader', value: `<@${interaction.user.id}>`, inline: true },
                 { name: '🛡️ Vice Clan Leader', value: `<@${viceLeaderId}>`, inline: true },
-                { name: '🏷️ Requested Clan Tag', value: `**${tag.replace(/`/g, 'ˋ')}**`, inline: true },
+                { name: '🏷️ Requested Clan Tag', value: String(tag), inline: true },
                 { name: '🎨 Role Color', value: '`' + roleHex + '`', inline: true },
               )
               .setFooter({ text: 'Barracks • Clan Registry' })
