@@ -1621,7 +1621,7 @@ export default {
             const rawTagInput = interaction.fields.getTextInputValue('clan_tag').trim();
             const roleHexInput = interaction.fields.getTextInputValue('clan_role_hex').trim();
             const viceLeaderInput = interaction.fields.getTextInputValue('clan_vice_leader').trim();
-            const validTag = /^[\p{L}]+$/u.test(rawTagInput);
+            const validTag = rawTagInput.length > 0;
             const tag = validTag ? rawTagInput.toUpperCase() : null;
             const autoNickFormat = `${tag} {username}`;
             const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
@@ -1637,7 +1637,7 @@ export default {
               return;
             }
             if (!validTag || !tag) {
-              await interaction.reply({ content: 'Clan Tag must contain letters only, with no spaces.', flags: MessageFlags.Ephemeral });
+              await interaction.reply({ content: 'Please enter a Clan Tag.', flags: MessageFlags.Ephemeral });
               return;
             }
             if (!roleHex) {
