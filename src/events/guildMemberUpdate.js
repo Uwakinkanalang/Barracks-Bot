@@ -120,6 +120,24 @@ export default {
         const activeAutoNick = autoNickConfigs.find((entry) => newMember.roles.cache.has(entry.roleId));
         if (activeAutoNick) {
           const stateKey = `guild:${newMember.guild.id}:autonick_member:${newMember.id}`;
+          const savedState = await newMember.client.db.get(stateKey, null);
+          const savedBaseName = typeof savedState?.originalNickname === 'string'
+            ? savedState.originalNickname
+            : (newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
+          const expectedTemplate = typeof activeAutoNick.format === 'string' && activeAutoNick.format.includes('{username}')
+            ? activeAutoNick.format
+            : `${String(activeAutoNick.prefix || '').trim()} {username}`;
+          const expectedNickname = expectedTemplate
+            .replace(/\\bTAG\\b/gi, String(activeAutoNick.tag || ''))
+            .replace(/\\{username\\}/gi, savedBaseName)
+            .replace(/\\s+/g, ' ')
+            .trim()
+            .slice(0, 32);
+          const isAutoNickBotUpdate = newMember.nickname === expectedNickname ||
+            newMember.nickname === `[AFK] ${expectedNickname}`.slice(0, 32);
+          // Discord emits another member-update event after setNickname. Do not
+          // mistake that bot-applied formatted nickname for a manual nickname edit.
+          if (!isAutoNickBotUpdate) {
           const currentNickname = String(newMember.nickname ?? newMember.user.globalName ?? newMember.user.username);
           const hadAfkMarker = /^\[AFK\]\s*/u.test(currentNickname);
           let baseName = currentNickname.replace(/^\[AFK\]\s*/u, '').trimStart();
@@ -161,6 +179,7 @@ export default {
 
           if (newMember.nickname !== desiredNickname) {
             await newMember.setNickname(desiredNickname, 'Save manual nickname and reapply AutoNick prefix');
+          }
           }
         }
       }
