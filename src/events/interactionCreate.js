@@ -373,7 +373,7 @@ export default {
         } else if (interaction.isButton()) {
           if (interaction.customId.startsWith('tournament:accept:')) {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-            const [, , , guildId, tournamentId, teamId] = interaction.customId.split(':');
+            const [, , guildId, tournamentId, teamId] = interaction.customId.split(':');
             const key = 'guild:' + guildId + ':tournaments';
             const stored = await client.db.get(key, []);
             const tournaments = Array.isArray(stored) ? stored : [];
