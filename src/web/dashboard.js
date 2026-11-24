@@ -292,7 +292,7 @@ export function registerDashboardRoutes(app, bot) {
         updates[field] = body[field].trim();
       }
     }
-    for (const field of ['welcomeEmbed', 'leaveEmbed', 'banEmbed']) {
+    for (const field of ['welcomeEmbed', 'leaveEmbed', 'banEmbed', 'boostEmbed']) {
       if (body[field] !== undefined) {
         const embed = body[field];
         if (!embed || typeof embed !== 'object' || Array.isArray(embed)) return res.status(400).json({ error: 'Invalid ' + field + ' settings.' });

@@ -880,12 +880,36 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
     </div></div>
    </aside>
   </div>
-  <div id="boostSettingsPage" class="announcement-layout" style="display:none">
-   <div class="card"><h2 style="font-size:15px;margin-top:0">🚀 Server boost announcement</h2><p class="sub">Thank members when they start boosting Barracks.</p>
-    <label class="metric-note">Announcement channel</label><select id="boostChannel" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px"></select>
-    <label class="metric-note">Boost message</label><textarea id="boostMessage" rows="5" maxlength="2000" style="width:100%;padding:11px;margin:7px 0 14px;background:#0b1310;color:#edf4ee;border:1px solid #34463b;border-radius:9px;resize:vertical"></textarea>
-    <label class="lvl-check-row"><span><b>Enable boost announcements</b><small>Turn this announcement on or off.</small></span><span class="lvl-check-control"><input id="boostEnabled" type="checkbox" role="switch" aria-label="Enable boost announcements" hidden><button type="button" class="command-switch announcement-switch" data-toggle="boostEnabled" role="switch" aria-checked="false" aria-label="Enable boost announcements"><span class="command-switch-knob"></span><span class="command-switch-state">OFF</span></button></span></label><p class="metric-note">Placeholders: {user}, {user.tag}, {user.id}, {server}</p>
-   </div><aside class="card announcement-preview"><div class="message-preview"><div class="message-preview-title">Simple preview</div><div class="discord-preview"><div class="discord-preview-head"><span class="discord-preview-avatar">B</span>Barracks</div><div id="boostPreviewText" class="discord-preview-message">Thank you for boosting Barracks!</div></div></div></aside>
+  <div id="boostSettingsPage" class="lvl-announcement-layout lvl-event-announcement-page" style="display:none">
+   <div class="card lvl-announcement-settings">
+    <div class="lvl-card-head"><span class="lvl-icon">🚀</span><div><h2>Boost announcements</h2><p>Thank members when they start boosting Barracks.</p></div></div>
+    <label class="lvl-check-row"><span><b>Enable boost announcements</b><small>Turn this announcement on or off.</small></span><span class="lvl-check-control"><input id="boostEnabled" type="checkbox" role="switch" aria-label="Enable boost announcements" hidden><button type="button" class="command-switch announcement-switch" data-toggle="boostEnabled" role="switch" aria-checked="false" aria-label="Enable boost announcements"><span class="command-switch-knob"></span><span class="command-switch-state">OFF</span></button></span></label>
+    <label class="lvl-field">Announcement channel<select id="boostChannel"><option value="">Not set</option></select></label>
+    <label class="lvl-field">Message above embed<textarea id="boostMessage" maxlength="2000" rows="4" placeholder="Thank you {user} for boosting {server}! Your support means a lot to us."></textarea><small>Use {user}, {user.tag}, {user.id}, {user.avatar}, and {server}. Leave blank to send only the embed.</small></label>
+    <div class="lvl-embed-editor">
+     <label class="lvl-field">Embed color<div class="lvl-color-row"><input id="boostEmbedColor" type="color" value="#C3F36B"><input id="boostEmbedColorHex" class="lvl-hex-input" type="text" value="#C3F36B" maxlength="7" placeholder="#C3F36B"></div></label>
+     <label class="lvl-field">Author<input id="boostEmbedAuthor" maxlength="256" placeholder="Author name"></label>
+     <label class="lvl-field">Title<input id="boostEmbedTitle" maxlength="256" placeholder="Embed title"></label>
+     <label class="lvl-field">Thumbnail URL<input id="boostEmbedThumbnail" type="text" maxlength="500" placeholder="https://example.com/thumbnail.png"></label>
+     <label class="lvl-field">Description<textarea id="boostEmbedDescription" maxlength="4096" rows="7" placeholder="Embed description"></textarea></label>
+     <label class="lvl-field">Image URL<input id="boostEmbedImage" type="url" maxlength="500" placeholder="https://example.com/image.png"><small>Large image displayed below the description.</small></label>
+     <div class="lvl-footer-row">
+      <label class="lvl-field">Footer icon URL<input id="boostEmbedFooterIcon" type="url" maxlength="500" placeholder="https://example.com/footer-icon.png"></label>
+      <label class="lvl-field">Footer text<input id="boostEmbedFooter" maxlength="2048" placeholder="Footer text"></label>
+     </div>
+    </div>
+   </div>
+   <aside class="lvl-announcement-preview">
+    <div class="lvl-preview-heading"><span>LIVE PREVIEW</span><small>Discord message appearance</small></div>
+    <div class="lvl-message-preview"><div class="lvl-discord-preview">
+     <div class="lvl-preview-content" id="boostPreviewContent"></div>
+     <div class="lvl-preview-embed" id="boostPreviewEmbed" style="display:none"><div class="lvl-preview-main">
+      <div id="boostPreviewAuthor"></div><div id="boostPreviewTitle"></div><div id="boostPreviewDescription"></div>
+      <img id="boostPreviewImage" class="lvl-preview-image" alt="Embed image" hidden>
+      <div class="lvl-preview-footer"><img id="boostPreviewFooterIcon" alt="Footer icon" hidden><span id="boostPreviewFooterText"></span></div>
+     </div><img id="boostPreviewThumbnail" alt="Embed thumbnail" hidden></div>
+    </div></div>
+   </aside>
   </div>
  </div>
  <div id="moderationPanel" style="display:none;max-width:900px">
@@ -1248,7 +1272,8 @@ async function loadWelcomeSettings(){
   fillAnnouncementEmbed('welcome',{...cfg.welcomeEmbed,description:welcomeDesc,imageUrl:cfg.welcomeEmbed?.imageUrl||cfg.welcomeImage||'',footerText:cfg.welcomeEmbed?.footerText||cfg.welcomeEmbed?.footer||''},{color:'#556B2F',title:'🎉 Welcome!'});
   fillAnnouncementEmbed('goodbye',{...cfg.leaveEmbed,description:leaveDesc,imageUrl:cfg.leaveEmbed?.imageUrl||(typeof cfg.leaveEmbed?.image==='string'?cfg.leaveEmbed.image:cfg.leaveEmbed?.image?.url)||'',footerText:cfg.leaveEmbed?.footerText||cfg.leaveEmbed?.footer||''},{color:'#D9534F',title:'👋 Goodbye'});
   fillAnnouncementEmbed('ban',cfg.banEmbed||{},{color:'#D9534F',title:'🔨 Member Banned'});
-  updateAnnouncementPreview('welcome');updateAnnouncementPreview('goodbye');updateAnnouncementPreview('ban');updateEventPreview('boost');
+  fillAnnouncementEmbed('boost',cfg.boostEmbed||{},{color:'#C3F36B',title:'🚀 Thank You for Boosting!'});
+  updateAnnouncementPreview('welcome');updateAnnouncementPreview('goodbye');updateAnnouncementPreview('ban');updateAnnouncementPreview('boost');
   setWelcomeStatus('Settings loaded. Save changes when ready.');
  }catch(error){setWelcomeStatus(error.message,true);}
 }
@@ -1268,7 +1293,7 @@ document.getElementById('announcementVariableGuideOpen')?.addEventListener('clic
 document.getElementById('announcementVariableGuideClose')?.addEventListener('click',()=>announcementGuide?.classList.remove('open'));
 announcementGuide?.addEventListener('click',event=>{if(event.target===announcementGuide)announcementGuide.classList.remove('open');});
 function announcementTokens(value,prefix){
- const sample=prefix==='welcome'?{user:'@NewMember',username:'NewMember',tag:'NewMember#1234',id:'123456789012345678'}:prefix==='goodbye'?{user:'@DepartingMember',username:'DepartingMember',tag:'DepartingMember#1234',id:'123456789012345678'}:{user:'@BannedMember',username:'BannedMember',tag:'BannedMember#1234',id:'123456789012345678'};
+ const sample=prefix==='welcome'?{user:'@NewMember',username:'NewMember',tag:'NewMember#1234',id:'123456789012345678'}:prefix==='goodbye'?{user:'@DepartingMember',username:'DepartingMember',tag:'DepartingMember#1234',id:'123456789012345678'}:prefix==='boost'?{user:'@Booster',username:'Booster',tag:'Booster#1234',id:'123456789012345678'}:{user:'@BannedMember',username:'BannedMember',tag:'BannedMember#1234',id:'123456789012345678'};
  const avatar='https://cdn.discordapp.com/embed/avatars/0.png';
  const serverIcon='https://cdn.discordapp.com/embed/avatars/1.png';
  return String(value||'')
@@ -1285,11 +1310,11 @@ function announcementTokens(value,prefix){
 }
 function updateAnnouncementPreview(prefix){
  const message=announcementTokens(document.getElementById(prefix+'Message').value,prefix);
- document.getElementById(prefix+'PreviewContent').innerHTML=formatAnnouncementPreview(message);
+ const content=document.getElementById(prefix+'PreviewContent');if(content)content.innerHTML=formatAnnouncementPreview(message);
  const ping=document.getElementById(prefix+'PreviewPing');if(ping)ping.hidden=!document.getElementById(prefix+'Ping').checked;
  const get=id=>document.getElementById(prefix+'Embed'+id).value.trim();
  const author=announcementTokens(get('Author'),prefix),title=announcementTokens(get('Title'),prefix),description=announcementTokens(get('Description'),prefix),footer=announcementTokens(get('Footer'),prefix);
- const color=get('Color')||'#36393F',embed=document.getElementById(prefix+'PreviewEmbed');embed.style.borderLeftColor=color;
+ const color=get('Color')||'#36393F',embed=document.getElementById(prefix+'PreviewEmbed');if(!embed)return;embed.style.borderLeftColor=color;
  document.getElementById(prefix+'PreviewAuthor').innerHTML=formatAnnouncementPreview(author);
  document.getElementById(prefix+'PreviewTitle').innerHTML=formatAnnouncementPreview(title);
  document.getElementById(prefix+'PreviewDescription').innerHTML=formatAnnouncementPreview(description);
@@ -1303,7 +1328,7 @@ function updateEventPreview(type){
  const message=document.getElementById(type+'Message')?.value||'';
  document.getElementById(type+'PreviewText').textContent=message.replaceAll('{user.tag}','Soldier#0001').replaceAll('{user}','@Soldier').replaceAll('{user.id}','123456789012345678').replaceAll('{server}','Barracks');
 }
-['welcome','goodbye','ban'].forEach(prefix=>{
+['welcome','goodbye','ban','boost'].forEach(prefix=>{
  const ids=[prefix+'Message',prefix+'EmbedColor',prefix+'EmbedColorHex',prefix+'EmbedAuthor',prefix+'EmbedTitle',prefix+'EmbedThumbnail',prefix+'EmbedDescription',prefix+'EmbedImage',prefix+'EmbedFooterIcon',prefix+'EmbedFooter'];
  ids.forEach(id=>document.getElementById(id).addEventListener('input',()=>{
   if(id.endsWith('EmbedColor'))document.getElementById(prefix+'EmbedColorHex').value=document.getElementById(id).value.toUpperCase();
@@ -1312,7 +1337,7 @@ function updateEventPreview(type){
  }));
  const ping=document.getElementById(prefix+'Ping');if(ping)ping.addEventListener('change',()=>updateAnnouncementPreview(prefix));
 });
-document.getElementById('boostMessage').addEventListener('input',()=>updateEventPreview('boost'));
+document.getElementById('boostMessage').addEventListener('input',()=>updateAnnouncementPreview('boost'));
 function syncAnnouncementSwitch(id){const input=document.getElementById(id),button=document.querySelector('[data-toggle="'+id+'"]');if(!input||!button)return;button.classList.toggle('is-on',input.checked);button.setAttribute('aria-checked',String(input.checked));button.querySelector('.command-switch-state').textContent=input.checked?'ON':'OFF';button.title=input.checked?'Turn off':'Turn on';}
 ['welcomeEnabled','goodbyeEnabled','banEnabled','boostEnabled'].forEach(id=>{const input=document.getElementById(id);input.addEventListener('change',()=>syncAnnouncementSwitch(id));const button=document.querySelector('[data-toggle="'+id+'"]');button.addEventListener('click',()=>{input.checked=!input.checked;input.dispatchEvent(new Event('change',{bubbles:true}));});syncAnnouncementSwitch(id);});
 function getAnnouncementEmbedPayload(prefix){
@@ -1326,7 +1351,7 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
    welcomeMessage:document.getElementById('welcomeMessage').value,leaveMessage:document.getElementById('goodbyeMessage').value,banMessage:document.getElementById('banMessage').value,
    enabled:document.getElementById('welcomeEnabled').checked,welcomePing:false,goodbyeEnabled:document.getElementById('goodbyeEnabled').checked,goodbyePing:false,banEnabled:document.getElementById('banEnabled').checked,
    welcomeEmbed:getAnnouncementEmbedPayload('welcome'),leaveEmbed:getAnnouncementEmbedPayload('goodbye'),banEmbed:getAnnouncementEmbedPayload('ban'),
-   boostChannelId:document.getElementById('boostChannel').value,boostMessage:document.getElementById('boostMessage').value,boostEnabled:document.getElementById('boostEnabled').checked
+   boostChannelId:document.getElementById('boostChannel').value,boostMessage:document.getElementById('boostMessage').value,boostEnabled:document.getElementById('boostEnabled').checked,boostEmbed:getAnnouncementEmbedPayload('boost')
   };
   const response=await fetch(API_BASE+'/api/dashboard/welcome',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify(payload)});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not save settings.');
