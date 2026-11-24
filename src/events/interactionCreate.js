@@ -1725,12 +1725,12 @@ export default {
               return;
             }
 
-            const clanCreationFee = 5_000_000;
+            const clanCreationFee = 3_000_000;
             const economy = await getEconomyData(interaction.client, interaction.guildId, interaction.user.id);
             const walletBalance = Number(economy?.wallet) || 0;
             if (walletBalance < clanCreationFee) {
               await interaction.reply({
-                content: `Creating a clan costs **5,000,000 bCash**. Your wallet has **${walletBalance.toLocaleString()} bCash**; you need **${(clanCreationFee - walletBalance).toLocaleString()} more bCash**. Your clan has not been submitted.`,
+                content: `Creating a clan costs **${clanCreationFee.toLocaleString()} bCash**. Your wallet has **${walletBalance.toLocaleString()} bCash**; you need **${(clanCreationFee - walletBalance).toLocaleString()} more bCash**. Your clan has not been submitted.`,
                 flags: MessageFlags.Ephemeral,
               });
               return;
