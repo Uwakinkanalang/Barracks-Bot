@@ -1187,7 +1187,6 @@ export function registerDashboardRoutes(app, bot) {
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (!tag) return res.status(400).json({ error: 'Please enter a Clan Tag.' });
     if (/<a?:[a-zA-Z0-9_]{2,32}:\d{17,20}>/.test(tag)) return res.status(400).json({ error: 'Use a Unicode emoji (such as ⚔️ or 🔥). Custom Discord server emojis cannot display in member nicknames.' });
-    if (/<a?:[a-zA-Z0-9_]{2,32}:\\d{17,20}>/.test(tag)) return res.status(400).json({ error: 'Use a Unicode emoji (such as ⚔️ or 🔥). Custom Discord server emojis cannot display in member nicknames.' });
     const autoNickFormat = 'TAG {username}';
     const fixedAutoNickFormat = 'TAG ⚔ ★ {username}';
     if (!roleHex) return res.status(400).json({ error: 'Role Hex Code must be a valid six-digit color, such as #5865F2.' });
