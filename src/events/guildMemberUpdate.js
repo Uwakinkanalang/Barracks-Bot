@@ -7,6 +7,7 @@ import { getNicknamePrefix } from '../commands/Economy/nickname.js';
 import { getAFKKey } from '../utils/database.js';
 import { captureModerationAudit } from '../services/moderationAuditMirror.js';
 import { applyDashboardAutoNick } from '../services/autoNickDashboardService.js';
+import { syncTagRoleForMember } from '../services/tagRoleService.js';
 
 export default {
   name: Events.GuildMemberUpdate,
@@ -15,6 +16,8 @@ export default {
   async execute(oldMember, newMember) {
     try {
       if (!newMember.guild) return;
+
+      try { await syncTagRoleForMember(newMember); } catch (error) { logger.warn('[TAG_ROLE] Member update sync failed:', error); }
 
       // Record Nitro boost starts and stops for the Barracks dashboard activity feed.
       try {

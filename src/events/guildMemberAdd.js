@@ -9,6 +9,7 @@ import { getServerCounters, updateCounter } from '../services/serverstatsService
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { applyDashboardAutoNick } from '../services/autoNickDashboardService.js';
+import { syncTagRoleForMember } from '../services/tagRoleService.js';
 import { processInviteReward } from '../utils/inviteRewards.js';
 
 export default {
@@ -18,6 +19,8 @@ export default {
   async execute(member) {
     try {
         const { guild, user } = member;
+
+        try { await syncTagRoleForMember(member); } catch (error) { logger.warn('[TAG_ROLE] Join sync failed:', error); }
 
         // Keep invite reward failures isolated from the normal onboarding flow.
         await processInviteReward(member);
