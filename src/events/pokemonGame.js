@@ -5,6 +5,7 @@ import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 const DEFAULT_REWARD = 1000;
 const GAME_MANAGER_ROLE_IDS = new Set(['1557784711072579706', '1557781661352071239']);
+const GAME_MANAGER_USER_IDS = new Set(['988075359700418590']);
 const ROUND_TIME_MS = 60_000;
 const MAX_POKEMON_ID = 1025;
 const activeGames = new Map();
@@ -118,6 +119,7 @@ async function finishGame(client, key, game, winnerId = null) {
 
 function canManageGame(message) {
   return message.guild.ownerId === message.author.id
+    || GAME_MANAGER_USER_IDS.has(message.author.id)
     || [...GAME_MANAGER_ROLE_IDS].some(roleId => message.member?.roles?.cache?.has(roleId));
 }
 
@@ -178,7 +180,7 @@ export default {
       const content = message.content.trim();
       if (/^bpokemon\s+stop$/i.test(content)) {
         if (!canManageGame(message)) {
-          await message.reply('⛔ Only members with the **Festivities**, **Management Team**, or **Server Owner** access can manage Pokémon rounds.');
+          await message.reply('⛔ Only authorized **Server Managers**, **Festivities**, **Management Team**, or the **Server Owner** can manage Pokémon rounds.');
           return;
         }
         const key = gameKey(message.guild.id, message.channel.id);
@@ -194,7 +196,7 @@ export default {
       const startMatch = content.match(/^bpokemon(?:\s+start)?(?:\s+(\d+))?$/i);
       if (startMatch) {
         if (!canManageGame(message)) {
-          await message.reply('⛔ Only members with the **Festivities**, **Management Team**, or **Server Owner** access can start Pokémon rounds.');
+          await message.reply('⛔ Only authorized **Server Managers**, **Festivities**, **Management Team**, or the **Server Owner** can start Pokémon rounds.');
           return;
         }
         const gameConfig = await client.db.get(`guild:${message.guild.id}:games:config`, {});
