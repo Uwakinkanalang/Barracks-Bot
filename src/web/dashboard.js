@@ -1186,6 +1186,7 @@ export function registerDashboardRoutes(app, bot) {
     const rules = String(req.body?.rules || '').trim();
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (!tag) return res.status(400).json({ error: 'Please enter a Clan Tag.' });
+    if (/<a?:[a-zA-Z0-9_]{2,32}:\d{17,20}>/.test(tag)) return res.status(400).json({ error: 'Use a Unicode emoji (such as ⚔️ or 🔥). Custom Discord server emojis cannot display in member nicknames.' });
     if (/<a?:[a-zA-Z0-9_]{2,32}:\\d{17,20}>/.test(tag)) return res.status(400).json({ error: 'Use a Unicode emoji (such as ⚔️ or 🔥). Custom Discord server emojis cannot display in member nicknames.' });
     const autoNickFormat = 'TAG {username}';
     const fixedAutoNickFormat = 'TAG ⚔ ★ {username}';
@@ -1291,6 +1292,7 @@ export function registerDashboardRoutes(app, bot) {
     const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (!tag) return res.status(400).json({ error: 'Please enter a Clan Tag.' });
+    if (/<a?:[a-zA-Z0-9_]{2,32}:\d{17,20}>/.test(tag)) return res.status(400).json({ error: 'Use a Unicode emoji (such as ⚔️ or 🔥). Custom Discord server emojis cannot display in member nicknames.' });
     const autoNickFormat = 'TAG {username}';
     if (!/^\d{17,20}$/.test(leaderId)) return res.status(400).json({ error: 'Enter a valid Discord user ID for the clan leader.' });
     if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
