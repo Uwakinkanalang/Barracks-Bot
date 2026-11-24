@@ -372,13 +372,21 @@ export default {
           }
         } else if (interaction.isButton()) {
           if (interaction.customId.startsWith('tournament:')) {
+            const action = interaction.customId.split(':')[1];
+            const tournamentId = interaction.customId.split(':').slice(2).join(':');
+            if (action === 'teamcreate' || action === 'teaminvite') {
+              const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
+              const modal = new ModalBuilder().setCustomId('tournament:modal:' + action + ':' + tournamentId).setTitle(action === 'teamcreate' ? 'Create Tournament Team' : 'Invite a Player');
+              const field = new TextInputBuilder().setCustomId(action === 'teamcreate' ? 'team_name' : 'member_id').setLabel(action === 'teamcreate' ? 'Team name' : 'Player mention or Discord ID').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(action === 'teamcreate' ? 32 : 30);
+              modal.addComponents(new ActionRowBuilder().addComponents(field));
+              await interaction.showModal(modal);
+              return;
+            }
             // Acknowledge immediately: database and Discord API calls can exceed Discord's 3-second window.
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
             const key = `guild:${interaction.guildId}:tournaments`;
             const stored = await client.db.get(key, []);
             const tournaments = Array.isArray(stored) ? stored : [];
-            const action = interaction.customId.split(':')[1];
-            const tournamentId = interaction.customId.split(':').slice(2).join(':');
             const tournament = tournaments.find(item => item.id === tournamentId);
             if (!tournament) {
               await interaction.editReply({ content: 'This tournament could not be found.' });
@@ -1775,6 +1783,52 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isModalSubmit()) {
+          if (interaction.customId.startsWith('tournament:modal:')) {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const [, , action, tournamentId] = interaction.customId.split(':');
+            const key = 'guild:' + interaction.guildId + ':tournaments';
+            const stored = await client.db.get(key, []);
+            const tournaments = Array.isArray(stored) ? stored : [];
+            const tournament = tournaments.find(item => item.id === tournamentId);
+            if (!tournament || !tournament.teamMode) { await interaction.editReply({ content: 'This team registration is no longer available.' }); return; }
+            if (tournament.status !== 'registration' || (tournament.deadline && Date.now() > Date.parse(tournament.deadline))) { await interaction.editReply({ content: 'Team registration is closed.' }); return; }
+            if (!Array.isArray(tournament.teams)) tournament.teams = [];
+            if (!Array.isArray(tournament.registrations)) tournament.registrations = [];
+            const registered = new Set(tournament.registrations.map(entry => entry.userId));
+            const min = Number(tournament.teamMinPlayers || 1), max = Number(tournament.teamMaxPlayers || 5);
+            if (action === 'teamcreate') {
+              const name = interaction.fields.getTextInputValue('team_name').trim();
+              if (!name || name.length > 32) { await interaction.editReply({ content: 'Enter a team name between 1 and 32 characters.' }); return; }
+              if (registered.has(interaction.user.id)) { await interaction.editReply({ content: 'You are already registered in this tournament.' }); return; }
+              if (tournament.teams.some(team => team.name.toLowerCase() === name.toLowerCase())) { await interaction.editReply({ content: 'That team name is already taken.' }); return; }
+              if (tournament.registrations.length >= Number(tournament.limit)) { await interaction.editReply({ content: 'The tournament player limit has been reached.' }); return; }
+              const team = { id: crypto.randomUUID(), name, captainId: interaction.user.id, members: [], createdAt: new Date().toISOString() };
+              tournament.teams.push(team);
+              tournament.registrations.push({ userId: interaction.user.id, username: interaction.user.globalName || interaction.user.username, registeredAt: new Date().toISOString(), teamId: team.id });
+              await client.db.set(key, tournaments);
+              await interaction.editReply({ content: 'Your team **' + name + '** has been created. Use **Invite Player** to add teammates. Team size: ' + min + '–' + max + ' players.' });
+              return;
+            }
+            if (action === 'teaminvite') {
+              const raw = interaction.fields.getTextInputValue('member_id').trim();
+              const targetId = raw.match(/^(?:<@!?)?(\d{17,20})>?$/)?.[1];
+              if (!targetId) { await interaction.editReply({ content: 'Enter a valid player mention or Discord user ID.' }); return; }
+              const team = tournament.teams.find(entry => entry.captainId === interaction.user.id);
+              if (!team) { await interaction.editReply({ content: 'Only a team captain can invite players. Create a team first.' }); return; }
+              if (registered.has(targetId)) { await interaction.editReply({ content: 'That player is already registered in this tournament.' }); return; }
+              if (1 + (team.members || []).length >= max) { await interaction.editReply({ content: 'Your team has reached its maximum size of ' + max + ' players.' }); return; }
+              if (tournament.registrations.length >= Number(tournament.limit)) { await interaction.editReply({ content: 'The tournament player limit has been reached.' }); return; }
+              const member = await interaction.guild.members.fetch(targetId).catch(() => null);
+              if (!member || member.user.bot) { await interaction.editReply({ content: 'That player is not a valid member of this server.' }); return; }
+              team.members.push(targetId);
+              tournament.registrations.push({ userId: targetId, username: member.user.globalName || member.user.username, registeredAt: new Date().toISOString(), teamId: team.id });
+              await client.db.set(key, tournaments);
+              await interaction.editReply({ content: 'Added <@' + targetId + '> to **' + team.name + '**. Team roster: ' + (team.members.length + 1) + '/' + max + ' players.' });
+              return;
+            }
+            await interaction.editReply({ content: 'Unknown team action.' });
+            return;
+          }
           if (interaction.customId === 'barracks_nickname_modal') {
             await handleNicknameChangeModal(interaction, client);
             return;
