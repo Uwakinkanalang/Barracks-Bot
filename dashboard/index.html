@@ -911,6 +911,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
     </div></div>
    </aside>
   </div>
+ </div>
  <div id="moderationPanel" style="display:none;max-width:900px">
 <div class="card" style="margin-bottom:14px"><h2 style="font-size:16px;margin-top:0">Member lookup</h2><p class="sub">Search by username, display name, or Discord ID.</p><div style="display:flex;gap:8px"><input id="modSearch" placeholder="Search members…" style="flex:1;min-width:0;padding:11px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"><button id="modSearchBtn" type="button">Search</button></div><div id="modResults" style="margin-top:10px;color:#c0c2ca;font-size:13px"></div></div>
 <div class="card"><h2 style="font-size:16px;margin-top:0">Moderation action</h2><p class="sub">Actions affect the live Barracks Discord server. Review carefully before confirming.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
@@ -1292,7 +1293,7 @@ document.getElementById('announcementVariableGuideOpen')?.addEventListener('clic
 document.getElementById('announcementVariableGuideClose')?.addEventListener('click',()=>announcementGuide?.classList.remove('open'));
 announcementGuide?.addEventListener('click',event=>{if(event.target===announcementGuide)announcementGuide.classList.remove('open');});
 function announcementTokens(value,prefix){
- const sample=prefix==='welcome'?{user:'@NewMember',username:'NewMember',tag:'NewMember#1234',id:'123456789012345678'}:prefix==='goodbye'?{user:'@DepartingMember',username:'DepartingMember',tag:'DepartingMember#1234',id:'123456789012345678'}:{user:'@BannedMember',username:'BannedMember',tag:'BannedMember#1234',id:'123456789012345678'};
+ const sample=prefix==='welcome'?{user:'@NewMember',username:'NewMember',tag:'NewMember#1234',id:'123456789012345678'}:prefix==='goodbye'?{user:'@DepartingMember',username:'DepartingMember',tag:'DepartingMember#1234',id:'123456789012345678'}:prefix==='boost'?{user:'@Booster',username:'Booster',tag:'Booster#1234',id:'123456789012345678'}:{user:'@BannedMember',username:'BannedMember',tag:'BannedMember#1234',id:'123456789012345678'};
  const avatar='https://cdn.discordapp.com/embed/avatars/0.png';
  const serverIcon='https://cdn.discordapp.com/embed/avatars/1.png';
  return String(value||'')
