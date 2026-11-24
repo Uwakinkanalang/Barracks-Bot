@@ -8,6 +8,7 @@ import { createError, ErrorTypes, withErrorHandling } from '../../utils/errorHan
 const activeSpins = new Set();
 const DEFAULT_EMOJIS = ['<:fatjerry:1572110023742459974>', '🍉', '💎', '🍒', '<:SundalongCamonaNangaasar:1572130012713193512>'];
 const SPIN_DELAY = 650;
+const MAX_BET = 250_000;
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 const shuffle = items => {
@@ -79,7 +80,7 @@ export default {
             option.setName('bet')
                 .setDescription('Amount of bCash to wager')
                 .setMinValue(1)
-                .setMaxValue(1_000_000_000)
+                .setMaxValue(MAX_BET)
                 .setRequired(true)
         ),
 
@@ -104,10 +105,13 @@ export default {
             ]);
             const wallet = Math.max(0, Number(account?.wallet) || 0);
             const bet = interaction._isPrefixCommand && String(requestedBet).toLowerCase() === 'all'
-                ? wallet
+                ? Math.min(wallet, MAX_BET)
                 : Number(requestedBet);
             if (!Number.isSafeInteger(bet) || bet < 1) {
                 throw createError('Invalid bet', ErrorTypes.VALIDATION, 'Enter a valid bet amount, or use **bslot all** to wager your entire wallet.');
+            }
+            if (bet > MAX_BET) {
+                throw createError('Bet exceeds maximum', ErrorTypes.VALIDATION, `The maximum bslot bet is **₱${MAX_BET.toLocaleString()} bCash**.`);
             }
             if (bet > wallet) {
                 throw createError('Insufficient bCash', ErrorTypes.VALIDATION, `You only have **₱${wallet.toLocaleString()} bCash** in your wallet.`);
