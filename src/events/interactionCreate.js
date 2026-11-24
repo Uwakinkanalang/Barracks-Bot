@@ -1,4 +1,4 @@
-import { Events, MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { ChannelType, Events, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import {
@@ -1216,6 +1216,38 @@ export default {
                   }
                 }
 
+                let voiceChannelWarning = null;
+                const clanVoiceCategoryId = '1574641736695816334';
+                try {
+                  const category = await interaction.guild.channels.fetch(clanVoiceCategoryId);
+                  if (!category || category.type !== ChannelType.GuildCategory) {
+                    throw new Error(`Configured clan voice category ${clanVoiceCategoryId} was not found or is not a category.`);
+                  }
+
+                  let clanVoiceChannel = reviewedClan.voiceChannelId
+                    ? await interaction.guild.channels.fetch(reviewedClan.voiceChannelId).catch(() => null)
+                    : null;
+                  if (!clanVoiceChannel) {
+                    clanVoiceChannel = await interaction.guild.channels.create({
+                      name: reviewedClan.name.slice(0, 100),
+                      type: ChannelType.GuildVoice,
+                      parent: category.id,
+                      reason: `Voice channel for approved clan: ${reviewedClan.name}`,
+                    });
+                  }
+                  reviewedClan.voiceChannelId = clanVoiceChannel.id;
+                  await interaction.client.db.set(storageKey, clanList);
+                } catch (voiceError) {
+                  voiceChannelWarning = `The clan was approved, but I could not create its voice channel: ${voiceError.message}. Check the category and my Manage Channels permission.`;
+                  logger.error('Failed to create voice channel for approved clan:', {
+                    error: voiceError.message,
+                    code: voiceError.code,
+                    guildId: interaction.guildId,
+                    clanId,
+                    categoryId: clanVoiceCategoryId,
+                  });
+                }
+
                 const updated = EmbedBuilder.from(interaction.message.embeds[0] || {})
                   .setColor(Number.parseInt((reviewedClan.roleHex || '#5865F2').slice(1), 16))
                   .setTitle(`🏰 ${reviewedClan.name}`)
@@ -1230,6 +1262,9 @@ export default {
                     content: `The clan was approved and the role was created, but I could not assign it to everyone: ${assignmentErrors.join('; ')}. Check my Manage Roles permission and role hierarchy.`,
                     flags: MessageFlags.Ephemeral,
                   });
+                }
+                if (voiceChannelWarning) {
+                  await interaction.followUp({ content: voiceChannelWarning, flags: MessageFlags.Ephemeral });
                 }
                 return;
               } catch (error) {
