@@ -1,4 +1,6 @@
 import { ChannelType, Events, MessageFlags, PermissionFlagsBits } from 'discord.js';
+
+const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
 import { logger } from '../utils/logger.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import {
