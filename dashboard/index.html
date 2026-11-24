@@ -1326,7 +1326,23 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 async function loadOverview(){try{const response=await fetch('/api/dashboard/overview',{credentials:'same-origin'});if(response.status===401){location.href='/dashboard';return}if(!response.ok)throw new Error('Could not load server overview');const data=await response.json();document.getElementById('guildName').textContent=data.guildName;document.getElementById('members').textContent=Number(data.memberCount).toLocaleString();document.getElementById('channels').textContent=Number(data.channelCount).toLocaleString();document.getElementById('roles').textContent=Number(data.roleCount).toLocaleString();document.getElementById('commands').textContent=Number(data.commandCount).toLocaleString();document.getElementById('updated').textContent='Updated '+new Date(data.updatedAt).toLocaleTimeString();if(data.guildIcon){const img=document.getElementById('guildIcon');img.src=data.guildIcon;img.hidden=false;document.getElementById('guildFallback').hidden=true}}catch(error){document.getElementById('updated').textContent='Status unavailable';console.error(error)}}loadOverview();setInterval(loadOverview,60000);
 </script>
 
-<style id="loginPageIsolationFix">body.auth-locked .shell{visibility:hidden!important;pointer-events:none!important}#loginScreen{z-index:99999!important}</style>
+<style id="loginPageIsolationFix">body.auth-locked .shell{visibility:hidden!important;pointer-events:none!important}#loginScreen{z-index:99999!important}
+/* Final tournament editor layout overrides */
+#tournamentForm.tournament-form{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px 11px}
+#tournamentForm.tournament-form>label{gap:4px;font-size:10px;line-height:1.3}
+#tournamentForm.tournament-form input:not([type="checkbox"]):not([type="color"]),#tournamentForm.tournament-form select{min-height:34px;padding:7px 9px;font-size:11px;border-radius:7px}
+#tournamentForm.tournament-form textarea{width:100%;min-width:0;box-sizing:border-box;padding:8px 9px;font-size:11px;line-height:1.4;border:1px solid var(--ui-border);border-radius:7px;background:var(--ui-bg);color:var(--ui-text)}
+#tournamentForm.tournament-form>div[style*="border-top"]{padding-top:9px!important}
+#tournamentForm.tournament-form>div[style*="border-top"] h3{font-size:12px!important}
+#tournamentForm.tournament-form>div[style*="border-top"] p{font-size:10px!important}
+#tournamentForm .tournament-preview-card{grid-column:1/-1;padding:13px;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-surface);display:grid;gap:10px}
+#tournamentForm .tournament-preview-heading{display:flex;align-items:center;justify-content:space-between}
+#tournamentForm .tournament-preview-heading h3{margin:0;font-size:12px;color:var(--ui-text);letter-spacing:.06em}
+#tournamentForm .tournament-preview-heading p{margin:3px 0 0;font-size:10px;color:var(--ui-muted)}
+#tournamentForm .tournament-preview-heading span{padding:4px 7px;border-radius:5px;background:var(--ui-accent-soft);color:var(--ui-accent);font-size:9px;font-weight:800}
+@media(max-width:1000px){#tournamentForm.tournament-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){#tournamentForm.tournament-form{grid-template-columns:1fr;gap:9px}}
+</style>
 <div id="loginScreen" style="position:fixed;inset:0;z-index:10;background:#0b1110;display:none;place-items:center;padding:20px">
   <form id="loginForm" style="width:min(420px,100%);padding:34px;border:1px solid #27372d;border-radius:20px;background:#111a16">
     <div class="brand-mark">B</div><div class="eyebrow" style="margin-top:22px">Barracks · Command Center</div>
