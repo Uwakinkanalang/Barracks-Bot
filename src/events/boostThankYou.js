@@ -16,10 +16,11 @@ export default {
       const channelId = config.boostChannelId || BOOST_CHANNEL_ID;
       const channel = await newMember.guild.channels.fetch(channelId).catch(() => null);
       if (!channel?.isTextBased() || !channel.send) return;
-      const message = formatWelcomeMessage(
-        config.boostMessage || 'Thank you {user} for boosting {server}! Your support means a lot to us.',
+      const messageTemplate = config.boostMessage ?? 'Thank you {user} for boosting {server}! Your support means a lot to us.';
+      const message = messageTemplate ? formatWelcomeMessage(
+        messageTemplate,
         { user: newMember.user, guild: newMember.guild, member: newMember }
-      );
+      ) : '';
       const embedSettings = config.boostEmbed || { color: '#C3F36B', title: '🚀 Thank You for Boosting!' };
       const hasEmbedContent = [embedSettings.authorName, embedSettings.title, embedSettings.description, embedSettings.thumbnailUrl, embedSettings.imageUrl, embedSettings.footerIconUrl, embedSettings.footerText].some(value => String(value || '').trim());
       const embed = hasEmbedContent ? buildMemberAnnouncementEmbed(embedSettings, { user: newMember.user, guild: newMember.guild, member: newMember }, { color: '#C3F36B' }) : null;
