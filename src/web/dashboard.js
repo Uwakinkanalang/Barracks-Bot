@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { ChannelType } from 'discord.js';
 import { getWelcomeConfig, saveWelcomeConfig, getFromDb, setInDb } from '../utils/database.js';
 import { getGuildConfig, updateGuildConfig } from '../services/config/guildConfig.js';
 import { getEconomyPrefix } from '../utils/database.js';
@@ -1307,9 +1308,21 @@ export function registerDashboardRoutes(app, bot) {
     if (clans.some(c => String(c.tag).toUpperCase() === tag)) return res.status(409).json({ error: 'That clan tag is already in use.' });
     if (clans.some(c => String(c.name).toLowerCase() === name.toLowerCase())) return res.status(409).json({ error: 'A clan with that name already exists.' });
     let role = null;
+    let voiceChannel = null;
     try {
       role = await guild.roles.create({ name: tag + ' ' + name, color: roleHex, hoist: true, mentionable: false, reason: 'Clan created from Barracks dashboard' });
       await registerClanAutoNick(guild, role, tag, autoNickFormat);
+      const clanVoiceCategoryId = '1574641736695816334';
+      const clanVoiceCategory = await guild.channels.fetch(clanVoiceCategoryId);
+      if (!clanVoiceCategory || clanVoiceCategory.type !== ChannelType.GuildCategory) {
+        throw new Error('The configured clan voice category was not found or is not a category.');
+      }
+      voiceChannel = await guild.channels.create({
+        name: name.slice(0, 100),
+        type: ChannelType.GuildVoice,
+        parent: clanVoiceCategory.id,
+        reason: 'Voice channel for clan created from Barracks dashboard',
+      });
       const levelsRole = await guild.roles.fetch('1564159581825933353').catch(() => null);
       if (levelsRole && role.editable) {
         await role.setPosition(levelsRole.position + 1, {
@@ -1320,10 +1333,11 @@ export function registerDashboardRoutes(app, bot) {
       if (viceLeader) await viceLeader.roles.add(role, 'Assigned as vice clan leader by Barracks dashboard');
       await applyClanAutoNick(leader, tag, autoNickFormat);
       if (viceLeader) await applyClanAutoNick(viceLeader, tag, autoNickFormat);
-      const record = { id: role.id, name, tag, roleHex, autoNickFormat, description, leaderId: leader.id, leaderName: leader.displayName, viceLeaderId: viceLeader?.id || '', viceLeaderName: viceLeader?.displayName || '', roleId: role.id, status: 'approved', memberIds: [], joinRequests: [], createdAt: new Date().toISOString(), source: 'dashboard' };
+      const record = { id: role.id, name, tag, roleHex, autoNickFormat, description, leaderId: leader.id, leaderName: leader.displayName, viceLeaderId: viceLeader?.id || '', viceLeaderName: viceLeader?.displayName || '', roleId: role.id, voiceChannelId: voiceChannel.id, status: 'approved', memberIds: [], joinRequests: [], createdAt: new Date().toISOString(), source: 'dashboard' };
       await setInDb(clanStorageKey(guild.id), [...clans, record]);
       return res.json({ ok: true, clan: record });
     } catch (error) {
+      if (voiceChannel) await voiceChannel.delete('Rollback failed clan creation').catch(() => {});
       if (role && leader.roles.cache.has(role.id)) await leader.roles.remove(role, 'Rollback failed clan creation').catch(() => {});
       if (role && viceLeader?.roles.cache.has(role.id)) await viceLeader.roles.remove(role, 'Rollback failed clan creation').catch(() => {});
       if (role) await role.delete('Rollback failed clan creation').catch(() => {});
