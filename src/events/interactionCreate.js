@@ -383,9 +383,9 @@ export default {
             const { EmbedBuilder } = await import('discord.js');
             const participants = Array.isArray(tournament.registrations) ? tournament.registrations : [];
             const lines = participants.map((entry, index) => `**${index + 1}.** <@${entry.userId}>`);
-            let description = lines.length ? lines.join('\\n') : 'No one has registered yet.';
+            let description = lines.length ? lines.join('\n') : 'No one has registered yet.';
             if (description.length > 4000) {
-              description = description.slice(0, 3900) + '\\n\\n…and more. View the full roster on the Barracks dashboard.';
+              description = description.slice(0, 3900) + '\n\n…and more. View the full roster on the Barracks dashboard.';
             }
             const embed = new EmbedBuilder()
               .setColor(0xC3F36B)
