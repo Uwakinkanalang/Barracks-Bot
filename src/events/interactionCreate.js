@@ -484,7 +484,8 @@ export default {
               const { EmbedBuilder } = await import('discord.js');
               const participants = Array.isArray(tournament.registrations) ? tournament.registrations : [];
               const checked = new Set(tournament.checkedIn || []);
-              const lines = tournament.teamMode ? (tournament.teams || []).map((team, index) => `**${index + 1}. ${team.name}** — Captain: <@${team.captainId}>\n${[team.captainId, ...(team.members || [])].map(id => '• <@' + id + '>' + (checked.has(id) ? ' ✅ Checked in' : '')).join('\n')}`) : participants.map((entry, index) => `**${index + 1}.** <@${entry.userId}>${checked.has(entry.userId) ? ' — ✅ Checked in' : ''}`);
+              const minimum = Number(tournament.teamMinPlayers || 1);
+              const lines = tournament.teamMode ? (tournament.teams || []).map((team, index) => `**${index + 1}. ${team.name}** — Captain: <@${team.captainId}> — ${1 + (team.members || []).length}/${tournament.teamMaxPlayers || 5} players${1 + (team.members || []).length < minimum ? ' ⚠️ Incomplete' : ' ✅ Ready'}\n${[team.captainId, ...(team.members || [])].map(id => '• <@' + id + '>' + (checked.has(id) ? ' ✅ Checked in' : '')).join('\n')}`) : participants.map((entry, index) => `**${index + 1}.** <@${entry.userId}>${checked.has(entry.userId) ? ' — ✅ Checked in' : ''}`);
               const embed = new EmbedBuilder().setColor(tournament.color || 0xC3F36B)
                 .setTitle('👥 Participants — ' + tournament.name)
                 .setDescription((lines.join('\n') || 'No one has registered yet.').slice(0, 4000))
