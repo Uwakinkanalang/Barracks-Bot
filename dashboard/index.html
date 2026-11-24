@@ -1459,6 +1459,22 @@ async function loadOverview(){try{const response=await fetch('/api/dashboard/ove
 @media(max-width:1000px){#tournamentForm.tournament-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){#tournamentForm.tournament-form{grid-template-columns:1fr;gap:9px}}
 
+/* Final Edit Tournament card sizing and alignment */
+#tournamentFormCard.tournament-form-card{width:min(100%,1180px)!important;max-width:1180px!important;margin:16px auto 24px!important;overflow:hidden!important;border:1px solid var(--ui-border)!important;border-radius:14px!important;background:var(--ui-surface)!important;box-sizing:border-box!important}
+#tournamentFormCard .tournament-form-heading{padding:13px 16px!important;min-height:56px!important}
+#tournamentForm.tournament-form{display:grid!important;grid-template-columns:minmax(0,1fr) 300px!important;align-items:start!important;gap:12px!important;padding:12px!important;box-sizing:border-box!important}
+#tournamentForm .tournament-editor-fields{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-content:start!important;gap:10px!important;min-width:0!important}
+#tournamentForm .tournament-fields-card{min-width:0!important;padding:10px!important;box-sizing:border-box!important}
+#tournamentForm .tournament-basics-card,#tournamentForm .tournament-registration-card{grid-column:1/-1!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-content:start!important}
+#tournamentForm .tournament-embed-card{grid-column:1/-1!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-content:start!important}
+#tournamentForm .tournament-preview-card{grid-column:2!important;grid-row:1!important;position:sticky!important;top:16px!important;align-self:start!important;width:100%!important;max-width:300px!important;min-width:0!important;padding:10px!important;box-sizing:border-box!important}
+#tournamentForm .tournament-preview-card #tournamentEmbedPreview{padding:10px!important;max-height:72vh!important;overflow:auto!important}
+#tournamentForm .tournament-preview-card img{max-width:100%!important}
+#tournamentForm .tournament-fields-card>label{min-width:0!important}
+#tournamentForm .tournament-fields-card input:not([type="checkbox"]):not([type="color"]),#tournamentForm .tournament-fields-card select,#tournamentForm .tournament-fields-card textarea{width:100%!important;min-width:0!important;box-sizing:border-box!important}
+@media(max-width:1050px){#tournamentForm.tournament-form{grid-template-columns:minmax(0,1fr) 270px!important}#tournamentForm .tournament-preview-card{max-width:270px!important}}
+@media(max-width:780px){#tournamentForm.tournament-form{grid-template-columns:minmax(0,1fr)!important}#tournamentForm .tournament-editor-fields{grid-template-columns:minmax(0,1fr)!important}#tournamentForm .tournament-basics-card,#tournamentForm .tournament-embed-card,#tournamentForm .tournament-registration-card{grid-template-columns:repeat(2,minmax(0,1fr))!important}#tournamentForm .tournament-preview-card{grid-column:1!important;grid-row:auto!important;position:static!important;max-width:none!important}}
+@media(max-width:520px){#tournamentForm .tournament-basics-card,#tournamentForm .tournament-embed-card,#tournamentForm .tournament-registration-card{grid-template-columns:minmax(0,1fr)!important}}
 /* Compact tournament field controls */
 #tournamentForm.tournament-form>label input:not([type="checkbox"]):not([type="color"]),
 #tournamentForm.tournament-form>label select{height:29px;min-height:29px;padding:4px 7px;font-size:10px;border-radius:6px;line-height:1.2}
