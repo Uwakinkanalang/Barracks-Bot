@@ -1300,7 +1300,9 @@ export function registerDashboardRoutes(app, bot) {
   const tournamentComponents = tournament => [new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('tournament:join:' + tournament.id)
       .setLabel('Join Tournament').setEmoji('🏆')
-      .setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || (tournament.registrations?.length || 0) >= tournament.limit)
+      .setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || (tournament.registrations?.length || 0) >= tournament.limit),
+    new ButtonBuilder().setCustomId('tournament:participants:' + tournament.id)
+      .setLabel('Participants').setEmoji('👥').setStyle(ButtonStyle.Secondary)
   )];
 
   app.get('/api/dashboard/tournaments', async (req, res) => {
