@@ -385,6 +385,9 @@ export default {
             embed.setDescription(details.join('\n'));
             if (tournament.thumbnail) embed.setThumbnail(tournament.thumbnail);
             if (tournament.image) embed.setImage(tournament.image);
+            const customFields = String(tournament.fields || '').split('\n').map(line => line.split('|').map(value => value.trim())).filter(pair => pair.length >= 2 && pair[0] && pair[1]).slice(0, 20);
+            for (const [name, value] of customFields) embed.addFields({ name: name.slice(0, 256), value: value.slice(0, 1024), inline: true });
+            if (tournament.rules && tournament.showRules) embed.addFields({ name: '📜 Tournament Rules', value: tournament.rules.slice(0, 1024) });
             if (tournament.footer) embed.setFooter({ text: tournament.footer, ...(tournament.footerIcon ? { iconURL: tournament.footerIcon } : {}) });
             if (tournament.timestamp !== false) embed.setTimestamp(new Date());
             const buttons = [];
