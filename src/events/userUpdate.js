@@ -1,6 +1,7 @@
 import { Events } from 'discord.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
+import { syncTagRoleForMember } from '../services/tagRoleService.js';
 
 export default {
   name: Events.UserUpdate,
@@ -9,6 +10,15 @@ export default {
   async execute(oldUser, newUser) {
     try {
       if (oldUser.bot) return;
+
+      // Server-tag changes arrive through USER_UPDATE; sync members in guilds where they are cached.
+      for (const guild of newUser.client.guilds.cache.values()) {
+        const member = guild.members.cache.get(newUser.id);
+        if (!member) continue;
+        try { await syncTagRoleForMember(member); } catch (error) {
+          logger.warn(`[TAG_ROLE] User update sync failed for ${newUser.id} in ${guild.id}: ${error.message}`);
+        }
+      }
 
       const usernameChanged = oldUser.username !== newUser.username;
       const discriminatorChanged = oldUser.discriminator !== newUser.discriminator;
