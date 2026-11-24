@@ -373,14 +373,15 @@ export default {
         } else if (interaction.isButton()) {
           if (interaction.customId.startsWith('tournament:accept:')) {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-            const [, , guildId, tournamentId, teamId] = interaction.customId.split(':');
+            const [, , guildId, inviteToken] = interaction.customId.split(':');
             const key = 'guild:' + guildId + ':tournaments';
             const stored = await client.db.get(key, []);
             const tournaments = Array.isArray(stored) ? stored : [];
-            const tournament = tournaments.find(item => item.id === tournamentId);
-            const team = tournament?.teams?.find(entry => entry.id === teamId);
+            const tournament = tournaments.find(item => (item.pendingTeamInvites || []).some(entry => entry.inviteToken === inviteToken && entry.userId === interaction.user.id));
             const pending = tournament?.pendingTeamInvites || [];
-            const inviteIndex = pending.findIndex(entry => entry.userId === interaction.user.id && entry.teamId === teamId);
+            const inviteIndex = pending.findIndex(entry => entry.inviteToken === inviteToken && entry.userId === interaction.user.id);
+            const invite = inviteIndex >= 0 ? pending[inviteIndex] : null;
+            const team = tournament?.teams?.find(entry => entry.id === invite?.teamId);
             if (!tournament || !team || inviteIndex < 0) { await interaction.editReply({ content: 'This team invitation is no longer valid.' }); return; }
             if (tournament.status !== 'registration' || (tournament.deadline && Date.now() > Date.parse(tournament.deadline))) { await interaction.editReply({ content: 'Team registration is closed.' }); return; }
             const max = Number(tournament.teamMaxPlayers || 5);
@@ -1847,14 +1848,15 @@ export default {
               if (!Array.isArray(tournament.pendingTeamInvites)) tournament.pendingTeamInvites = [];
               if (tournament.pendingTeamInvites.some(entry => entry.userId === targetId && entry.teamId === team.id)) { await interaction.editReply({ content: 'That player already has a pending invitation.' }); return; }
               const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
-              const inviteRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('tournament:accept:' + interaction.guildId + ':' + tournament.id + ':' + team.id).setLabel('Accept Team Invitation').setStyle(ButtonStyle.Success));
+              const inviteToken = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+              const inviteRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('tournament:accept:' + interaction.guildId + ':' + inviteToken).setLabel('Accept Team Invitation').setStyle(ButtonStyle.Success));
               try {
                 await member.send({ content: '🛡️ **' + interaction.user.username + '** invited you to join **' + team.name + '** for **' + tournament.name + '** in Barracks.', components: [inviteRow] });
               } catch {
                 await interaction.editReply({ content: 'I could not DM that player. Ask them to enable server DMs, then try again.' });
                 return;
               }
-              tournament.pendingTeamInvites.push({ userId: targetId, teamId: team.id, invitedBy: interaction.user.id, invitedAt: new Date().toISOString() });
+              tournament.pendingTeamInvites.push({ inviteToken, userId: targetId, teamId: team.id, invitedBy: interaction.user.id, invitedAt: new Date().toISOString() });
               await client.db.set(key, tournaments);
               await interaction.editReply({ content: 'Team invitation sent to <@' + targetId + '>. They must accept the DM invitation to join **' + team.name + '**.' });
               return;
