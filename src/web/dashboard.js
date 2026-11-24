@@ -1346,4 +1346,43 @@ export function registerDashboardRoutes(app, bot) {
       return res.status(500).json({ error: error?.message || 'Clan creation failed. Partially created Discord resources were cleaned up.' });
     }
   });
+  const tournamentKey = guildId => `guild:${guildId}:tournaments`;
+  app.get('/api/dashboard/tournaments', async (req, res) => {
+    const guild = requireDashboardGuild(req, res); if (!guild) return;
+    const records = await getFromDb(tournamentKey(guild.id), []);
+    return res.json({ tournaments: Array.isArray(records) ? records : [] });
+  });
+  app.post('/api/dashboard/tournaments', async (req, res) => {
+    const guild = requireDashboardGuild(req, res); if (!guild) return;
+    const { name, game, date, format, limit, channelId } = req.body || {};
+    if (!String(name || '').trim() || !String(game || '').trim() || !date || !/^\\d{17,20}$/.test(String(channelId || ''))) return res.status(400).json({ error: 'Tournament name, game, date, and a valid announcement channel ID are required.' });
+    const channel = await guild.channels.fetch(String(channelId)).catch(() => null);
+    if (!channel?.isTextBased() || !channel.send) return res.status(400).json({ error: 'Choose a valid text announcement channel.' });
+    const cap = Math.max(2, Math.min(512, Number(limit) || 16));
+    const record = { id: `t-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`, name: String(name).trim().slice(0,80), game: String(game).trim().slice(0,50), date: String(date), format: String(format || 'Single Elimination').slice(0,40), limit: cap, status: 'registration', registrations: [], channelId: channel.id, messageId: null, createdAt: new Date().toISOString() };
+    const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+    const embed = new EmbedBuilder().setColor(0xC3F36B).setTitle('🏆 ' + record.name).setDescription('**' + record.game + '**\n\nGather your squad and compete for glory!').addFields(
+      { name: '📅 Date', value: new Date(record.date).toLocaleString(), inline: true },
+      { name: '👥 Players', value: '0 / ' + cap, inline: true },
+      { name: '🎮 Format', value: record.format, inline: true },
+      { name: '📋 Registration', value: 'Click **Join Tournament** below to reserve your place.' }
+    ).setFooter({ text: 'Barracks • Tournament Registration' });
+    const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('tournament:join:' + record.id).setLabel('Join Tournament').setEmoji('🎮').setStyle(ButtonStyle.Success));
+    try {
+      const message = await channel.send({ embeds: [embed], components: [row] });
+      record.messageId = message.id;
+      const saved = await getFromDb(tournamentKey(guild.id), []);
+      await setInDb(tournamentKey(guild.id), [record, ...(Array.isArray(saved) ? saved : [])]);
+      return res.json({ ok: true, tournament: record });
+    } catch (error) { return res.status(500).json({ error: error?.message || 'Could not publish tournament announcement.' }); }
+  });
+  app.delete('/api/dashboard/tournaments/:id', async (req, res) => {
+    const guild = requireDashboardGuild(req, res); if (!guild) return;
+    const saved = await getFromDb(tournamentKey(guild.id), []);
+    const records = Array.isArray(saved) ? saved : [];
+    if (!records.some(item => item.id === req.params.id)) return res.status(404).json({ error: 'Tournament not found.' });
+    await setInDb(tournamentKey(guild.id), records.filter(item => item.id !== req.params.id));
+    return res.json({ ok: true });
+  });
+
 }
