@@ -414,7 +414,7 @@ export default {
                 '**Registration:** ' + (tournament.status === 'registration' ? 'OPEN' : tournament.status.toUpperCase()),
                 '',
                 'Click **Join Tournament** below to register. One registration per Discord account.'
-              ].join('\\n')).setFooter({ text: 'BARRACKS • TOURNAMENTS' });
+              ].join('\n')).setFooter({ text: 'BARRACKS • TOURNAMENTS' });
             const button = new ButtonBuilder().setCustomId('tournament:join:' + tournament.id)
               .setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success)
               .setDisabled(tournament.registrations.length >= tournament.limit || tournament.status !== 'registration');
