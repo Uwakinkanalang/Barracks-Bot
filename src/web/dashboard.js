@@ -1176,7 +1176,7 @@ export function registerDashboardRoutes(app, bot) {
 
     const clanId = String(req.params.clanId || '');
     const name = String(req.body?.name || '').trim();
-    const tag = String(req.body?.tag || '').trim().toUpperCase();
+    const tag = String(req.body?.tag || '').trim().normalize('NFC').toUpperCase();
     const roleHexInput = String(req.body?.roleHex || '').trim();
     const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
     const roleHex = roleHexMatch ? `#${roleHexMatch[1].toUpperCase()}` : null;
@@ -1186,6 +1186,7 @@ export function registerDashboardRoutes(app, bot) {
     const rules = String(req.body?.rules || '').trim();
     if (!name || name.length > 60) return res.status(400).json({ error: 'Clan name must be between 1 and 60 characters.' });
     if (!tag) return res.status(400).json({ error: 'Please enter a Clan Tag.' });
+    if (/<a?:[a-zA-Z0-9_]{2,32}:\\d{17,20}>/.test(tag)) return res.status(400).json({ error: 'Use a Unicode emoji (such as ⚔️ or 🔥). Custom Discord server emojis cannot display in member nicknames.' });
     const autoNickFormat = 'TAG {username}';
     const fixedAutoNickFormat = 'TAG ⚔ ★ {username}';
     if (!roleHex) return res.status(400).json({ error: 'Role Hex Code must be a valid six-digit color, such as #5865F2.' });
@@ -1283,7 +1284,7 @@ export function registerDashboardRoutes(app, bot) {
     if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
-    const name = String(req.body?.name || '').trim(), tag = String(req.body?.tag || '').trim().toUpperCase();
+    const name = String(req.body?.name || '').trim(), tag = String(req.body?.tag || '').trim().normalize('NFC').toUpperCase();
     const leaderId = String(req.body?.leaderId || '').trim(), viceLeaderId = String(req.body?.viceLeaderId || '').trim(), description = String(req.body?.description || '').trim();
     const roleHexInput = String(req.body?.roleHex || '').trim();
     const roleHexMatch = roleHexInput.match(/^#?([0-9a-fA-F]{6})$/);
