@@ -371,6 +371,57 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('tournament:join:')) {
+            if (!interaction.guildId) {
+              await interaction.reply({ content: 'Tournament registration is only available in the Barracks server.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const tournamentId = interaction.customId.slice('tournament:join:'.length);
+            const key = `guild:${interaction.guildId}:tournaments`;
+            const tournaments = await client.db.get(key, []);
+            const list = Array.isArray(tournaments) ? tournaments : [];
+            const tournament = list.find(item => item.id === tournamentId);
+            if (!tournament) {
+              await interaction.reply({ content: 'This tournament could not be found. Please contact the event staff.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (tournament.status !== 'registration') {
+              await interaction.reply({ content: 'Registration for this tournament is closed.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (!Array.isArray(tournament.registrations)) tournament.registrations = [];
+            if (tournament.registrations.some(entry => entry.userId === interaction.user.id)) {
+              await interaction.reply({ content: 'You are already registered for **' + tournament.name + '**.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            if (tournament.registrations.length >= Number(tournament.limit)) {
+              await interaction.reply({ content: 'This tournament is already full.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            tournament.registrations.push({
+              userId: interaction.user.id,
+              username: interaction.user.globalName || interaction.user.username,
+              registeredAt: new Date().toISOString()
+            });
+            await client.db.set(key, list);
+            const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+            const embed = new EmbedBuilder().setColor(0xC3F36B).setTitle('🏆 ' + tournament.name)
+              .setDescription([
+                '**Game:** ' + tournament.game,
+                '**Date:** ' + new Date(tournament.date).toLocaleString(),
+                '**Format:** ' + tournament.format,
+                '**Players:** ' + tournament.registrations.length + ' / ' + tournament.limit,
+                '**Registration:** ' + (tournament.status === 'registration' ? 'OPEN' : tournament.status.toUpperCase()),
+                '',
+                'Click **Join Tournament** below to register. One registration per Discord account.'
+              ].join('\n')).setFooter({ text: 'BARRACKS • TOURNAMENTS' });
+            const button = new ButtonBuilder().setCustomId('tournament:join:' + tournament.id)
+              .setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success)
+              .setDisabled(tournament.registrations.length >= tournament.limit || tournament.status !== 'registration');
+            await interaction.message.edit({ embeds: [embed], components: [new ActionRowBuilder().addComponents(button)] }).catch(() => {});
+            await interaction.reply({ content: '✅ You are registered for **' + tournament.name + '**! Good luck, soldier.', flags: MessageFlags.Ephemeral });
+            return;
+          }
           if (interaction.customId === 'barracks_nickname_change') {
             await handleNicknameChangeButton(interaction);
             return;
