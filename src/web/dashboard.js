@@ -1284,26 +1284,44 @@ export function registerDashboardRoutes(app, bot) {
     const value = await getFromDb(tournamentKey(guildId), []);
     return Array.isArray(value) ? value : [];
   };
-  const tournamentEmbed = tournament => new EmbedBuilder()
-    .setColor(0xC3F36B)
-    .setTitle('🏆 ' + tournament.name)
-    .setDescription([
+  const tournamentEmbed = tournament => {
+    const embed = new EmbedBuilder().setColor(/^#[0-9a-f]{6}$/i.test(tournament.color || '') ? tournament.color : '#C3F36B')
+      .setTitle('🏆 ' + tournament.name);
+    if (tournament.author) embed.setAuthor({ name: tournament.author, ...(tournament.authorIcon ? { iconURL: tournament.authorIcon } : {}) });
+    const details = [
+      tournament.description || 'Join the competition and prove your skills!',
       '**Game:** ' + tournament.game,
       '**Date:** ' + new Date(tournament.date).toLocaleString(),
       '**Format:** ' + tournament.format,
       '**Players:** ' + (tournament.registrations?.length || 0) + ' / ' + tournament.limit,
-      '**Registration:** ' + (tournament.status === 'registration' ? 'OPEN' : tournament.status.toUpperCase()),
-      '',
-      'Click **Join Tournament** below to register. One registration per Discord account.'
-    ].join('\n'))
-    .setFooter({ text: 'BARRACKS • TOURNAMENTS' });
-  const tournamentComponents = tournament => [new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('tournament:join:' + tournament.id)
-      .setLabel('Join Tournament').setEmoji('🏆')
-      .setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || (tournament.registrations?.length || 0) >= tournament.limit),
-    new ButtonBuilder().setCustomId('tournament:participants:' + tournament.id)
-      .setLabel('Participants').setEmoji('👥').setStyle(ButtonStyle.Secondary)
-  )];
+      '**Registration:** ' + (tournament.status === 'registration' ? 'OPEN' : tournament.status.toUpperCase())
+    ];
+    if (tournament.deadline) details.push('**Registration Deadline:** ' + new Date(tournament.deadline).toLocaleString());
+    if (tournament.prizePool) details.push('**Prize Pool:** ' + tournament.prizePool);
+    if (tournament.entryFee) details.push('**Entry Fee:** ' + tournament.entryFee);
+    if (tournament.organizer) details.push('**Organizer:** ' + tournament.organizer);
+    if (tournament.waitlist && (tournament.registrations?.length || 0) >= tournament.limit) details.push('**Waitlist:** ' + (tournament.waitlistEntries?.length || 0) + ' waiting');
+    embed.setDescription(details.join('\n'));
+    if (tournament.thumbnail) embed.setThumbnail(tournament.thumbnail);
+    if (tournament.image) embed.setImage(tournament.image);
+    const fields = String(tournament.fields || '').split('\n').map(line => line.split('|').map(v => v.trim())).filter(pair => pair.length >= 2 && pair[0] && pair[1]).slice(0, 20);
+    for (const [name, value] of fields) embed.addFields({ name: name.slice(0, 256), value: value.slice(0, 1024), inline: true });
+    if (tournament.rules && tournament.showRules !== false) embed.addFields({ name: '📜 Tournament Rules', value: tournament.rules.slice(0, 1024) });
+    if (tournament.footer) embed.setFooter({ text: tournament.footer, ...(tournament.footerIcon ? { iconURL: tournament.footerIcon } : {}) });
+    if (tournament.timestamp !== false) embed.setTimestamp(new Date());
+    return embed;
+  };
+  const tournamentComponents = tournament => {
+    const buttons = [];
+    if (tournament.showJoin !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:join:' + tournament.id).setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || (tournament.registrations?.length || 0) >= tournament.limit));
+    if (tournament.showParticipants !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:participants:' + tournament.id).setLabel('Participants').setEmoji('👥').setStyle(ButtonStyle.Secondary));
+    if (tournament.showRules) buttons.push(new ButtonBuilder().setCustomId('tournament:rules:' + tournament.id).setLabel('Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary));
+    if (tournament.showCheckin) buttons.push(new ButtonBuilder().setCustomId('tournament:checkin:' + tournament.id).setLabel('Check-in').setEmoji('🎟️').setStyle(ButtonStyle.Primary).setDisabled(tournament.status !== 'live'));
+    if (tournament.showLeave) buttons.push(new ButtonBuilder().setCustomId('tournament:leave:' + tournament.id).setLabel('Leave').setEmoji('❌').setStyle(ButtonStyle.Danger));
+    const rows = [];
+    for (let i = 0; i < buttons.length; i += 5) rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
+    return rows;
+  };
 
   app.get('/api/dashboard/tournaments', async (req, res) => {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
@@ -1319,53 +1337,56 @@ export function registerDashboardRoutes(app, bot) {
     if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
-    const id = String(req.body?.id || '').trim();
-    const name = String(req.body?.name || '').trim();
-    const game = String(req.body?.game || '').trim();
-    const date = String(req.body?.date || '').trim();
-    const format = String(req.body?.format || 'Single Elimination').trim();
-    const channelId = String(req.body?.channelId || '').trim();
-    const limit = Number(req.body?.limit);
-    const status = String(req.body?.status || 'registration');
+    const body = req.body || {};
+    const id = String(body.id || '').trim(), name = String(body.name || '').trim(), game = String(body.game || '').trim();
+    const date = String(body.date || '').trim(), format = String(body.format || 'Single Elimination').trim();
+    const channelId = String(body.channelId || '').trim(), limit = Number(body.limit), status = String(body.status || 'registration');
+    const urls = ['authorIcon', 'thumbnail', 'image', 'footerIcon'];
     if (!name || name.length > 80 || !game || game.length > 50 || !Number.isFinite(Date.parse(date)) ||
       !/^\d{17,20}$/.test(channelId) || !Number.isInteger(limit) || limit < 2 || limit > 512 ||
-      !['registration', 'live', 'completed', 'cancelled'].includes(status)) {
-      return res.status(400).json({ error: 'Check the tournament details, channel ID, player limit, and status.' });
+      !['registration', 'live', 'completed', 'cancelled'].includes(status) ||
+      (body.deadline && !Number.isFinite(Date.parse(body.deadline))) ||
+      urls.some(key => body[key] && !/^https:\/\//i.test(String(body[key]))) ||
+      (body.color && !/^#[0-9a-f]{6}$/i.test(body.color))) {
+      return res.status(400).json({ error: 'Check tournament details, URLs, color, channel ID, player limit, and status.' });
     }
     const channel = await guild.channels.fetch(channelId).catch(() => null);
     if (!channel || !channel.isTextBased() || !channel.send) return res.status(404).json({ error: 'That Discord text channel was not found or cannot receive messages.' });
     try {
-      const all = await readTournaments(guild.id);
-      const existingIndex = id ? all.findIndex(item => item.id === id) : -1;
+      const all = await readTournaments(guild.id), existingIndex = id ? all.findIndex(item => item.id === id) : -1;
       if (id && existingIndex < 0) return res.status(404).json({ error: 'Tournament not found.' });
       const previous = existingIndex >= 0 ? all[existingIndex] : null;
       const tournament = {
-        id: previous?.id || crypto.randomUUID(),
-        name, game, date, format, limit, status, channelId,
-        messageId: previous?.messageId || null,
+        ...previous, id: previous?.id || crypto.randomUUID(), name, game, date, format, limit, status, channelId,
+        color: body.color || '#C3F36B', author: String(body.author || '').slice(0,256), authorIcon: String(body.authorIcon || ''),
+        description: String(body.description || '').slice(0,3500), thumbnail: String(body.thumbnail || ''), image: String(body.image || ''),
+        footer: String(body.footer || 'BARRACKS • TOURNAMENTS').slice(0,2048), footerIcon: String(body.footerIcon || ''),
+        prizePool: String(body.prizePool || '').slice(0,100), entryFee: String(body.entryFee || '').slice(0,100),
+        organizer: String(body.organizer || '').slice(0,100), deadline: body.deadline || null, rules: String(body.rules || '').slice(0,3000),
+        fields: String(body.fields || '').slice(0,8000), showJoin: body.showJoin !== false, showParticipants: body.showParticipants !== false,
+        showRules: body.showRules === true, showCheckin: body.showCheckin === true, showLeave: body.showLeave === true,
+        waitlist: body.waitlist === true, timestamp: body.timestamp !== false,
         registrations: Array.isArray(previous?.registrations) ? previous.registrations : [],
-        createdAt: previous?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        waitlistEntries: Array.isArray(previous?.waitlistEntries) ? previous.waitlistEntries : [],
+        checkedIn: Array.isArray(previous?.checkedIn) ? previous.checkedIn : [],
+        messageId: previous?.messageId || null, createdAt: previous?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
       };
       if (tournament.registrations.length > limit) return res.status(409).json({ error: 'Player limit cannot be lower than the current registered player count.' });
-      if (tournament.messageId && previous.channelId === channelId) {
-        const message = await channel.messages.fetch(tournament.messageId).catch(() => null);
-        if (message) await message.edit({ embeds: [tournamentEmbed(tournament)], components: tournamentComponents(tournament) });
-        else {
-          const posted = await channel.send({ embeds: [tournamentEmbed(tournament)], components: tournamentComponents(tournament) });
-          tournament.messageId = posted.id;
+      let message = tournament.messageId && previous.channelId === channelId ? await channel.messages.fetch(tournament.messageId).catch(() => null) : null;
+      if (message) await message.edit({ embeds: [tournamentEmbed(tournament)], components: tournamentComponents(tournament) });
+      else {
+        if (tournament.messageId && previous.channelId !== channelId) {
+          const oldChannel = await guild.channels.fetch(previous.channelId).catch(() => null);
+          const oldMessage = oldChannel?.messages ? await oldChannel.messages.fetch(tournament.messageId).catch(() => null) : null;
+          if (oldMessage) await oldMessage.delete().catch(() => {});
         }
-      } else {
-        const posted = await channel.send({ embeds: [tournamentEmbed(tournament)], components: tournamentComponents(tournament) });
-        tournament.messageId = posted.id;
+        message = await channel.send({ embeds: [tournamentEmbed(tournament)], components: tournamentComponents(tournament) });
+        tournament.messageId = message.id;
       }
-      if (existingIndex >= 0) all[existingIndex] = tournament;
-      else all.unshift(tournament);
+      if (existingIndex >= 0) all[existingIndex] = tournament; else all.unshift(tournament);
       await setInDb(tournamentKey(guild.id), all);
       return res.json({ ok: true, tournament });
-    } catch (error) {
-      return res.status(500).json({ error: error?.message || 'Could not post or save the tournament.' });
-    }
+    } catch (error) { return res.status(500).json({ error: error?.message || 'Could not post or save the tournament.' }); }
   });
 
   app.delete('/api/dashboard/tournaments/:id', async (req, res) => {
@@ -1374,8 +1395,7 @@ export function registerDashboardRoutes(app, bot) {
     const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
     if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
     try {
-      const all = await readTournaments(guild.id);
-      const item = all.find(t => t.id === req.params.id);
+      const all = await readTournaments(guild.id), item = all.find(t => t.id === req.params.id);
       if (!item) return res.status(404).json({ error: 'Tournament not found.' });
       if (item.messageId && item.channelId) {
         const channel = await guild.channels.fetch(item.channelId).catch(() => null);
