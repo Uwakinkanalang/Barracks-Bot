@@ -447,7 +447,7 @@ export default {
               if (tournament.teamMode) {
                 buttons.push(new ButtonBuilder().setCustomId('tournament:teamcreate:' + tournament.id).setLabel('Create Team').setEmoji('🛡️').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration'));
                 buttons.push(new ButtonBuilder().setCustomId('tournament:teaminvite:' + tournament.id).setLabel('Invite Player').setEmoji('➕').setStyle(ButtonStyle.Primary).setDisabled(tournament.status !== 'registration'));
-                buttons.push(new ButtonBuilder().setCustomId('tournament:teamleave:' + tournament.id).setLabel('Leave Team').setEmoji('🚪').setStyle(ButtonStyle.Danger));
+
               } else if (tournament.showJoin !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:join:' + tournament.id).setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || ((tournament.registrations?.length || 0) >= tournament.limit && !tournament.waitlist)));
               if (tournament.showParticipants !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:participants:' + tournament.id).setLabel('Participants').setEmoji('👥').setStyle(ButtonStyle.Secondary));
               if (tournament.showRules) buttons.push(new ButtonBuilder().setCustomId('tournament:rules:' + tournament.id).setLabel('Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary));
@@ -536,6 +536,27 @@ export default {
               return;
             }
             if (action === 'leave') {
+              const teams = Array.isArray(tournament.teams) ? tournament.teams : [];
+              const team = teams.find(entry => entry.captainId === interaction.user.id || (entry.members || []).includes(interaction.user.id));
+              if (team) {
+                const isCaptain = team.captainId === interaction.user.id;
+                const removedIds = isCaptain ? [team.captainId, ...(team.members || [])] : [interaction.user.id];
+                if (isCaptain) teams.splice(teams.indexOf(team), 1);
+                else team.members = (team.members || []).filter(id => id !== interaction.user.id);
+                tournament.registrations = (tournament.registrations || []).filter(entry => !removedIds.includes(entry.userId));
+                if (Array.isArray(tournament.checkedIn)) tournament.checkedIn = tournament.checkedIn.filter(id => !removedIds.includes(id));
+                if (tournament.waitlist && Array.isArray(tournament.waitlistEntries)) {
+                  while (tournament.waitlistEntries.length && tournament.registrations.length < Number(tournament.limit)) {
+                    const next = tournament.waitlistEntries.shift();
+                    if (!removedIds.includes(next.userId)) tournament.registrations.push(next);
+                  }
+                }
+                tournament.teams = teams;
+                await client.db.set(key, tournaments);
+                await refreshTournamentAnnouncement();
+                await interaction.editReply({ content: isCaptain ? 'You left the tournament and disbanded your team. All team members were removed from the roster.' : 'You left your team and tournament roster.' });
+                return;
+              }
               const index = (tournament.registrations || []).findIndex(entry => entry.userId === interaction.user.id);
               if (index < 0) { await interaction.editReply({ content: 'You are not registered for this tournament.' }); return; }
               tournament.registrations.splice(index, 1);
