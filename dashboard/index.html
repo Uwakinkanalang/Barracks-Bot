@@ -740,14 +740,12 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
   <aside class="clan-side-column">
    <section class="card clan-setup-card"><div class="clan-section-heading compact"><div class="clan-section-icon">⚙️</div><div><h3>Automatic setup</h3><p>Created for every new clan.</p></div></div>
     <div class="clan-resource-list">
-     <div class="clan-resource"><span class="clan-resource-icon">🎖️</span><div><b>Clan role</b><small>Created and assigned to the leader</small></div><span class="clan-check">✓</span></div>
-     <div class="clan-resource"><span class="clan-resource-icon">📁</span><div><b>Private category</b><small>Visible to clan members and staff</small></div><span class="clan-check">✓</span></div>
-     <div class="clan-resource"><span class="clan-resource-icon">💬</span><div><b>Clan chat</b><small>Private text channel</small></div><span class="clan-check">✓</span></div>
-     <div class="clan-resource"><span class="clan-resource-icon">🔊</span><div><b>Clan voice</b><small>Private voice channel</small></div><span class="clan-check">✓</span></div>
+     <div class="clan-resource"><span class="clan-resource-icon">🎖️</span><div><b>Clan role</b><small>Created and assigned to the leader and vice leader</small></div><span class="clan-check">✓</span></div>
+     <div class="clan-resource"><span class="clan-resource-icon">🔊</span><div><b>Clan voice channel</b><small>Created under the existing Clan Voice category</small></div><span class="clan-check">✓</span></div>
     </div>
     <div class="clan-permission-note"><span>ℹ️</span><p>Barracks-Bot needs <b>Manage Roles</b> and <b>Manage Channels</b>. Its highest role must be above the clan leader's highest role.</p></div>
    </section>
-   <section class="clan-preview-card"><div class="clan-preview-label">DISCORD STRUCTURE PREVIEW</div><div class="clan-preview-role">🎖️ <span>[TAG] Clan Name</span></div><div class="clan-preview-category">📁 <span>TAG | Clan Name</span></div><div class="clan-preview-child"># <span>tag-clan-name-chat</span></div><div class="clan-preview-child">🔊 <span>tag-clan-name-vc</span></div><p>The category name uses the clan tag and name, without a leading ⚔️ symbol. Private access is limited to the clan role, leader, and bot.</p></section>
+   <section class="clan-preview-card"><div class="clan-preview-label">DISCORD STRUCTURE PREVIEW</div><div class="clan-preview-role">🎖️ <span>[TAG] Clan Name</span></div><div class="clan-preview-category">📁 <span>Existing Clan Voice category</span></div><div class="clan-preview-child">🔊 <span>Clan Name</span></div><p>The voice channel is created inside the existing Clan Voice category.</p></section>
   </aside>
  </div>
 
@@ -1776,8 +1774,8 @@ document.getElementById('clanEditForm')?.addEventListener('submit',async e=>{
  finally{button.disabled=false;button.textContent='Save Changes';}
 });
 
-document.getElementById('clanCreateForm')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;const b=document.getElementById('clanCreateSubmit'),s=document.getElementById('clanCreateStatus');b.disabled=true;b.textContent='Creating clan…';s.textContent='Creating Discord role and private channels…';s.style.color='#c0c2ca';
-try{const payload={name:document.getElementById('clanName').value.trim(),tag:document.getElementById('clanTag').value.trim(),roleHex:document.getElementById('clanRoleHex').value.trim(),leaderId:document.getElementById('clanLeaderId').value.trim(),viceLeaderId:document.getElementById('clanViceLeaderId').value.trim(),description:document.getElementById('clanDescription').value.trim(),rules:document.getElementById('clanRules').value.trim()};const r=await fetch(API_BASE+'/api/dashboard/clans',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionStorage.getItem('barracks_dashboard_access')},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not create clan.');s.textContent='Clan created! Discord role and private channels are ready.';s.style.color='#c3f36b';form.reset();await window.loadClansPanel();}catch(err){s.textContent=err.message;s.style.color='#ff9a91';}finally{b.disabled=false;b.textContent='⚔️ Create Clan';}});
+document.getElementById('clanCreateForm')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;const b=document.getElementById('clanCreateSubmit'),s=document.getElementById('clanCreateStatus');b.disabled=true;b.textContent='Creating clan…';s.textContent='Creating Discord role and clan voice channel…';s.style.color='#c0c2ca';
+try{const payload={name:document.getElementById('clanName').value.trim(),tag:document.getElementById('clanTag').value.trim(),roleHex:document.getElementById('clanRoleHex').value.trim(),leaderId:document.getElementById('clanLeaderId').value.trim(),viceLeaderId:document.getElementById('clanViceLeaderId').value.trim(),description:document.getElementById('clanDescription').value.trim(),rules:document.getElementById('clanRules').value.trim()};const r=await fetch(API_BASE+'/api/dashboard/clans',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionStorage.getItem('barracks_dashboard_access')},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not create clan.');s.textContent='Clan created! Discord role and voice channel are ready.';s.style.color='#c3f36b';form.reset();await window.loadClansPanel();}catch(err){s.textContent=err.message;s.style.color='#ff9a91';}finally{b.disabled=false;b.textContent='⚔️ Create Clan';}});
 
 (function(){
  const modal=document.getElementById('lvlVariableGuide');
