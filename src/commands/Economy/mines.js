@@ -14,7 +14,7 @@ const BOARD_SIZE = 9;
 const COLLECTOR_TIME = 2 * 60 * 1000;
 const HOUSE_EDGE = 0.97;
 const FIXED_MINE_COUNT = 3;
-const MAX_BET = 500000;
+const MAX_BET = 250000;
 
 function getMultiplier(safePicks, mineCount) {
     if (safePicks <= 0) return 1;
