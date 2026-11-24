@@ -371,6 +371,30 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('tournament:participants:')) {
+            const tournamentId = interaction.customId.slice('tournament:participants:'.length);
+            const key = `guild:${interaction.guildId}:tournaments`;
+            const tournaments = await client.db.get(key, []);
+            const tournament = (Array.isArray(tournaments) ? tournaments : []).find(item => item.id === tournamentId);
+            if (!tournament) {
+              await interaction.reply({ content: 'This tournament could not be found.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            const { EmbedBuilder } = await import('discord.js');
+            const participants = Array.isArray(tournament.registrations) ? tournament.registrations : [];
+            const lines = participants.map((entry, index) => `**${index + 1}.** <@${entry.userId}>`);
+            let description = lines.length ? lines.join('\\n') : 'No one has registered yet.';
+            if (description.length > 4000) {
+              description = description.slice(0, 3900) + '\\n\\n…and more. View the full roster on the Barracks dashboard.';
+            }
+            const embed = new EmbedBuilder()
+              .setColor(0xC3F36B)
+              .setTitle('👥 Participants — ' + tournament.name)
+              .setDescription(description)
+              .setFooter({ text: participants.length + ' / ' + tournament.limit + ' registered' });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            return;
+          }
           if (interaction.customId.startsWith('tournament:join:')) {
             if (!interaction.guildId) {
               await interaction.reply({ content: 'Tournament registration is only available in the Barracks server.', flags: MessageFlags.Ephemeral });
@@ -415,10 +439,12 @@ export default {
                 '',
                 'Click **Join Tournament** below to register. One registration per Discord account.'
               ].join('\n')).setFooter({ text: 'BARRACKS • TOURNAMENTS' });
-            const button = new ButtonBuilder().setCustomId('tournament:join:' + tournament.id)
+            const joinButton = new ButtonBuilder().setCustomId('tournament:join:' + tournament.id)
               .setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success)
               .setDisabled(tournament.registrations.length >= tournament.limit || tournament.status !== 'registration');
-            await interaction.message.edit({ embeds: [embed], components: [new ActionRowBuilder().addComponents(button)] }).catch(() => {});
+            const participantsButton = new ButtonBuilder().setCustomId('tournament:participants:' + tournament.id)
+              .setLabel('Participants').setEmoji('👥').setStyle(ButtonStyle.Secondary);
+            await interaction.message.edit({ embeds: [embed], components: [new ActionRowBuilder().addComponents(joinButton, participantsButton)] }).catch(() => {});
             await interaction.reply({ content: '✅ You are registered for **' + tournament.name + '**! Good luck, soldier.', flags: MessageFlags.Ephemeral });
             return;
           }
