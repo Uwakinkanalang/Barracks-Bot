@@ -412,7 +412,11 @@ export default {
               if (tournament.footer) embed.setFooter({ text: tournament.footer, ...(tournament.footerIcon ? { iconURL: tournament.footerIcon } : {}) });
               if (tournament.timestamp !== false) embed.setTimestamp(new Date());
               const buttons = [];
-              if (tournament.showJoin !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:join:' + tournament.id).setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || ((tournament.registrations?.length || 0) >= tournament.limit && !tournament.waitlist)));
+              if (tournament.teamMode) {
+                buttons.push(new ButtonBuilder().setCustomId('tournament:teamcreate:' + tournament.id).setLabel('Create Team').setEmoji('🛡️').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration'));
+                buttons.push(new ButtonBuilder().setCustomId('tournament:teaminvite:' + tournament.id).setLabel('Invite Player').setEmoji('➕').setStyle(ButtonStyle.Primary).setDisabled(tournament.status !== 'registration'));
+                buttons.push(new ButtonBuilder().setCustomId('tournament:teamleave:' + tournament.id).setLabel('Leave Team').setEmoji('🚪').setStyle(ButtonStyle.Danger));
+              } else if (tournament.showJoin !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:join:' + tournament.id).setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || ((tournament.registrations?.length || 0) >= tournament.limit && !tournament.waitlist)));
               if (tournament.showParticipants !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:participants:' + tournament.id).setLabel('Participants').setEmoji('👥').setStyle(ButtonStyle.Secondary));
               if (tournament.showRules) buttons.push(new ButtonBuilder().setCustomId('tournament:rules:' + tournament.id).setLabel('Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary));
               if (tournament.showCheckin) buttons.push(new ButtonBuilder().setCustomId('tournament:checkin:' + tournament.id).setLabel('Check-in').setEmoji('🎟️').setStyle(ButtonStyle.Primary).setDisabled(tournament.status !== 'live'));
@@ -426,6 +430,25 @@ export default {
               }
             };
 
+            if (action === 'teamleave') {
+              const teams = Array.isArray(tournament.teams) ? tournament.teams : [];
+              const team = teams.find(entry => entry.captainId === interaction.user.id || (entry.members || []).includes(interaction.user.id));
+              if (!team) { await interaction.editReply({ content: 'You are not part of a team in this tournament.' }); return; }
+              const ids = [team.captainId, ...(team.members || [])];
+              if (team.captainId === interaction.user.id) {
+                teams.splice(teams.indexOf(team), 1);
+                tournament.registrations = (tournament.registrations || []).filter(entry => !ids.includes(entry.userId));
+                tournament.checkedIn = (tournament.checkedIn || []).filter(id => !ids.includes(id));
+              } else {
+                team.members = (team.members || []).filter(id => id !== interaction.user.id);
+                tournament.registrations = (tournament.registrations || []).filter(entry => entry.userId !== interaction.user.id);
+                tournament.checkedIn = (tournament.checkedIn || []).filter(id => id !== interaction.user.id);
+              }
+              tournament.teams = teams;
+              await client.db.set(key, tournaments);
+              await interaction.editReply({ content: team.captainId === interaction.user.id ? 'Your team was disbanded and all its players were removed from the tournament.' : 'You left your team.' });
+              return;
+            }
             if (action === 'participants') {
               const { EmbedBuilder } = await import('discord.js');
               const participants = Array.isArray(tournament.registrations) ? tournament.registrations : [];
