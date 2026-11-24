@@ -371,14 +371,45 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('tournament:accept:')) {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const [, , guildId, tournamentId, teamId] = interaction.customId.split(':');
+            const key = 'guild:' + guildId + ':tournaments';
+            const stored = await client.db.get(key, []);
+            const tournaments = Array.isArray(stored) ? stored : [];
+            const tournament = tournaments.find(item => item.id === tournamentId);
+            const team = tournament?.teams?.find(entry => entry.id === teamId);
+            const pending = tournament?.pendingTeamInvites || [];
+            const inviteIndex = pending.findIndex(entry => entry.userId === interaction.user.id && entry.teamId === teamId);
+            if (!tournament || !team || inviteIndex < 0) { await interaction.editReply({ content: 'This team invitation is no longer valid.' }); return; }
+            if (tournament.status !== 'registration' || (tournament.deadline && Date.now() > Date.parse(tournament.deadline))) { await interaction.editReply({ content: 'Team registration is closed.' }); return; }
+            const max = Number(tournament.teamMaxPlayers || 5);
+            if ((tournament.registrations || []).some(entry => entry.userId === interaction.user.id)) { await interaction.editReply({ content: 'You are already registered in this tournament.' }); return; }
+            if (1 + (team.members || []).length >= max || tournament.registrations.length >= Number(tournament.limit)) { await interaction.editReply({ content: 'This team or tournament is now full.' }); return; }
+            team.members.push(interaction.user.id);
+            tournament.registrations.push({ userId: interaction.user.id, username: interaction.user.globalName || interaction.user.username, registeredAt: new Date().toISOString(), teamId: team.id });
+            pending.splice(inviteIndex, 1);
+            tournament.pendingTeamInvites = pending;
+            await client.db.set(key, tournaments);
+            await interaction.editReply({ content: 'You joined **' + team.name + '** for **' + tournament.name + '**.' });
+            return;
+          }
           if (interaction.customId.startsWith('tournament:')) {
+            const action = interaction.customId.split(':')[1];
+            const tournamentId = interaction.customId.split(':').slice(2).join(':');
+            if (action === 'teamcreate' || action === 'teaminvite') {
+              const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
+              const modal = new ModalBuilder().setCustomId('tournament:modal:' + action + ':' + tournamentId).setTitle(action === 'teamcreate' ? 'Create Tournament Team' : 'Invite a Player');
+              const field = new TextInputBuilder().setCustomId(action === 'teamcreate' ? 'team_name' : 'member_id').setLabel(action === 'teamcreate' ? 'Team name' : 'Player mention or Discord ID').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(action === 'teamcreate' ? 32 : 30);
+              modal.addComponents(new ActionRowBuilder().addComponents(field));
+              await interaction.showModal(modal);
+              return;
+            }
             // Acknowledge immediately: database and Discord API calls can exceed Discord's 3-second window.
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
             const key = `guild:${interaction.guildId}:tournaments`;
             const stored = await client.db.get(key, []);
             const tournaments = Array.isArray(stored) ? stored : [];
-            const action = interaction.customId.split(':')[1];
-            const tournamentId = interaction.customId.split(':').slice(2).join(':');
             const tournament = tournaments.find(item => item.id === tournamentId);
             if (!tournament) {
               await interaction.editReply({ content: 'This tournament could not be found.' });
@@ -412,7 +443,11 @@ export default {
               if (tournament.footer) embed.setFooter({ text: tournament.footer, ...(tournament.footerIcon ? { iconURL: tournament.footerIcon } : {}) });
               if (tournament.timestamp !== false) embed.setTimestamp(new Date());
               const buttons = [];
-              if (tournament.showJoin !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:join:' + tournament.id).setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || ((tournament.registrations?.length || 0) >= tournament.limit && !tournament.waitlist)));
+              if (tournament.teamMode) {
+                buttons.push(new ButtonBuilder().setCustomId('tournament:teamcreate:' + tournament.id).setLabel('Create Team').setEmoji('🛡️').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration'));
+                buttons.push(new ButtonBuilder().setCustomId('tournament:teaminvite:' + tournament.id).setLabel('Invite Player').setEmoji('➕').setStyle(ButtonStyle.Primary).setDisabled(tournament.status !== 'registration'));
+                buttons.push(new ButtonBuilder().setCustomId('tournament:teamleave:' + tournament.id).setLabel('Leave Team').setEmoji('🚪').setStyle(ButtonStyle.Danger));
+              } else if (tournament.showJoin !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:join:' + tournament.id).setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || ((tournament.registrations?.length || 0) >= tournament.limit && !tournament.waitlist)));
               if (tournament.showParticipants !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:participants:' + tournament.id).setLabel('Participants').setEmoji('👥').setStyle(ButtonStyle.Secondary));
               if (tournament.showRules) buttons.push(new ButtonBuilder().setCustomId('tournament:rules:' + tournament.id).setLabel('Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary));
               if (tournament.showCheckin) buttons.push(new ButtonBuilder().setCustomId('tournament:checkin:' + tournament.id).setLabel('Check-in').setEmoji('🎟️').setStyle(ButtonStyle.Primary).setDisabled(tournament.status !== 'live'));
@@ -426,11 +461,31 @@ export default {
               }
             };
 
+            if (action === 'teamleave') {
+              const teams = Array.isArray(tournament.teams) ? tournament.teams : [];
+              const team = teams.find(entry => entry.captainId === interaction.user.id || (entry.members || []).includes(interaction.user.id));
+              if (!team) { await interaction.editReply({ content: 'You are not part of a team in this tournament.' }); return; }
+              const ids = [team.captainId, ...(team.members || [])];
+              if (team.captainId === interaction.user.id) {
+                teams.splice(teams.indexOf(team), 1);
+                tournament.registrations = (tournament.registrations || []).filter(entry => !ids.includes(entry.userId));
+                tournament.checkedIn = (tournament.checkedIn || []).filter(id => !ids.includes(id));
+              } else {
+                team.members = (team.members || []).filter(id => id !== interaction.user.id);
+                tournament.registrations = (tournament.registrations || []).filter(entry => entry.userId !== interaction.user.id);
+                tournament.checkedIn = (tournament.checkedIn || []).filter(id => id !== interaction.user.id);
+              }
+              tournament.teams = teams;
+              await client.db.set(key, tournaments);
+              await interaction.editReply({ content: team.captainId === interaction.user.id ? 'Your team was disbanded and all its players were removed from the tournament.' : 'You left your team.' });
+              return;
+            }
             if (action === 'participants') {
               const { EmbedBuilder } = await import('discord.js');
               const participants = Array.isArray(tournament.registrations) ? tournament.registrations : [];
               const checked = new Set(tournament.checkedIn || []);
-              const lines = participants.map((entry, index) => `**${index + 1}.** <@${entry.userId}>${checked.has(entry.userId) ? ' — ✅ Checked in' : ''}`);
+              const minimum = Number(tournament.teamMinPlayers || 1);
+              const lines = tournament.teamMode ? (tournament.teams || []).map((team, index) => `**${index + 1}. ${team.name}** — Captain: <@${team.captainId}> — ${1 + (team.members || []).length}/${tournament.teamMaxPlayers || 5} players${1 + (team.members || []).length < minimum ? ' ⚠️ Incomplete' : ' ✅ Ready'}\n${[team.captainId, ...(team.members || [])].map(id => '• <@' + id + '>' + (checked.has(id) ? ' ✅ Checked in' : '')).join('\n')}`) : participants.map((entry, index) => `**${index + 1}.** <@${entry.userId}>${checked.has(entry.userId) ? ' — ✅ Checked in' : ''}`);
               const embed = new EmbedBuilder().setColor(tournament.color || 0xC3F36B)
                 .setTitle('👥 Participants — ' + tournament.name)
                 .setDescription((lines.join('\n') || 'No one has registered yet.').slice(0, 4000))
@@ -1752,6 +1807,61 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isModalSubmit()) {
+          if (interaction.customId.startsWith('tournament:modal:')) {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const [, , action, tournamentId] = interaction.customId.split(':');
+            const key = 'guild:' + interaction.guildId + ':tournaments';
+            const stored = await client.db.get(key, []);
+            const tournaments = Array.isArray(stored) ? stored : [];
+            const tournament = tournaments.find(item => item.id === tournamentId);
+            if (!tournament || !tournament.teamMode) { await interaction.editReply({ content: 'This team registration is no longer available.' }); return; }
+            if (tournament.status !== 'registration' || (tournament.deadline && Date.now() > Date.parse(tournament.deadline))) { await interaction.editReply({ content: 'Team registration is closed.' }); return; }
+            if (!Array.isArray(tournament.teams)) tournament.teams = [];
+            if (!Array.isArray(tournament.registrations)) tournament.registrations = [];
+            const registered = new Set(tournament.registrations.map(entry => entry.userId));
+            const min = Number(tournament.teamMinPlayers || 1), max = Number(tournament.teamMaxPlayers || 5);
+            if (action === 'teamcreate') {
+              const name = interaction.fields.getTextInputValue('team_name').trim();
+              if (!name || name.length > 32) { await interaction.editReply({ content: 'Enter a team name between 1 and 32 characters.' }); return; }
+              if (registered.has(interaction.user.id)) { await interaction.editReply({ content: 'You are already registered in this tournament.' }); return; }
+              if (tournament.teams.some(team => team.name.toLowerCase() === name.toLowerCase())) { await interaction.editReply({ content: 'That team name is already taken.' }); return; }
+              if (tournament.registrations.length >= Number(tournament.limit)) { await interaction.editReply({ content: 'The tournament player limit has been reached.' }); return; }
+              const team = { id: crypto.randomUUID(), name, captainId: interaction.user.id, members: [], createdAt: new Date().toISOString() };
+              tournament.teams.push(team);
+              tournament.registrations.push({ userId: interaction.user.id, username: interaction.user.globalName || interaction.user.username, registeredAt: new Date().toISOString(), teamId: team.id });
+              await client.db.set(key, tournaments);
+              await interaction.editReply({ content: 'Your team **' + name + '** has been created. Use **Invite Player** to add teammates. Team size: ' + min + '–' + max + ' players.' });
+              return;
+            }
+            if (action === 'teaminvite') {
+              const raw = interaction.fields.getTextInputValue('member_id').trim();
+              const targetId = raw.match(/^(?:<@!?)?(\d{17,20})>?$/)?.[1];
+              if (!targetId) { await interaction.editReply({ content: 'Enter a valid player mention or Discord user ID.' }); return; }
+              const team = tournament.teams.find(entry => entry.captainId === interaction.user.id);
+              if (!team) { await interaction.editReply({ content: 'Only a team captain can invite players. Create a team first.' }); return; }
+              if (registered.has(targetId)) { await interaction.editReply({ content: 'That player is already registered in this tournament.' }); return; }
+              if (1 + (team.members || []).length >= max) { await interaction.editReply({ content: 'Your team has reached its maximum size of ' + max + ' players.' }); return; }
+              if (tournament.registrations.length >= Number(tournament.limit)) { await interaction.editReply({ content: 'The tournament player limit has been reached.' }); return; }
+              const member = await interaction.guild.members.fetch(targetId).catch(() => null);
+              if (!member || member.user.bot) { await interaction.editReply({ content: 'That player is not a valid member of this server.' }); return; }
+              if (!Array.isArray(tournament.pendingTeamInvites)) tournament.pendingTeamInvites = [];
+              if (tournament.pendingTeamInvites.some(entry => entry.userId === targetId && entry.teamId === team.id)) { await interaction.editReply({ content: 'That player already has a pending invitation.' }); return; }
+              const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+              const inviteRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('tournament:accept:' + interaction.guildId + ':' + tournament.id + ':' + team.id).setLabel('Accept Team Invitation').setStyle(ButtonStyle.Success));
+              try {
+                await member.send({ content: '🛡️ **' + interaction.user.username + '** invited you to join **' + team.name + '** for **' + tournament.name + '** in Barracks.', components: [inviteRow] });
+              } catch {
+                await interaction.editReply({ content: 'I could not DM that player. Ask them to enable server DMs, then try again.' });
+                return;
+              }
+              tournament.pendingTeamInvites.push({ userId: targetId, teamId: team.id, invitedBy: interaction.user.id, invitedAt: new Date().toISOString() });
+              await client.db.set(key, tournaments);
+              await interaction.editReply({ content: 'Team invitation sent to <@' + targetId + '>. They must accept the DM invitation to join **' + team.name + '**.' });
+              return;
+            }
+            await interaction.editReply({ content: 'Unknown team action.' });
+            return;
+          }
           if (interaction.customId === 'barracks_nickname_modal') {
             await handleNicknameChangeModal(interaction, client);
             return;

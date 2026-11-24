@@ -1313,7 +1313,11 @@ export function registerDashboardRoutes(app, bot) {
   };
   const tournamentComponents = tournament => {
     const buttons = [];
-    if (tournament.showJoin !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:join:' + tournament.id).setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || (tournament.registrations?.length || 0) >= tournament.limit));
+    if (tournament.teamMode) {
+      buttons.push(new ButtonBuilder().setCustomId('tournament:teamcreate:' + tournament.id).setLabel('Create Team').setEmoji('🛡️').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration'));
+      buttons.push(new ButtonBuilder().setCustomId('tournament:teaminvite:' + tournament.id).setLabel('Invite Player').setEmoji('➕').setStyle(ButtonStyle.Primary).setDisabled(tournament.status !== 'registration'));
+      buttons.push(new ButtonBuilder().setCustomId('tournament:teamleave:' + tournament.id).setLabel('Leave Team').setEmoji('🚪').setStyle(ButtonStyle.Danger));
+    } else if (tournament.showJoin !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:join:' + tournament.id).setLabel('Join Tournament').setEmoji('🏆').setStyle(ButtonStyle.Success).setDisabled(tournament.status !== 'registration' || (tournament.registrations?.length || 0) >= tournament.limit));
     if (tournament.showParticipants !== false) buttons.push(new ButtonBuilder().setCustomId('tournament:participants:' + tournament.id).setLabel('Participants').setEmoji('👥').setStyle(ButtonStyle.Secondary));
     if (tournament.showRules) buttons.push(new ButtonBuilder().setCustomId('tournament:rules:' + tournament.id).setLabel('Rules').setEmoji('📜').setStyle(ButtonStyle.Secondary));
     if (tournament.showCheckin) buttons.push(new ButtonBuilder().setCustomId('tournament:checkin:' + tournament.id).setLabel('Check-in').setEmoji('🎟️').setStyle(ButtonStyle.Primary).setDisabled(tournament.status !== 'live'));
@@ -1365,13 +1369,15 @@ export function registerDashboardRoutes(app, bot) {
         organizer: String(body.organizer || '').slice(0,100), deadline: body.deadline || null, rules: String(body.rules || '').slice(0,3000),
         fields: String(body.fields || '').slice(0,8000), showJoin: body.showJoin !== false, showParticipants: body.showParticipants !== false,
         showRules: body.showRules === true, showCheckin: body.showCheckin === true, showLeave: body.showLeave === true,
-        waitlist: body.waitlist === true, timestamp: body.timestamp !== false,
+        waitlist: body.waitlist === true, teamMode: body.teamMode === true, teamMinPlayers: Number(body.teamMinPlayers || 1), teamMaxPlayers: Number(body.teamMaxPlayers || 5), teams: Array.isArray(previous?.teams) ? previous.teams : [], timestamp: body.timestamp !== false,
         registrations: Array.isArray(previous?.registrations) ? previous.registrations : [],
         waitlistEntries: Array.isArray(previous?.waitlistEntries) ? previous.waitlistEntries : [],
         checkedIn: Array.isArray(previous?.checkedIn) ? previous.checkedIn : [],
         messageId: previous?.messageId || null, createdAt: previous?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
       };
       if (tournament.registrations.length > limit) return res.status(409).json({ error: 'Player limit cannot be lower than the current registered player count.' });
+      if (tournament.teamMode && (!Number.isInteger(tournament.teamMinPlayers) || !Number.isInteger(tournament.teamMaxPlayers) || tournament.teamMinPlayers < 1 || tournament.teamMaxPlayers < tournament.teamMinPlayers || tournament.teamMaxPlayers > 32)) return res.status(400).json({ error: 'Team size must be between 1 and 32 players, with maximum at least minimum.' });
+      if (tournament.teamMode && tournament.teams.some(team => 1 + (team.members || []).length > tournament.teamMaxPlayers)) return res.status(409).json({ error: 'Maximum team size cannot be lower than an existing team roster.' });
       let message = tournament.messageId && previous.channelId === channelId ? await channel.messages.fetch(tournament.messageId).catch(() => null) : null;
       if (message) await message.edit({ embeds: [tournamentEmbed(tournament)], components: tournamentComponents(tournament) });
       else {
