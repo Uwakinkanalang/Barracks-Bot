@@ -12,6 +12,8 @@ const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
 const STREAK_GRACE_PERIOD = DAILY_COOLDOWN * 2;
 const DAILY_AMOUNT = botConfig.economy?.dailyAmount ?? 5000;
 const DAILY_LEVEL_BONUS = botConfig.economy?.dailyLevelBonus ?? 100;
+const MAX_DAILY_LEVEL = 100;
+const CLAN_BONUS_RATE = 0.20;
 
 const STREAK_REWARDS = [
     { day: 1, reward: 100 },
@@ -80,7 +82,7 @@ export default {
         const streakBonus = getStreakReward(dailyStreak);
 
         const levelData = await getUserLevelData(client, guildId, userId);
-        const memberLevel = Math.max(0, Number(levelData?.level) || 0);
+        const memberLevel = Math.min(MAX_DAILY_LEVEL, Math.max(0, Number(levelData?.level) || 0));
         const baseSalary = DAILY_AMOUNT + (memberLevel * DAILY_LEVEL_BONUS);
 
         const boosterRoleId = botConfig.economy?.boosterRoleId;
@@ -89,10 +91,20 @@ export default {
         const hasVipRole = Boolean(vipRoleId && memberRoles?.has(vipRoleId));
         const hasBoosterRole = Boolean(boosterRoleId && memberRoles?.has(boosterRoleId));
 
-        // VIP takes priority. Role bonuses never stack.
-        const roleBonusRate = hasVipRole ? 0.30 : hasBoosterRole ? 0.20 : 0;
-        const roleBonus = Math.floor(baseSalary * roleBonusRate);
-        const earned = baseSalary + roleBonus + streakBonus;
+        const clanList = await client.db.get(`guild:${guildId}:clans`, []);
+        const clans = Array.isArray(clanList) ? clanList : [];
+        const hasApprovedClan = clans.some(clan => clan.status === 'approved' && (
+            String(clan.leaderId || '') === userId ||
+            String(clan.viceLeaderId || '') === userId ||
+            (Array.isArray(clan.memberIds) && clan.memberIds.map(String).includes(userId))
+        ));
+
+        // All earned role and clan bonuses stack.
+        const boosterBonus = hasBoosterRole ? Math.floor(baseSalary * 0.20) : 0;
+        const vipBonus = hasVipRole ? Math.floor(baseSalary * 0.30) : 0;
+        const clanBonus = hasApprovedClan ? Math.floor(baseSalary * CLAN_BONUS_RATE) : 0;
+        const totalPercentageBonus = boosterBonus + vipBonus + clanBonus;
+        const earned = baseSalary + totalPercentageBonus + streakBonus;
 
         userData.wallet = (userData.wallet || 0) + earned;
         userData.lastDaily = now;
@@ -110,9 +122,9 @@ export default {
 
         const bonusLines = [
             `\n🎖️ **Level Bonus (Level ${memberLevel}):** +${(memberLevel * DAILY_LEVEL_BONUS).toLocaleString()} bCash`,
-            roleBonusRate > 0
-                ? `\n${hasVipRole ? '💎 **VIP Bonus (+30%)**' : '🚀 **Booster Bonus (+20%)**'}: +${roleBonus.toLocaleString()} bCash`
-                : null,
+            hasBoosterRole ? `\n🚀 **Booster Bonus (+20%):** +${boosterBonus.toLocaleString()} bCash` : null,
+            hasVipRole ? `\n💎 **VIP Bonus (+30%):** +${vipBonus.toLocaleString()} bCash` : null,
+            hasApprovedClan ? `\n🛡️ **Clan Bonus (+20%):** +${clanBonus.toLocaleString()} bCash` : null,
             `\n🔥 **Daily Streak (Day ${dailyStreak}):** +${streakBonus.toLocaleString()} bCash`,
         ].filter(Boolean).join('');
 
@@ -121,7 +133,9 @@ export default {
             guildId,
             amount: earned,
             baseSalary,
-            roleBonus,
+            boosterBonus,
+            vipBonus,
+            clanBonus,
             streakBonus,
             dailyStreak,
             newWallet: userData.wallet,
