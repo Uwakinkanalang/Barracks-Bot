@@ -92,6 +92,18 @@ function allowLoginAttempt(ip) {
 }
 
 export function registerDashboardRoutes(app, bot) {
+  app.use('/api/dashboard', async (req, res, next) => {
+    if (req.path === '/login') return next();
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    const identity = secret && dashboardTokenData(req, secret);
+    if (!identity) return res.status(401).json({ error: 'Unauthorized' });
+    if (identity.role === 'owner') return next();
+    const staff = await getDashboardStaff();
+    const account = staff.find(item => item.id === identity.userId && item.active !== false);
+    if (!account || account.role !== identity.role) return res.status(401).json({ error: 'Staff access has been revoked. Please sign in again.' });
+    if (req.method !== 'GET' && req.method !== 'HEAD') return res.status(403).json({ error: 'This staff account is read-only. Ask the dashboard owner for elevated access.' });
+    return next();
+  });
   app.post('/api/dashboard/login', async (req, res) => {
     const expectedPassword = process.env.DASHBOARD_PASSWORD;
     const secret = process.env.DASHBOARD_SESSION_SECRET;
