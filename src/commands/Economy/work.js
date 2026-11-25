@@ -171,12 +171,14 @@ export default {
                 timestamp: new Date().toISOString()
             });
 
+            const boosterVipBonus = hasBoosterOrVip ? Math.floor(jobBasePay * 0.5) : 0;
+            const clanBonus = hasApprovedClan ? Math.floor(jobBasePay * 0.2) : 0;
             const earningsBreakdown = [
-                `• Base pay: **₱${jobBasePay.toLocaleString()}**`,
-                `• Level bonus (Level ${memberLevel}): **+₱${levelBonus.toLocaleString()}**`,
-                ...(hasBoosterOrVip ? [`• Booster/VIP bonus (+50%): **+₱${Math.floor(jobBasePay * 0.5).toLocaleString()}**`] : []),
-                ...(hasApprovedClan ? [`• Clan bonus (+20%): **+₱${Math.floor(jobBasePay * 0.2).toLocaleString()}**`] : []),
-                ...(hasLaptop > 0 ? [`• Laptop bonus (+50%): **+₱${laptopBonus.toLocaleString()}**`] : []),
+                `> 💼 **Base Pay** · ₱${jobBasePay.toLocaleString()}`,
+                `> ⭐ **Level Bonus** · Level ${memberLevel} · +₱${levelBonus.toLocaleString()}`,
+                `> 🎖️ **Booster / VIP** · ${hasBoosterOrVip ? "+50%" : "Not active"} · +₱${boosterVipBonus.toLocaleString()}`,
+                `> 🛡️ **Clan Bonus** · ${hasApprovedClan ? "+20%" : "Not active"} · +₱${clanBonus.toLocaleString()}`,
+                ...(hasLaptop > 0 ? [`> 💻 **Laptop Bonus** · +50% · +₱${laptopBonus.toLocaleString()}`] : []),
             ].join("\n");
 
             const embed = successEmbed(
