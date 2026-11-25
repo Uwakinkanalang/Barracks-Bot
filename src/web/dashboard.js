@@ -10,6 +10,7 @@ import { getCommandAccessSnapshot, disableCommand, enableCommand, isProtectedCom
 import { getAllBirthdays } from '../services/birthdayService.js';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
+const DASHBOARD_STAFF_KEY = 'dashboard:staff_accounts';
 const DASHBOARD_GUILD_ID = process.env.BARRACKS_GUILD_ID || '1137695060096471160';
 const loginAttempts = new Map();
 const BOOSTER_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
@@ -26,10 +27,13 @@ function sign(value, secret) {
   return crypto.createHmac('sha256', secret).update(value).digest('base64url');
 }
 
-function createAccessToken(secret) {
+function createAccessToken(secret, identity = { username: 'owner', role: 'owner' }) {
   const payload = Buffer.from(JSON.stringify({
     exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
-    scope: 'barracks-dashboard'
+    scope: 'barracks-dashboard',
+    userId: identity.userId || 'owner',
+    username: identity.username || 'owner',
+    role: identity.role || 'owner'
   })).toString('base64url');
   return `${payload}.${sign(payload, secret)}`;
 }
@@ -50,6 +54,31 @@ function validAccessToken(req, secret) {
   }
 }
 
+function dashboardTokenData(req, secret) {
+  const authorization = req.get('authorization') || '';
+  if (!authorization.startsWith('Bearer ')) return null;
+  const token = authorization.slice(7), [payload, signature] = token.split('.');
+  if (!payload || !signature || !safeEqual(signature, sign(payload, secret))) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (data.scope !== 'barracks-dashboard' || !Number.isFinite(data.exp) || data.exp <= Math.floor(Date.now()/1000)) return null;
+    return data;
+  } catch { return null; }
+}
+function hashDashboardPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
+  return { salt, hash: crypto.scryptSync(password, salt, 64).toString('hex') };
+}
+function verifyDashboardPassword(password, account) {
+  try {
+    const hash = crypto.scryptSync(password, account.salt, 64);
+    return safeEqual(hash.toString('hex'), account.hash);
+  } catch { return false; }
+}
+async function getDashboardStaff() {
+  const raw = await getFromDb(DASHBOARD_STAFF_KEY, []);
+  return Array.isArray(raw) ? raw : [];
+}
+
 function allowLoginAttempt(ip) {
   const now = Date.now();
   const recent = (loginAttempts.get(ip) || []).filter(time => time > now - 15 * 60 * 1000);
@@ -63,22 +92,60 @@ function allowLoginAttempt(ip) {
 }
 
 export function registerDashboardRoutes(app, bot) {
-  app.post('/api/dashboard/login', (req, res) => {
+  app.post('/api/dashboard/login', async (req, res) => {
     const expectedPassword = process.env.DASHBOARD_PASSWORD;
     const secret = process.env.DASHBOARD_SESSION_SECRET;
-    if (!expectedPassword || !secret) {
-      return res.status(503).json({ error: 'Dashboard login is not configured.' });
+    if (!expectedPassword || !secret) return res.status(503).json({ error: 'Dashboard login is not configured.' });
+    if (!allowLoginAttempt(req.ip)) return res.status(429).json({ error: 'Too many login attempts. Try again in 15 minutes.' });
+    const username = String(req.body?.username || 'owner').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+    let identity = null;
+    if (username === 'owner' && safeEqual(password, expectedPassword)) {
+      identity = { userId: 'owner', username: 'owner', role: 'owner' };
+    } else {
+      const staff = await getDashboardStaff();
+      const account = staff.find(item => item.username === username && item.active !== false);
+      if (account && verifyDashboardPassword(password, account)) {
+        identity = { userId: account.id, username: account.username, role: account.role || 'staff' };
+      }
     }
-    if (!allowLoginAttempt(req.ip)) {
-      return res.status(429).json({ error: 'Too many login attempts. Try again in 15 minutes.' });
-    }
-    if (!safeEqual(req.body?.password || '', expectedPassword)) {
-      return res.status(401).json({ error: 'Incorrect password.' });
-    }
-    return res.json({
-      token: createAccessToken(secret),
-      expiresIn: SESSION_TTL_SECONDS
-    });
+    if (!identity) return res.status(401).json({ error: 'Incorrect username or password.' });
+    return res.json({ token: createAccessToken(secret, identity), expiresIn: SESSION_TTL_SECONDS, user: { username: identity.username, role: identity.role } });
+  });
+
+  app.get('/api/dashboard/staff', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET, identity = secret && dashboardTokenData(req, secret);
+    if (!identity) return res.status(401).json({ error: 'Unauthorized' });
+    if (identity.role !== 'owner') return res.status(403).json({ error: 'Only the dashboard owner can manage staff accounts.' });
+    const staff = await getDashboardStaff();
+    return res.json({ staff: staff.map(({id,username,role,active,createdAt}) => ({id,username,role,active:active!==false,createdAt})) });
+  });
+
+  app.post('/api/dashboard/staff', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET, identity = secret && dashboardTokenData(req, secret);
+    if (!identity) return res.status(401).json({ error: 'Unauthorized' });
+    if (identity.role !== 'owner') return res.status(403).json({ error: 'Only the dashboard owner can create staff accounts.' });
+    const username = String(req.body?.username || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+    if (!/^[a-z0-9._-]{3,24}$/.test(username) || username === 'owner') return res.status(400).json({ error: 'Username must be 3–24 letters, numbers, dots, underscores, or hyphens.' });
+    if (password.length < 10 || password.length > 128) return res.status(400).json({ error: 'Password must be at least 10 characters.' });
+    const staff = await getDashboardStaff();
+    if (staff.some(item => item.username === username)) return res.status(409).json({ error: 'That username already exists.' });
+    const credential = hashDashboardPassword(password);
+    const account = { id: crypto.randomUUID(), username, role: 'staff', active: true, createdAt: new Date().toISOString(), ...credential };
+    staff.push(account);
+    if (!await setInDb(DASHBOARD_STAFF_KEY, staff)) return res.status(500).json({ error: 'Could not save staff account.' });
+    return res.status(201).json({ ok: true, staff: {id:account.id,username:account.username,role:account.role,active:true,createdAt:account.createdAt} });
+  });
+
+  app.delete('/api/dashboard/staff/:id', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET, identity = secret && dashboardTokenData(req, secret);
+    if (!identity) return res.status(401).json({ error: 'Unauthorized' });
+    if (identity.role !== 'owner') return res.status(403).json({ error: 'Only the dashboard owner can remove staff accounts.' });
+    const staff = await getDashboardStaff(), next = staff.filter(item => item.id !== req.params.id);
+    if (next.length === staff.length) return res.status(404).json({ error: 'Staff account not found.' });
+    if (!await setInDb(DASHBOARD_STAFF_KEY, next)) return res.status(500).json({ error: 'Could not remove staff account.' });
+    return res.json({ ok: true });
   });
 
   app.get('/api/dashboard/commands', async (req, res) => {
