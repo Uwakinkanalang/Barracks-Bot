@@ -1805,8 +1805,8 @@ async function loadDashboardStaff(){
 }
 document.getElementById('staffRefresh')?.addEventListener('click',loadDashboardStaff);
 document.getElementById('staffCreateForm')?.addEventListener('submit',async event=>{
- event.preventDefault();const button=document.getElementById('staffCreateButton'),status=document.getElementById('staffAccountsStatus');button.disabled=true;status.textContent='Creating staff account…';
- try{const response=await fetch(API_BASE+'/api/dashboard/staff',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify({username:document.getElementById('staffNewUsername').value,password:document.getElementById('staffNewPassword').value})});const data=await response.json();if(!response.ok)throw Error(data.error||'Could not create account.');event.currentTarget.reset();status.textContent='Staff login created. Share the username and temporary password privately.';await loadDashboardStaff();}
+ event.preventDefault();const form=event.currentTarget;const button=document.getElementById('staffCreateButton'),status=document.getElementById('staffAccountsStatus');button.disabled=true;status.textContent='Creating staff account…';
+ try{const response=await fetch(API_BASE+'/api/dashboard/staff',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify({username:document.getElementById('staffNewUsername').value,password:document.getElementById('staffNewPassword').value})});const data=await response.json();if(!response.ok)throw Error(data.error||'Could not create account.');form.reset();status.textContent='Staff login created. Share the username and temporary password privately.';await loadDashboardStaff();}
  catch(error){status.textContent=error.message;}finally{button.disabled=false;}
 });
 document.getElementById('staffAccountsList')?.addEventListener('click',async event=>{
