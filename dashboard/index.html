@@ -1522,6 +1522,22 @@ const loginScreen = document.getElementById('loginScreen');
 function showLogin(){document.body.classList.add('auth-locked');loginScreen.style.display='grid';}
 function hideLogin(){loginScreen.style.display='none';document.body.classList.remove('auth-locked');}
 function getToken(){return sessionStorage.getItem(TOKEN_KEY);}
+function applyDashboardAccessMode(){
+ const staff=sessionStorage.getItem('barracks_dashboard_role')==='staff';
+ document.body.classList.toggle('staff-view-only',staff);
+ if(!staff)return;
+ const lock=root=>{
+  root.querySelectorAll('input,textarea').forEach(el=>{if(!el.closest('#loginScreen')){if(el.type==='checkbox'||el.type==='radio'||el.type==='file'||el.type==='button'||el.type==='submit')el.disabled=true;else el.readOnly=true;}});
+  root.querySelectorAll('select').forEach(el=>{if(!el.closest('#loginScreen'))el.disabled=true;});
+  root.querySelectorAll('button[type="submit"],input[type="submit"]').forEach(el=>{if(!el.closest('#loginScreen'))el.disabled=true;});
+  root.querySelectorAll('[contenteditable="true"]').forEach(el=>el.setAttribute('contenteditable','false'));
+ };
+ lock(document);
+ if(!window.__barracksStaffReadonlyObserver){
+  window.__barracksStaffReadonlyObserver=new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(node.nodeType===1)lock(node);})));
+  window.__barracksStaffReadonlyObserver.observe(document.body,{childList:true,subtree:true});
+ }
+}
 document.getElementById('loginForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const error = document.getElementById('loginError');
@@ -1536,7 +1552,7 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
     const result = await response.json();
     if(!response.ok) throw new Error(result.error || 'Sign-in failed.');
     sessionStorage.setItem(TOKEN_KEY,result.token);
-    sessionStorage.setItem('barracks_dashboard_role',result.user?.role||'owner');
+    sessionStorage.setItem('barracks_dashboard_role',result.user?.role||'owner');applyDashboardAccessMode();
     const staffCard=document.getElementById('dashboardStaffCard');if(staffCard)staffCard.style.display=(result.user?.role==='owner')?'':'none';
     document.getElementById('dashboardPassword').value='';
     hideLogin(); loadOverview(); if(typeof window.barracksNavigate==='function'&&typeof window.barracksCurrentRoute==='function') window.barracksNavigate(window.barracksCurrentRoute(),false);
@@ -1544,7 +1560,7 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
   finally { button.disabled=false; button.textContent='Enter Dashboard'; }
 });
 document.getElementById('logoutButton').addEventListener('click',()=>{
-  sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem('barracks_dashboard_role');const staffCard=document.getElementById('dashboardStaffCard');if(staffCard)staffCard.style.display=''; showLogin();
+  sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem('barracks_dashboard_role');document.body.classList.remove('staff-view-only');if(window.__barracksStaffReadonlyObserver){window.__barracksStaffReadonlyObserver.disconnect();window.__barracksStaffReadonlyObserver=null;}const staffCard=document.getElementById('dashboardStaffCard');if(staffCard)staffCard.style.display=''; showLogin();
   ['members','channels','roles','commands'].forEach(id=>document.getElementById(id).textContent='—');
 });
 async function loadOverview(){
@@ -1564,7 +1580,7 @@ async function loadOverview(){
     if(data.guildIcon){const img=document.getElementById('guildIcon');img.src=data.guildIcon;img.hidden=false;document.getElementById('guildFallback').hidden=true;}
   }catch(error){document.getElementById('updated').textContent='Status unavailable';console.error(error);}
 }
-if(getToken()) loadOverview(); else showLogin();
+if(getToken()){applyDashboardAccessMode();loadOverview();} else showLogin();
 setInterval(()=>{if(getToken())loadOverview();},60000);
 </script>
 
