@@ -12,7 +12,6 @@ const BASE_WORK_AMOUNT = 700;
 const WORK_LEVEL_BONUS = 100;
 const BOOSTER_ROLE_ID = '1325060414752428136';
 const VIP_ROLE_ID = '1353727024392441970';
-const LAPTOP_MULTIPLIER = 1.5;
 const WORK_JOB_WEIGHTS = [
     { name: "Software Developer", chance: 100 / 19},
     { name: "Barista", chance: 100 / 19},
@@ -100,7 +99,6 @@ export default {
             const lastWork = userData.lastWork || 0;
             const inventory = userData.inventory || {};
             const extraWorkShifts = inventory["extra_work"] || 0;
-            const hasLaptop = inventory["laptop"] || 0;
 
             let cooldownActive = !ownerBypass && now < lastWork + WORK_COOLDOWN;
             let usedConsumable = false;
@@ -147,14 +145,6 @@ export default {
             const membershipBonus = Math.floor(jobBasePay * membershipBonusPercent / 100);
             let earned = jobBasePay + levelBonus + membershipBonus;
 
-            const baseEarnings = earned;
-            const laptopBonus = hasLaptop > 0
-                ? Math.floor(baseEarnings * (LAPTOP_MULTIPLIER - 1))
-                : 0;
-            if (hasLaptop > 0) {
-                earned = Math.floor(earned * LAPTOP_MULTIPLIER);
-            }
-
             userData.wallet = (userData.wallet || 0) + earned;
             userData.lastWork = now;
 
@@ -166,7 +156,6 @@ export default {
                 amount: earned,
                 job,
                 usedConsumable,
-                hasLaptop: hasLaptop > 0,
                 newWallet: userData.wallet,
                 timestamp: new Date().toISOString()
             });
@@ -178,7 +167,6 @@ export default {
                 `> ⭐ **Level Bonus** · Level ${memberLevel} · +₱${levelBonus.toLocaleString()}`,
                 `> 🛡️ **Clan Bonus** · ${hasApprovedClan ? "+20%" : "Not active"} · +₱${clanBonus.toLocaleString()}`,
                 `> 🎖️ **Booster / VIP** · ${hasBoosterOrVip ? "+50%" : "Not active"} · +₱${boosterVipBonus.toLocaleString()}`,
-                ...(hasLaptop > 0 ? [`> 💻 **Laptop Bonus** · +50% · +₱${laptopBonus.toLocaleString()}`] : []),
             ].join("\n");
 
             const embed = successEmbed(
