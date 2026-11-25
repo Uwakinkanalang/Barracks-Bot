@@ -1511,6 +1511,7 @@ async function loadOverview(){try{const response=await fetch('/api/dashboard/ove
     <label for="dashboardPassword" style="display:block;margin-bottom:8px;color:#cbd7ce">Password</label>
     <input id="dashboardPassword" type="password" autocomplete="current-password" required style="width:100%;padding:13px;border-radius:10px;border:1px solid #34463b;background:#0b1310;color:white">
     <button type="submit" style="width:100%;margin-top:14px;padding:13px;border:0;border-radius:10px;background:#c3f36b;color:#18210f;font-weight:800">Enter Dashboard</button>
+    <button id="guestLoginButton" type="button" style="width:100%;margin-top:10px;padding:12px;border:1px solid #34463b;border-radius:10px;background:#17221b;color:#dbe8dc;font-weight:750">Continue as Guest · View Public Pages</button>
     <p id="loginError" role="alert" style="color:#ff9a91;margin-top:12px"></p>
     <div class="foot">AUTHORIZED PERSONNEL ONLY · BARRACKS SERVER</div>
   </form>
@@ -1523,9 +1524,18 @@ function showLogin(){document.body.classList.add('auth-locked');loginScreen.styl
 function hideLogin(){loginScreen.style.display='none';document.body.classList.remove('auth-locked');}
 function getToken(){return sessionStorage.getItem(TOKEN_KEY);}
 function applyDashboardAccessMode(){
- const staff=sessionStorage.getItem('barracks_dashboard_role')==='staff';
- document.body.classList.toggle('staff-view-only',staff);
- if(!staff)return;
+ const role=sessionStorage.getItem('barracks_dashboard_role')||'owner';
+ const viewOnly=role==='staff'||role==='guest';
+ document.body.classList.toggle('staff-view-only',viewOnly);
+ document.body.classList.toggle('guest-view-only',role==='guest');
+ if(role==='guest'){
+  document.querySelectorAll('aside.side .nav button').forEach(button=>{
+   const label=button.querySelector('.nav-text')?.textContent.trim();
+   button.style.display=(label==='Overview'||label==='Tournaments')?'':'none';
+  });
+  document.querySelectorAll('aside.side .nav-label').forEach(label=>label.style.display='none');
+ }
+ if(!viewOnly)return;
  const lock=root=>{
   root.querySelectorAll('input,textarea').forEach(el=>{if(!el.closest('#loginScreen')){if(el.type==='checkbox'||el.type==='radio'||el.type==='file'||el.type==='button'||el.type==='submit')el.disabled=true;else el.readOnly=true;}});
   root.querySelectorAll('select').forEach(el=>{if(!el.closest('#loginScreen'))el.disabled=true;});
@@ -1538,6 +1548,22 @@ function applyDashboardAccessMode(){
   window.__barracksStaffReadonlyObserver.observe(document.body,{childList:true,subtree:true});
  }
 }
+document.getElementById('guestLoginButton').addEventListener('click', async () => {
+  const error=document.getElementById('loginError'), button=document.getElementById('guestLoginButton');
+  error.textContent='';button.disabled=true;button.textContent='Opening guest view…';
+  try{
+    const response=await fetch(API_BASE+'/api/dashboard/guest',{method:'POST'});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.error||'Guest access is unavailable.');
+    sessionStorage.setItem(TOKEN_KEY,result.token);
+    sessionStorage.setItem('barracks_dashboard_role','guest');
+    applyDashboardAccessMode();
+    const staffCard=document.getElementById('dashboardStaffCard');if(staffCard)staffCard.style.display='none';
+    hideLogin();loadOverview();
+    if(typeof window.barracksNavigate==='function')window.barracksNavigate('home',false);
+  }catch(err){error.textContent=err.message;}
+  finally{button.disabled=false;button.textContent='Continue as Guest · View Public Pages';}
+});
 document.getElementById('loginForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const error = document.getElementById('loginError');
@@ -1560,7 +1586,7 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
   finally { button.disabled=false; button.textContent='Enter Dashboard'; }
 });
 document.getElementById('logoutButton').addEventListener('click',()=>{
-  sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem('barracks_dashboard_role');document.body.classList.remove('staff-view-only');if(window.__barracksStaffReadonlyObserver){window.__barracksStaffReadonlyObserver.disconnect();window.__barracksStaffReadonlyObserver=null;}const staffCard=document.getElementById('dashboardStaffCard');if(staffCard)staffCard.style.display=''; showLogin();
+  sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem('barracks_dashboard_role');document.body.classList.remove('staff-view-only','guest-view-only');document.querySelectorAll('aside.side .nav button').forEach(button=>button.style.display='');document.querySelectorAll('aside.side .nav-label').forEach(label=>label.style.display='');if(window.__barracksStaffReadonlyObserver){window.__barracksStaffReadonlyObserver.disconnect();window.__barracksStaffReadonlyObserver=null;}const staffCard=document.getElementById('dashboardStaffCard');if(staffCard)staffCard.style.display=''; showLogin();
   ['members','channels','roles','commands'].forEach(id=>document.getElementById(id).textContent='—');
 });
 async function loadOverview(){

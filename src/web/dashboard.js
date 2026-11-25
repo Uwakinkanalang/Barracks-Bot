@@ -93,17 +93,29 @@ function allowLoginAttempt(ip) {
 
 export function registerDashboardRoutes(app, bot) {
   app.use('/api/dashboard', async (req, res, next) => {
-    if (req.path === '/login') return next();
+    if (req.path === '/login' || req.path === '/guest') return next();
     const secret = process.env.DASHBOARD_SESSION_SECRET;
     const identity = secret && dashboardTokenData(req, secret);
     if (!identity) return res.status(401).json({ error: 'Unauthorized' });
     if (identity.role === 'owner') return next();
+    if (identity.role === 'guest') {
+      if (req.method === 'GET' && ['/overview','/tournaments'].includes(req.path)) return next();
+      return res.status(403).json({ error: 'Guest access is limited to public overview and tournament information.' });
+    }
     const staff = await getDashboardStaff();
     const account = staff.find(item => item.id === identity.userId && item.active !== false);
     if (!account || account.role !== identity.role) return res.status(401).json({ error: 'Staff access has been revoked. Please sign in again.' });
     if (req.method !== 'GET' && req.method !== 'HEAD') return res.status(403).json({ error: 'This staff account is read-only. Ask the dashboard owner for elevated access.' });
     return next();
   });
+  app.post('/api/dashboard/guest', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret) return res.status(503).json({ error: 'Dashboard guest access is not configured.' });
+    if (!allowLoginAttempt(req.ip)) return res.status(429).json({ error: 'Too many login attempts. Try again in 15 minutes.' });
+    const identity = { userId: 'guest', username: 'guest', role: 'guest' };
+    return res.json({ token: createAccessToken(secret, identity), expiresIn: SESSION_TTL_SECONDS, user: { username: identity.username, role: identity.role } });
+  });
+
   app.post('/api/dashboard/login', async (req, res) => {
     const expectedPassword = process.env.DASHBOARD_PASSWORD;
     const secret = process.env.DASHBOARD_SESSION_SECRET;
