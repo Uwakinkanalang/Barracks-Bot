@@ -10,6 +10,8 @@ import { getUserLevelData } from '../../services/leveling/leveling.js';
 const WORK_COOLDOWN = botConfig.economy?.cooldowns?.work ?? 30 * 60 * 1000;
 const BASE_WORK_AMOUNT = 700;
 const WORK_LEVEL_BONUS = 100;
+const BOOSTER_ROLE_ID = '1325060414752428136';
+const VIP_ROLE_ID = '1353727024392441970';
 const LAPTOP_MULTIPLIER = 1.5;
 const WORK_JOB_WEIGHTS = [
     { name: "Software Developer", chance: 100 / 19},
@@ -123,7 +125,27 @@ export default {
             const levelBonus = memberLevel * WORK_LEVEL_BONUS;
             const job = selectWorkJob();
             const jobBasePay = WORK_JOB_SALARIES[job] ?? BASE_WORK_AMOUNT;
-            let earned = jobBasePay + levelBonus;
+
+            const guildMember = await interaction.guild.members.fetch(userId).catch(() => null);
+            const hasBoosterOrVip = Boolean(guildMember && (
+                guildMember.roles.cache.has(BOOSTER_ROLE_ID) ||
+                guildMember.roles.cache.has(VIP_ROLE_ID)
+            ));
+
+            const clanList = await client.db.get(`guild:${guildId}:clans`, []);
+            const approvedClans = Array.isArray(clanList) ? clanList : [];
+            const hasApprovedClan = approvedClans.some(clan =>
+                clan.status === 'approved' &&
+                (
+                    String(clan.leaderId || '') === userId ||
+                    String(clan.viceLeaderId || '') === userId ||
+                    (Array.isArray(clan.memberIds) && clan.memberIds.map(String).includes(userId))
+                )
+            );
+
+            const membershipBonusPercent = (hasBoosterOrVip ? 50 : 0) + (hasApprovedClan ? 20 : 0);
+            const membershipBonus = Math.floor(jobBasePay * membershipBonusPercent / 100);
+            let earned = jobBasePay + levelBonus + membershipBonus;
 
             const baseEarnings = earned;
             const laptopBonus = hasLaptop > 0
@@ -152,6 +174,8 @@ export default {
             const earningsBreakdown = [
                 `• Base pay: **₱${jobBasePay.toLocaleString()}**`,
                 `• Level bonus (Level ${memberLevel}): **+₱${levelBonus.toLocaleString()}**`,
+                ...(hasBoosterOrVip ? [`• Booster/VIP bonus (+50%): **+₱${Math.floor(jobBasePay * 0.5).toLocaleString()}**`] : []),
+                ...(hasApprovedClan ? [`• Clan bonus (+20%): **+₱${Math.floor(jobBasePay * 0.2).toLocaleString()}**`] : []),
                 ...(hasLaptop > 0 ? [`• Laptop bonus (+50%): **+₱${laptopBonus.toLocaleString()}**`] : []),
             ].join("\n");
 
