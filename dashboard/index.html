@@ -1697,7 +1697,7 @@ function announcementTokens(value,prefix){
   .replaceAll('{server.icon}',serverIcon)
   .replaceAll('{server}','Barracks');
 }
-function setDashboardPreviewImage(img,rawUrl){const url=String(rawUrl||'').trim().replace(/&amp;/gi,'&');let valid=false;try{const parsed=new URL(url);valid=['http:','https:'].includes(parsed.protocol)&&!!parsed.hostname}catch{}if(!valid){img.hidden=true;img.onload=null;img.onerror=null;img.removeAttribute('src');return}img.onload=()=>{img.hidden=false};img.onerror=()=>{img.hidden=true};img.hidden=false;if(img.getAttribute('src')!==url)img.setAttribute('src',url);else if(img.complete&&img.naturalWidth>0)img.hidden=false;else if(img.complete&&img.naturalWidth===0){img.removeAttribute('src');img.setAttribute('src',url)}}
+function setDashboardPreviewImage(img,rawUrl){const hide=()=>{img.hidden=true;img.style.display='none'};const show=()=>{img.hidden=false;img.style.display='block'};const url=String(rawUrl||'').trim().replace(/&amp;/gi,'&');let valid=false;try{const parsed=new URL(url);valid=['http:','https:'].includes(parsed.protocol)&&!!parsed.hostname}catch{}if(!valid){hide();img.onload=null;img.onerror=null;img.removeAttribute('src');return}img.onload=show;img.onerror=hide;show();if(img.getAttribute('src')!==url)img.setAttribute('src',url);else if(img.complete&&img.naturalWidth>0)show();else if(img.complete&&img.naturalWidth===0){img.removeAttribute('src');img.setAttribute('src',url)}}
 function updateAnnouncementPreview(prefix){
  const message=announcementTokens(document.getElementById(prefix+'Message').value,prefix);
  const content=document.getElementById(prefix+'PreviewContent');if(content)content.innerHTML=formatAnnouncementPreview(message);
