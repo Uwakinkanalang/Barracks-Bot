@@ -1395,6 +1395,98 @@ export function registerDashboardRoutes(app, bot) {
     } catch (error) { return res.status(500).json({ error: error?.message || 'Could not post or save the tournament.' }); }
   });
 
+
+  app.post('/api/dashboard/tournaments/:id/bracket', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    try {
+      const all = await readTournaments(guild.id), tournament = all.find(item => item.id === req.params.id);
+      if (!tournament) return res.status(404).json({ error: 'Tournament not found.' });
+      const body = req.body || {};
+      if (body.action === 'generate') {
+        const participants = tournament.teamMode
+          ? (tournament.teams || []).map(team => ({ id: String(team.id || team.captainId), name: String(team.name || 'Team'), rosterSize: 1 + (team.members || []).length }))
+          : (tournament.registrations || []).map(player => ({ id: String(player.userId), name: String(player.username || player.userId) }));
+        if (participants.length < 2) return res.status(400).json({ error: 'At least two registered teams or players are required to generate a bracket.' });
+        if (tournament.teamMode && participants.some(team => team.rosterSize < Number(tournament.teamMinPlayers || 1))) return res.status(400).json({ error: 'Every registered team must meet the minimum team size before bracket generation.' });
+        if (tournament.bracket?.rounds?.some(round => round.some(match => match.status === 'completed'))) return res.status(409).json({ error: 'This bracket already has completed matches. Reset it only after the tournament has been reviewed.' });
+        const size = 2 ** Math.ceil(Math.log2(participants.length));
+        const slots = participants.concat(Array(size - participants.length).fill(null));
+        const rounds = [];
+        let count = size / 2, roundIndex = 0;
+        while (count >= 1) {
+          const round = [];
+          for (let i = 0; i < count; i++) {
+            const m = { id: 'r' + (roundIndex + 1) + 'm' + (i + 1), round: roundIndex + 1, match: i + 1, team1: roundIndex === 0 ? slots[i * 2] : null, team2: roundIndex === 0 ? slots[i * 2 + 1] : null, winnerId: null, status: 'pending' };
+            if (roundIndex > 0) m.sourceMatchIds = ['r' + roundIndex + 'm' + (i * 2 + 1), 'r' + roundIndex + 'm' + (i * 2 + 2)];
+            round.push(m);
+          }
+          rounds.push(round); count /= 2; roundIndex++;
+        }
+        const bracket = { format: 'Single Elimination', generatedAt: new Date().toISOString(), roundNames: rounds.map((r,i)=>i===rounds.length-1?'Grand Final':i===rounds.length-2&&rounds.length>2?'Semifinals':i===rounds.length-3&&rounds.length>3?'Quarterfinals':'Round '+(i+1)), rounds, championId: null, championName: null };
+        const lookup = new Map(rounds.flat().map(m=>[m.id,m]));
+        for (const match of rounds[0]) {
+          if (match.team1 && !match.team2) { match.winnerId=match.team1.id; match.status='bye'; }
+          else if (!match.team1 && match.team2) { match.winnerId=match.team2.id; match.status='bye'; }
+          else if (!match.team1 && !match.team2) match.status='empty';
+        }
+        const advance = (fromRound) => {
+          for (let ri=fromRound+1;ri<rounds.length;ri++) {
+            for (const match of rounds[ri]) {
+              const sources=match.sourceMatchIds.map(id=>lookup.get(id));
+              if (!sources.every(source=>source && source.status!=='pending')) continue;
+              match.team1=sources[0].winnerId?sources[0].team1?.id===sources[0].winnerId?sources[0].team1:sources[0].team2:null;
+              match.team2=sources[1].winnerId?sources[1].team1?.id===sources[1].winnerId?sources[1].team1:sources[1].team2:null;
+              if (match.team1&&!match.team2) {match.winnerId=match.team1.id;match.status='bye';}
+              else if (!match.team1&&match.team2) {match.winnerId=match.team2.id;match.status='bye';}
+              else if (!match.team1&&!match.team2) {match.winnerId=null;match.status='empty';}
+              else {match.winnerId=null;match.status='pending';}
+            }
+          }
+        };
+        advance(0);
+        const final=rounds[rounds.length-1][0];
+        if (final?.winnerId) { const w=final.team1?.id===final.winnerId?final.team1:final.team2;bracket.championId=w?.id||null;bracket.championName=w?.name||null; }
+        tournament.bracket=bracket;
+        tournament.updatedAt=new Date().toISOString();
+        all[all.findIndex(item=>item.id===tournament.id)]=tournament;
+        await setInDb(tournamentKey(guild.id),all);
+        return res.json({ok:true,bracket,tournament});
+      }
+      if (body.action === 'result') {
+        const bracket=tournament.bracket;
+        if (!bracket?.rounds?.length) return res.status(400).json({error:'Generate the bracket before recording match results.'});
+        const match=bracket.rounds.flat().find(item=>item.id===String(body.matchId||''));
+        if (!match || match.status!=='pending' || !match.team1 || !match.team2) return res.status(409).json({error:'This match is not ready for a result.'});
+        const winnerId=String(body.winnerId||'');
+        if (![match.team1.id,match.team2.id].includes(winnerId)) return res.status(400).json({error:'Winner must be one of the teams or players in this match.'});
+        match.winnerId=winnerId;match.status='completed';match.completedAt=new Date().toISOString();
+        const lookup=new Map(bracket.rounds.flat().map(item=>[item.id,item]));
+        for(let ri=1;ri<bracket.rounds.length;ri++){
+          for(const next of bracket.rounds[ri]){
+            const sources=(next.sourceMatchIds||[]).map(id=>lookup.get(id));
+            if(!sources.length||!sources.every(source=>source&&source.status!=='pending'))continue;
+            const teamFor=source=>source.winnerId?(source.team1?.id===source.winnerId?source.team1:source.team2):null;
+            next.team1=teamFor(sources[0]);next.team2=teamFor(sources[1]);next.winnerId=null;
+            if(next.team1&&!next.team2){next.winnerId=next.team1.id;next.status='bye';}
+            else if(!next.team1&&next.team2){next.winnerId=next.team2.id;next.status='bye';}
+            else if(!next.team1&&!next.team2)next.status='empty';
+            else next.status='pending';
+          }
+        }
+        const final=bracket.rounds[bracket.rounds.length-1][0];
+        if(final?.status==='completed'&&final.winnerId){const w=final.team1?.id===final.winnerId?final.team1:final.team2;bracket.championId=w?.id||null;bracket.championName=w?.name||null;tournament.status='completed';}
+        bracket.updatedAt=new Date().toISOString();tournament.updatedAt=bracket.updatedAt;
+        all[all.findIndex(item=>item.id===tournament.id)]=tournament;
+        await setInDb(tournamentKey(guild.id),all);
+        return res.json({ok:true,bracket,tournament});
+      }
+      return res.status(400).json({error:'Unsupported bracket action.'});
+    } catch (error) { return res.status(500).json({error:error?.message||'Could not update tournament bracket.'}); }
+  });
+
   app.delete('/api/dashboard/tournaments/:id', async (req, res) => {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
     if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
