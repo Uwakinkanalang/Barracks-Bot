@@ -110,7 +110,7 @@ export default {
         const mineCount = FIXED_MINE_COUNT;
         const userData = await getEconomyData(client, interaction.guildId, interaction.user.id);
         const availableCash = Math.max(0, Number(userData.wallet) || 0);
-        const bet = betInput === 'all' ? availableCash : Number(betInput);
+        const bet = betInput === 'all' ? Math.min(availableCash, MAX_BET) : Number(betInput);
 
         if (!Number.isSafeInteger(bet) || bet <= 0) {
             throw createError(
