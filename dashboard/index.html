@@ -1459,6 +1459,9 @@ async function loadOverview(){try{const response=await fetch('/api/dashboard/ove
 @media(max-width:1000px){#tournamentForm.tournament-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){#tournamentForm.tournament-form{grid-template-columns:1fr;gap:9px}}
 
+/* Respect the native hidden state: keep the editor and its Live Preview off all other dashboard views */
+#tournamentFormCard[hidden]{display:none!important}
+#tournamentFormCard:not([hidden]){display:block!important}
 /* Final Edit Tournament card sizing and alignment */
 #tournamentFormCard.tournament-form-card{width:min(100%,1180px)!important;max-width:1180px!important;margin:16px auto 24px!important;overflow:hidden!important;border:1px solid var(--ui-border)!important;border-radius:14px!important;background:var(--ui-surface)!important;box-sizing:border-box!important}
 #tournamentFormCard .tournament-form-heading{padding:13px 16px!important;min-height:56px!important}
