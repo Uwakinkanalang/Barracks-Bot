@@ -176,8 +176,8 @@ export default {
             const earningsBreakdown = [
                 `> 💼 **Base Pay** · ₱${jobBasePay.toLocaleString()}`,
                 `> ⭐ **Level Bonus** · Level ${memberLevel} · +₱${levelBonus.toLocaleString()}`,
-                `> 🎖️ **Booster / VIP** · ${hasBoosterOrVip ? "+50%" : "Not active"} · +₱${boosterVipBonus.toLocaleString()}`,
                 `> 🛡️ **Clan Bonus** · ${hasApprovedClan ? "+20%" : "Not active"} · +₱${clanBonus.toLocaleString()}`,
+                `> 🎖️ **Booster / VIP** · ${hasBoosterOrVip ? "+50%" : "Not active"} · +₱${boosterVipBonus.toLocaleString()}`,
                 ...(hasLaptop > 0 ? [`> 💻 **Laptop Bonus** · +50% · +₱${laptopBonus.toLocaleString()}`] : []),
             ].join("\n");
 
