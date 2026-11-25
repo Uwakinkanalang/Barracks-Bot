@@ -1406,6 +1406,8 @@ export function registerDashboardRoutes(app, bot) {
       if (!tournament) return res.status(404).json({ error: 'Tournament not found.' });
       const body = req.body || {};
       if (body.action === 'generate') {
+        if (tournament.status !== 'live') return res.status(409).json({ error: 'Set the tournament status to Live after registration closes before generating the bracket.' });
+        if (tournament.bracket?.rounds?.length) return res.status(409).json({ error: 'A bracket has already been generated for this tournament.' });
         const participants = tournament.teamMode
           ? (tournament.teams || []).map(team => ({ id: String(team.id || team.captainId), name: String(team.name || 'Team'), rosterSize: 1 + (team.members || []).length }))
           : (tournament.registrations || []).map(player => ({ id: String(player.userId), name: String(player.username || player.userId) }));
