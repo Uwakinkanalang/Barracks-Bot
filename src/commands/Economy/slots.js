@@ -41,8 +41,24 @@ function createSpin(emojis) {
     const winner = outcomes.find(item => roll < item.cutoff);
     if (winner) return { ...WIN_SYMBOLS[winner.key], win: true };
 
+    const reels = Array.from({ length: 3 }, () => emojis[randomInt(emojis.length)]);
+    const tripleWinSymbols = new Set([
+        '<:fatjerry:1572110023742459974>',
+        '<:SundalongCamonaNangaasar:1572130012713193512>',
+        '🍒',
+    ]);
+    const isTripleWin = reels[0] === reels[1] && reels[1] === reels[2] && tripleWinSymbols.has(reels[0]);
+    if (isTripleWin) {
+        return {
+            reels,
+            multiplier: 3,
+            chance: (3 / (emojis.length ** 3)) * 100,
+            win: true,
+            label: reels[0] === '🍒' ? 'Cherry Triple' : reels[0] === '<:fatjerry:1572110023742459974>' ? 'Fat Jerry Triple' : 'Uwak Triple',
+        };
+    }
     return {
-        reels: Array.from({ length: 3 }, () => emojis[randomInt(emojis.length)]),
+        reels,
         multiplier: 0,
         win: false,
         label: 'No match',
@@ -173,7 +189,7 @@ export default {
             await setEconomyData(client, interaction.guildId, interaction.user.id, latestAccount);
 
             const outcome = spin.win
-                ? `🎉 **${spin.label}!** You won **₱${payout.toLocaleString()} bCash** (${spin.multiplier}× your bet, ${spin.chance}% chance).`
+                ? `🎉 **${spin.label}!** You won **₱${payout.toLocaleString()} bCash** (${spin.multiplier}× your bet${spin.chance ? `, ${spin.chance.toFixed(3)}% chance` : ''}).`
                 : `💥 **No match.** You lost **₱${bet.toLocaleString()} bCash**.`;
             await InteractionHelper.safeEditReply(interaction, {
                 content: renderSpin(spin.reels, 3, bet, outcome),
