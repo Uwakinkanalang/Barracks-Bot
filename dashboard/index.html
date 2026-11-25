@@ -1536,13 +1536,15 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
     const result = await response.json();
     if(!response.ok) throw new Error(result.error || 'Sign-in failed.');
     sessionStorage.setItem(TOKEN_KEY,result.token);
+    sessionStorage.setItem('barracks_dashboard_role',result.user?.role||'owner');
+    const staffCard=document.getElementById('dashboardStaffCard');if(staffCard)staffCard.style.display=(result.user?.role==='owner')?'':'none';
     document.getElementById('dashboardPassword').value='';
     hideLogin(); loadOverview(); if(typeof window.barracksNavigate==='function'&&typeof window.barracksCurrentRoute==='function') window.barracksNavigate(window.barracksCurrentRoute(),false);
   } catch(err) { error.textContent=err.message; }
   finally { button.disabled=false; button.textContent='Enter Dashboard'; }
 });
 document.getElementById('logoutButton').addEventListener('click',()=>{
-  sessionStorage.removeItem(TOKEN_KEY); showLogin();
+  sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem('barracks_dashboard_role');const staffCard=document.getElementById('dashboardStaffCard');if(staffCard)staffCard.style.display=''; showLogin();
   ['members','channels','roles','commands'].forEach(id=>document.getElementById(id).textContent='—');
 });
 async function loadOverview(){
@@ -1791,6 +1793,7 @@ async function loadBotSettings(){
  }catch(error){status.textContent=error.message;status.style.color='#ff9a91';}
 }
 async function loadDashboardStaff(){
+ if(sessionStorage.getItem('barracks_dashboard_role')!=='owner'){const card=document.getElementById('dashboardStaffCard');if(card)card.style.display='none';return;}
  const status=document.getElementById('staffAccountsStatus'),list=document.getElementById('staffAccountsList');if(!status||!list)return;
  status.textContent='Loading staff accounts…';
  try{
