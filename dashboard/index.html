@@ -1252,6 +1252,16 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 <div class="card"><div class="metric-top">Bot uptime</div><div class="metric" id="settingsUptime" style="font-size:20px">—</div><div class="metric-note">Since last restart</div></div></div>
 <div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h2 style="font-size:16px;margin:0 0 5px">⚙️ General bot settings</h2><p class="sub">Update the text-command prefix used in Barracks.</p></div><button class="logout" id="settingsRefresh" type="button">↻ Refresh status</button></div>
 <label style="display:block;margin-top:18px;max-width:360px">Command prefix<input id="settingsPrefix" maxlength="5" placeholder="!" style="display:block;width:100%;margin-top:7px;padding:12px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"></label><p style="color:#9ba3ad;font-size:11px;margin:8px 0">Use 1–5 characters with no spaces.</p><div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap"><button id="settingsSave" type="button" onclick="saveBotSettings()" style="border:0;border-radius:9px;padding:11px 17px;background:#c3f36b;color:#18210f;font-weight:800;cursor:pointer">Save settings</button><span id="settingsStatus" role="status" style="color:#c0c2ca;font-size:12px"></span></div></div>
+<div class="card" style="margin-bottom:14px" id="dashboardStaffCard">
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 style="font-size:16px;margin:0 0 5px">🪖 Dashboard Staff Accounts</h2><p class="sub">Create a separate login for each staff member. Only the owner can manage accounts.</p></div><button class="logout" type="button" id="staffRefresh">↻ Refresh</button></div>
+ <form id="staffCreateForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:17px">
+  <label>Username<input id="staffNewUsername" required minlength="3" maxlength="24" pattern="[a-zA-Z0-9._-]+" placeholder="staffname" style="display:block;width:100%;margin-top:6px;padding:11px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"></label>
+  <label>Temporary password<input id="staffNewPassword" type="password" required minlength="10" maxlength="128" autocomplete="new-password" placeholder="At least 10 characters" style="display:block;width:100%;margin-top:6px;padding:11px;border-radius:8px;border:1px solid #484950;background:#25262c;color:white"></label>
+  <div style="display:flex;align-items:end"><button type="submit" id="staffCreateButton" style="border:0;border-radius:9px;padding:11px 17px;background:#c3f36b;color:#18210f;font-weight:800;cursor:pointer">Create Staff Login</button></div>
+ </form>
+ <p id="staffAccountsStatus" role="status" style="font-size:12px;color:#c0c2ca;margin:12px 0"></p>
+ <div id="staffAccountsList" style="display:grid;gap:8px"></div>
+</div>
 <div class="card"><h2 style="font-size:16px;margin:0 0 12px">🪖 Server & bot information</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;color:#c0c2ca;font-size:13px"><div>Server<strong id="settingsGuildName" class="settings-value">—</strong></div><div>Server ID<strong id="settingsGuildId" class="settings-value">—</strong></div><div>Members<strong id="settingsMembers" class="settings-value">—</strong></div><div>Channels<strong id="settingsChannels" class="settings-value">—</strong></div><div>Roles<strong id="settingsRoles" class="settings-value">—</strong></div><div>Bot account<strong id="settingsBotName" class="settings-value">—</strong></div><div>Bot ID<strong id="settingsBotId" class="settings-value">—</strong></div></div></div></div>
 <style>.settings-value{display:block;color:#f2f3f5;margin-top:5px;font-weight:650;overflow-wrap:anywhere}</style>
 
@@ -1496,7 +1506,9 @@ async function loadOverview(){try{const response=await fetch('/api/dashboard/ove
   <form id="loginForm" style="width:min(420px,100%);padding:34px;border:1px solid #27372d;border-radius:20px;background:#111a16">
     <div class="brand-mark">B</div><div class="eyebrow" style="margin-top:22px">Barracks · Command Center</div>
     <h1>Welcome back, soldier.</h1><p class="sub" style="margin:10px 0 22px">Sign in to manage your Barracks server dashboard.</p>
-    <label for="dashboardPassword" style="display:block;margin-bottom:8px;color:#cbd7ce">Dashboard password</label>
+    <label for="dashboardUsername" style="display:block;margin-bottom:8px;color:#cbd7ce">Username</label>
+    <input id="dashboardUsername" type="text" autocomplete="username" value="owner" required style="width:100%;padding:13px;border-radius:10px;border:1px solid #34463b;background:#0b1310;color:white;margin-bottom:12px">
+    <label for="dashboardPassword" style="display:block;margin-bottom:8px;color:#cbd7ce">Password</label>
     <input id="dashboardPassword" type="password" autocomplete="current-password" required style="width:100%;padding:13px;border-radius:10px;border:1px solid #34463b;background:#0b1310;color:white">
     <button type="submit" style="width:100%;margin-top:14px;padding:13px;border:0;border-radius:10px;background:#c3f36b;color:#18210f;font-weight:800">Enter Dashboard</button>
     <p id="loginError" role="alert" style="color:#ff9a91;margin-top:12px"></p>
@@ -1519,7 +1531,7 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
   try {
     const response = await fetch(API_BASE + '/api/dashboard/login', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({password:document.getElementById('dashboardPassword').value})
+      body:JSON.stringify({username:document.getElementById('dashboardUsername').value,password:document.getElementById('dashboardPassword').value})
     });
     const result = await response.json();
     if(!response.ok) throw new Error(result.error || 'Sign-in failed.');
@@ -1775,8 +1787,31 @@ async function loadBotSettings(){
   document.getElementById('settingsPrefix').value=data.prefix||'!';
   for(const [id,value] of Object.entries({settingsGuildName:data.guild.name,settingsGuildId:data.guild.id,settingsMembers:Number(data.guild.memberCount).toLocaleString(),settingsChannels:Number(data.guild.channelCount).toLocaleString(),settingsRoles:Number(data.guild.roleCount).toLocaleString(),settingsBotName:data.bot.name,settingsBotId:data.bot.id||'Unavailable'}))document.getElementById(id).textContent=value;
   status.textContent='Settings loaded.';
+  await loadDashboardStaff();
  }catch(error){status.textContent=error.message;status.style.color='#ff9a91';}
 }
+async function loadDashboardStaff(){
+ const status=document.getElementById('staffAccountsStatus'),list=document.getElementById('staffAccountsList');if(!status||!list)return;
+ status.textContent='Loading staff accounts…';
+ try{
+  const r=await fetch(API_BASE+'/api/dashboard/staff',{headers:{Authorization:'Bearer '+getToken()}}),d=await r.json();if(!r.ok)throw Error(d.error||'Could not load staff accounts.');
+  list.innerHTML='';if(!d.staff.length)list.innerHTML='<p style="color:#aeb0ba;font-size:13px">No staff logins created yet.</p>';
+  d.staff.forEach(account=>{const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border:1px solid #484950;border-radius:9px;background:#2d2e34';const name=document.createElement('strong');name.textContent=account.username+' · Staff';const remove=document.createElement('button');remove.type='button';remove.textContent='Remove access';remove.className='logout';remove.dataset.staffId=account.id;row.append(name,remove);list.append(row);});
+  status.textContent='Staff accounts: '+d.staff.length+'. Passwords are stored as salted hashes.';
+ }catch(error){status.textContent=error.message;list.innerHTML='';}
+}
+document.getElementById('staffRefresh')?.addEventListener('click',loadDashboardStaff);
+document.getElementById('staffCreateForm')?.addEventListener('submit',async event=>{
+ event.preventDefault();const button=document.getElementById('staffCreateButton'),status=document.getElementById('staffAccountsStatus');button.disabled=true;status.textContent='Creating staff account…';
+ try{const response=await fetch(API_BASE+'/api/dashboard/staff',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify({username:document.getElementById('staffNewUsername').value,password:document.getElementById('staffNewPassword').value})});const data=await response.json();if(!response.ok)throw Error(data.error||'Could not create account.');event.currentTarget.reset();status.textContent='Staff login created. Share the username and temporary password privately.';await loadDashboardStaff();}
+ catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+});
+document.getElementById('staffAccountsList')?.addEventListener('click',async event=>{
+ const button=event.target.closest('[data-staff-id]');if(!button)return;if(!confirm('Remove this staff account?'))return;button.disabled=true;
+ try{const response=await fetch(API_BASE+'/api/dashboard/staff/'+encodeURIComponent(button.dataset.staffId),{method:'DELETE',headers:{Authorization:'Bearer '+getToken()}});const data=await response.json();if(!response.ok)throw Error(data.error||'Could not remove staff account.');await loadDashboardStaff();}
+ catch(error){document.getElementById('staffAccountsStatus').textContent=error.message;button.disabled=false;}
+});
+
 document.getElementById('settingsRefresh').addEventListener('click',loadBotSettings);
 window.saveBotSettings=async function(){
  const button=document.getElementById('settingsSave'),status=document.getElementById('settingsStatus');
