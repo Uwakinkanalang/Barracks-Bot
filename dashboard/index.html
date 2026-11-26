@@ -774,7 +774,10 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 <style id="leveling-role-xp-multiplier-visible">
 /* Hide the role multiplier card everywhere by default; only reveal it on the active Leveling route. */
 .lvl-card:has(#lvlRoleMultipliers){display:none!important}
-#levelingRoutePage:not([hidden]) .lvl-card:has(#lvlRoleMultipliers){
+/* The route container itself controls visibility; do not depend on the hidden attribute
+   being removed when the dashboard switches pages. */
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers),
+#routeView #levelingRoutePage .lvl-card:has(#lvlRoleMultipliers){
  display:block!important;grid-column:auto!important;align-self:start!important;max-width:660px!important;
  visibility:visible!important;opacity:1!important;
 }
