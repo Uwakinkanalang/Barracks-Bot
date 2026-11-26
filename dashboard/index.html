@@ -775,6 +775,36 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 </style>
 
 
+
+<style id="member-announcement-embed-builder-layout-fix">
+/* Fix Join / Leave / Ban / Boost embed editors: prevent textareas and labels
+   from being squeezed into implicit one-track grid columns. */
+.lvl-event-announcement-page .lvl-embed-editor{
+ display:grid!important;
+ grid-template-columns:repeat(12,minmax(0,1fr))!important;
+ width:100%!important;min-width:0!important;box-sizing:border-box!important;
+ align-items:start!important;
+}
+.lvl-event-announcement-page .lvl-embed-editor>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+.lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedColor"]){grid-column:1/-1!important}
+.lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedAuthor"]){grid-column:1/span 6!important}
+.lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedTitle"]){grid-column:7/span 6!important}
+.lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedThumbnail"]){grid-column:1/-1!important}
+.lvl-event-announcement-page .lvl-embed-editor>label:has(textarea[id$="EmbedDescription"]){grid-column:1/-1!important}
+.lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedImage"]){grid-column:1/-1!important}
+.lvl-event-announcement-page .lvl-embed-editor>.lvl-footer-row{grid-column:1/-1!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;min-width:0!important}
+.lvl-event-announcement-page .lvl-embed-editor .lvl-field input:not([type="color"]),
+.lvl-event-announcement-page .lvl-embed-editor .lvl-field textarea{
+ display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;
+ box-sizing:border-box!important;
+}
+.lvl-event-announcement-page .lvl-embed-editor .lvl-field textarea{min-height:120px!important;resize:vertical!important}
+@media(max-width:620px){
+ .lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedAuthor"]),
+ .lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedTitle"]){grid-column:1/-1!important}
+ .lvl-event-announcement-page .lvl-embed-editor>.lvl-footer-row{grid-template-columns:minmax(0,1fr)!important}
+}
+</style>
 </head>
 <body>
 <div class="shell">
