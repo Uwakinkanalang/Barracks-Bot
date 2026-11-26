@@ -771,6 +771,22 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
  .lvl-embed-editor>.lvl-footer-row{grid-row:8}
 }
 </style>
+
+<style id="leveling-role-xp-multiplier-visible">
+/* Keep Role XP Multipliers clearly visible on the dedicated Leveling page. */
+#levelingRoutePage:not([hidden]) .lvl-card:has(#lvlRoleMultipliers){
+ display:block!important;grid-column:1/-1!important;visibility:visible!important;opacity:1!important;
+}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-field{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(130px,.5fr) auto;gap:10px;align-items:end;
+}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-list{grid-column:1/-1}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-field{margin:0}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-add-btn{min-height:38px}
+@media(max-width:620px){
+ #levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-field{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
 <div class="shell">
