@@ -134,7 +134,7 @@ export default {
         ];
         const bonusDisplay = bonusLines.map((label, index) =>
             `${label.padEnd(35)} +${bonusAmounts[index].toLocaleString().padStart(8)} bCash`
-        ).join('\\n');
+        ).join('\n');
         const totalDisplay = `**Total: ${earned.toLocaleString()} bCash!**`;
 
         logger.info('[ECONOMY_TRANSACTION] Daily claimed', {
@@ -153,7 +153,7 @@ export default {
 
         const embed = successEmbed(
             '✅ Daily Claimed!',
-            `You received **${earned.toLocaleString()} bCash**!\\n\\n${bonusDisplay}\\n\\n${totalDisplay}`,
+            `You received **${earned.toLocaleString()} bCash**!\n\n${bonusDisplay}\n\n${totalDisplay}`,
         )
             .addFields({
                 name: 'New bCash Balance',
