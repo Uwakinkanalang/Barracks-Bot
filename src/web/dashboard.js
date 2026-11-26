@@ -1282,7 +1282,7 @@ export function registerDashboardRoutes(app, bot) {
     const fixedAutoNickFormat = 'TAG ⚔ ★ {username}';
     if (!roleHex) return res.status(400).json({ error: 'Role Hex Code must be a valid six-digit color, such as #5865F2.' });
     if (description.length > 300) return res.status(400).json({ error: 'Clan description must be 300 characters or fewer.' });
-    if (!rules || rules.length > 1000) return res.status(400).json({ error: 'Clan Rules are required and must be 1,000 characters or fewer.' });
+    if (rules.length > 1000) return res.status(400).json({ error: 'Clan Rules must be 1,000 characters or fewer.' });
 
     const me = guild.members.me;
     if (!me || !me.permissions.has('ManageRoles')) return res.status(403).json({ error: 'Barracks-Bot needs Manage Roles permission.' });
