@@ -752,6 +752,25 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
  .lvl-embed-editor>.lvl-footer-row{grid-template-columns:1fr}
 }
 </style>
+
+<style id="leveling-embed-author-title-under-thumbnail">
+/* Explicitly position these controls regardless of earlier responsive rules. */
+.lvl-embed-editor{grid-template-columns:repeat(12,minmax(0,1fr))!important}
+.lvl-embed-editor>label:has(#lvlEmbedColor){grid-column:1/-1!important;grid-row:2}
+.lvl-embed-editor>label:has(#lvlEmbedThumbnail){grid-column:1/-1!important;grid-row:3}
+.lvl-embed-editor>label:has(#lvlEmbedAuthor){grid-column:1/span 6!important;grid-row:4}
+.lvl-embed-editor>label:has(#lvlEmbedTitle){grid-column:7/span 6!important;grid-row:4}
+.lvl-embed-editor>label:has(#lvlEmbedDescription){grid-column:1/-1!important;grid-row:5}
+.lvl-embed-editor>label:has(#lvlEmbedImage){grid-column:1/-1!important;grid-row:6}
+.lvl-embed-editor>.lvl-footer-row{grid-column:1/-1!important;grid-row:7}
+@media(max-width:520px){
+ .lvl-embed-editor>label:has(#lvlEmbedAuthor){grid-column:1/-1!important;grid-row:4}
+ .lvl-embed-editor>label:has(#lvlEmbedTitle){grid-column:1/-1!important;grid-row:5}
+ .lvl-embed-editor>label:has(#lvlEmbedDescription){grid-row:6}
+ .lvl-embed-editor>label:has(#lvlEmbedImage){grid-row:7}
+ .lvl-embed-editor>.lvl-footer-row{grid-row:8}
+}
+</style>
 </head>
 <body>
 <div class="shell">
