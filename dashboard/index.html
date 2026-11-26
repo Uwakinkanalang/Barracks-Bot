@@ -1603,6 +1603,13 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
      </div>
     </div>
     <div class="card" style="background:#34353c;border-color:#484950;margin-top:14px">
+     <h2 style="font-size:15px;margin:0 0 8px">Send to Discord</h2>
+     <p class="sub" style="line-height:1.5">Send this same message to multiple Barracks channels.</p>
+     <label class="metric-note" for="mbChannels">Channels (select multiple)</label>
+     <select id="mbChannels" multiple size="6" style="width:100%;padding:10px;margin:7px 0 12px;background:#25262c;color:#edf4ee;border:1px solid #555761;border-radius:9px"></select>
+     <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="mbSend" type="button" style="flex:1;border:0;border-radius:9px;padding:12px;background:#c3f36b;color:#18210f;font-weight:800">Send to selected channels</button><button id="mbRefreshChannels" type="button" class="logout">Refresh channels</button></div>
+     <div id="mbSendResults" role="status" style="font-size:11px;color:#b8c9b7;margin-top:10px;line-height:1.6"></div>
+     <hr style="border:0;border-top:1px solid #41434a;margin:16px 0">
      <h2 style="font-size:15px;margin:0 0 8px">Export</h2><p class="sub" style="line-height:1.5">Copy the Discord API message JSON. Sending directly to a channel will be connected when the dashboard's message-send API is available.</p>
      <button id="mbCopy" type="button" style="width:100%;border:0;border-radius:9px;padding:12px;background:#c3f36b;color:#18210f;font-weight:800;margin-top:12px">Copy message JSON</button>
      <button id="mbReset" type="button" class="logout" style="width:100%;margin-top:9px">Clear builder</button>
@@ -1930,9 +1937,27 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
  const ids=['mbContent','mbTitle','mbDescription','mbColor','mbAuthor','mbFooter','mbImage','mbThumbnail','mbTimestamp'];
  const el=id=>document.getElementById(id);
  const val=id=>el(id).value.trim();
- const show=()=>{panel.style.display='block';render();};
+ const show=()=>{panel.style.display='block';render();loadMessageChannels();};
  document.getElementById('messageBuilderModuleButton').addEventListener('click',show);
  el('messageBuilderClose').addEventListener('click',()=>panel.style.display='none');
+ async function loadMessageChannels(){
+  const select=el('mbChannels'),status=el('mbSendResults');select.innerHTML='<option disabled>Loading channels…</option>';
+  try{const data=await dashboardApi('/api/dashboard/message-channels');select.replaceChildren();(data.channels||[]).forEach(channel=>{const option=document.createElement('option');option.value=channel.id;option.textContent=(channel.category?channel.category+' / ':'')+'#'+channel.name;select.appendChild(option);});status.textContent=(data.channels||[]).length+' text channels available. Hold Ctrl or Cmd to select multiple.';}
+  catch(error){select.innerHTML='<option disabled>Could not load channels</option>';status.textContent=error.message;}
+ }
+ el('mbRefreshChannels').addEventListener('click',loadMessageChannels);
+ el('mbSend').addEventListener('click',async()=>{
+  const selected=[...el('mbChannels').selectedOptions].map(option=>option.value),data=payload(),button=el('mbSend'),status=el('mbSendResults');
+  if(!selected.length){status.textContent='Select at least one channel.';return;}
+  if(!data.content&&!data.embeds){status.textContent='Add message text or embed content first.';return;}
+  if(!confirm('Send this message to '+selected.length+' selected channel(s)?'))return;
+  button.disabled=true;status.textContent='Sending announcement…';
+  try{const result=await dashboardApi('/api/dashboard/send-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({channelIds:selected,...data})});
+   status.textContent=result.results.map(item=>(item.ok?'✓ ':'✕ ')+(item.channelName||item.channelId)+(item.ok?'':' — '+item.error)).join('\n');
+   status.style.whiteSpace='pre-line';status.style.color=result.ok?'#c3f36b':'#ffb0a8';
+  }catch(error){status.textContent=error.message;status.style.color='#ffb0a8';}
+  finally{button.disabled=false;}
+ });
  function safeImage(id,preview){const url=val(id);const img=el(preview);if(url){img.src=url;img.style.display='block';img.onerror=()=>{img.style.display='none';};}else{img.removeAttribute('src');img.style.display='none';}}
  function payload(){
   const content=el('mbContent').value;
