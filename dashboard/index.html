@@ -805,6 +805,71 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
  .lvl-event-announcement-page .lvl-embed-editor>.lvl-footer-row{grid-template-columns:minmax(0,1fr)!important}
 }
 </style>
+
+<style id="member-announcement-embed-builder-final-layout">
+/* Final grid normalization for Join, Leave, Ban and Boost embed builders. */
+.lvl-event-announcement-page .lvl-embed-editor{
+ display:grid!important;
+ grid-template-columns:repeat(12,minmax(0,1fr))!important;
+ grid-auto-flow:row!important;
+ gap:12px!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+ box-sizing:border-box!important;
+}
+.lvl-event-announcement-page .lvl-embed-editor>label{
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:stretch!important;
+ justify-content:flex-start!important;
+ gap:6px!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+ grid-row:auto!important;
+ box-sizing:border-box!important;
+ overflow-wrap:anywhere!important;
+}
+.lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedColor"]),
+.lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedThumbnail"]),
+.lvl-event-announcement-page .lvl-embed-editor>label:has(textarea[id$="EmbedDescription"]),
+.lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedImage"]){
+ grid-column:1/-1!important;
+}
+.lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedAuthor"]){grid-column:1/span 6!important}
+.lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedTitle"]){grid-column:7/span 6!important}
+.lvl-event-announcement-page .lvl-embed-editor .lvl-field input:not([type="color"]),
+.lvl-event-announcement-page .lvl-embed-editor .lvl-field textarea{
+ display:block!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+ box-sizing:border-box!important;
+}
+.lvl-event-announcement-page .lvl-embed-editor .lvl-field textarea{
+ min-height:120px!important;
+ height:auto!important;
+ resize:vertical!important;
+ white-space:pre-wrap!important;
+}
+.lvl-event-announcement-page .lvl-embed-editor>.lvl-footer-row{
+ grid-column:1/-1!important;
+ grid-row:auto!important;
+ display:grid!important;
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ gap:12px!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+}
+.lvl-event-announcement-page .lvl-embed-editor>.lvl-footer-row>label{min-width:0!important;width:100%!important}
+@media(max-width:620px){
+ .lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedAuthor"]),
+ .lvl-event-announcement-page .lvl-embed-editor>label:has(input[id$="EmbedTitle"]){grid-column:1/-1!important}
+ .lvl-event-announcement-page .lvl-embed-editor>.lvl-footer-row{grid-template-columns:minmax(0,1fr)!important}
+}
+</style>
 </head>
 <body>
 <div class="shell">
