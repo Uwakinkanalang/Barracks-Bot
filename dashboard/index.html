@@ -15,8 +15,8 @@
 #levelingRoutePage[hidden]{display:none!important}
 
 /* Isolate each URL dashboard page in its own route container. */
-#dashboardPageContainer>.dashboard-page-container:not(.is-active){display:none!important}
-#dashboardPageContainer>.dashboard-page-container.is-active{display:block!important}
+#dashboardContent>.dashboard-page-container:not(.is-active){display:none!important}
+#dashboardContent>.dashboard-page-container.is-active{display:block!important}
 /* Side-by-side announcement editor and preview */
 .announcement-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.85fr);gap:16px;align-items:start;margin-top:14px}
 .announcement-layout>.card{min-width:0}
@@ -120,8 +120,8 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
 #levelingRoutePage:not([hidden]) .lvl-card:has(#lvlIgnoredChannels) {
   display: block !important;
 }
-#dashboardPageContainer{display:block;width:100%;min-width:0;max-width:100%;}
-#dashboardPageContainer>#dashboardHome,#dashboardPageContainer>#dashboardPageContainer{width:100%;min-width:0;max-width:100%;}
+#dashboardContent{display:block;width:100%;min-width:0;max-width:100%;}
+#dashboardContent>#dashboardHome,#dashboardContent>#dashboardContent{width:100%;min-width:0;max-width:100%;}
 
 /* Tickets page layout */
 .tickets-page{max-width:1320px;margin:0 auto}
@@ -484,62 +484,62 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 .logout{min-height:38px;border-color:#505865;background:#2b3038;color:#e3e7ec;font-size:12px}
 .logout:hover{border-color:#81915f;background:#343b34;color:#f4f8ef}
 .content{width:100%;max-width:1600px;margin:0 auto;padding:30px clamp(18px,3vw,44px) 64px}
-#dashboardPageContainer,#dashboardHome,#dashboardPageContainer{display:block;width:100%;min-width:0;max-width:none}
-#dashboardPageContainer>.welcome{align-items:flex-end;padding:0 2px 20px;margin:0 0 24px;border-bottom:1px solid var(--ui-border-soft)}
-#dashboardPageContainer>.welcome h1{font-size:clamp(26px,2.2vw,34px);font-weight:800;line-height:1.15;letter-spacing:-.035em;margin:0 0 7px}
-#dashboardPageContainer>.welcome .sub{max-width:760px;color:var(--ui-muted);font-size:14px}
-#dashboardPageContainer>[id$="Panel"],#dashboardPageContainer>#levelingRoutePage{
+#dashboardContent,#dashboardHome,#dashboardContent{display:block;width:100%;min-width:0;max-width:none}
+#dashboardContent>.welcome{align-items:flex-end;padding:0 2px 20px;margin:0 0 24px;border-bottom:1px solid var(--ui-border-soft)}
+#dashboardContent>.welcome h1{font-size:clamp(26px,2.2vw,34px);font-weight:800;line-height:1.15;letter-spacing:-.035em;margin:0 0 7px}
+#dashboardContent>.welcome .sub{max-width:760px;color:var(--ui-muted);font-size:14px}
+#dashboardContent>[id$="Panel"],#dashboardContent>#levelingRoutePage{
  width:100%!important;max-width:1320px!important;min-width:0;margin:0 auto 22px!important
 }
-#dashboardPageContainer .card,#dashboardPageContainer .lvl-card,#dashboardPageContainer .rc-card,#dashboardPageContainer .clan-form-card,#dashboardPageContainer .clan-setup-card,#dashboardPageContainer .clan-list-card{
+#dashboardContent .card,#dashboardContent .lvl-card,#dashboardContent .rc-card,#dashboardContent .clan-form-card,#dashboardContent .clan-setup-card,#dashboardContent .clan-list-card{
  min-width:0;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:var(--ui-radius);
  box-shadow:0 8px 24px #00000014
 }
-#dashboardPageContainer .card{padding:clamp(17px,1.6vw,23px)}
-#dashboardPageContainer .card h2,#dashboardPageContainer .lvl-card-head h2,#dashboardPageContainer .rc-card-head h2{font-size:17px;line-height:1.35;font-weight:750;color:var(--ui-text)}
-#dashboardPageContainer .card h3{font-size:15px;line-height:1.4;color:var(--ui-text)}
-#dashboardPageContainer .sub,#dashboardPageContainer .card p{color:var(--ui-muted);line-height:1.6}
-#dashboardPageContainer .notice{border-radius:11px;line-height:1.6}
-#dashboardPageContainer .grid{gap:var(--ui-gap)}
-#dashboardPageContainer .announcement-layout,#dashboardPageContainer .lvl-announcement-layout{
+#dashboardContent .card{padding:clamp(17px,1.6vw,23px)}
+#dashboardContent .card h2,#dashboardContent .lvl-card-head h2,#dashboardContent .rc-card-head h2{font-size:17px;line-height:1.35;font-weight:750;color:var(--ui-text)}
+#dashboardContent .card h3{font-size:15px;line-height:1.4;color:var(--ui-text)}
+#dashboardContent .sub,#dashboardContent .card p{color:var(--ui-muted);line-height:1.6}
+#dashboardContent .notice{border-radius:11px;line-height:1.6}
+#dashboardContent .grid{gap:var(--ui-gap)}
+#dashboardContent .announcement-layout,#dashboardContent .lvl-announcement-layout{
  width:100%;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:var(--ui-gap);align-items:start
 }
-#dashboardPageContainer .lvl-announcement-settings,#dashboardPageContainer .lvl-announcement-preview{min-width:0}
-#dashboardPageContainer .lvl-announcement-preview{position:sticky;top:84px;background:var(--ui-surface);border-color:var(--ui-border);border-radius:var(--ui-radius)}
-#dashboardPageContainer .lvl-page,#dashboardPageContainer .rc-page,#dashboardPageContainer .clans-page{width:100%;max-width:none!important;min-width:0;margin-left:auto;margin-right:auto}
-#dashboardPageContainer .lvl-heading,#dashboardPageContainer .rc-heading{margin:0 0 20px}
-#dashboardPageContainer .lvl-heading h1,#dashboardPageContainer .rc-heading h1{font-size:clamp(26px,2.2vw,33px);font-weight:800;letter-spacing:-.03em}
-#dashboardPageContainer .lvl-eyebrow,#dashboardPageContainer .rc-eyebrow{color:var(--ui-accent);letter-spacing:.12em}
-#dashboardPageContainer .lvl-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ui-gap)}
-#dashboardPageContainer .lvl-card{height:100%;padding:20px}
-#dashboardPageContainer .lvl-status-banner{background:#29352b;border-color:#536748;border-radius:12px}
-#dashboardPageContainer .lvl-icon,#dashboardPageContainer .rc-stat-icon,#dashboardPageContainer .clan-section-icon{background:#394333;border-color:#526346}
-#dashboardPageContainer .lvl-fields,#dashboardPageContainer .rc-create-fields{gap:14px}
-#dashboardPageContainer .lvl-field,#dashboardPageContainer .lvl-fields label,#dashboardPageContainer .rc-create-fields label,#dashboardPageContainer .clan-field{color:#e2e6ec;font-size:13px;font-weight:650}
-#dashboardPageContainer input:not([type=checkbox]):not([type=radio]):not([type=color]),#dashboardPageContainer select,#dashboardPageContainer textarea{
+#dashboardContent .lvl-announcement-settings,#dashboardContent .lvl-announcement-preview{min-width:0}
+#dashboardContent .lvl-announcement-preview{position:sticky;top:84px;background:var(--ui-surface);border-color:var(--ui-border);border-radius:var(--ui-radius)}
+#dashboardContent .lvl-page,#dashboardContent .rc-page,#dashboardContent .clans-page{width:100%;max-width:none!important;min-width:0;margin-left:auto;margin-right:auto}
+#dashboardContent .lvl-heading,#dashboardContent .rc-heading{margin:0 0 20px}
+#dashboardContent .lvl-heading h1,#dashboardContent .rc-heading h1{font-size:clamp(26px,2.2vw,33px);font-weight:800;letter-spacing:-.03em}
+#dashboardContent .lvl-eyebrow,#dashboardContent .rc-eyebrow{color:var(--ui-accent);letter-spacing:.12em}
+#dashboardContent .lvl-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ui-gap)}
+#dashboardContent .lvl-card{height:100%;padding:20px}
+#dashboardContent .lvl-status-banner{background:#29352b;border-color:#536748;border-radius:12px}
+#dashboardContent .lvl-icon,#dashboardContent .rc-stat-icon,#dashboardContent .clan-section-icon{background:#394333;border-color:#526346}
+#dashboardContent .lvl-fields,#dashboardContent .rc-create-fields{gap:14px}
+#dashboardContent .lvl-field,#dashboardContent .lvl-fields label,#dashboardContent .rc-create-fields label,#dashboardContent .clan-field{color:#e2e6ec;font-size:13px;font-weight:650}
+#dashboardContent input:not([type=checkbox]):not([type=radio]):not([type=color]),#dashboardContent select,#dashboardContent textarea{
  max-width:100%;min-width:0;min-height:42px;border:1px solid #505865;border-radius:9px;
  background:#20242b;color:var(--ui-text);font:inherit;padding:10px 12px
 }
-#dashboardPageContainer textarea{min-height:100px;resize:vertical;line-height:1.55}
-#dashboardPageContainer input::placeholder,#dashboardPageContainer textarea::placeholder{color:#7f8996}
-#dashboardPageContainer input:focus,#dashboardPageContainer select:focus,#dashboardPageContainer textarea:focus{outline:2px solid #a8d95e;outline-offset:1px;border-color:#a8d95e}
-#dashboardPageContainer input[type=checkbox],#dashboardPageContainer input[type=radio]{accent-color:var(--ui-accent)}
-#dashboardPageContainer button{font:inherit;border-radius:9px;transition:background-color .15s,border-color .15s,color .15s,transform .15s}
-#dashboardPageContainer button:focus-visible,#dashboardHome button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
-#dashboardPageContainer .lvl-secondary,#dashboardPageContainer .rc-refresh,#dashboardPageContainer .clan-edit-action{min-height:40px;background:#343b34;border:1px solid #56654b;color:#e9f2e3;padding:9px 13px;font-size:13px}
-#dashboardPageContainer .lvl-save,#dashboardPageContainer .rc-primary,#dashboardPageContainer .clan-submit{min-height:42px;background:var(--ui-accent);border:1px solid var(--ui-accent);color:#202719;font-size:13px;font-weight:800;padding:10px 16px}
-#dashboardPageContainer .lvl-save:hover,#dashboardPageContainer .rc-primary:hover,#dashboardPageContainer .clan-submit:hover{background:#d1fa83;transform:translateY(-1px)}
-#dashboardPageContainer .clan-page-heading{background:linear-gradient(115deg,#303b31,#2b3038 70%,#34352f);border-color:#4c5a46;border-radius:var(--ui-radius);padding:22px 24px}
-#dashboardPageContainer .clan-page-heading h2{font-size:clamp(24px,2vw,30px)}
-#dashboardPageContainer .clan-eyebrow{color:var(--ui-accent)}
-#dashboardPageContainer .clan-create-layout{grid-template-columns:minmax(0,1.25fr) minmax(280px,.8fr);gap:var(--ui-gap)}
-#dashboardPageContainer .clan-preview-card{background:#22272e;border-color:var(--ui-border)}
-#dashboardPageContainer .clan-form-footer{border-color:var(--ui-border)}
-#dashboardPageContainer .clan-list>div{border-color:var(--ui-border)!important}
-#dashboardPageContainer #moderationPanel,#dashboardPageContainer #moderationLogsPanel,#dashboardPageContainer #botSettingsPanel,#dashboardPageContainer #boostersPanel,#dashboardPageContainer #economyPanel,#dashboardPageContainer #ticketsPanel,#dashboardPageContainer #prefixCommandsPanel,#dashboardPageContainer #slashCommandsPanel,#dashboardPageContainer #gamesActivitiesPanel{max-width:1320px!important}
-#dashboardPageContainer #prefixCommandsList,#dashboardPageContainer #slashCommandsList{gap:12px}
-#dashboardPageContainer #gamesActivitiesPanel>.card{margin-bottom:var(--ui-gap)!important}
-#dashboardPageContainer #gamesActivitiesPanel .grid>.card{height:100%}
+#dashboardContent textarea{min-height:100px;resize:vertical;line-height:1.55}
+#dashboardContent input::placeholder,#dashboardContent textarea::placeholder{color:#7f8996}
+#dashboardContent input:focus,#dashboardContent select:focus,#dashboardContent textarea:focus{outline:2px solid #a8d95e;outline-offset:1px;border-color:#a8d95e}
+#dashboardContent input[type=checkbox],#dashboardContent input[type=radio]{accent-color:var(--ui-accent)}
+#dashboardContent button{font:inherit;border-radius:9px;transition:background-color .15s,border-color .15s,color .15s,transform .15s}
+#dashboardContent button:focus-visible,#dashboardHome button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
+#dashboardContent .lvl-secondary,#dashboardContent .rc-refresh,#dashboardContent .clan-edit-action{min-height:40px;background:#343b34;border:1px solid #56654b;color:#e9f2e3;padding:9px 13px;font-size:13px}
+#dashboardContent .lvl-save,#dashboardContent .rc-primary,#dashboardContent .clan-submit{min-height:42px;background:var(--ui-accent);border:1px solid var(--ui-accent);color:#202719;font-size:13px;font-weight:800;padding:10px 16px}
+#dashboardContent .lvl-save:hover,#dashboardContent .rc-primary:hover,#dashboardContent .clan-submit:hover{background:#d1fa83;transform:translateY(-1px)}
+#dashboardContent .clan-page-heading{background:linear-gradient(115deg,#303b31,#2b3038 70%,#34352f);border-color:#4c5a46;border-radius:var(--ui-radius);padding:22px 24px}
+#dashboardContent .clan-page-heading h2{font-size:clamp(24px,2vw,30px)}
+#dashboardContent .clan-eyebrow{color:var(--ui-accent)}
+#dashboardContent .clan-create-layout{grid-template-columns:minmax(0,1.25fr) minmax(280px,.8fr);gap:var(--ui-gap)}
+#dashboardContent .clan-preview-card{background:#22272e;border-color:var(--ui-border)}
+#dashboardContent .clan-form-footer{border-color:var(--ui-border)}
+#dashboardContent .clan-list>div{border-color:var(--ui-border)!important}
+#dashboardContent #moderationPanel,#dashboardContent #moderationLogsPanel,#dashboardContent #botSettingsPanel,#dashboardContent #boostersPanel,#dashboardContent #economyPanel,#dashboardContent #ticketsPanel,#dashboardContent #prefixCommandsPanel,#dashboardContent #slashCommandsPanel,#dashboardContent #gamesActivitiesPanel{max-width:1320px!important}
+#dashboardContent #prefixCommandsList,#dashboardContent #slashCommandsList{gap:12px}
+#dashboardContent #gamesActivitiesPanel>.card{margin-bottom:var(--ui-gap)!important}
+#dashboardContent #gamesActivitiesPanel .grid>.card{height:100%}
 #dashboardHome .welcome{margin-bottom:22px}
 #dashboardHome .welcome h1{font-size:clamp(27px,2.4vw,35px);font-weight:800;letter-spacing:-.035em}
 #dashboardHome .grid{gap:14px}
@@ -558,9 +558,9 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 @media(max-width:1100px){
  .content{padding:25px 22px 54px}
  #dashboardHome .modules{grid-template-columns:repeat(2,minmax(0,1fr))}
- #dashboardPageContainer .announcement-layout,#dashboardPageContainer .lvl-announcement-layout{grid-template-columns:minmax(0,1fr)}
- #dashboardPageContainer .lvl-announcement-preview{position:static}
- #dashboardPageContainer .clan-create-layout{grid-template-columns:1fr}
+ #dashboardContent .announcement-layout,#dashboardContent .lvl-announcement-layout{grid-template-columns:minmax(0,1fr)}
+ #dashboardContent .lvl-announcement-preview{position:static}
+ #dashboardContent .clan-create-layout{grid-template-columns:1fr}
 }
 @media(max-width:760px){
  .shell{display:block}
@@ -581,19 +581,19 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
  .top{position:relative;min-height:58px;height:58px;padding:0 16px}
  .content{padding:20px 15px 42px}
  #dashboardHome .modules{grid-template-columns:repeat(2,minmax(0,1fr))}
- #dashboardPageContainer .lvl-grid{grid-template-columns:1fr}
- #dashboardPageContainer .clan-side-column{grid-template-columns:1fr}
- #dashboardPageContainer .lvl-heading,#dashboardPageContainer .rc-heading{flex-direction:column;align-items:stretch}
- #dashboardPageContainer .lvl-heading>button,#dashboardPageContainer .rc-heading>button{align-self:flex-start}
+ #dashboardContent .lvl-grid{grid-template-columns:1fr}
+ #dashboardContent .clan-side-column{grid-template-columns:1fr}
+ #dashboardContent .lvl-heading,#dashboardContent .rc-heading{flex-direction:column;align-items:stretch}
+ #dashboardContent .lvl-heading>button,#dashboardContent .rc-heading>button{align-self:flex-start}
 }
 @media(max-width:520px){
  #dashboardHome .modules{grid-template-columns:1fr}
  #dashboardHome .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
- #dashboardPageContainer .clan-fields,#dashboardPageContainer .lvl-fields,#dashboardPageContainer .rc-create-fields{grid-template-columns:1fr}
- #dashboardPageContainer .clan-field-wide{grid-column:auto}
- #dashboardPageContainer .lvl-footer-row{grid-template-columns:1fr}
- #dashboardPageContainer .clan-form-footer{align-items:stretch;flex-direction:column}
- #dashboardPageContainer .clan-submit{width:100%}
+ #dashboardContent .clan-fields,#dashboardContent .lvl-fields,#dashboardContent .rc-create-fields{grid-template-columns:1fr}
+ #dashboardContent .clan-field-wide{grid-column:auto}
+ #dashboardContent .lvl-footer-row{grid-template-columns:1fr}
+ #dashboardContent .clan-form-footer{align-items:stretch;flex-direction:column}
+ #dashboardContent .clan-submit{width:100%}
  .user{gap:7px}.status{display:none}
 }
 </style>
@@ -948,7 +948,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 <main class="main">
 <header class="top"><div class="crumb">Barracks <span style="color:#526257">/</span> <b id="dashboardBreadcrumbPage">Overview</b></div><div class="user"><div class="status"><span class="dot"></span> Dashboard secured</div><button class="logout" id="logoutButton" type="button">Sign out ↗</button></div></header>
 <section class="content" id="dashboardContent">
-<div id="dashboardPageContainer">
+
 <div id="dashboardHome"><div class="welcome-banner" id="welcomeBanner"><div class="welcome-banner-icon">✦</div><div class="welcome-banner-copy"><h2>Welcome to Barracks!</h2><p>Your command center is ready. Choose a module to manage your server.</p><div class="quick-actions"><button type="button" onclick="document.getElementById('welcomeModuleButton').click()">👋 Set up welcome messages</button><button type="button" onclick="document.getElementById('welcomeModuleButton').click()">📢 Open announcements</button></div></div><button class="banner-dismiss" type="button" aria-label="Dismiss welcome message" onclick="document.getElementById('welcomeBanner').remove()">×</button></div>
 <div class="welcome"><div><div class="eyebrow">General</div><h1>Barracks Dashboard</h1><p class="sub">Your server at a glance.</p></div><div class="date" id="updated">Loading server status…</div></div>
 <div class="grid">
@@ -1568,7 +1568,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
   <p id="clanDeleteStatus" role="status" class="metric-note">Select an option to continue. You will be asked to confirm.</p>
   <div class="clan-form-footer"><span></span><button type="button" class="logout" data-clan-delete-close>Cancel</button></div>
  </section>
-</div>
+
 
 <div id="messageBuilderPanel" style="display:none;position:fixed;inset:0;z-index:30;background:#080e0bd9;overflow:auto;padding:24px">
  <div style="max-width:1100px;margin:20px auto;background:#303137;border:1px solid #484950;border-radius:16px;padding:22px">
@@ -2051,7 +2051,7 @@ window.saveBotSettings=async function(){
  const base='/Barracks-Bot/dashboard/';
  const routes={home:{path:base+'overview/',title:'Overview',description:'Your server at a glance.'},welcome:{path:base+'welcome/',title:'Join',description:'Configure your member join announcement.'},goodbye:{path:base+'goodbye/',title:'Leave',description:'Configure your member departure announcement.'},ban:{path:base+'ban/',title:'Ban Announcement',description:'Configure the message sent when a member is banned.'},boost:{path:base+'boost/',title:'Boost Announcement',description:'Configure the message sent when a member boosts Barracks.'},'message-builder':{path:base+'message-builder/',title:'Message Builder',description:'Build custom Discord messages and embeds.'},moderation:{path:base+'moderation/',title:'Moderation',description:'Manage moderation tools and server safety.'},autonick:{path:base+'autonick/',title:'AutoNick',description:'Create automatic nickname rules for server joins and role assignments.'},settings:{path:base+'settings/',title:'Bot Settings',description:'Configure your Barracks bot.'},logs:{path:base+'logs/',title:'Server Logs',description:'Review important server activity.'},economy:{path:base+'economy/',title:'Economy / bCash',description:'Review the bCash economy and manage member balances.'},games:{path:base+'games-activities/',title:'Games & Activities',description:'Configure mini-games, counting, and member activity rewards.'},leveling:{path:base+'leveling/',title:'Leveling',description:'Configure XP rewards, announcements, exclusions and rank roles.'},rolesChannels:{path:base+'roles-channels/',title:'Roles & Channels',description:'Review and create server roles and channels.'},boosters:{path:base+'boosters/',title:'Boosters',description:'View members currently boosting Barracks.'},tickets:{path:base+'tickets/',title:'Tickets',description:'Configure your Barracks support ticket system.'},birthdays:{path:base+'birthdays/',title:'Birthdays',description:'Set up birthday announcements and automatic role assignment.'},tournaments:{path:base+'tournaments/',title:'Tournaments',description:'Create and manage Barracks gaming tournaments.'},clans:{path:base+'clans/',title:'Create a Clan',description:'Create a new Barracks clan.'},clanList:{path:base+'clans/list/',title:'Barracks Clans',description:'All clans registered in your server.'},prefixCommands:{path:base+'prefix-commands/',title:'Prefix Commands',description:'Enable or disable individual Barracks-Bot prefix commands.'},slashCommands:{path:base+'slash-commands/',title:'Slash Commands',description:'Enable or disable individual Barracks-Bot slash commands.'}};
  const routeKey=()=>{let pathname=decodeURIComponent(location.pathname);while(pathname.length>1&&pathname.endsWith('/'))pathname=pathname.slice(0,-1);let root=base;while(root.endsWith('/'))root=root.slice(0,-1);const relative=pathname===root?'':pathname.startsWith(root+'/')?pathname.slice(root.length+1).split('/').filter(Boolean).join('/'):null;const aliases={'':'home','overview':'home','welcome':'welcome','goodbye':'goodbye','ban':'ban','boost':'boost','message-builder':'message-builder','moderation':'moderation','autonick':'autonick','settings':'settings','logs':'logs','economy':'economy','games-activities':'games','leveling':'leveling','roles-channels':'rolesChannels','boosters':'boosters','tickets':'tickets','birthdays':'birthdays','tournaments':'tournaments','clans':'clans','clans/list':'clanList','prefix-commands':'prefixCommands','slash-commands':'slashCommands'};return relative!==null&&Object.prototype.hasOwnProperty.call(aliases,relative)?aliases[relative]:'home';};
- function navigate(key,update=true){const k=routes[key]?key:'home',r=routes[k];if(k!=='tournaments'){const editor=document.getElementById('tournamentFormCard');if(editor)editor.hidden=true;const livePreview=document.getElementById('tournamentLivePreviewCard');if(livePreview)livePreview.hidden=true;}document.documentElement.dataset.barracksRoute=k;const activeNav={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',goodbye:'#goodbyeNavButton',ban:'#banNavButton',boost:'#boostNavButton',moderation:'#moderationHomeNavButton',autonick:'#autoNickNavButton',logs:'#logsNavButton',economy:'#economyNavButton',games:'#gamesNavButton',leveling:'#levelingNavButton',rolesChannels:'#rolesChannelsNavButton',boosters:'#boostersNavButton',clans:'#createClanNavButton',clanList:'#barracksClansNavButton',tickets:'#ticketsNavButton',birthdays:'#birthdaysNavButton',tournaments:'#tournamentsNavButton',prefixCommands:'#prefixCommandNavButton',slashCommands:'#slashCommandNavButton'}[k];document.querySelectorAll('.nav button').forEach(button=>{button.classList.remove('active');button.removeAttribute('aria-current');});if(activeNav){const activeButton=document.querySelector(activeNav);if(activeButton){activeButton.classList.add('active');activeButton.setAttribute('aria-current','page');}}if(update){history.pushState({page:k},'',r.path);try{sessionStorage.setItem('barracks_dashboard_last_route',k);localStorage.setItem('barracks_dashboard_last_route',k);}catch(_){}}document.getElementById('dashboardHome').style.display=k==='home'?'':'none';const routePageIds={welcome:'welcomePanel',goodbye:'welcomePanel',ban:'welcomePanel',boost:'welcomePanel',moderation:'moderationPanel',autonick:'autoNickPanel',logs:'moderationLogsPanel',settings:'botSettingsPanel',economy:'economyPanel',games:'gamesActivitiesPanel',leveling:'levelingRoutePage',rolesChannels:'rolesChannelsPanel',boosters:'boostersPanel',clans:'clansPanel',clanList:'clanListPanel',tickets:'ticketsPanel',birthdays:'birthdaysPanel',tournaments:'tournamentsPanel',prefixCommands:'prefixCommandsPanel',slashCommands:'slashCommandsPanel'};document.querySelectorAll('#dashboardPageContainer>.dashboard-page-container').forEach(page=>page.classList.toggle('is-active',page.id===routePageIds[k]));document.getElementById('welcomePanel').style.display=['welcome','goodbye','ban','boost'].includes(k)?'block':'none';showAnnouncementPage(k);document.getElementById('messageBuilderPanel').style.display=k==='message-builder'?'block':'none';document.getElementById('routePageHeader').style.display=['home','message-builder'].includes(k)?'none':'flex';document.getElementById('routeTitle').textContent=r.title;document.getElementById('routeDescription').textContent=r.description;const breadcrumb=document.getElementById('dashboardBreadcrumbPage');if(breadcrumb)breadcrumb.textContent=r.title;document.getElementById('moderationPanel').style.display=k==='moderation'?'block':'none';document.getElementById('autoNickPanel').style.display=k==='autonick'?'block':'none';if(k==='autonick')window.loadAutoNickRules?.();document.getElementById('moderationLogsPanel').style.display=k==='logs'?'block':'none';document.getElementById('botSettingsPanel').style.display=k==='settings'?'block':'none';document.getElementById('economyPanel').style.display=k==='economy'?'block':'none';document.getElementById('gamesActivitiesPanel').style.display=k==='games'?'block':'none';const levelingPage=document.getElementById('levelingRoutePage');const isLevelingRoute=k==='leveling';levelingPage.hidden=!isLevelingRoute;levelingPage.style.setProperty('display',isLevelingRoute?'block':'none','important');document.getElementById('rolesChannelsPanel').style.display=k==='rolesChannels'?'block':'none';document.getElementById('boostersPanel').style.display=k==='boosters'?'block':'none';if(k==='boosters')loadBoostersPanel();document.getElementById('clansPanel').style.display=k==='clans'?'block':'none';document.getElementById('clanListPanel').style.display=k==='clanList'?'block':'none';document.getElementById('ticketsPanel').style.display=k==='tickets'?'block':'none';document.getElementById('birthdaysPanel').style.display=k==='birthdays'?'block':'none';document.getElementById('tournamentsPanel').style.display=k==='tournaments'?'block':'none';if(k==='tournaments')renderTournaments();document.getElementById('slashCommandsPanel').style.display=k==='slashCommands'?'block':'none';document.getElementById('prefixCommandsPanel').style.display=k==='prefixCommands'?'block':'none';if(k==='slashCommands')loadSlashCommands();if(k==='prefixCommands')loadPrefixCommands();if(k==='leveling')loadLevelingPanel();if(k==='rolesChannels')loadRolesChannelsPanel();if(k==='clans'||k==='clanList')window.loadClansPanel?.();if(k==='tickets')loadTicketsPanel();if(k==='birthdays')loadBirthdaysPanel();if(k==='settings')loadBotSettings();if(k==='logs')loadModerationLogs();if(k==='economy')loadEconomyDashboard();if(k==='games')loadGamesActivities();document.querySelector('.crumb b').textContent=r.title;document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const sel={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',goodbye:'#goodbyeNavButton',ban:'#banNavButton',boost:'#boostNavButton',moderation:'#moderationHomeNavButton',autonick:'#autoNickNavButton',logs:'#logsNavButton',economy:'#economyNavButton',games:'#gamesNavButton',clans:'#createClanNavButton',clanList:'#barracksClansNavButton',boosters:'#boostersNavButton',birthdays:'#birthdaysNavButton',tournaments:'#tournamentsNavButton'}[k];if(sel){const el=document.querySelector(sel);if(el)el.classList.add('active');}const announcementGroup=document.getElementById('announcementNavGroup'),announcementMenu=document.getElementById('announcementSubmenu'),announcementToggle=document.getElementById('announcementToggle');if(['welcome','goodbye','ban','boost'].includes(k)){announcementMenu.hidden=false;announcementGroup.classList.add('open');announcementToggle.setAttribute('aria-expanded','true');announcementToggle.classList.add('active');}else{announcementToggle.classList.remove('active');}if(['welcome','goodbye','ban','boost'].includes(k)&&!window.__welcomeLoaded){window.__welcomeLoaded=true;loadWelcomeSettings();}document.documentElement.dataset.barracksReady='true';window.scrollTo({top:0,left:0,behavior:'instant'});}
+ function navigate(key,update=true){const k=routes[key]?key:'home',r=routes[k];if(k!=='tournaments'){const editor=document.getElementById('tournamentFormCard');if(editor)editor.hidden=true;const livePreview=document.getElementById('tournamentLivePreviewCard');if(livePreview)livePreview.hidden=true;}document.documentElement.dataset.barracksRoute=k;const activeNav={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',goodbye:'#goodbyeNavButton',ban:'#banNavButton',boost:'#boostNavButton',moderation:'#moderationHomeNavButton',autonick:'#autoNickNavButton',logs:'#logsNavButton',economy:'#economyNavButton',games:'#gamesNavButton',leveling:'#levelingNavButton',rolesChannels:'#rolesChannelsNavButton',boosters:'#boostersNavButton',clans:'#createClanNavButton',clanList:'#barracksClansNavButton',tickets:'#ticketsNavButton',birthdays:'#birthdaysNavButton',tournaments:'#tournamentsNavButton',prefixCommands:'#prefixCommandNavButton',slashCommands:'#slashCommandNavButton'}[k];document.querySelectorAll('.nav button').forEach(button=>{button.classList.remove('active');button.removeAttribute('aria-current');});if(activeNav){const activeButton=document.querySelector(activeNav);if(activeButton){activeButton.classList.add('active');activeButton.setAttribute('aria-current','page');}}if(update){history.pushState({page:k},'',r.path);try{sessionStorage.setItem('barracks_dashboard_last_route',k);localStorage.setItem('barracks_dashboard_last_route',k);}catch(_){}}document.getElementById('dashboardHome').style.display=k==='home'?'':'none';const routePageIds={welcome:'welcomePanel',goodbye:'welcomePanel',ban:'welcomePanel',boost:'welcomePanel',moderation:'moderationPanel',autonick:'autoNickPanel',logs:'moderationLogsPanel',settings:'botSettingsPanel',economy:'economyPanel',games:'gamesActivitiesPanel',leveling:'levelingRoutePage',rolesChannels:'rolesChannelsPanel',boosters:'boostersPanel',clans:'clansPanel',clanList:'clanListPanel',tickets:'ticketsPanel',birthdays:'birthdaysPanel',tournaments:'tournamentsPanel',prefixCommands:'prefixCommandsPanel',slashCommands:'slashCommandsPanel'};document.querySelectorAll('#dashboardContent>.dashboard-page-container').forEach(page=>page.classList.toggle('is-active',page.id===routePageIds[k]));document.getElementById('welcomePanel').style.display=['welcome','goodbye','ban','boost'].includes(k)?'block':'none';showAnnouncementPage(k);document.getElementById('messageBuilderPanel').style.display=k==='message-builder'?'block':'none';document.getElementById('routePageHeader').style.display=['home','message-builder'].includes(k)?'none':'flex';document.getElementById('routeTitle').textContent=r.title;document.getElementById('routeDescription').textContent=r.description;const breadcrumb=document.getElementById('dashboardBreadcrumbPage');if(breadcrumb)breadcrumb.textContent=r.title;document.getElementById('moderationPanel').style.display=k==='moderation'?'block':'none';document.getElementById('autoNickPanel').style.display=k==='autonick'?'block':'none';if(k==='autonick')window.loadAutoNickRules?.();document.getElementById('moderationLogsPanel').style.display=k==='logs'?'block':'none';document.getElementById('botSettingsPanel').style.display=k==='settings'?'block':'none';document.getElementById('economyPanel').style.display=k==='economy'?'block':'none';document.getElementById('gamesActivitiesPanel').style.display=k==='games'?'block':'none';const levelingPage=document.getElementById('levelingRoutePage');const isLevelingRoute=k==='leveling';levelingPage.hidden=!isLevelingRoute;levelingPage.style.setProperty('display',isLevelingRoute?'block':'none','important');document.getElementById('rolesChannelsPanel').style.display=k==='rolesChannels'?'block':'none';document.getElementById('boostersPanel').style.display=k==='boosters'?'block':'none';if(k==='boosters')loadBoostersPanel();document.getElementById('clansPanel').style.display=k==='clans'?'block':'none';document.getElementById('clanListPanel').style.display=k==='clanList'?'block':'none';document.getElementById('ticketsPanel').style.display=k==='tickets'?'block':'none';document.getElementById('birthdaysPanel').style.display=k==='birthdays'?'block':'none';document.getElementById('tournamentsPanel').style.display=k==='tournaments'?'block':'none';if(k==='tournaments')renderTournaments();document.getElementById('slashCommandsPanel').style.display=k==='slashCommands'?'block':'none';document.getElementById('prefixCommandsPanel').style.display=k==='prefixCommands'?'block':'none';if(k==='slashCommands')loadSlashCommands();if(k==='prefixCommands')loadPrefixCommands();if(k==='leveling')loadLevelingPanel();if(k==='rolesChannels')loadRolesChannelsPanel();if(k==='clans'||k==='clanList')window.loadClansPanel?.();if(k==='tickets')loadTicketsPanel();if(k==='birthdays')loadBirthdaysPanel();if(k==='settings')loadBotSettings();if(k==='logs')loadModerationLogs();if(k==='economy')loadEconomyDashboard();if(k==='games')loadGamesActivities();document.querySelector('.crumb b').textContent=r.title;document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const sel={home:'.nav button:first-child',settings:'.nav button:nth-child(2)',welcome:'#welcomeNavButton',goodbye:'#goodbyeNavButton',ban:'#banNavButton',boost:'#boostNavButton',moderation:'#moderationHomeNavButton',autonick:'#autoNickNavButton',logs:'#logsNavButton',economy:'#economyNavButton',games:'#gamesNavButton',clans:'#createClanNavButton',clanList:'#barracksClansNavButton',boosters:'#boostersNavButton',birthdays:'#birthdaysNavButton',tournaments:'#tournamentsNavButton'}[k];if(sel){const el=document.querySelector(sel);if(el)el.classList.add('active');}const announcementGroup=document.getElementById('announcementNavGroup'),announcementMenu=document.getElementById('announcementSubmenu'),announcementToggle=document.getElementById('announcementToggle');if(['welcome','goodbye','ban','boost'].includes(k)){announcementMenu.hidden=false;announcementGroup.classList.add('open');announcementToggle.setAttribute('aria-expanded','true');announcementToggle.classList.add('active');}else{announcementToggle.classList.remove('active');}if(['welcome','goodbye','ban','boost'].includes(k)&&!window.__welcomeLoaded){window.__welcomeLoaded=true;loadWelcomeSettings();}document.documentElement.dataset.barracksReady='true';window.scrollTo({top:0,left:0,behavior:'instant'});}
  window.barracksNavigate=navigate;window.barracksCurrentRoute=routeKey;
  document.getElementById('announcementToggle').addEventListener('click',()=>{const group=document.getElementById('announcementNavGroup'),submenu=document.getElementById('announcementSubmenu'),toggle=document.getElementById('announcementToggle');
 const opening=submenu.hidden;submenu.hidden=!opening;group.classList.toggle('open',opening);toggle.setAttribute('aria-expanded',String(opening));});
