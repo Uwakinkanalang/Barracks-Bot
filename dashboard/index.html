@@ -117,7 +117,6 @@ label,.clan-field>span{font-size:14px;line-height:1.45}
   display: none !important;
 }
 #levelingRoutePage:not([hidden]) .lvl-card:has(#lvlVoiceEnabled),
-#levelingRoutePage:not([hidden]) .lvl-card:has(#lvlRoleMultipliers),
 #levelingRoutePage:not([hidden]) .lvl-card:has(#lvlIgnoredChannels) {
   display: block !important;
 }
@@ -775,40 +774,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 }
 </style>
 
-<style id="leveling-role-xp-multiplier-visible">
-/* The Leveling route controls the card's visibility; avoid global hide rules. */
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers),
-#routeView #levelingRoutePage .lvl-card:has(#lvlRoleMultipliers){
- display:block!important;grid-column:auto!important;align-self:start!important;max-width:660px!important;
- visibility:visible!important;opacity:1!important;
-}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers){padding:14px!important}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-card-head{gap:8px;margin-bottom:10px}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-icon{width:30px;height:30px;border-radius:8px;font-size:15px}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-card-head h2{font-size:14px;margin:0 0 2px}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-card-head p{font-size:10px;line-height:1.35}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-field{
- display:grid;grid-template-columns:minmax(0,1fr) 86px auto;gap:7px;align-items:end;margin-top:0;
-}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-field{margin:0;gap:4px;font-size:10px}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-field select,
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-field input{padding:7px 8px;min-height:32px;font-size:11px}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-add-btn{grid-column:auto;justify-self:stretch;min-height:32px;padding:6px 9px;font-size:11px}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-list{
- grid-column:1/-1;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:5px;
- min-height:0;padding:6px;background:transparent;border:0;border-top:1px solid #2d3b30;border-radius:0;margin-top:2px;
-}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-item{gap:8px;padding:5px 7px;font-size:11px;border-radius:6px}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-remove-btn{padding:4px 7px;font-size:10px}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-empty{padding:2px;font-size:11px}
-@media(max-width:620px){
- #levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-field{grid-template-columns:minmax(0,1fr) 78px auto}
-}
-@media(max-width:420px){
- #levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-field{grid-template-columns:minmax(0,1fr) 78px}
- #levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-add-btn{grid-column:1/-1;width:max-content}
-}
-</style>
+
 </head>
 <body>
 <div class="shell">
@@ -1420,9 +1386,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
    <label class="lvl-check-row"><span><b>Enable voice XP</b><small>Allow members to earn XP while in voice.</small></span><input id="lvlVoiceEnabled" type="checkbox"></label>
    <label class="lvl-field">XP per minute<input id="lvlVoiceXp" type="number" min="1" max="100" step="1"></label>
   </section>
-  <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🎖️</span><div><h2>Role XP multipliers</h2><p>Give selected roles extra XP. If a member has multiple configured roles, only their highest multiplier applies.</p></div></div>
-   <div class="lvl-exclusion-field"><label class="lvl-field" for="lvlMultiplierRole">Discord role<select id="lvlMultiplierRole"><option value="">Choose a role…</option></select></label><label class="lvl-field" for="lvlRoleMultiplier">XP multiplier<input id="lvlRoleMultiplier" type="number" min="0.1" max="10" step="0.1" value="2"></label><button class="lvl-add-btn" id="lvlAddRoleMultiplier" type="button">＋ Add multiplier</button><div class="lvl-exclusion-list" id="lvlRoleMultipliers" aria-live="polite"><span class="lvl-empty">No role multipliers configured.</span></div></div>
-  </section>
+  
   <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">🚫</span><div><h2>XP exclusions</h2><p>Choose channels and roles that should not earn XP.</p></div></div>
    <div class="lvl-exclusion-field"><label class="lvl-field" for="lvlChannelToAdd">Ignored channels<select id="lvlChannelToAdd"><option value="">Choose a channel to exclude…</option></select></label><button class="lvl-add-btn" id="lvlAddChannel" type="button">＋ Add channel</button><div class="lvl-exclusion-list" id="lvlIgnoredChannels" aria-live="polite"><span class="lvl-empty">No excluded channels added.</span></div></div>
    <div class="lvl-exclusion-field"><label class="lvl-field" for="lvlRoleToAdd">Ignored roles<select id="lvlRoleToAdd"><option value="">Choose a role to exclude…</option></select></label><button class="lvl-add-btn" id="lvlAddRole" type="button">＋ Add role</button><div class="lvl-exclusion-list" id="lvlIgnoredRoles" aria-live="polite"><span class="lvl-empty">No excluded roles added.</span></div></div>
@@ -2099,9 +2063,9 @@ async function loadLevelingPanel(){const s=document.getElementById('lvlStatus');
 const exclusionData={channel:[],role:[]};
 const roleMultiplierData={};
 let availableMultiplierRoles=[];
-function setupRoleMultiplierPicker(roles,configured){availableMultiplierRoles=[...(roles||[])].sort((a,b)=>Number(b.position||0)-Number(a.position||0));for(const key of Object.keys(roleMultiplierData))delete roleMultiplierData[key];for(const [id,value] of Object.entries(configured||{})){const multiplier=Number(value);if(Number.isFinite(multiplier)&&multiplier>=0.1&&multiplier<=10)roleMultiplierData[id]=multiplier;}const select=document.getElementById('lvlMultiplierRole');select.replaceChildren(new Option('Choose a role…',''));for(const role of availableMultiplierRoles)select.append(new Option(role.name,role.id));renderRoleMultipliers();}
-function renderRoleMultipliers(){const list=document.getElementById('lvlRoleMultipliers');list.replaceChildren();const entries=Object.entries(roleMultiplierData);if(!entries.length){const empty=document.createElement('span');empty.className='lvl-empty';empty.textContent='No role multipliers configured.';list.append(empty);return;}for(const [id,multiplier] of entries.sort((a,b)=>{const pa=availableMultiplierRoles.find(r=>String(r.id)===String(a[0]))?.position??-1,pb=availableMultiplierRoles.find(r=>String(r.id)===String(b[0]))?.position??-1;return pb-pa;})){const role=availableMultiplierRoles.find(item=>String(item.id)===String(id));const row=document.createElement('div');row.className='lvl-exclusion-item';const name=document.createElement('span');name.textContent=(role?role.name:'Role unavailable ('+id+')')+' · '+multiplier+'×';const remove=document.createElement('button');remove.type='button';remove.className='lvl-remove-btn';remove.textContent='Remove';remove.setAttribute('aria-label','Remove XP multiplier for '+name.textContent);remove.addEventListener('click',()=>{delete roleMultiplierData[id];renderRoleMultipliers();});row.append(name,remove);list.append(row);}}
-document.getElementById('lvlAddRoleMultiplier').addEventListener('click',()=>{const roleId=document.getElementById('lvlMultiplierRole').value,multiplier=Number(document.getElementById('lvlRoleMultiplier').value),status=document.getElementById('lvlStatus');if(!roleId){status.textContent='Choose a role first.';return;}if(!Number.isFinite(multiplier)||multiplier<0.1||multiplier>10){status.textContent='Role multiplier must be between 0.1 and 10.';return;}roleMultiplierData[roleId]=multiplier;document.getElementById('lvlMultiplierRole').value='';renderRoleMultipliers();status.textContent='Role multiplier added. Save your leveling settings to apply it.';});
+function setupRoleMultiplierPicker(roles,configured){availableMultiplierRoles=[...(roles||[])].sort((a,b)=>Number(b.position||0)-Number(a.position||0));for(const key of Object.keys(roleMultiplierData))delete roleMultiplierData[key];for(const [id,value] of Object.entries(configured||{})){const multiplier=Number(value);if(Number.isFinite(multiplier)&&multiplier>=0.1&&multiplier<=10)roleMultiplierData[id]=multiplier;}const select=document.getElementById('lvlMultiplierRole');if(select){select.replaceChildren(new Option('Choose a role…',''));for(const role of availableMultiplierRoles)select.append(new Option(role.name,role.id));}renderRoleMultipliers();}
+function renderRoleMultipliers(){const list=document.getElementById('lvlRoleMultipliers');if(!list)return;list.replaceChildren();const entries=Object.entries(roleMultiplierData);if(!entries.length){const empty=document.createElement('span');empty.className='lvl-empty';empty.textContent='No role multipliers configured.';list.append(empty);return;}for(const [id,multiplier] of entries.sort((a,b)=>{const pa=availableMultiplierRoles.find(r=>String(r.id)===String(a[0]))?.position??-1,pb=availableMultiplierRoles.find(r=>String(r.id)===String(b[0]))?.position??-1;return pb-pa;})){const role=availableMultiplierRoles.find(item=>String(item.id)===String(id));const row=document.createElement('div');row.className='lvl-exclusion-item';const name=document.createElement('span');name.textContent=(role?role.name:'Role unavailable ('+id+')')+' · '+multiplier+'×';const remove=document.createElement('button');remove.type='button';remove.className='lvl-remove-btn';remove.textContent='Remove';remove.setAttribute('aria-label','Remove XP multiplier for '+name.textContent);remove.addEventListener('click',()=>{delete roleMultiplierData[id];renderRoleMultipliers();});row.append(name,remove);list.append(row);}}
+
 function getRoleXpMultipliers(){return {...roleMultiplierData};}
 
 function setupExclusionPicker(type,items,selected){const kind=type==='channel'?'Channel':'Role',available=document.getElementById(type==='channel'?'lvlChannelToAdd':'lvlRoleToAdd'),list=document.getElementById(type==='channel'?'lvlIgnoredChannels':'lvlIgnoredRoles');exclusionData[type]=(Array.isArray(selected)?selected:[]).filter(Boolean).map(String);available.replaceChildren(new Option('Choose a '+kind.toLowerCase()+' to exclude…',''));for(const item of (type==='role'?[...(items||[])].sort((a,b)=>Number(b.position||0)-Number(a.position||0)):(items||[]))){const option=new Option(item.name,item.id);available.append(option);}renderExclusionList(type,items||[]);}
