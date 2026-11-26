@@ -154,17 +154,6 @@ export default {
     name: 'voiceStateUpdate',
     async execute(oldState, newState, client) {
         voiceXpClients.add(client);
-        // Barracks-Bot no longer hosts music. If it is invited into voice,
-        // disconnect it and direct members to the dedicated Barracks Music bot.
-        if (newState.member.id === client.user?.id && newState.channelId) {
-            const voiceChannel = newState.channel;
-            await newState.setChannel(null, 'Music playback is handled by Barracks Music');
-            if (voiceChannel?.send) {
-                await voiceChannel.send('🎵 **Barracks-Bot does not play music anymore.** Please use <@1569552571624984637> — Barracks Music — for music playback.');
-            }
-            return;
-        }
-
         if (newState.member.user.bot) return;
 
         const guildId = newState.guild.id;
