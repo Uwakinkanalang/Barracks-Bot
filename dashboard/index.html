@@ -772,18 +772,35 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 </style>
 
 <style id="leveling-role-xp-multiplier-visible">
-/* Keep Role XP Multipliers clearly visible on the dedicated Leveling page. */
+/* Compact, tidy role XP multiplier card on the Leveling page. */
 #levelingRoutePage:not([hidden]) .lvl-card:has(#lvlRoleMultipliers){
- display:block!important;grid-column:1/-1!important;visibility:visible!important;opacity:1!important;
+ display:block!important;visibility:visible!important;opacity:1!important;
 }
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers){padding:16px!important}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-card-head{gap:9px;margin-bottom:12px}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-icon{width:34px;height:34px;border-radius:9px;font-size:17px}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-card-head h2{font-size:15px;margin:0 0 3px}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-card-head p{font-size:11px;line-height:1.4}
 #levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-field{
- display:grid;grid-template-columns:minmax(0,1fr) minmax(130px,.5fr) auto;gap:10px;align-items:end;
+ display:grid;grid-template-columns:minmax(0,1fr) 105px;gap:8px;align-items:end;margin-top:0;
 }
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-list{grid-column:1/-1}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-field{margin:0}
-#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-add-btn{min-height:38px}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-field{margin:0;gap:5px;font-size:11px}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-field select,
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-field input{padding:8px 9px;min-height:36px;font-size:12px}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-add-btn{grid-column:1/-1;justify-self:start;min-height:33px;padding:7px 11px;font-size:12px}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-list{
+ grid-column:1/-1;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;
+ min-height:0;padding:7px;background:transparent;border:0;border-top:1px solid #2d3b30;border-radius:0;margin-top:2px;
+}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-item{gap:8px;padding:5px 7px;font-size:11px;border-radius:6px}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-remove-btn{padding:4px 7px;font-size:10px}
+#levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-empty{padding:2px;font-size:11px}
 @media(max-width:620px){
+ #levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-field{grid-template-columns:minmax(0,1fr) 95px}
+}
+@media(max-width:420px){
  #levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-exclusion-field{grid-template-columns:1fr}
+ #levelingRoutePage .lvl-card:has(#lvlRoleMultipliers) .lvl-add-btn{width:100%}
 }
 </style>
 </head>
