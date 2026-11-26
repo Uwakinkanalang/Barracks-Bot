@@ -99,9 +99,9 @@ export default {
             (Array.isArray(clan.memberIds) && clan.memberIds.map(String).includes(userId))
         ));
 
-        // All earned role and clan bonuses stack.
-        const boosterBonus = hasBoosterRole ? Math.floor(baseSalary * 0.20) : 0;
-        const vipBonus = hasVipRole ? Math.floor(baseSalary * 0.30) : 0;
+        // bWork-style bonuses: Clan +20%; Booster or VIP +50% (VIP takes priority).
+        const boosterBonus = hasBoosterRole && !hasVipRole ? Math.floor(baseSalary * 0.50) : 0;
+        const vipBonus = hasVipRole ? Math.floor(baseSalary * 0.50) : 0;
         const clanBonus = hasApprovedClan ? Math.floor(baseSalary * CLAN_BONUS_RATE) : 0;
         const totalPercentageBonus = boosterBonus + vipBonus + clanBonus;
         const earned = baseSalary + totalPercentageBonus + streakBonus;
@@ -123,8 +123,8 @@ export default {
         const bonusLines = [
             `\n🎖️ **Level Bonus (Level ${memberLevel}):** +${(memberLevel * DAILY_LEVEL_BONUS).toLocaleString()} bCash`,
             `\n🛡️ **Clan Bonus (+20%):** +${clanBonus.toLocaleString()} bCash`,
-            `\n🚀 **Booster Bonus (+20%):** +${boosterBonus.toLocaleString()} bCash`,
-            `\n💎 **VIP Bonus (+30%):** +${vipBonus.toLocaleString()} bCash`,
+            `\n🚀 **Booster Bonus (+50%):** +${boosterBonus.toLocaleString()} bCash`,
+            `\n💎 **VIP Bonus (+50%):** +${vipBonus.toLocaleString()} bCash`,
             `\n🔥 **Daily Streak (Day ${dailyStreak}):** +${streakBonus.toLocaleString()} bCash`,
         ].filter(Boolean).join('');
 
