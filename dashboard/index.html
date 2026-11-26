@@ -870,6 +870,17 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
  .lvl-event-announcement-page .lvl-embed-editor>.lvl-footer-row{grid-template-columns:minmax(0,1fr)!important}
 }
 </style>
+
+<style id="leveling-role-xp-multiplier-card">
+#levelingRoutePage #lvlRoleMultiplierCard{display:block!important;min-width:0}
+#levelingRoutePage .lvl-role-multiplier-fields{display:grid;grid-template-columns:minmax(0,2fr) minmax(130px,1fr) auto;align-items:end;gap:12px;margin:0 0 14px}
+#levelingRoutePage .lvl-role-multiplier-fields label{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:12px;font-weight:700}
+#levelingRoutePage .lvl-role-multiplier-fields select,#levelingRoutePage .lvl-role-multiplier-fields input{width:100%;min-width:0;box-sizing:border-box}
+#levelingRoutePage #lvlRoleMultipliers{display:flex;flex-direction:column;gap:8px}
+#levelingRoutePage #lvlRoleMultipliers .lvl-multiplier-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--border-color,#3a3d44);border-radius:8px;min-width:0}
+#levelingRoutePage .lvl-role-multiplier-note{display:block;margin-top:10px;color:var(--muted,#aeb3bf);font-size:11px;line-height:1.5}
+@media(max-width:620px){#levelingRoutePage .lvl-role-multiplier-fields{grid-template-columns:minmax(0,1fr)}}
+</style>
 </head>
 <body>
 <div class="shell">
@@ -1447,6 +1458,16 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
   <section class="card lvl-card"><div class="lvl-card-head"><span class="lvl-icon">✉️</span><div><h2>Message XP</h2><p>Set how much experience members earn from chatting.</p></div></div>
    <div class="lvl-fields"><label>Minimum XP<input id="lvlMin" type="number" min="1" max="1000" step="1"></label><label>Maximum XP<input id="lvlMax" type="number" min="1" max="1000" step="1"></label><label>Message cooldown <small>Seconds between XP awards</small><input id="lvlCooldown" type="number" min="0" max="3600" step="1"></label><label>XP multiplier <small>Overall message XP multiplier</small><input id="lvlMultiplier" type="number" min="0.1" max="10" step="0.1"></label></div>
    <div class="lvl-preview"><span>Typical message reward</span><b id="lvlXpPreview">— XP</b></div>
+  </section>
+  <section class="card lvl-card" id="lvlRoleMultiplierCard">
+   <div class="lvl-card-head"><span class="lvl-icon">🎖️</span><div><h2>Role XP Multipliers</h2><p>Give selected roles extra XP when members earn experience. The highest matching role multiplier is used.</p></div></div>
+   <div class="lvl-fields lvl-role-multiplier-fields">
+    <label>Role<select id="lvlMultiplierRole"><option value="">Choose a role…</option></select></label>
+    <label>XP multiplier<input id="lvlRoleMultiplier" type="number" min="0.1" max="10" step="0.1" value="2"></label>
+    <button class="lvl-add-btn" id="lvlAddRoleMultiplier" type="button">＋ Add multiplier</button>
+   </div>
+   <div class="lvl-exclusion-list" id="lvlRoleMultipliers" aria-live="polite"><span class="lvl-empty">No role multipliers configured.</span></div>
+   <small class="lvl-role-multiplier-note">Example: 2× means the member earns double XP while they have that role. Set from 0.1× to 10×. Save Settings to apply changes.</small>
   </section>
   <section class="card lvl-card lvl-announcement-card">
    <div class="lvl-announcement-layout">
@@ -2177,6 +2198,7 @@ function updateLevelingPreview(){const min=Number(document.getElementById('lvlMi
 document.getElementById('lvlEmbedColor').addEventListener('input',()=>{document.getElementById('lvlEmbedColorHex').value=document.getElementById('lvlEmbedColor').value.toUpperCase();updateLevelingPreview();});
 document.getElementById('lvlEmbedColorHex').addEventListener('input',e=>{let value=e.target.value.trim();if(value&&!value.startsWith('#'))value='#'+value;if(/^#[0-9a-fA-F]{6}$/.test(value)){e.target.setCustomValidity('');document.getElementById('lvlEmbedColor').value=value;updateLevelingPreview();}else{e.target.setCustomValidity('Enter a valid 6-digit HEX color, such as #C3F36B.');}});
 ['lvlEnabled','lvlMin','lvlMax','lvlMultiplier','lvlAutoMessageTemplate','lvlEmbedColor','lvlEmbedAuthor','lvlEmbedTitle','lvlEmbedThumbnail','lvlEmbedImage','lvlEmbedDescription','lvlEmbedFooter','lvlEmbedFooterIcon'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{updateLevelingPreview();updateLevelingStatus();}));
+document.getElementById('lvlAddRoleMultiplier')?.addEventListener('click',()=>{const roleId=document.getElementById('lvlMultiplierRole').value,multiplier=Number(document.getElementById('lvlRoleMultiplier').value),status=document.getElementById('lvlStatus');if(!roleId){status.textContent='Choose a role first.';return;}if(!Number.isFinite(multiplier)||multiplier<0.1||multiplier>10){status.textContent='Role multiplier must be between 0.1 and 10.';return;}roleMultiplierData[roleId]=multiplier;document.getElementById('lvlMultiplierRole').value='';renderRoleMultipliers();status.textContent='Role multiplier added. Save your leveling settings to apply it.';});
 document.getElementById('lvlRefresh')?.addEventListener('click',loadLevelingPanel);
 document.getElementById('lvlSave').addEventListener('click',async()=>{const s=document.getElementById('lvlStatus'),button=document.getElementById('lvlSave'),min=Number(document.getElementById('lvlMin').value),max=Number(document.getElementById('lvlMax').value),cool=Number(document.getElementById('lvlCooldown').value),mult=Number(document.getElementById('lvlMultiplier').value),voice=Number(document.getElementById('lvlVoiceXp').value);if(!Number.isInteger(min)||!Number.isInteger(max)||min<1||max<min||max>1000||!Number.isInteger(cool)||cool<0||cool>3600||!Number.isFinite(mult)||mult<.1||mult>10||!Number.isInteger(voice)||voice<1||voice>100){s.textContent='Check your values: XP 1–1000, cooldown 0–3600 seconds, multiplier 0.1–10, voice XP 1–100.';return;}const hex=document.getElementById('lvlEmbedColorHex').value.trim();if(!/^#?[0-9a-fA-F]{6}$/.test(hex)){s.textContent='Enter a valid 6-digit HEX color, such as #C3F36B.';document.getElementById('lvlEmbedColorHex').focus();return;}const normalizedHex=hex.startsWith('#')?hex:'#'+hex;document.getElementById('lvlEmbedColor').value=normalizedHex;button.disabled=true;s.textContent='Saving leveling settings…';try{await dashboardApi('/api/dashboard/leveling',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:document.getElementById('lvlEnabled').checked,xpMin:min,xpMax:max,xpCooldown:cool,xpMultiplier:mult,announceLevelUp:document.getElementById('lvlAnnounce').checked,levelUpChannel:document.getElementById('lvlChannel').value||null,levelUpContent:'',levelUpMessages:{template:document.getElementById('lvlAutoMessageTemplate').value.replace(/\\n/g,'\n').replace(/\r\n?/g,'\n')},levelUpEmbed:{color:document.getElementById('lvlEmbedColor').value,authorName:document.getElementById('lvlEmbedAuthor').value,title:document.getElementById('lvlEmbedTitle').value,thumbnailUrl:document.getElementById('lvlEmbedThumbnail').value,imageUrl:document.getElementById('lvlEmbedImage').value,description:document.getElementById('lvlEmbedDescription').value,footerText:document.getElementById('lvlEmbedFooter').value,footerIconUrl:document.getElementById('lvlEmbedFooterIcon').value},voiceXpEnabled:document.getElementById('lvlVoiceEnabled').checked,voiceXpPerMinute:voice,ignoredChannels:getExclusionIds('channel'),ignoredRoles:getExclusionIds('role'),roleXpMultipliers:getRoleXpMultipliers()})});s.textContent='Leveling settings saved successfully.';}catch(e){s.textContent='Could not save settings: '+e.message;}finally{button.disabled=false;}});
 
