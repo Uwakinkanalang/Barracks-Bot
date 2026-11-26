@@ -267,19 +267,32 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
       }
     }
     const embedSettings = config.levelUpEmbed || {};
-    const embedDescription = replaceAnnouncementTokens(
-      embedSettings.description || [
-        'Well, well, well! Akala namin ordinary recruit ka lang sa Barracks, pero mukhang nag-grind ka nang todo!',
-        '',
-        '⚔️ **SOLDIER PROFILE:**',
-        '',
-        '• **Rank:** {rank}',
-        '• **Rank Level:** {level}',
-        '• **Total Battle Experience:** {totalXp} XP',
-        '',
-        '🎖️ Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
-      ].join('\n')
-    );
+    const rawEmbedDescription = String(embedSettings.description || [
+      'Well, well, well! Akala namin ordinary recruit ka lang sa Barracks, pero mukhang nag-grind ka nang todo!',
+      '',
+      '⚔️ **SOLDIER PROFILE:**',
+      '',
+      '• **Rank:** {rank}',
+      '• **Rank Level:** {level}',
+      '• **Total Battle Experience:** {totalXp} XP',
+      '',
+      '🎖️ Keep grinding, soldier! We still have more missions, promotions, and questionable military decisions waiting for you.'
+    ].join('\n')).replace(/\\\\n/g, '\n');
+    const embedDescriptionLines = [];
+    for (const line of rawEmbedDescription.split(/\r?\n/)) {
+      if (line.includes('{bcash}') || line.includes('{rewardLevel}')) {
+        if (!announcedBcashRewards.length) continue;
+        for (const reward of announcedBcashRewards) {
+          embedDescriptionLines.push(replaceAnnouncementTokens(line, {
+            bcash: reward.amount.toLocaleString('en-US'),
+            rewardLevel: reward.level,
+          }));
+        }
+      } else {
+        embedDescriptionLines.push(replaceAnnouncementTokens(line));
+      }
+    }
+    const embedDescription = embedDescriptionLines.join('\n');
     const levelUpEmbed = new EmbedBuilder()
       .setColor(/^#[0-9a-fA-F]{6}$/.test(embedSettings.color || '') ? embedSettings.color : '#36393f')
       .setDescription(embedDescription.slice(0, 4096));
