@@ -121,12 +121,14 @@ export default {
         }
 
         const bonusLines = [
+            `💰 **Base Salary:**`,
             `🎖️ **Level Bonus (Level ${memberLevel}):**`,
             `🛡️ **Clan Bonus (+20%):**`,
             `🚀 **Booster/VIP (+50%):**`,
             `🔥 **Daily Streak (Day ${dailyStreak}):**`,
         ];
         const bonusAmounts = [
+            DAILY_AMOUNT,
             memberLevel * DAILY_LEVEL_BONUS,
             clanBonus,
             boosterBonus + vipBonus,
