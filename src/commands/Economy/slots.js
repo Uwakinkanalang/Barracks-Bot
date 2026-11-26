@@ -42,19 +42,26 @@ function createSpin(emojis) {
     if (winner) return { ...WIN_SYMBOLS[winner.key], win: true };
 
     const reels = Array.from({ length: 3 }, () => emojis[randomInt(emojis.length)]);
-    const tripleWinSymbols = new Set([
-        '<:fatjerry:1572110023742459974>',
-        '<:SundalongCamonaNangaasar:1572130012713193512>',
-        '🍒',
+    const tripleWinMultipliers = new Map([
+        ['<:fatjerry:1572110023742459974>', 3],
+        ['<:SundalongCamonaNangaasar:1572130012713193512>', 3],
+        ['🍒', 3],
+        ['💎', 4],
     ]);
-    const isTripleWin = reels[0] === reels[1] && reels[1] === reels[2] && tripleWinSymbols.has(reels[0]);
-    if (isTripleWin) {
+    const tripleMultiplier = reels[0] === reels[1] && reels[1] === reels[2]
+        ? tripleWinMultipliers.get(reels[0])
+        : undefined;
+    if (tripleMultiplier) {
+        const label = reels[0] === '🍒' ? 'Cherry Triple'
+            : reels[0] === '<:fatjerry:1572110023742459974>' ? 'Fat Jerry Triple'
+            : reels[0] === '<:SundalongCamonaNangaasar:1572130012713193512>' ? 'Uwak Triple'
+            : 'Diamond Triple';
         return {
             reels,
-            multiplier: 3,
-            chance: (3 / (emojis.length ** 3)) * 100,
+            multiplier: tripleMultiplier,
+            chance: (1 / (emojis.length ** 3)) * 100,
             win: true,
-            label: reels[0] === '🍒' ? 'Cherry Triple' : reels[0] === '<:fatjerry:1572110023742459974>' ? 'Fat Jerry Triple' : 'Uwak Triple',
+            label,
         };
     }
     return {
