@@ -1574,9 +1574,9 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 
 </div>
 
-<div id="messageBuilderPanel" style="display:none;position:fixed;inset:0;z-index:30;background:#080e0bd9;overflow:auto;padding:24px">
- <div style="max-width:1100px;margin:20px auto;background:#303137;border:1px solid #484950;border-radius:16px;padding:22px">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Messaging tools</div><h1>Message Builder</h1><p class="sub">Build a Discord message and preview it before copying the payload.</p></div><button id="messageBuilderClose" class="logout" type="button" onclick="document.getElementById('messageBuilderPanel').style.display='none'">Close ✕</button></div>
+<div id="messageBuilderPanel" class="dashboard-page-container" style="display:none;width:100%;max-width:none;position:static;background:transparent;overflow:visible;padding:0;margin:0">
+ <div style="width:100%;max-width:1100px;margin:0 auto;background:transparent;border:0;border-radius:0;padding:0">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Messaging tools</div><h1>Message Builder</h1><p class="sub">Create, preview, send now, schedule once, or set recurring announcements.</p></div><button id="messageBuilderClose" class="logout" type="button" onclick="document.getElementById('messageBuilderPanel').style.display='none'">Close ✕</button></div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:20px">
    <div class="card" style="background:#34353c;border-color:#484950">
     <h2 style="font-size:15px;margin:0 0 16px">Message content</h2>
