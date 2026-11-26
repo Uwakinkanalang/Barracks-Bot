@@ -18,14 +18,15 @@ export default {
       message.channel?.parentId === REWARD_CHANNEL_ID;
     if (!isRewardChannel) return;
 
-    // Count text, attachment, and sticker posts; ignore empty messages.
-    // A forum post's title is the thread name; its starter message body can be empty.
-    const isForumPost = message.channel?.isThread?.() && message.channel?.parentId === REWARD_CHANNEL_ID;
-    const hasContent = Boolean(message.content?.trim()) ||
-      (isForumPost && Boolean(message.channel?.name?.trim())) ||
-      (message.attachments?.size || 0) > 0 ||
-      (message.stickers?.size || 0) > 0;
-    if (!hasContent) return;
+    // Reward only messages containing an actual image attachment.
+    // Forum thread titles and text-only comments do not qualify.
+    const hasImage = [...(message.attachments?.values() ?? [])].some((attachment) => {
+      const contentType = attachment.contentType?.toLowerCase() ?? '';
+      const filename = attachment.name?.toLowerCase() ?? '';
+      return contentType.startsWith('image/') ||
+        /\\.(png|jpe?g|gif|webp|bmp|avif|heic)$/i.test(filename);
+    });
+    if (!hasImage) return;
 
     const userId = message.author.id;
     const guildId = message.guild.id;
