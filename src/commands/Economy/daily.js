@@ -121,10 +121,10 @@ export default {
         }
 
         const bonusLines = [
-            `🎖️ Level Bonus (Level ${memberLevel}):`,
-            `🛡️ Clan Bonus (+20%):`,
-            `🚀 Booster/VIP (+50%):`,
-            `🔥 Daily Streak (Day ${dailyStreak}):`,
+            `🎖️ **Level Bonus (Level ${memberLevel}):**`,
+            `🛡️ **Clan Bonus (+20%):**`,
+            `🚀 **Booster/VIP (+50%):**`,
+            `🔥 **Daily Streak (Day ${dailyStreak}):**`,
         ];
         const bonusAmounts = [
             memberLevel * DAILY_LEVEL_BONUS,
@@ -133,7 +133,7 @@ export default {
             streakBonus,
         ];
         const bonusDisplay = bonusLines.map((label, index) =>
-            `${label.padEnd(31)} +${bonusAmounts[index].toLocaleString().padStart(8)} bCash`
+            `${label.padEnd(35)} +${bonusAmounts[index].toLocaleString().padStart(8)} bCash`
         ).join('\\n');
         const totalDisplay = `**Total: ${earned.toLocaleString()} bCash!**`;
 
@@ -153,7 +153,7 @@ export default {
 
         const embed = successEmbed(
             '✅ Daily Claimed!',
-            `You received **${earned.toLocaleString()} bCash**!${bonusLines}`,
+            `You received **${earned.toLocaleString()} bCash**!\\n\\n${bonusDisplay}\\n\\n${totalDisplay}`,
         )
             .addFields({
                 name: 'New bCash Balance',
