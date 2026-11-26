@@ -718,6 +718,40 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
 .tournament-manager-empty strong{display:block;margin-bottom:5px;color:var(--ui-text);font-size:13px}
 @media(max-width:700px){.tournament-manager-toolbar{align-items:stretch;flex-direction:column}.tournament-manager-toolbar select{width:100%}.tournament-manager-grid{grid-template-columns:1fr}.tournament-manager-panel{padding:12px}.tournament-manager-tab{padding:8px 10px}}
 </style>
+
+<style id="leveling-embed-fields-layout">
+/* Neat, compact embed builder layout */
+.lvl-announcement-settings .lvl-embed-editor{
+ display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px 12px;
+ padding:13px;border-radius:11px;background:rgba(255,255,255,.025);
+}
+.lvl-embed-editor>.lvl-embed-section-heading{grid-column:1/-1;margin:0 0 2px;padding:0 0 9px}
+.lvl-embed-editor>.lvl-field{min-width:0;margin:0;gap:5px}
+.lvl-embed-editor>.lvl-field:nth-child(2){grid-column:span 4}
+.lvl-embed-editor>.lvl-field:nth-child(3){grid-column:span 4}
+.lvl-embed-editor>.lvl-field:nth-child(4){grid-column:span 4}
+.lvl-embed-editor>.lvl-thumbnail-field{grid-column:span 6;max-width:none;justify-self:stretch}
+.lvl-embed-editor>.lvl-description-field{grid-column:1/-1}
+.lvl-embed-editor>.lvl-image-field{grid-column:1/-1}
+.lvl-embed-editor>.lvl-footer-row{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0}
+.lvl-embed-editor .lvl-field input,.lvl-embed-editor .lvl-field select,.lvl-embed-editor .lvl-field textarea{
+ min-height:35px;padding:8px 10px;border-radius:7px;font-size:12px;line-height:1.35
+}
+.lvl-embed-editor .lvl-description-field textarea{min-height:116px;resize:vertical}
+.lvl-embed-editor .lvl-field small{font-size:10px;line-height:1.35;margin-top:1px}
+.lvl-embed-editor .lvl-color-row{gap:7px}
+.lvl-embed-editor .lvl-color-row input[type=color]{width:36px;height:35px}
+.lvl-embed-editor .lvl-color-row .lvl-hex-input{height:35px;width:94px}
+@media(max-width:760px){
+ .lvl-embed-editor>.lvl-field:nth-child(2),.lvl-embed-editor>.lvl-field:nth-child(3),.lvl-embed-editor>.lvl-field:nth-child(4){grid-column:span 6}
+ .lvl-embed-editor>.lvl-thumbnail-field{grid-column:1/-1}
+}
+@media(max-width:520px){
+ .lvl-announcement-settings .lvl-embed-editor{padding:10px;gap:9px}
+ .lvl-embed-editor>.lvl-field:nth-child(2),.lvl-embed-editor>.lvl-field:nth-child(3),.lvl-embed-editor>.lvl-field:nth-child(4){grid-column:1/-1}
+ .lvl-embed-editor>.lvl-footer-row{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
 <div class="shell">
