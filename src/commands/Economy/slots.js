@@ -29,41 +29,45 @@ const WIN_SYMBOLS = {
 };
 
 function createSpin(emojis) {
-    // Star wins 2.5% and Barracks Cash wins 5%; total winning odds are 48.5%.
-    const roll = randomInt(10_000);
-    const outcomes = [
-        { cutoff: 2000, key: 'eggplant' },
-        { cutoff: 4000, key: 'heart' },
-        { cutoff: 4250, key: 'star' },
-        { cutoff: 4750, key: 'note' },
-        { cutoff: 4850, key: 'owo' },
+    // Overall win rate is fixed at 48.5%, including special losing-symbol triples.
+    // Regular wins total 47%; four special triples receive 0.375% each (1.5% total).
+    const roll = randomInt(100_000);
+    const regularOutcomes = [
+        { cutoff: 19_381, key: 'eggplant' },
+        { cutoff: 38_762, key: 'heart' },
+        { cutoff: 41_185, key: 'star' },
+        { cutoff: 46_030, key: 'note' },
+        { cutoff: 47_000, key: 'owo' },
     ];
-    const winner = outcomes.find(item => roll < item.cutoff);
-    if (winner) return { ...WIN_SYMBOLS[winner.key], win: true };
+    const regularWinner = regularOutcomes.find(item => roll < item.cutoff);
+    if (regularWinner) return { ...WIN_SYMBOLS[regularWinner.key], win: true };
 
-    const reels = Array.from({ length: 3 }, () => emojis[randomInt(emojis.length)]);
-    const tripleWinMultipliers = new Map([
-        ['<:fatjerry:1572110023742459974>', 3],
-        ['<:SundalongCamonaNangaasar:1572130012713193512>', 3],
-        ['🍒', 3],
-        ['💎', 4],
-    ]);
-    const tripleMultiplier = reels[0] === reels[1] && reels[1] === reels[2]
-        ? tripleWinMultipliers.get(reels[0])
-        : undefined;
-    if (tripleMultiplier) {
-        const label = reels[0] === '🍒' ? 'Cherry Triple'
-            : reels[0] === '<:fatjerry:1572110023742459974>' ? 'Fat Jerry Triple'
-            : reels[0] === '<:SundalongCamonaNangaasar:1572130012713193512>' ? 'Uwak Triple'
-            : 'Diamond Triple';
+    const specialTriples = [
+        { start: 47_000, end: 47_375, emoji: '<:fatjerry:1572110023742459974>', multiplier: 3, label: 'Fat Jerry Triple' },
+        { start: 47_375, end: 47_750, emoji: '<:SundalongCamonaNangaasar:1572130012713193512>', multiplier: 3, label: 'Uwak Triple' },
+        { start: 47_750, end: 48_125, emoji: '🍒', multiplier: 3, label: 'Cherry Triple' },
+        { start: 48_125, end: 48_500, emoji: '💎', multiplier: 4, label: 'Diamond Triple' },
+    ];
+    const special = specialTriples.find(item => roll >= item.start && roll < item.end);
+    if (special) {
         return {
-            reels,
-            multiplier: tripleMultiplier,
-            chance: (1 / (emojis.length ** 3)) * 100,
+            reels: [special.emoji, special.emoji, special.emoji],
+            multiplier: special.multiplier,
+            chance: 0.375,
             win: true,
-            label,
+            label: special.label,
         };
     }
+
+    // Generate a losing result, avoiding the four reserved triple-win combinations.
+    let reels;
+    do {
+        reels = Array.from({ length: 3 }, () => emojis[randomInt(emojis.length)]);
+    } while (
+        reels[0] === reels[1] && reels[1] === reels[2] &&
+        specialTriples.some(item => item.emoji === reels[0])
+    );
+
     return {
         reels,
         multiplier: 0,
