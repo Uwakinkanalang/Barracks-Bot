@@ -121,12 +121,21 @@ export default {
         }
 
         const bonusLines = [
-            `\n🎖️ **Level Bonus (Level ${memberLevel}):** +${(memberLevel * DAILY_LEVEL_BONUS).toLocaleString()} bCash`,
-            `\n🛡️ **Clan Bonus (+20%):** +${clanBonus.toLocaleString()} bCash`,
-            `\n🚀 **Booster Bonus (+50%):** +${boosterBonus.toLocaleString()} bCash`,
-            `\n💎 **VIP Bonus (+50%):** +${vipBonus.toLocaleString()} bCash`,
-            `\n🔥 **Daily Streak (Day ${dailyStreak}):** +${streakBonus.toLocaleString()} bCash`,
-        ].filter(Boolean).join('');
+            `🎖️ Level Bonus (Level ${memberLevel}):`,
+            `🛡️ Clan Bonus (+20%):`,
+            `🚀 Booster/VIP (+50%):`,
+            `🔥 Daily Streak (Day ${dailyStreak}):`,
+        ];
+        const bonusAmounts = [
+            memberLevel * DAILY_LEVEL_BONUS,
+            clanBonus,
+            boosterBonus + vipBonus,
+            streakBonus,
+        ];
+        const bonusDisplay = bonusLines.map((label, index) =>
+            `${label.padEnd(31)} +${bonusAmounts[index].toLocaleString().padStart(8)} bCash`
+        ).join('\\n');
+        const totalDisplay = `**Total: ${earned.toLocaleString()} bCash!**`;
 
         logger.info('[ECONOMY_TRANSACTION] Daily claimed', {
             userId,
