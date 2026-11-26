@@ -288,7 +288,14 @@ export async function sendLevelUpAnnouncement(guild, member, levelData, config, 
     const footerText = replaceAnnouncementTokens(embedSettings.footerText);
     if (authorName) levelUpEmbed.setAuthor({ name: authorName });
     if (title) levelUpEmbed.setTitle(title);
-    if (embedSettings.thumbnailUrl) levelUpEmbed.setThumbnail(embedSettings.thumbnailUrl);
+    const configuredThumbnail = String(embedSettings.thumbnailUrl || '').trim();
+    // {user.avatar} resolves to the member's effective guild avatar (server profile
+    // picture when set, otherwise their global Discord avatar).
+    const thumbnailUrl = configuredThumbnail.replaceAll(
+      '{user.avatar}',
+      member.displayAvatarURL({ extension: 'png', size: 256 })
+    );
+    if (thumbnailUrl) levelUpEmbed.setThumbnail(thumbnailUrl);
     if (footerText) {
       const footer = { text: footerText };
       if (embedSettings.footerIconUrl) footer.iconURL = embedSettings.footerIconUrl;
