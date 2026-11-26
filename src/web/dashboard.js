@@ -1452,7 +1452,8 @@ export function registerDashboardRoutes(app, bot) {
         changed = true;
         if (item.repeat === 'daily' || item.repeat === 'weekly') {
           const next = new Date(item.runAt);
-          next.setUTCDate(next.getUTCDate() + (item.repeat === 'daily' ? 1 : 7));
+          const intervalDays = item.repeat === 'daily' ? 1 : 7;
+          do { next.setUTCDate(next.getUTCDate() + intervalDays); } while (next.getTime() <= now);
           if (item.repeatUntil && next.toISOString().slice(0, 10) > item.repeatUntil) item.status = 'completed';
           else item.runAt = next.toISOString();
         } else item.status = 'completed';
