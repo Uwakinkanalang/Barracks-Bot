@@ -122,9 +122,9 @@ export default {
 
         const bonusLines = [
             `\n🎖️ **Level Bonus (Level ${memberLevel}):** +${(memberLevel * DAILY_LEVEL_BONUS).toLocaleString()} bCash`,
-            hasBoosterRole ? `\n🚀 **Booster Bonus (+20%):** +${boosterBonus.toLocaleString()} bCash` : null,
-            hasVipRole ? `\n💎 **VIP Bonus (+30%):** +${vipBonus.toLocaleString()} bCash` : null,
-            hasApprovedClan ? `\n🛡️ **Clan Bonus (+20%):** +${clanBonus.toLocaleString()} bCash` : null,
+            `\n🛡️ **Clan Bonus (+20%):** +${clanBonus.toLocaleString()} bCash`,
+            `\n🚀 **Booster Bonus (+20%):** +${boosterBonus.toLocaleString()} bCash`,
+            `\n💎 **VIP Bonus (+30%):** +${vipBonus.toLocaleString()} bCash`,
             `\n🔥 **Daily Streak (Day ${dailyStreak}):** +${streakBonus.toLocaleString()} bCash`,
         ].filter(Boolean).join('');
 
