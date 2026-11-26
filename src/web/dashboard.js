@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import cron from 'node-cron';
 import { ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getWelcomeConfig, saveWelcomeConfig, getFromDb, setInDb } from '../utils/database.js';
 import { getGuildConfig, updateGuildConfig } from '../services/config/guildConfig.js';
@@ -1417,6 +1418,109 @@ export function registerDashboardRoutes(app, bot) {
     for (let i = 0; i < buttons.length; i += 5) rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
     return rows;
   };
+
+  const scheduledMessagesKey = guildId => 'guild:' + guildId + ':dashboard:scheduled-messages';
+  async function processScheduledMessages() {
+    if (bot.__scheduledMessageProcessing) return;
+    bot.__scheduledMessageProcessing = true;
+    try {
+      const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+      if (!guild || !bot.db?.get || !bot.db?.set) return;
+      const key = scheduledMessagesKey(guild.id);
+      const items = await bot.db.get(key, []);
+      if (!Array.isArray(items)) return;
+      const now = Date.now();
+      let changed = false;
+      for (const item of items) {
+        if (item.status !== 'active' || Date.parse(item.runAt) > now) continue;
+        let sentAny = false;
+        for (const channelId of item.channelIds || []) {
+          const channel = await guild.channels.fetch(channelId).catch(() => null);
+          if (!channel || !channel.isTextBased?.() || channel.isThread?.() || typeof channel.send !== 'function') continue;
+          try {
+            const payload = { allowedMentions: { parse: [] } };
+            if (item.content) payload.content = item.content;
+            if (Array.isArray(item.embeds) && item.embeds.length) payload.embeds = item.embeds;
+            await channel.send(payload);
+            sentAny = true;
+          } catch (error) {
+            console.warn('[MESSAGE_SCHEDULE] Send failed in channel ' + channelId + ': ' + (error?.message || error));
+          }
+        }
+        item.lastRunAt = new Date(now).toISOString();
+        item.lastRunOk = sentAny;
+        changed = true;
+        if (item.repeat === 'daily' || item.repeat === 'weekly') {
+          const next = new Date(item.runAt);
+          next.setUTCDate(next.getUTCDate() + (item.repeat === 'daily' ? 1 : 7));
+          if (item.repeatUntil && next.toISOString().slice(0, 10) > item.repeatUntil) item.status = 'completed';
+          else item.runAt = next.toISOString();
+        } else item.status = 'completed';
+      }
+      if (changed) await bot.db.set(key, items);
+    } catch (error) {
+      console.error('[MESSAGE_SCHEDULE] Processor error:', error?.message || error);
+    } finally {
+      bot.__scheduledMessageProcessing = false;
+    }
+  }
+  if (!bot.__scheduledMessageCronStarted) {
+    bot.__scheduledMessageCronStarted = true;
+    cron.schedule('* * * * *', processScheduledMessages, { timezone: 'Asia/Manila' });
+    setTimeout(processScheduledMessages, 5000);
+  }
+
+  app.get('/api/dashboard/scheduled-messages', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const items = await bot.db.get(scheduledMessagesKey(guild.id), []);
+    return res.json({ messages: Array.isArray(items) ? items : [] });
+  });
+
+  app.post('/api/dashboard/scheduled-messages', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const body = req.body || {};
+    const channelIds = [...new Set((Array.isArray(body.channelIds) ? body.channelIds : []).map(String))];
+    const runAt = Date.parse(body.runAt);
+    const repeat = String(body.repeat || 'none');
+    if (!channelIds.length || channelIds.length > 20 || !Number.isFinite(runAt) || runAt <= Date.now() ||
+        !['none', 'daily', 'weekly'].includes(repeat) || (body.repeatUntil && !/^\d{4}-\d{2}-\d{2}$/.test(String(body.repeatUntil)))) {
+      return res.status(400).json({ error: 'Choose channels, a future date/time, and a valid repeat option.' });
+    }
+    const content = String(body.content || '');
+    const embeds = Array.isArray(body.embeds) ? body.embeds.slice(0, 1) : [];
+    if (content.length > 2000 || (!content.trim() && !embeds.length)) return res.status(400).json({ error: 'Add message content (maximum 2,000 characters).' });
+    for (const channelId of channelIds) {
+      const channel = await guild.channels.fetch(channelId).catch(() => null);
+      if (!channel || !channel.isTextBased?.() || channel.isThread?.() || typeof channel.send !== 'function') return res.status(400).json({ error: 'One or more selected channels are invalid.' });
+    }
+    const item = { id: crypto.randomUUID(), channelIds, content, embeds, runAt: new Date(runAt).toISOString(), repeat, repeatUntil: body.repeatUntil || null, status: 'active', createdAt: new Date().toISOString() };
+    const key = scheduledMessagesKey(guild.id), items = await bot.db.get(key, []);
+    const list = Array.isArray(items) ? items : [];
+    if (list.filter(x => x.status === 'active').length >= 100) return res.status(400).json({ error: 'Maximum 100 active scheduled messages reached.' });
+    list.push(item);
+    await bot.db.set(key, list);
+    return res.status(201).json({ ok: true, message: item });
+  });
+
+  app.delete('/api/dashboard/scheduled-messages/:id', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const key = scheduledMessagesKey(guild.id), items = await bot.db.get(key, []);
+    const list = Array.isArray(items) ? items : [];
+    const item = list.find(x => x.id === req.params.id);
+    if (!item) return res.status(404).json({ error: 'Scheduled message not found.' });
+    item.status = 'cancelled';
+    await bot.db.set(key, list);
+    return res.json({ ok: true });
+  });
 
   app.get('/api/dashboard/message-channels', async (req, res) => {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
