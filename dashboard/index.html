@@ -2087,7 +2087,7 @@ const opening=submenu.hidden;submenu.hidden=!opening;group.classList.toggle('ope
    if(page){e.preventDefault();e.stopImmediatePropagation();navigate(page);}
  },true);
  window.addEventListener('popstate',()=>navigate(routeKey(),false));
- const restoreDashboardRoute=()=>navigate(window.__BARRACKS_INITIAL_ROUTE||routeKey(),false);
+ const restoreDashboardRoute=()=>{const urlRoute=routeKey();let savedRoute='home';try{savedRoute=sessionStorage.getItem('barracks_dashboard_last_route')||localStorage.getItem('barracks_dashboard_last_route')||'home';}catch(_){}const pathname=decodeURIComponent(location.pathname).replace(/\/+$/,'');const root=base.replace(/\/+$/,'');const hasExplicitRoute=pathname!==root&&pathname!==root+'/';const initial=window.__BARRACKS_INITIAL_ROUTE||(hasExplicitRoute?urlRoute:savedRoute);navigate(routes[initial]?initial:'home',false);};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restoreDashboardRoute,{once:true});else restoreDashboardRoute();
 
 })();
