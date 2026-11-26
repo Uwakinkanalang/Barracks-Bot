@@ -148,6 +148,14 @@ export default {
               );
             }
 
+            if (command.category === 'Music') {
+              await interaction.reply({
+                content: '🎵 Music is now handled by **Barracks Music**. Please use <@1569552571624984637> for playback and music controls.',
+                ephemeral: true,
+              });
+              return;
+            }
+
             if (isMaintenanceMode() && !isBotOwner(interaction.user.id)) {
               throw createError(
                 'Bot is in maintenance mode',
