@@ -1418,6 +1418,57 @@ export function registerDashboardRoutes(app, bot) {
     return rows;
   };
 
+  app.get('/api/dashboard/message-channels', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const channels = guild.channels.cache
+      .filter(channel => channel.isTextBased?.() && !channel.isThread?.() && typeof channel.send === 'function')
+      .map(channel => ({ id: channel.id, name: channel.name, category: channel.parent?.name || '' }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return res.json({ channels });
+  });
+
+  app.post('/api/dashboard/send-message', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const channelIds = [...new Set((Array.isArray(req.body?.channelIds) ? req.body.channelIds : []).map(id => String(id)))];
+    const content = String(req.body?.content || '');
+    const rawEmbed = Array.isArray(req.body?.embeds) ? req.body.embeds[0] : null;
+    if (!channelIds.length || channelIds.length > 20) return res.status(400).json({ error: 'Select between 1 and 20 channels.' });
+    if (content.length > 2000) return res.status(400).json({ error: 'Message text must be 2,000 characters or fewer.' });
+    if (!content.trim() && !rawEmbed) return res.status(400).json({ error: 'Add message text or embed content first.' });
+    const validUrl = value => { if (!value) return true; try { return ['http:', 'https:'].includes(new URL(String(value)).protocol); } catch { return false; } };
+    if (rawEmbed && ((rawEmbed.title && String(rawEmbed.title).length > 256) ||
+      (rawEmbed.description && String(rawEmbed.description).length > 4096) ||
+      (rawEmbed.author?.name && String(rawEmbed.author.name).length > 256) ||
+      (rawEmbed.footer?.text && String(rawEmbed.footer.text).length > 2048) ||
+      !validUrl(rawEmbed.image?.url) || !validUrl(rawEmbed.thumbnail?.url))) {
+      return res.status(400).json({ error: 'Check embed text lengths and image URLs.' });
+    }
+    const results = [];
+    for (const channelId of channelIds) {
+      const channel = await guild.channels.fetch(channelId).catch(() => null);
+      if (!channel || !channel.isTextBased?.() || channel.isThread?.() || typeof channel.send !== 'function') {
+        results.push({ channelId, ok: false, error: 'Invalid text channel.' });
+        continue;
+      }
+      try {
+        const payload = { allowedMentions: { parse: [] } };
+        if (content) payload.content = content;
+        if (rawEmbed) payload.embeds = [rawEmbed];
+        const message = await channel.send(payload);
+        results.push({ channelId, channelName: channel.name, ok: true, messageId: message.id });
+      } catch (error) {
+        results.push({ channelId, channelName: channel.name, ok: false, error: error?.message || 'Send failed.' });
+      }
+    }
+    return res.json({ ok: results.every(result => result.ok), results });
+  });
+
   app.get('/api/dashboard/tournaments', async (req, res) => {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
     if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
