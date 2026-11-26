@@ -13,7 +13,8 @@ const STREAK_GRACE_PERIOD = DAILY_COOLDOWN * 2;
 const DAILY_AMOUNT = botConfig.economy?.dailyAmount ?? 5000;
 const DAILY_LEVEL_BONUS = botConfig.economy?.dailyLevelBonus ?? 100;
 const MAX_DAILY_LEVEL = 100;
-const CLAN_BONUS_RATE = 0.20;
+const CLAN_BONUS_AMOUNT = 2000;
+const BOOSTER_VIP_BONUS_AMOUNT = 5000;
 
 const STREAK_REWARDS = [
     { day: 1, reward: 100 },
@@ -99,10 +100,10 @@ export default {
             (Array.isArray(clan.memberIds) && clan.memberIds.map(String).includes(userId))
         ));
 
-        // bWork-style bonuses: Clan +20%; Booster or VIP +50% (VIP takes priority).
-        const boosterBonus = hasBoosterRole && !hasVipRole ? Math.floor(baseSalary * 0.50) : 0;
-        const vipBonus = hasVipRole ? Math.floor(baseSalary * 0.50) : 0;
-        const clanBonus = hasApprovedClan ? Math.floor(baseSalary * CLAN_BONUS_RATE) : 0;
+        // Flat bonuses: Clan +2,000; Booster or VIP +5,000 (VIP takes priority).
+        const boosterBonus = hasBoosterRole && !hasVipRole ? BOOSTER_VIP_BONUS_AMOUNT : 0;
+        const vipBonus = hasVipRole ? BOOSTER_VIP_BONUS_AMOUNT : 0;
+        const clanBonus = hasApprovedClan ? CLAN_BONUS_AMOUNT : 0;
         const totalPercentageBonus = boosterBonus + vipBonus + clanBonus;
         const earned = baseSalary + totalPercentageBonus + streakBonus;
 
@@ -123,8 +124,8 @@ export default {
         const bonusLines = [
             `💰 **Base Salary:**`,
             `🎖️ **Level Bonus (Level ${memberLevel}):**`,
-            `🛡️ **Clan Bonus (+20%):**`,
-            `🚀 **Booster/VIP (+50%):**`,
+            `🛡️ **Clan Bonus:**`,
+            `🚀 **Booster/VIP Bonus:**`,
             `🔥 **Daily Streak (Day ${dailyStreak}):**`,
         ];
         const bonusAmounts = [
