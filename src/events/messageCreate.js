@@ -559,11 +559,6 @@ async function handlePrefixCommand(message, client) {
     logger.info(`Resolved command name: ${resolvedCommandName}`);
     const command = client.commands.get(resolvedCommandName);
 
-    if (command?.category === 'Music' || ['play', 'music', 'join', 'queue', 'nowplaying'].includes(resolvedCommandName)) {
-      await message.reply('🎵 Music is now handled by **Barracks Music**. Please use <@1569552571624984637> for playback and music controls.');
-      return;
-    }
-
     if (!command) {
       logger.warn(`Command not found: ${resolvedCommandName}`);
       return; 
