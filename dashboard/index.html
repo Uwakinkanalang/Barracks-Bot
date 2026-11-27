@@ -1152,7 +1152,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
      <label class="birthdays-field">Author URL<input id="birthdayEmbedAuthorUrl" type="url" placeholder="https://example.com"></label>
      <label class="birthdays-field">Author icon URL<input id="birthdayEmbedAuthorIcon" type="url" placeholder="https://example.com/author-icon.png"></label>
      <label class="birthdays-field">Footer<input id="birthdayEmbedFooter" maxlength="2048" placeholder="Barracks • Birthday Celebration"></label>
-     <label class="birthdays-field">Footer icon URL<input id="birthdayEmbedFooterIcon" type="url" placeholder="https://example.com/footer-icon.png"></label>
+     <label class="birthdays-field">Footer Icon URL (optional)<input id="birthdayEmbedFooterIcon" type="url" placeholder="https://example.com/footer-icon.png"><small>Small image displayed beside the footer text.</small></label>
      <label class="birthdays-field">Image URL<input id="birthdayEmbedImage" type="url" placeholder="https://example.com/birthday-banner.png"></label>
      <label class="birthdays-field">Thumbnail URL<input id="birthdayEmbedThumbnail" type="url" placeholder="https://example.com/birthday-icon.png"></label>
      <label class="birthdays-field">Embed fields <small>Up to 25 fields. Blank rows are ignored.</small></label>
@@ -1162,6 +1162,10 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
     </div>
     <div class="birthday-preview-wrap"><div class="birthday-preview-label">LIVE PREVIEW</div><div class="birthday-discord-preview"><div class="birthday-preview-embed" id="birthdayEmbedPreview"><div class="birthday-preview-author" id="birthdayPreviewAuthor"></div><div class="birthday-preview-title" id="birthdayPreviewTitle">🎂 Happy Birthday!</div><div class="birthday-preview-description" id="birthdayPreviewDescription">Today we're celebrating <span class="birthday-preview-mention">@Member</span>! Wishing you a wonderful day! 🎉</div><div id="birthdayPreviewFields" class="birthday-preview-fields"></div><img id="birthdayPreviewThumbnail" class="birthday-preview-thumbnail" alt="" hidden><img id="birthdayPreviewImage" class="birthday-preview-image" alt="" hidden><div class="birthday-preview-footer" id="birthdayPreviewFooter">Barracks • Birthday Celebration</div></div></div><p class="birthday-preview-note">Preview uses sample member data. Actual mentions are filled in automatically when birthdays are announced.</p></div>
    </div>
+v>
+ </section>
+
+ <section class="card birthday-embed-builder" id="birthdayPostDeliveryCard" style="margin:16px 0;padding:20px;background:#292c33;border:1px solid #4b505b;border-radius:14px">
    <div class="birthday-post-delivery" id="birthdayPostDelivery" style="margin-top:22px;padding-top:18px;border-top:1px solid #4b505b">
     <div class="birthdays-section-head"><span class="birthdays-section-icon">🚀</span><div><h3>Announce or Schedule</h3><p>Send this birthday embed now or choose a future time.</p></div></div>
     <label class="birthdays-field">Destination channel<select id="birthdayPostChannel"><option value="">Choose a text channel</option></select></label>
@@ -1171,7 +1175,7 @@ body{min-width:320px;background:var(--ui-bg);color:var(--ui-text);font-family:In
      <button id="birthdayAnnounceNow" type="button" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;align-items:center;justify-content:center;background:#c6a969;color:#20231f;border:1px solid #dfc784;border-radius:9px;padding:12px 18px;font-weight:800;min-height:44px;cursor:pointer">📣 Announce Now</button>
      <button id="birthdaySchedulePost" type="button" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;align-items:center;justify-content:center;background:#343a43;color:#f4f4f6;border:1px solid #727987;border-radius:9px;padding:12px 18px;font-weight:800;min-height:44px;cursor:pointer">🗓 Schedule a Post</button>
     </div>
-   </div>
+   </di
  </section>
 
  <section class="card birthdays-members-card"><div class="birthdays-list-head"><div class="birthdays-section-head"><span class="birthdays-section-icon">📅</span><div><h3>Member Birthdays</h3><p>All registered birthdays in Barracks, sorted by month and day.</p></div></div><div class="birthdays-list-tools"><input id="birthdayMemberSearch" type="search" placeholder="Search members…" aria-label="Search birthday members"><button id="birthdayListRefresh" type="button">↻ Refresh</button></div></div>
