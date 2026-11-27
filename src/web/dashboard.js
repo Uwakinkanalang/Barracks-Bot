@@ -1616,7 +1616,7 @@ export function registerDashboardRoutes(app, bot) {
         time: date.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' }),
         timestamp: '<t:' + Math.floor(date.getTime() / 1000) + ':F>'
       };
-      return String(value ?? '').replace(/\\{(server(?:\\.id)?|channel(?:\\.id)?|memberCount|date|time|timestamp)\\}/g, (token, key) => values[key] ?? token);
+      return String(value ?? '').replace(/\{(server(?:\.id)?|channel(?:\.id)?|memberCount|date|time|timestamp)\}/g, (token, key) => values[key] ?? token);
     };
     const resolveMessageBuilderEmbed = (embed, guild, channel, date) => {
       if (!embed || typeof embed !== 'object') return embed;
