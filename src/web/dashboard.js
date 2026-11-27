@@ -1000,6 +1000,23 @@ export function registerDashboardRoutes(app, bot) {
         birthdays, channels, roles });
     } catch (error) { return res.status(500).json({ error: error?.message || 'Could not load birthdays.' }); }
   });
+  app.post('/api/dashboard/birthdays/announce-now', async (req, res) => {
+    const guild = requireDashboardGuild(req, res); if (!guild) return;
+    const channel = await guild.channels.fetch(String(req.body?.channelId || '')).catch(() => null);
+    if (!channel || !channel.isTextBased?.() || channel.isThread?.() || typeof channel.send !== 'function') return res.status(400).json({ error: 'Choose a valid destination text channel.' });
+    const raw=req.body?.embed||{},cleanUrl=value=>{const text=String(value||'').trim();if(!text)return null;try{const url=new URL(text);return ['http:','https:'].includes(url.protocol)?url.toString():null;}catch{return null;}};
+    const color=/^#[0-9a-fA-F]{6}$/.test(String(raw.color||''))?parseInt(String(raw.color).slice(1),16):0x5865F2,embed=new EmbedBuilder().setColor(color);
+    if(raw.title)embed.setTitle(String(raw.title).slice(0,256));
+    if(raw.description)embed.setDescription(String(raw.description).slice(0,4096).replaceAll('{server}',guild.name).replaceAll('{count}','0').replaceAll('{members}',''));
+    const au=cleanUrl(raw.authorUrl),ai=cleanUrl(raw.authorIconUrl),fi=cleanUrl(raw.footerIconUrl);
+    if(raw.author)embed.setAuthor({name:String(raw.author).slice(0,256),url:au||undefined,iconURL:ai||undefined});
+    if(raw.footer)embed.setFooter({text:String(raw.footer).slice(0,2048),iconURL:fi||undefined});
+    const image=cleanUrl(raw.imageUrl),thumb=cleanUrl(raw.thumbnailUrl);if(image)embed.setImage(image);if(thumb)embed.setThumbnail(thumb);
+    const fields=Array.isArray(raw.fields)?raw.fields.slice(0,25).filter(f=>String(f?.name||'').trim()&&String(f?.value||'').trim()).map(f=>({name:String(f.name).slice(0,256),value:String(f.value).slice(0,1024),inline:!!f.inline})):[];
+    if(fields.length)embed.addFields(fields);if(raw.timestamp!==false)embed.setTimestamp();
+    try{await channel.send({embeds:[embed],allowedMentions:{parse:[]}});return res.json({ok:true});}catch(error){return res.status(500).json({error:error?.message||'Could not send birthday announcement.'});}
+  });
+
   app.put('/api/dashboard/birthdays', async (req, res) => {
     const guild = requireDashboardGuild(req, res); if (!guild) return;
     const channelId = req.body?.birthdayChannelId ? String(req.body.birthdayChannelId) : null;
@@ -1011,14 +1028,14 @@ export function registerDashboardRoutes(app, bot) {
       const color = /^#[0-9a-fA-F]{6}$/.test(String(rawEmbed.color || '')) ? String(rawEmbed.color) : '#5865F2';
       const cleanUrl = value => { const text = String(value || '').trim(); if (!text) return null; try { const url = new URL(text); return ['http:','https:'].includes(url.protocol) ? url.toString() : null; } catch { return null; } };
       const embed = {
-        title: String(rawEmbed.title || '').trim().slice(0, 256),
-        description: String(rawEmbed.description || '').trim().slice(0, 4096),
-        color,
-        author: String(rawEmbed.author || '').trim().slice(0, 256),
-        footer: String(rawEmbed.footer || '').trim().slice(0, 2048),
-        imageUrl: cleanUrl(rawEmbed.imageUrl),
-        thumbnailUrl: cleanUrl(rawEmbed.thumbnailUrl)
+        title: String(rawEmbed.title || '').trim().slice(0, 256), description: String(rawEmbed.description || '').trim().slice(0, 4096), color,
+        author: String(rawEmbed.author || '').trim().slice(0, 256), authorUrl: cleanUrl(rawEmbed.authorUrl), authorIconUrl: cleanUrl(rawEmbed.authorIconUrl),
+        footer: String(rawEmbed.footer || '').trim().slice(0, 2048), footerIconUrl: cleanUrl(rawEmbed.footerIconUrl),
+        imageUrl: cleanUrl(rawEmbed.imageUrl), thumbnailUrl: cleanUrl(rawEmbed.thumbnailUrl),
+        fields: Array.isArray(rawEmbed.fields) ? rawEmbed.fields.slice(0,25).map(f=>({name:String(f?.name||'').trim().slice(0,256),value:String(f?.value||'').trim().slice(0,1024),inline:!!f?.inline})).filter(f=>f.name&&f.value) : [],
+        timestamp: rawEmbed.timestamp !== false
       };
+      for (const key of ['authorUrl','authorIconUrl','footerIconUrl']) if (rawEmbed[key] && !embed[key]) return res.status(400).json({ error: key+' must be a valid HTTP or HTTPS URL.' });
       if (rawEmbed.imageUrl && !embed.imageUrl) return res.status(400).json({ error: 'Image URL must be a valid HTTP or HTTPS URL.' });
       if (rawEmbed.thumbnailUrl && !embed.thumbnailUrl) return res.status(400).json({ error: 'Thumbnail URL must be a valid HTTP or HTTPS URL.' });
       if (!embed.title && !embed.description) return res.status(400).json({ error: 'Add an embed title or description.' });
