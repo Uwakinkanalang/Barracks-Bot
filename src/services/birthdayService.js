@@ -368,11 +368,12 @@ export async function checkBirthdays(client) {
               .setColor(color)
               .setTitle(String(birthdayEmbed.title || '🎂 Happy Birthday!'))
               .setDescription(description);
-            if (birthdayEmbed.author) embed.setAuthor({ name: String(birthdayEmbed.author).slice(0, 256) });
-            if (birthdayEmbed.footer) embed.setFooter({ text: String(birthdayEmbed.footer).slice(0, 2048) });
+            if (birthdayEmbed.author) embed.setAuthor({ name: String(birthdayEmbed.author).slice(0, 256), url: birthdayEmbed.authorUrl || undefined, iconURL: birthdayEmbed.authorIconUrl || undefined });
+            if (birthdayEmbed.footer) embed.setFooter({ text: String(birthdayEmbed.footer).slice(0, 2048), iconURL: birthdayEmbed.footerIconUrl || undefined });
             if (birthdayEmbed.imageUrl) embed.setImage(birthdayEmbed.imageUrl);
             if (birthdayEmbed.thumbnailUrl) embed.setThumbnail(birthdayEmbed.thumbnailUrl);
-            embed.setTimestamp();
+            if (Array.isArray(birthdayEmbed.fields) && birthdayEmbed.fields.length) embed.addFields(birthdayEmbed.fields.slice(0,25).filter(field=>field?.name&&field?.value).map(field=>({name:String(field.name).slice(0,256),value:String(field.value).replaceAll('{members}',mentions.join(', ')).replaceAll('{count}',String(birthdayMembers.length)).replaceAll('{server}',guild.name).slice(0,1024),inline:!!field.inline})));
+            if (birthdayEmbed.timestamp !== false) embed.setTimestamp();
 
             await channel.send({
               embeds: [embed],
