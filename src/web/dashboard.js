@@ -1005,16 +1005,19 @@ export function registerDashboardRoutes(app, bot) {
     const channel = await guild.channels.fetch(String(req.body?.channelId || '')).catch(() => null);
     if (!channel || !channel.isTextBased?.() || channel.isThread?.() || typeof channel.send !== 'function') return res.status(400).json({ error: 'Choose a valid destination text channel.' });
     const raw=req.body?.embed||{},cleanUrl=value=>{const text=String(value||'').trim();if(!text)return null;try{const url=new URL(text);return ['http:','https:'].includes(url.protocol)?url.toString():null;}catch{return null;}};
+    const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',month:'numeric',day:'numeric'}).formatToParts(new Date()),month=Number(parts.find(p=>p.type==='month')?.value),day=Number(parts.find(p=>p.type==='day')?.value);
+    const entries=await getAllBirthdays(bot,guild.id),today=entries.filter(entry=>entry.month===month&&entry.day===day),birthdayMembers=(await Promise.all(today.map(entry=>guild.members.fetch(entry.userId).catch(()=>null)))).filter(Boolean),mentions=birthdayMembers.map(member=>member.toString()),ids=birthdayMembers.map(member=>member.id);
+    const resolveText=value=>String(value||'').replaceAll('{server}',guild.name).replaceAll('{count}',String(birthdayMembers.length)).replaceAll('{members}',mentions.join(', '));
     const color=/^#[0-9a-fA-F]{6}$/.test(String(raw.color||''))?parseInt(String(raw.color).slice(1),16):0x5865F2,embed=new EmbedBuilder().setColor(color);
-    if(raw.title)embed.setTitle(String(raw.title).slice(0,256));
-    if(raw.description)embed.setDescription(String(raw.description).slice(0,4096).replaceAll('{server}',guild.name).replaceAll('{count}','0').replaceAll('{members}',''));
+    if(raw.title)embed.setTitle(resolveText(raw.title).slice(0,256));
+    if(raw.description)embed.setDescription(resolveText(raw.description).slice(0,4096));
     const au=cleanUrl(raw.authorUrl),ai=cleanUrl(raw.authorIconUrl),fi=cleanUrl(raw.footerIconUrl);
     if(raw.author)embed.setAuthor({name:String(raw.author).slice(0,256),url:au||undefined,iconURL:ai||undefined});
     if(raw.footer)embed.setFooter({text:String(raw.footer).slice(0,2048),iconURL:fi||undefined});
     const image=cleanUrl(raw.imageUrl),thumb=cleanUrl(raw.thumbnailUrl);if(image)embed.setImage(image);if(thumb)embed.setThumbnail(thumb);
-    const fields=Array.isArray(raw.fields)?raw.fields.slice(0,25).filter(f=>String(f?.name||'').trim()&&String(f?.value||'').trim()).map(f=>({name:String(f.name).slice(0,256),value:String(f.value).slice(0,1024),inline:!!f.inline})):[];
+    const fields=Array.isArray(raw.fields)?raw.fields.slice(0,25).filter(f=>String(f?.name||'').trim()&&String(f?.value||'').trim()).map(f=>({name:resolveText(f.name).slice(0,256),value:resolveText(f.value).slice(0,1024),inline:!!f.inline})):[];
     if(fields.length)embed.addFields(fields);if(raw.timestamp!==false)embed.setTimestamp();
-    try{await channel.send({embeds:[embed],allowedMentions:{parse:[]}});return res.json({ok:true});}catch(error){return res.status(500).json({error:error?.message||'Could not send birthday announcement.'});}
+    try{await channel.send({embeds:[embed],allowedMentions:{users:ids}});return res.json({ok:true});}catch(error){return res.status(500).json({error:error?.message||'Could not send birthday announcement.'});}
   });
 
   app.put('/api/dashboard/birthdays', async (req, res) => {
