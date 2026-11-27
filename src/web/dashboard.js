@@ -1430,6 +1430,27 @@ export function registerDashboardRoutes(app, bot) {
       const items = await bot.db.get(key, []);
       if (!Array.isArray(items)) return;
       const now = Date.now();
+      const resolveTemplate = (value, guild, channel, date = new Date()) => {
+        const values = {
+          server: guild.name || 'Barracks', 'server.id': guild.id,
+          channel: channel.name || 'channel', 'channel.id': channel.id,
+          memberCount: String(guild.memberCount ?? guild.members?.cache?.size ?? 0),
+          date: date.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric' }),
+          time: date.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' }),
+          timestamp: '<t:' + Math.floor(date.getTime() / 1000) + ':F>'
+        };
+        return String(value ?? '').replace(/\\{(server(?:\\.id)?|channel(?:\\.id)?|memberCount|date|time|timestamp)\\}/g, (token, key) => values[key] ?? token);
+      };
+      const resolveEmbedTemplate = (embed, guild, channel, date) => {
+        if (!embed || typeof embed !== 'object') return embed;
+        const walk = value => {
+          if (typeof value === 'string') return resolveTemplate(value, guild, channel, date);
+          if (Array.isArray(value)) return value.map(walk);
+          if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, walk(item)]));
+          return value;
+        };
+        return walk(JSON.parse(JSON.stringify(embed)));
+      };
       let changed = false;
       for (const item of items) {
         if (item.status !== 'active' || Date.parse(item.runAt) > now) continue;
@@ -1439,8 +1460,9 @@ export function registerDashboardRoutes(app, bot) {
           if (!channel || !channel.isTextBased?.() || channel.isThread?.() || typeof channel.send !== 'function') continue;
           try {
             const payload = { allowedMentions: { parse: [] } };
-            if (item.content) payload.content = item.content;
-            if (Array.isArray(item.embeds) && item.embeds.length) payload.embeds = item.embeds;
+            const sendAt = new Date(now);
+            if (item.content) payload.content = resolveTemplate(item.content, guild, channel, sendAt);
+            if (Array.isArray(item.embeds) && item.embeds.length) payload.embeds = item.embeds.map(embed => resolveEmbedTemplate(embed, guild, channel, sendAt));
             await channel.send(payload);
             sentAny = true;
           } catch (error) {
