@@ -1523,6 +1523,35 @@ export function registerDashboardRoutes(app, bot) {
     return res.json({ ok: true });
   });
 
+  const messageBuilderDraftKey = guildId => 'guild:' + guildId + ':dashboard:message-builder-draft';
+  app.get('/api/dashboard/message-builder-draft', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    return res.json({ draft: await bot.db.get(messageBuilderDraftKey(guild.id), null) });
+  });
+  app.put('/api/dashboard/message-builder-draft', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const body = req.body || {};
+    const draft = {
+      content: String(body.content || '').slice(0, 2000), title: String(body.title || '').slice(0, 256),
+      description: String(body.description || '').slice(0, 4096), author: String(body.author || '').slice(0, 256),
+      color: /^#[0-9a-fA-F]{6}$/.test(String(body.color || '')) ? String(body.color).toLowerCase() : '#c3f36b',
+      thumbnail: String(body.thumbnail || '').slice(0, 500), image: String(body.image || '').slice(0, 500),
+      footer: String(body.footer || '').slice(0, 2048), footerIcon: String(body.footerIcon || '').slice(0, 500),
+      timestamp: !!body.timestamp, channelIds: [...new Set((Array.isArray(body.channelIds) ? body.channelIds : []).map(String))].slice(0, 20),
+      mode: ['now', 'schedule', 'recurring'].includes(body.mode) ? body.mode : 'now',
+      scheduleAt: String(body.scheduleAt || '').slice(0, 40), repeat: ['daily', 'weekly'].includes(body.repeat) ? body.repeat : 'daily',
+      repeatUntil: /^\\d{4}-\\d{2}-\\d{2}$/.test(String(body.repeatUntil || '')) ? String(body.repeatUntil) : ''
+    };
+    await bot.db.set(messageBuilderDraftKey(guild.id), draft);
+    return res.json({ ok: true, draft });
+  });
+
   app.get('/api/dashboard/message-channels', async (req, res) => {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
     if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
@@ -1554,6 +1583,30 @@ export function registerDashboardRoutes(app, bot) {
       !validUrl(rawEmbed.image?.url) || !validUrl(rawEmbed.thumbnail?.url))) {
       return res.status(400).json({ error: 'Check embed text lengths and image URLs.' });
     }
+    const resolveMessageBuilderVariables = (value, guild, channel, date = new Date()) => {
+      const values = {
+        server: guild.name || 'Barracks',
+        'server.id': guild.id,
+        channel: channel.name || 'channel',
+        'channel.id': channel.id,
+        memberCount: String(guild.memberCount ?? guild.members?.cache?.size ?? 0),
+        date: date.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric' }),
+        time: date.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' }),
+        timestamp: '<t:' + Math.floor(date.getTime() / 1000) + ':F>'
+      };
+      return String(value ?? '').replace(/\\{(server(?:\\.id)?|channel(?:\\.id)?|memberCount|date|time|timestamp)\\}/g, (token, key) => values[key] ?? token);
+    };
+    const resolveMessageBuilderEmbed = (embed, guild, channel, date) => {
+      if (!embed || typeof embed !== 'object') return embed;
+      const clone = JSON.parse(JSON.stringify(embed));
+      const walk = value => {
+        if (typeof value === 'string') return resolveMessageBuilderVariables(value, guild, channel, date);
+        if (Array.isArray(value)) return value.map(walk);
+        if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, walk(item)]));
+        return value;
+      };
+      return walk(clone);
+    };
     const results = [];
     for (const channelId of channelIds) {
       const channel = await guild.channels.fetch(channelId).catch(() => null);
@@ -1562,9 +1615,10 @@ export function registerDashboardRoutes(app, bot) {
         continue;
       }
       try {
+        const sentAt = new Date();
         const payload = { allowedMentions: { parse: [] } };
-        if (content) payload.content = content;
-        if (rawEmbed) payload.embeds = [rawEmbed];
+        if (content) payload.content = resolveMessageBuilderVariables(content, guild, channel, sentAt);
+        if (rawEmbed) payload.embeds = [resolveMessageBuilderEmbed(rawEmbed, guild, channel, sentAt)];
         const message = await channel.send(payload);
         results.push({ channelId, channelName: channel.name, ok: true, messageId: message.id });
       } catch (error) {
