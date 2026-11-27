@@ -1944,8 +1944,9 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
  const ids=['mbContent','mbTitle','mbDescription','mbColor','mbAuthor','mbFooter','mbFooterIcon','mbImage','mbThumbnail','mbTimestamp'];
  const el=id=>document.getElementById(id);
  const val=id=>el(id).value.trim();
- let savedDraft=null,focusedVariableField=null;const show=()=>{panel.style.display='block';render();loadDraftAndChannels();};
- document.getElementById('messageBuilderModuleButton').addEventListener('click',show);
+ let savedDraft=null,focusedVariableField=null;const show=()=>{if(document.documentElement.dataset.barracksRoute!=='message-builder')document.getElementById('messageBuilderNavButton')?.click();render();loadDraftAndChannels();};
+ document.getElementById('messageBuilderModuleButton').addEventListener('click',()=>document.getElementById('messageBuilderNavButton')?.click());
+ document.getElementById('messageBuilderNavButton')?.addEventListener('click',show);
 
  async function loadDraftAndChannels(){
   const status=el('mbDraftStatus');
