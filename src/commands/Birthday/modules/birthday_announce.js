@@ -4,7 +4,7 @@ import { getAllBirthdays } from '../../../services/birthdayService.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
-const BIRTHDAY_BANNER_URL = 'https://raw.githubusercontent.com/Uwakinkanalang/Barracks-Bot/main/Hugo%20Birthday.png';
+const BIRTHDAY_BANNER_URL = 'https://cdn.discordapp.com/attachments/1572883657440366673/1575823941648384051/Neon_Barracks_Birthday_Salute.png?ex=6b0aafe9&is=6b095e69&hm=f4c27114633e3c9de1007d82cfb085765856c2e6c7c93e6126bcf4a2df9fc917';
 
 function getManilaDateParts(date = new Date()) {
     const parts = new Intl.DateTimeFormat('en-US', {
