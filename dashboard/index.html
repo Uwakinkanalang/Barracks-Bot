@@ -2017,6 +2017,8 @@ document.getElementById('welcomeSave').addEventListener('click',async()=>{
  });
  el('mbReset').addEventListener('click',()=>{ids.forEach(id=>{if(id==='mbColor')el(id).value='#c3f36b';else if(id==='mbTimestamp')el(id).checked=false;else el(id).value='';});[...el('mbChannels').options].forEach(option=>option.selected=false);el('mbChannelCheckboxes').querySelectorAll('input[type=checkbox]').forEach(box=>{box.checked=false;box.closest('.mb-channel-checkbox')?.classList.remove('is-selected');});updateChannelCount();render();el('mbStatus').textContent='Builder cleared.';});
  render();
+ const routeFn=window.barracksNavigate;if(routeFn&&!window.__mbDraftRouteWrapped){window.__mbDraftRouteWrapped=true;window.barracksNavigate=function(route,...args){const result=routeFn.call(this,route,...args);if(route==='message-builder')show();return result;};}
+ if(window.__BARRACKS_INITIAL_ROUTE==='message-builder'||window.barracksCurrentRoute?.()==='message-builder')show();
 })();
 </script>
 
