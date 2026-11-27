@@ -2600,10 +2600,10 @@ const originalNav=window.barracksNavigate;if(originalNav&&!window.__mbRouteWrapp
 #messageBuilderPanel #mbTimestamp{width:auto!important;height:auto!important;display:inline-block!important;margin:0!important}
 #messageBuilderPanel>div>div[style*="grid-template-columns"]>.card:nth-child(2){min-width:0!important}
 @media(max-width:900px){#messageBuilderPanel>div>div[style*="grid-template-columns"]{grid-template-columns:minmax(0,1fr)!important}#messageBuilderPanel .mb-embed-fields>.mb-author-field,#messageBuilderPanel .mb-embed-fields>.mb-title-field{grid-column:1/-1!important}#messageBuilderPanel .mb-footer-grid{grid-template-columns:minmax(0,1fr)!important}}
-</style><script id="mbRecurringManager">
+</style><script id="mbRecurringManagerScript">
 (()=>{const panel=document.getElementById('messageBuilderPanel'),results=document.getElementById('mbSendResults');if(!panel||!results||document.getElementById('mbRecurringManager'))return;
 results.insertAdjacentHTML('afterend',`<section id="mbRecurringManager" class="card" style="background:#34353c;border-color:#484950;margin-top:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><div class="eyebrow">Message management</div><h2 style="font-size:16px;margin:4px 0">Recurring Messages</h2><p class="sub" style="margin:0">View, edit, pause, or cancel your recurring announcements.</p></div><button type="button" id="mbRecurringRefresh" class="logout">Refresh</button></div><div id="mbRecurringList" style="display:grid;gap:10px;margin-top:14px"><p class="sub">Loading recurring messages…</p></div><div id="mbRecurringStatus" role="status" class="mb-draft-status"></div></section>`);
-const root=document.getElementById('mbRecurringManager'),list=document.getElementById('mbRecurringList'),status=document.getElementById('mbRecurringStatus');
+const root=document.getElementById('mbRecurringManager'),list=document.getElementById('mbRecurringList'),status=document.getElementById('mbRecurringStatus');document.getElementById('mbModeButtons')?.after(root);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const repeatLabel=m=>m.repeat==='daily'?'Every day':m.repeat==='weekly'?'Every week':'One-time';
 const channels=ids=>ids.map(id=>{const opt=[...document.getElementById('mbChannels').options].find(o=>o.value===id);return opt?opt.textContent.trim():id}).join(', ');
