@@ -1439,7 +1439,7 @@ export function registerDashboardRoutes(app, bot) {
           time: date.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' }),
           timestamp: '<t:' + Math.floor(date.getTime() / 1000) + ':F>'
         };
-        return String(value ?? '').replace(/\\{(server(?:\\.id)?|channel(?:\\.id)?|memberCount|date|time|timestamp)\\}/g, (token, key) => values[key] ?? token);
+        return String(value ?? '').replace(/\{(server(?:\.id)?|channel(?:\.id)?|memberCount|date|time|timestamp)\}/g, (token, key) => values[key] ?? token);
       };
       const resolveEmbedTemplate = (embed, guild, channel, date) => {
         if (!embed || typeof embed !== 'object') return embed;
@@ -1568,7 +1568,7 @@ export function registerDashboardRoutes(app, bot) {
       timestamp: !!body.timestamp, channelIds: [...new Set((Array.isArray(body.channelIds) ? body.channelIds : []).map(String))].slice(0, 20),
       mode: ['now', 'schedule', 'recurring'].includes(body.mode) ? body.mode : 'now',
       scheduleAt: String(body.scheduleAt || '').slice(0, 40), repeat: ['daily', 'weekly'].includes(body.repeat) ? body.repeat : 'daily',
-      repeatUntil: /^\\d{4}-\\d{2}-\\d{2}$/.test(String(body.repeatUntil || '')) ? String(body.repeatUntil) : ''
+      repeatUntil: /^\d{4}-\d{2}-\d{2}$/.test(String(body.repeatUntil || '')) ? String(body.repeatUntil) : ''
     };
     await bot.db.set(messageBuilderDraftKey(guild.id), draft);
     return res.json({ ok: true, draft });
