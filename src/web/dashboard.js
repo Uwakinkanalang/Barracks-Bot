@@ -1531,6 +1531,52 @@ export function registerDashboardRoutes(app, bot) {
     return res.status(201).json({ ok: true, message: item });
   });
 
+  app.put('/api/dashboard/scheduled-messages/:id', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const body = req.body || {}, key = scheduledMessagesKey(guild.id);
+    const items = await bot.db.get(key, []), list = Array.isArray(items) ? items : [];
+    const item = list.find(x => x.id === req.params.id);
+    if (!item) return res.status(404).json({ error: 'Scheduled message not found.' });
+    const channelIds = [...new Set((Array.isArray(body.channelIds) ? body.channelIds : []).map(String))];
+    const runAt = Date.parse(body.runAt), repeat = String(body.repeat || 'none');
+    if (!channelIds.length || channelIds.length > 20 || !Number.isFinite(runAt) || runAt <= Date.now() ||
+        !['daily', 'weekly'].includes(repeat) || (body.repeatUntil && !/^\d{4}-\d{2}-\d{2}$/.test(String(body.repeatUntil)))) {
+      return res.status(400).json({ error: 'Choose channels, a future date/time, and a valid recurring option.' });
+    }
+    const content = String(body.content || ''), embeds = Array.isArray(body.embeds) ? body.embeds.slice(0, 1) : [];
+    if (content.length > 2000 || (!content.trim() && !embeds.length)) return res.status(400).json({ error: 'Add message content (maximum 2,000 characters).' });
+    for (const channelId of channelIds) {
+      const channel = await guild.channels.fetch(channelId).catch(() => null);
+      if (!channel || !channel.isTextBased?.() || channel.isThread?.() || typeof channel.send !== 'function') return res.status(400).json({ error: 'One or more selected channels are invalid.' });
+    }
+    Object.assign(item, { channelIds, content, embeds, runAt: new Date(runAt).toISOString(), repeat, repeatUntil: body.repeatUntil || null, status: item.status === 'paused' ? 'paused' : 'active' });
+    await bot.db.set(key, list);
+    return res.json({ ok: true, message: item });
+  });
+
+  app.patch('/api/dashboard/scheduled-messages/:id', async (req, res) => {
+    const secret = process.env.DASHBOARD_SESSION_SECRET;
+    if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
+    const guild = bot.guilds.cache.get(DASHBOARD_GUILD_ID);
+    if (!guild) return res.status(503).json({ error: 'Barracks server is not available.' });
+    const key = scheduledMessagesKey(guild.id), items = await bot.db.get(key, []);
+    const list = Array.isArray(items) ? items : [], item = list.find(x => x.id === req.params.id);
+    if (!item) return res.status(404).json({ error: 'Scheduled message not found.' });
+    const status = String(req.body?.status || '');
+    if (!['active', 'paused'].includes(status) || !['daily', 'weekly'].includes(item.repeat)) return res.status(400).json({ error: 'Invalid recurring message status.' });
+    if (status === 'active' && Date.parse(item.runAt) <= Date.now()) {
+      const next = new Date(item.runAt), days = item.repeat === 'daily' ? 1 : 7;
+      do { next.setUTCDate(next.getUTCDate() + days); } while (next.getTime() <= Date.now());
+      item.runAt = next.toISOString();
+    }
+    item.status = status;
+    await bot.db.set(key, list);
+    return res.json({ ok: true, message: item });
+  });
+
   app.delete('/api/dashboard/scheduled-messages/:id', async (req, res) => {
     const secret = process.env.DASHBOARD_SESSION_SECRET;
     if (!secret || !validAccessToken(req, secret)) return res.status(401).json({ error: 'Unauthorized' });
