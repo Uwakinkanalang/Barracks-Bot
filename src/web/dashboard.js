@@ -1483,6 +1483,14 @@ export function registerDashboardRoutes(app, bot) {
             const sendAt = new Date(now);
             if (item.content) payload.content = resolveTemplate(item.content, guild, channel, sendAt);
             if (Array.isArray(item.embeds) && item.embeds.length) payload.embeds = item.embeds.map(embed => resolveEmbedTemplate(embed, guild, channel, sendAt));
+            if (item.kind === 'birthday-announcement') {
+              const dateParts = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',month:'numeric',day:'numeric'}).formatToParts(new Date(item.runAt));
+              const month=Number(dateParts.find(part=>part.type==='month')?.value),day=Number(dateParts.find(part=>part.type==='day')?.value);
+              const birthdays=await getAllBirthdays(bot,guild.id),entries=birthdays.filter(entry=>entry.month===month&&entry.day===day);
+              const members=(await Promise.all(entries.map(entry=>guild.members.fetch(entry.userId).catch(()=>null)))).filter(Boolean),mentions=members.map(member=>member.toString());
+              const replaceBirthday=value=>typeof value==='string'?value.replaceAll('{members}',mentions.join(', ')).replaceAll('{count}',String(members.length)).replaceAll('{server}',guild.name):Array.isArray(value)?value.map(replaceBirthday):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,val])=>[key,replaceBirthday(val)])):value;
+              payload.embeds=(payload.embeds||[]).map(replaceBirthday);payload.allowedMentions={users:members.map(member=>member.id)};
+            }
             await channel.send(payload);
             sentAny = true;
           } catch (error) {
@@ -1542,7 +1550,7 @@ export function registerDashboardRoutes(app, bot) {
       const channel = await guild.channels.fetch(channelId).catch(() => null);
       if (!channel || !channel.isTextBased?.() || channel.isThread?.() || typeof channel.send !== 'function') return res.status(400).json({ error: 'One or more selected channels are invalid.' });
     }
-    const item = { id: crypto.randomUUID(), channelIds, content, embeds, runAt: new Date(runAt).toISOString(), repeat, repeatUntil: body.repeatUntil || null, status: 'active', createdAt: new Date().toISOString() };
+    const item = { id: crypto.randomUUID(), channelIds, content, embeds, kind: body.kind === 'birthday-announcement' ? 'birthday-announcement' : 'message', runAt: new Date(runAt).toISOString(), repeat, repeatUntil: body.repeatUntil || null, status: 'active', createdAt: new Date().toISOString() };
     const key = scheduledMessagesKey(guild.id), items = await bot.db.get(key, []);
     const list = Array.isArray(items) ? items : [];
     if (list.filter(x => x.status === 'active').length >= 100) return res.status(400).json({ error: 'Maximum 100 active scheduled messages reached.' });
